@@ -1,4 +1,4 @@
-add_library(dusk ir/port.cc ir/port.hh ir/module.cc ir/module.hh)
+add_library(dusk port.cc port.hh module.cc module.hh io.cc io.hh)
 
-target_link_libraries(dusk asbl)
+target_link_libraries(dusk absl::base absl::str_format)
 target_include_directories(dusk PUBLIC ../extern/abseil-cpp)
