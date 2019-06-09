@@ -5,4 +5,4 @@
 
 bool exists(const std::string &filename);
 
-#endif //DUSK_IO_HH
+#endif  // DUSK_IO_HH
