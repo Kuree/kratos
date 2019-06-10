@@ -12,7 +12,8 @@ class Module {
     std::map<std::string, Port> ports;
 
     static Module from_verilog(const std::string &src_file, const std::string &top_name,
-                               const std::vector<std::string> &lib_files);
+                               const std::vector<std::string> &lib_files,
+                               const std::map<std::string, PortType> &port_types);
 
     private:
     std::vector<std::string> lib_files_;

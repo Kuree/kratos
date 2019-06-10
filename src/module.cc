@@ -97,7 +97,8 @@ std::map<::string, Port> get_port_from_verilog(const ::string &src, const ::stri
 }
 
 Module Module::from_verilog(const std::string &src_file, const std::string &top_name,
-                            const std::vector<std::string> &lib_files) {
+                            const std::vector<std::string> &lib_files,
+                            const std::map<std::string, PortType> &port_types) {
     if (!exists(src_file)) throw ::runtime_error(::StrFormat("%s does not exist", src_file));
 
     Module mod;
@@ -111,6 +112,13 @@ Module Module::from_verilog(const std::string &src_file, const std::string &top_
     // verify the existence of each lib files
     for (auto const &filename : mod.lib_files_) {
         if (!exists(filename)) throw ::runtime_error(::StrFormat("%s does not exist", filename));
+    }
+
+    // assign port types
+    for (auto const &[port_name, port_type] : port_types) {
+        if (mod.ports.find(port_name) == mod.ports.end())
+            throw ::runtime_error(::StrFormat("unable to find port %s", port_name));
+        mod.ports.at(port_name).type = port_type;
     }
 
     return mod;
