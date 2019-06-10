@@ -15,7 +15,10 @@ enum ExprOp {
     Mod,
     LogicalShiftRight,
     SignedShiftRight,
-    ShiftLeft
+    ShiftLeft,
+    Or,
+    And,
+    Xor
 };
 
 
@@ -32,6 +35,9 @@ inline std::string ExprOpStr(ExprOp op) {
         case LogicalShiftRight: return "lshr";
         case SignedShiftRight: return "ashr";
         case ShiftLeft: return "shl";
+        case Or: return "or";
+        case And: return "and";
+        case Xor: return "xor";
         default:
             throw std::runtime_error("unable to find op");
     }

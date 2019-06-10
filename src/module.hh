@@ -37,6 +37,9 @@ public:
     Expr operator/(const Var &var);
     Expr operator>>(const Var &var);
     Expr operator<<(const Var &var);
+    Expr operator|(const Var &var);
+    Expr operator&(const Var &var);
+    Expr operator^(const Var &var);
     Expr ashr(const Var &var);
 
     Module *parent;

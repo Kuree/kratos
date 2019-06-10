@@ -214,6 +214,21 @@ Expr Var::operator<<(const Var &var) {
     return Expr(ExprOp::ShiftLeft, left, right);
 }
 
+Expr Var::operator|(const Var &var) {
+    const auto &[left, right] = get_binary_var_ptr(var);
+    return Expr(ExprOp::Or, left, right);
+}
+
+Expr Var::operator&(const Var &var) {
+    const auto &[left, right] = get_binary_var_ptr(var);
+    return Expr(ExprOp::And, left, right);
+}
+
+Expr Var::operator^(const Var &var) {
+    const auto &[left, right] = get_binary_var_ptr(var);
+    return Expr(ExprOp::Xor, left, right);
+}
+
 Expr Var::ashr(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return Expr(ExprOp::SignedShiftRight, left, right);
