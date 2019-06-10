@@ -31,3 +31,7 @@ PortSlice Port::operator[](std::tuple<uint32_t, uint32_t> slice) {
 PortSlice Port::operator[](uint32_t bit) { return (*this)[{bit, bit}]; }
 
 bool operator<(const Port &left, const Port &right) { return left.name < right.name; }
+
+ConstPort::ConstPort(uint64_t value, uint32_t width)
+    : Port(PortDirection::In, ::StrFormat("const_%d", value), width, PortType::Const),
+      value(value) {}
