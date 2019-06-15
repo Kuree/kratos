@@ -1,0 +1,31 @@
+#ifndef DUSK_CONTEXT_HH
+#define DUSK_CONTEXT_HH
+
+#include <unordered_map>
+#include <map>
+#include <vector>
+#include <memory>
+
+struct Port;
+class Module;
+struct Expr;
+struct Var;
+
+class Context {
+private:
+    std::unordered_map<std::string, std::unique_ptr<Var>> vars_;
+    std::unordered_map<std::string, std::vector<std::unique_ptr<Module>>> modules_;
+
+public:
+    Context() = default;
+
+    Var& var(const std::string &var_name, uint32_t width);
+    Var& var(const std::string &var_name, uint32_t width, bool is_signed);
+
+    Var* get_var(const std::string &var_name);
+    void add_var(const Var &var);
+
+    Module &module(const std::string &name);
+};
+
+#endif  // DUSK_CONTEXT_HH

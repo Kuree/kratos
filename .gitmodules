@@ -4,3 +4,6 @@
 [submodule "extern/googletest"]
 	path = extern/googletest
 	url = https://github.com/google/googletest
+[submodule "extern/slang"]
+	path = extern/slang
+	url = https://github.com/MikePopoloski/slang

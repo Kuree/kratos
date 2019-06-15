@@ -98,12 +98,12 @@ std::map<::string, Port> get_port_from_verilog(const ::string &src, const ::stri
     return get_port_from_mod_def(module_def);
 }
 
-Module Module::from_verilog(const std::string &src_file, const std::string &top_name,
-                            const std::vector<std::string> &lib_files,
+Module Module::from_verilog(Context *context, const std::string &src_file,
+                            const std::string &top_name, const std::vector<std::string> &lib_files,
                             const std::map<std::string, PortType> &port_types) {
     if (!exists(src_file)) throw ::runtime_error(::StrFormat("%s does not exist", src_file));
 
-    Module mod(top_name);
+    Module mod(context, top_name);
     // the src file will be treated a a lib file as well
     mod.lib_files_.emplace_back(src_file);
     mod.lib_files_ = vector<::string>(lib_files.begin(), lib_files.end());
@@ -124,137 +124,4 @@ Module Module::from_verilog(const std::string &src_file, const std::string &top_
     }
 
     return mod;
-}
-
-Var::Var(Module *parent, std::string name, uint32_t width, bool is_signed)
-    : name(std::move(name)), width(width), is_signed(is_signed), parent(parent) {}
-
-Var *Module::get_var(const std::string &var_name) {
-    if (vars_.find(var_name) == vars_.end()) return nullptr;
-    return &vars_.at(var_name);
-}
-
-Var &Module::var(const std::string &var_name, uint32_t width, bool is_signed) {
-    if (vars_.find(var_name) != vars_.end()) {
-        Var *v_p = get_var(var_name);
-        if (v_p->width != width || v_p->is_signed != is_signed)
-            throw std::runtime_error(
-                ::StrFormat("redefinition of %s with different width/sign", var_name));
-        return *v_p;
-    }
-    vars_.emplace(var_name, Var(this, var_name, width, is_signed));
-    return *get_var(var_name);
-}
-
-void Module::add_var(const Var &var) {
-    if (vars_.find(var.name) == vars_.end())
-        vars_.emplace(var.name, var);
-}
-
-std::pair<Var*, Var*> Var::get_binary_var_ptr(const Var &var) {
-    auto left = parent->get_var(name);
-    if (left == nullptr)
-        throw std::runtime_error(
-            ::StrFormat("unable to find port %s from %s", var.name, parent->name));
-    auto right = parent->get_var(var.name);
-    if (right == nullptr)
-        throw std::runtime_error(
-            ::StrFormat("unable to find port %s from %s", var.name, parent->name));
-    return {left, right};
-}
-
-Expr Var::operator-(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Minus, left, right);
-}
-
-Expr Var::operator-() {
-    auto var = parent->get_var(name);
-    return Expr(ExprOp::Minus, var, nullptr);
-}
-
-Expr Var::operator~() {
-    auto var = parent->get_var(name);
-    return Expr(ExprOp::UInvert, var, nullptr);
-}
-
-Expr Var::operator+() {
-    auto var = parent->get_var(name);
-    return Expr(ExprOp::UPlus, var, nullptr);
-}
-
-
-Expr Var::operator+(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Add, left, right);
-}
-
-Expr Var::operator*(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Multiply, left, right);
-}
-
-Expr Var::operator%(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Mod, left, right);
-}
-
-Expr Var::operator/(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Divide, left, right);
-}
-
-Expr Var::operator>>(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::LogicalShiftRight, left, right);
-}
-
-Expr Var::operator<<(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::ShiftLeft, left, right);
-}
-
-Expr Var::operator|(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Or, left, right);
-}
-
-Expr Var::operator&(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::And, left, right);
-}
-
-Expr Var::operator^(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Xor, left, right);
-}
-
-Expr Var::ashr(const Var &var) {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::SignedShiftRight, left, right);
-}
-
-Expr::Expr(ExprOp op, Var *left, Var *right) : op(op), left(left), right(right) {
-    if (left == nullptr) throw std::runtime_error("left operand is null");
-    if (right != nullptr && left->parent != right->parent)
-        throw std::runtime_error(::StrFormat("%s (%s)'s scope is different from that of %s's (%s)",
-                                             left->name, left->parent->name, right->name,
-                                             right->parent->name));
-    parent = left->parent;
-    if (right != nullptr && left->width != right->width)
-        throw std::runtime_error(
-            ::StrFormat("left (%s) width (%d) doesn't match with right (%s) width (%d", left->name,
-                        left->width, right->name, right->width));
-    width = left->width;
-    if (right != nullptr)
-        name = ::StrFormat("%s_%s_%s", left->name, ExprOpStr(op), right->name);
-    else
-        name = ::StrFormat("%s_%s", ExprOpStr(op), left->name);
-    if (right != nullptr)
-        is_signed = left->is_signed | right->is_signed;
-    else
-        is_signed = left->is_signed;
-
-    // add it to parent's vars
-    parent->add_var(*this);
 }
