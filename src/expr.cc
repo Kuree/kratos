@@ -53,12 +53,10 @@ Var::Var(const Var &var) {
 std::pair<Var *, Var *> Var::get_binary_var_ptr(const Var &var) {
     auto left = context->get_var(name);
     if (left == nullptr)
-        throw std::runtime_error(
-            ::StrFormat("unable to find port %s from context", var.name));
+        throw std::runtime_error(::StrFormat("unable to find port %s from context", var.name));
     auto right = context->get_var(var.name);
     if (right == nullptr)
-        throw std::runtime_error(
-            ::StrFormat("unable to find port %s from context", var.name));
+        throw std::runtime_error(::StrFormat("unable to find port %s from context", var.name));
     return {left, right};
 }
 
@@ -135,8 +133,8 @@ Expr Var::ashr(const Var &var) {
 Expr::Expr(ExprOp op, Var *left, Var *right) : op(op), left(left), right(right) {
     if (left == nullptr) throw std::runtime_error("left operand is null");
     if (right != nullptr && left->context != right->context)
-        throw std::runtime_error(::StrFormat("%s context is different from that of %s's",
-                                             left->name, right->name));
+        throw std::runtime_error(
+            ::StrFormat("%s context is different from that of %s's", left->name, right->name));
     context = left->context;
     if (right != nullptr && left->width != right->width)
         throw std::runtime_error(

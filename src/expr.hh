@@ -24,7 +24,6 @@ enum ExprOp {
     Xor
 };
 
-
 std::string ExprOpStr(ExprOp op);
 
 struct Var {
@@ -57,19 +56,17 @@ public:
     Context *context;
 
 protected:
-    Var(): name(), width(), is_signed(false), context(nullptr) {}
+    Var() : name(), width(), is_signed(false), context(nullptr) {}
 
 private:
-    std::pair<Var*, Var*> get_binary_var_ptr(const Var &var);
+    std::pair<Var *, Var *> get_binary_var_ptr(const Var &var);
 };
-
 
 struct Expr : public Var {
     ExprOp op;
     Var *left;
     Var *right;
     Expr(ExprOp op, Var *left, Var *right);
-
 };
 
 #endif  // DUSK_EXPR_HH

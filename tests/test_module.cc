@@ -1,8 +1,8 @@
-#include "../src/module.hh"
 #include "../src/expr.hh"
+#include "../src/module.hh"
 #include "gtest/gtest.h"
 
-TEST(module, load) {    // NOLINT
+TEST(module, load) {  // NOLINT
     Context c;
     auto mod = Module::from_verilog(&c, "module1.sv", "module1", {}, {});
     EXPECT_TRUE(mod.ports.find("f") != mod.ports.end());
@@ -10,10 +10,11 @@ TEST(module, load) {    // NOLINT
     ASSERT_ANY_THROW(Module::from_verilog(&c, "module1.sv", "module1", {"NON_EXIST"}, {}));
     mod = Module::from_verilog(&c, "module1.sv", "module1", {}, {{"a", PortType::Clock}});
     EXPECT_EQ(mod.ports.at("a").type, PortType::Clock);
-    ASSERT_ANY_THROW(Module::from_verilog(&c, "module1.sv", "module1", {}, {{"aa", PortType::Clock}}));
+    ASSERT_ANY_THROW(
+        Module::from_verilog(&c, "module1.sv", "module1", {}, {{"aa", PortType::Clock}}));
 }
 
-TEST(module, port) {    // NOLINT
+TEST(module, port) {  // NOLINT
     Context c;
     auto mod = c.module("module");
     Port p_in(PortDirection::In, "in", 1);
@@ -22,7 +23,7 @@ TEST(module, port) {    // NOLINT
     mod.add_port(p_out);
 }
 
-TEST(module, expr) {    // NOLINT
+TEST(module, expr) {  // NOLINT
     Context c;
     auto mod = c.module("module");
     Port p_in(PortDirection::In, "in", 1);

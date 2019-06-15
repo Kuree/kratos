@@ -10,11 +10,11 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
-Var& Context::var(const std::string &var_name, uint32_t width) {
+Var &Context::var(const std::string &var_name, uint32_t width) {
     return var(var_name, width, false);
 }
 
-Var& Context::var(const std::string &var_name, uint32_t width, bool is_signed) {
+Var &Context::var(const std::string &var_name, uint32_t width, bool is_signed) {
     if (vars_.find(var_name) != vars_.end()) {
         Var *v_p = get_var(var_name);
         if (v_p->width != width || v_p->is_signed != is_signed)
