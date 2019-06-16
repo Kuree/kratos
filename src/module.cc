@@ -4,122 +4,109 @@
 #include <iostream>
 #include <regex>
 #include <unordered_set>
-#include "absl/strings/str_format.h"
-#include "absl/strings/str_split.h"
+#include "fmt/format.h"
 #include "io.hh"
 #include "module.hh"
+#include "slang/compilation/Compilation.h"
+#include "slang/syntax/SyntaxTree.h"
+#include "slang/text/SourceManager.h"
+#include "slang/util/Bag.h"
 
-using absl::StrFormat;
+using fmt::format;
 using std::runtime_error;
 using std::string;
 using std::vector;
 
-std::map<::string, Port> get_port_from_mod_def(const ::string &mod_def) {
-    std::map<::string, Port> result;
-    std::unordered_set<::string> ignore_list = {"logic", "reg", "wire"};
-    std::regex re("(input|output)\\s?([\\w,\\s_$\\[\\]:])+", std::regex::ECMAScript);  // NOLINT
-    std::smatch match;
-    ::string::const_iterator iter = mod_def.cbegin();
-    while (std::regex_search(iter, mod_def.end(), match, re)) {
-        if (match.size() > 1) {
-            ::string port_declaration = ::string(match[0].first, match[0].second);
-            ::vector<::string> const tokens =
-                absl::StrSplit(port_declaration, absl::ByAnyChar(", "));
-            // the first one has to be either input or output
-            if (tokens.size() < 2)
-                throw ::runtime_error(::StrFormat("unable to parse %s", port_declaration));
-            ::string input_type = tokens[0];
-            PortDirection direction;
-            if (input_type == "input")
-                direction = PortDirection::In;
-            else if (input_type == "output")
-                direction = PortDirection::Out;
-            else
-                throw ::runtime_error(
-                    ::StrFormat("%s has to be either input or output", input_type));
-            // determine the reset
-            uint32_t i = 1;
-            uint32_t high = 0;
-            uint32_t low = 0;
-            while (i < tokens.size()) {
-                auto token = tokens[i];
-                if (token.empty()) {
-                    i++;
-                    continue;
-                }
-                if (token[0] == '[' && token[token.size() - 1] != ']') {
-                    token.append(tokens[++i]);
-                }
-                if (token[0] == '[' && token[token.size() - 1] == ']') {
-                    // determine the size
-                    ::vector<::string> size_tokens =
-                        absl::StrSplit(token, absl::ByAnyChar("[:] "), absl::SkipEmpty());
-                    if (size_tokens.size() != 2)
-                        throw ::runtime_error(::StrFormat("unable to parse %s", token));
-                    high = std::stoi(size_tokens[0]);
-                    low = std::stoi(size_tokens[1]);
-                    if (high < low)
-                        throw ::runtime_error(
-                            ::StrFormat("only [hi:lo] is supported, got [%d:%d]", high, low));
-                } else {
-                    if (token[0] == '[')
-                        throw ::runtime_error(::StrFormat("unable to parse %s", port_declaration));
-                    const auto &port_name = token;
-                    uint32_t width = high - low + 1;
-                    Port p(direction, port_name, width);
-                    result.emplace(port_name, p);
-                }
-
-                i++;
+void visit_module_def(const slang::SyntaxNode *node, const ::string &module_name,
+                      slang::PortListSyntax **list) {
+    if (*list)
+        // we're done
+        return;
+    uint32_t count = node->getChildCount();
+    for (uint32_t i = 0; i < count; i++) {
+        auto const &child = node->childNode(i);
+        if (!child) continue;
+        if (child->kind == slang::SyntaxKind::ModuleHeader) {
+            auto const &header = child->as<slang::ModuleHeaderSyntax>();
+            if (header.name.valueText() == module_name) {
+                *list = header.ports;
             }
+        } else {
+            visit_module_def(child, module_name, list);
         }
-        iter = match[0].second;
     }
-    return result;
 }
 
-std::map<::string, Port> get_port_from_verilog(const ::string &src, const ::string &top_name) {
-    std::regex re("module\\s+([\\w_$]+)[\\w\\W]*?endmodule", std::regex::ECMAScript);  // NOLINT
-    std::smatch match;
-    ::string::const_iterator iter = src.cbegin();
-    ::string module_def;
-    while (std::regex_search(iter, src.end(), match, re)) {
-        if (match.size() > 1) {
-            ::string module_name = ::string(match[1].first, match[1].second);
-            if (module_name == top_name) {
-                module_def = ::string(match[0].first, match[0].second);
-                break;
+std::map<::string, Port> get_port_from_verilog(const ::string &filename,
+                                               const ::string &module_name) {
+    slang::SourceManager source_manager;
+    auto buffer = source_manager.readSource(filename);
+    slang::Bag options;
+    auto ast_tree = slang::SyntaxTree::fromBuffer(buffer, source_manager, options);
+    const auto &root = ast_tree->root();
+    slang::PortListSyntax *port_list_syntax = nullptr;
+    visit_module_def(&root, module_name, &port_list_syntax);
+    if (!port_list_syntax) {
+        throw ::runtime_error(
+            ::format("unable to find module %s from file %s", module_name, filename));
+    }
+    std::map<::string, Port> ports;
+    if (port_list_syntax->kind == slang::SyntaxKind::AnsiPortList) {
+        auto const &port_list = port_list_syntax->as<slang::AnsiPortListSyntax>();
+        for (auto const &member : port_list.ports) {
+            std::cout << member->attributes.size() << std::endl;
+        }
+    } else if (port_list_syntax->kind == slang::SyntaxKind::NonAnsiPortList) {
+        auto const &port_list = port_list_syntax->as<slang::NonAnsiPortListSyntax>();
+        for (auto const &member : port_list.ports) {
+            if (member->kind == slang::SyntaxKind::ImplicitNonAnsiPort) {
+                auto const &p = member->as<slang::ImplicitNonAnsiPortSyntax>();
+                ::string port_name =
+                    ::string(p.expr->as<slang::PortReferenceSyntax>().name.valueText());
+                Port port(PortDirection::Undefined, port_name, 1);
+                ports.emplace(port_name, port);
+            } else {
+                auto const &p = member->as<slang::ExplicitNonAnsiPortSyntax>();
+                ::string port_name = p.expr->toString();
+                std::cout << port_name << std::endl;
+                throw ::runtime_error("not implemented");
             }
         }
-        iter = match[0].second;
     }
-    if (module_def.empty())
-        throw ::runtime_error(::StrFormat("Unable to find %s definition", top_name));
-    return get_port_from_mod_def(module_def);
+    // if we have any undefined port direction, we need to loop through the ast mody
+    // to figure out the direction, i.e. implicit port
+    std::unordered_set<::string> implicit_ports;
+    for (auto const &[name, port]: ports) {
+        if (port.direction == PortDirection::Undefined) {
+            implicit_ports.emplace(name);
+        }
+    }
+    if (!implicit_ports.empty()) {
+        
+    }
+    return ports;
 }
 
 Module Module::from_verilog(Context *context, const std::string &src_file,
                             const std::string &top_name, const std::vector<std::string> &lib_files,
                             const std::map<std::string, PortType> &port_types) {
-    if (!exists(src_file)) throw ::runtime_error(::StrFormat("%s does not exist", src_file));
+    if (!exists(src_file)) throw ::runtime_error(::format("%s does not exist", src_file));
 
     Module mod(context, top_name);
     // the src file will be treated a a lib file as well
     mod.lib_files_.emplace_back(src_file);
     mod.lib_files_ = vector<::string>(lib_files.begin(), lib_files.end());
-    std::ifstream src(src_file);
-    std::string src_code((std::istreambuf_iterator<char>(src)), std::istreambuf_iterator<char>());
-    const auto &ports = get_port_from_verilog(src_code, top_name);
-    mod.ports = ports;
+    // const auto &ports = ;
+    mod.ports = get_port_from_verilog(src_file, top_name);
     // verify the existence of each lib files
     for (auto const &filename : mod.lib_files_) {
-        if (!exists(filename)) throw ::runtime_error(::StrFormat("%s does not exist", filename));
+        if (!exists(filename)) throw ::runtime_error(::format("%s does not exist", filename));
     }
 
     // assign port types
     for (auto const &[port_name, port_type] : port_types) {
         if (mod.ports.find(port_name) == mod.ports.end())
-            throw ::runtime_error(::StrFormat("unable to find port %s", port_name));
+            throw ::runtime_error(::format("unable to find port %s", port_name));
         mod.ports.at(port_name).type = port_type;
     }
 

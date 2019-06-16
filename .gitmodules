@@ -4,3 +4,6 @@
 [submodule "extern/slang"]
 	path = extern/slang
 	url = https://github.com/MikePopoloski/slang
+[submodule "extern/fmt"]
+	path = extern/fmt
+	url = https://github.com/fmtlib/fmt

@@ -6,9 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 # turn every warnings on
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -fPIC")
 
+
 # extern
-add_subdirectory(extern/abseil-cpp)
 add_subdirectory(extern/googletest/)
+add_subdirectory(extern/slang)
 
 include(GoogleTest)
 

@@ -1,11 +1,10 @@
 #include "expr.hh"
 #include <stdexcept>
-#include "absl/strings/str_format.h"
-#include "absl/strings/str_split.h"
+#include "fmt/format.h"
 #include "io.hh"
 #include "module.hh"
 
-using absl::StrFormat;
+using fmt::format;
 using std::runtime_error;
 using std::string;
 using std::vector;
@@ -53,10 +52,10 @@ Var::Var(const Var &var) {
 std::pair<Var *, Var *> Var::get_binary_var_ptr(const Var &var) {
     auto left = context->get_var(name);
     if (left == nullptr)
-        throw std::runtime_error(::StrFormat("unable to find port %s from context", var.name));
+        throw std::runtime_error(::format("unable to find port %s from context", var.name));
     auto right = context->get_var(var.name);
     if (right == nullptr)
-        throw std::runtime_error(::StrFormat("unable to find port %s from context", var.name));
+        throw std::runtime_error(::format("unable to find port %s from context", var.name));
     return {left, right};
 }
 
@@ -134,17 +133,17 @@ Expr::Expr(ExprOp op, Var *left, Var *right) : op(op), left(left), right(right) 
     if (left == nullptr) throw std::runtime_error("left operand is null");
     if (right != nullptr && left->context != right->context)
         throw std::runtime_error(
-            ::StrFormat("%s context is different from that of %s's", left->name, right->name));
+            ::format("%s context is different from that of %s's", left->name, right->name));
     context = left->context;
     if (right != nullptr && left->width != right->width)
         throw std::runtime_error(
-            ::StrFormat("left (%s) width (%d) doesn't match with right (%s) width (%d", left->name,
-                        left->width, right->name, right->width));
+            ::format("left (%s) width (%d) doesn't match with right (%s) width (%d", left->name,
+                     left->width, right->name, right->width));
     width = left->width;
     if (right != nullptr)
-        name = ::StrFormat("(%s %s %s)", left->name, ExprOpStr(op), right->name);
+        name = ::format("(%s %s %s)", left->name, ExprOpStr(op), right->name);
     else
-        name = ::StrFormat("(%s %s)", ExprOpStr(op), left->name);
+        name = ::format("(%s %s)", ExprOpStr(op), left->name);
     if (right != nullptr)
         is_signed = left->is_signed | right->is_signed;
     else

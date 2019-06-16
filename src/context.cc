@@ -1,10 +1,9 @@
 #include "context.hh"
-#include "absl/strings/str_format.h"
-#include "absl/strings/str_split.h"
 #include "expr.hh"
+#include "fmt/format.h"
 #include "module.hh"
 
-using absl::StrFormat;
+using fmt::format;
 using std::runtime_error;
 using std::string;
 using std::unique_ptr;
@@ -19,7 +18,7 @@ Var &Context::var(const std::string &var_name, uint32_t width, bool is_signed) {
         Var *v_p = get_var(var_name);
         if (v_p->width != width || v_p->is_signed != is_signed)
             throw std::runtime_error(
-                ::StrFormat("redefinition of %s with different width/sign", var_name));
+                ::format("redefinition of %s with different width/sign", var_name));
         return *v_p;
     }
     vars_.emplace(var_name, std::make_unique<Var>(this, var_name, width, is_signed));
@@ -29,7 +28,7 @@ Var &Context::var(const std::string &var_name, uint32_t width, bool is_signed) {
 void Context::add_var(const Var &var) {
     if (vars_.find(var.name) == vars_.end()) {
         if (var.context != this) {
-            throw ::runtime_error(::StrFormat("%s's context is not the same", var.name));
+            throw ::runtime_error(::format("%s's context is not the same", var.name));
         }
         vars_.emplace(var.name, std::make_unique<Var>(var));
     }
