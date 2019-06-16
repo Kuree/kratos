@@ -5,8 +5,8 @@
 
 struct Wire {
 public:
-    PortSlice *src = nullptr;
-    std::set<PortSlice> sinks;
+    VarSlice *src = nullptr;
+    std::set<VarSlice> sinks;
 };
 
 #endif  // DUSK_WIRE_HH

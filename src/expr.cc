@@ -42,13 +42,6 @@ std::string ExprOpStr(ExprOp op) {
     }
 }
 
-Var::Var(const Var &var) {
-    name = var.name;
-    width = var.width;
-    is_signed = var.is_signed;
-    context = var.context;
-}
-
 std::pair<Var *, Var *> Var::get_binary_var_ptr(const Var &var) {
     auto left = context->get_var(name);
     if (left == nullptr)
@@ -129,6 +122,28 @@ Expr Var::ashr(const Var &var) {
     return Expr(ExprOp::SignedShiftRight, left, right);
 }
 
+VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
+    auto const [high, low] = slice;
+    if (low > high) {
+        throw ::runtime_error(::format("low (%d) cannot be larger than (%d)", low, high));
+    }
+    if (high >= width) {
+        throw ::runtime_error(::format("high (%d) has to be smaller than width (%d)", high, width));
+    }
+    // if we already has the slice
+    if (slices_.find(slice) != slices_.end())
+        return slices_.at(slice);
+    // create a new one
+    slices_.emplace(slice, VarSlice(this, high, low));
+    return slices_.at(slice);
+}
+
+VarSlice &Var::operator[](uint32_t bit) { return (*this)[{bit, bit}]; }
+
+VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
+    : Var(parent->context, ::format("%s[%d:%d]", parent->name, high, low), high - low + 1,
+          parent->is_signed) {}
+
 Expr::Expr(ExprOp op, Var *left, Var *right) : op(op), left(left), right(right) {
     if (left == nullptr) throw std::runtime_error("left operand is null");
     if (right != nullptr && left->context != right->context)
@@ -150,7 +165,7 @@ Expr::Expr(ExprOp op, Var *left, Var *right) : op(op), left(left), right(right) 
         is_signed = left->is_signed;
 
     // add it to context's vars
-    context->add_var(*this);
+    context->add_expr(*this);
 }
 
 Var::Var(Context *c, std::string name, uint32_t width, bool is_signed)

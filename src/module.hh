@@ -22,7 +22,7 @@ public:
 
     Module(Context *context, std::string name) : name(std::move(name)), context(context) {}
 
-    void add_port(const Port &port) { ports.emplace(port.name, port); }
+    void add_port(const Port &port) { ports.emplace(port.name, std::move(port)); }
 
 private:
     std::vector<std::string> lib_files_;

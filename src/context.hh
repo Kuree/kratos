@@ -10,6 +10,7 @@ struct Port;
 class Module;
 struct Expr;
 struct Var;
+struct VarSlice;
 
 class Context {
 private:
@@ -23,7 +24,7 @@ public:
     Var &var(const std::string &var_name, uint32_t width, bool is_signed);
 
     Var *get_var(const std::string &var_name);
-    void add_var(const Var &var);
+    void add_expr(const Expr &expr);
 
     Module &module(const std::string &name);
 };

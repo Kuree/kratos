@@ -29,7 +29,6 @@ std::string ExprOpStr(ExprOp op);
 struct Var {
 public:
     Var(Context *c, std::string name, uint32_t width, bool is_signed);
-    Var(const Var &var);
 
     std::string name;
     uint32_t width;
@@ -53,6 +52,10 @@ public:
     Expr operator^(const Var &var);
     Expr ashr(const Var &var);
 
+
+    VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
+    VarSlice &operator[](uint32_t bit);
+
     Context *context;
 
 protected:
@@ -60,6 +63,17 @@ protected:
 
 private:
     std::pair<Var *, Var *> get_binary_var_ptr(const Var &var);
+    std::map<std::pair<uint32_t, uint32_t>, VarSlice> slices_;
+};
+
+
+struct VarSlice: public Var {
+public:
+    Var *parent = nullptr;
+    uint32_t low = 0;
+    uint32_t high = 0;
+
+    VarSlice(Var *parent, uint32_t high, uint32_t low);
 };
 
 struct Expr : public Var {

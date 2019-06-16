@@ -25,12 +25,12 @@ Var &Context::var(const std::string &var_name, uint32_t width, bool is_signed) {
     return *get_var(var_name);
 }
 
-void Context::add_var(const Var &var) {
-    if (vars_.find(var.name) == vars_.end()) {
-        if (var.context != this) {
-            throw ::runtime_error(::format("%s's context is not the same", var.name));
+void Context::add_expr(const Expr &expr) {
+    if (vars_.find(expr.name) == vars_.end()) {
+        if (expr.context != this) {
+            throw ::runtime_error(::format("%s's context is not the same", expr.name));
         }
-        vars_.emplace(var.name, std::make_unique<Var>(var));
+        vars_.emplace(expr.name, std::make_unique<Expr>(expr));
     }
 }
 
