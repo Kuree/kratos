@@ -5,7 +5,9 @@
 #include "module.hh"
 
 using fmt::format;
+using std::make_shared;
 using std::runtime_error;
+using std::shared_ptr;
 using std::string;
 using std::vector;
 
@@ -42,7 +44,7 @@ std::string ExprOpStr(ExprOp op) {
     }
 }
 
-std::pair<Var *, Var *> Var::get_binary_var_ptr(const Var &var) {
+std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(const Var &var) {
     auto left = module->get_var(name);
     if (left == nullptr)
         throw std::runtime_error(::format("unable to find port %s from context", var.name));
@@ -131,8 +133,7 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
         throw ::runtime_error(::format("high (%d) has to be smaller than width (%d)", high, width));
     }
     // if we already has the slice
-    if (slices_.find(slice) != slices_.end())
-        return slices_.at(slice);
+    if (slices_.find(slice) != slices_.end()) return slices_.at(slice);
     // create a new one
     slices_.emplace(slice, VarSlice(this, high, low));
     return slices_.at(slice);
@@ -144,7 +145,8 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     : Var(parent->module, ::format("%s[%d:%d]", parent->name, high, low), high - low + 1,
           parent->is_signed) {}
 
-Expr::Expr(ExprOp op, Var *left, Var *right) : op(op), left(left), right(right) {
+Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
+    : op(op), left(left), right(right) {
     if (left == nullptr) throw std::runtime_error("left operand is null");
     if (right != nullptr && left->module != right->module)
         throw std::runtime_error(
@@ -164,9 +166,8 @@ Expr::Expr(ExprOp op, Var *left, Var *right) : op(op), left(left), right(right) 
     else
         is_signed = left->is_signed;
 
-
     // add it to context's vars
-    module->add_expr(*this);
+    module->add_expr(::shared_ptr<Expr>(this));
 }
 
 Var::Var(Module *module, std::string name, uint32_t width, bool is_signed)

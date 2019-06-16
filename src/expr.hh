@@ -26,7 +26,7 @@ enum ExprOp {
 
 std::string ExprOpStr(ExprOp op);
 
-struct Var {
+struct Var: public std::enable_shared_from_this<Var> {
 public:
     Var(Module *m, std::string name, uint32_t width, bool is_signed);
 
@@ -63,7 +63,7 @@ protected:
 
 
 private:
-    std::pair<Var *, Var *> get_binary_var_ptr(const Var &var);
+    std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var);
     std::map<std::pair<uint32_t, uint32_t>, VarSlice> slices_;
 };
 
@@ -79,9 +79,9 @@ public:
 
 struct Expr : public Var {
     ExprOp op;
-    Var *left;
-    Var *right;
-    Expr(ExprOp op, Var *left, Var *right);
+    std::shared_ptr<Var> left;
+    std::shared_ptr<Var> right;
+    Expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 };
 
 #endif  // DUSK_EXPR_HH

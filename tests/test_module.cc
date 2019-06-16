@@ -35,9 +35,9 @@ TEST(module, expr) {  // NOLINT
     Var &var1 = mod.var("a", 1);
     Var var2 = mod.var("b", 1);
     auto expr = var1 + var2;
-    EXPECT_EQ(expr.left, &var1);
+    EXPECT_EQ(expr.left.get(), &var1);
     // var2 is stored in stack
-    EXPECT_NE(expr.right, &var2);
+    EXPECT_NE(expr.right.get(), &var2);
 
     expr = (var1 - var2).ashr(var2);
     EXPECT_EQ(expr.name, "((a - b) >>> b)");

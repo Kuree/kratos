@@ -23,18 +23,18 @@ public:
     Module(Context *context, std::string name) : name(std::move(name)), context(context) {}
 
     void add_port(const Port &port) { ports.emplace(port.name, port); }
-    void add_expr(const Expr &expr);
+    void add_expr(const std::shared_ptr<Expr> &expr);
 
     Var &var(const std::string &var_name, uint32_t width);
     Var &var(const std::string &var_name, uint32_t width, bool is_signed);
 
-    Var *get_var(const std::string &var_name);
+    std::shared_ptr<Var> get_var(const std::string &var_name);
 
 private:
     std::vector<std::string> lib_files_;
     Context *context;
 
-    std::unordered_map<std::string, Var> vars_;
+    std::unordered_map<std::string, std::shared_ptr<Var>> vars_;
 };
 
 #endif  // DUSK_MODULE_HH
