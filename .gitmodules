@@ -1,6 +1,3 @@
-[submodule "extern/abseil-cpp"]
-	path = extern/abseil-cpp
-	url = https://github.com/abseil/abseil-cpp
 [submodule "extern/googletest"]
 	path = extern/googletest
 	url = https://github.com/google/googletest
