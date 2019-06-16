@@ -43,10 +43,10 @@ std::string ExprOpStr(ExprOp op) {
 }
 
 std::pair<Var *, Var *> Var::get_binary_var_ptr(const Var &var) {
-    auto left = context->get_var(name);
+    auto left = module->get_var(name);
     if (left == nullptr)
         throw std::runtime_error(::format("unable to find port %s from context", var.name));
-    auto right = context->get_var(var.name);
+    auto right = module->get_var(var.name);
     if (right == nullptr)
         throw std::runtime_error(::format("unable to find port %s from context", var.name));
     return {left, right};
@@ -58,17 +58,17 @@ Expr Var::operator-(const Var &var) {
 }
 
 Expr Var::operator-() {
-    auto var = context->get_var(name);
+    auto var = module->get_var(name);
     return Expr(ExprOp::Minus, var, nullptr);
 }
 
 Expr Var::operator~() {
-    auto var = context->get_var(name);
+    auto var = module->get_var(name);
     return Expr(ExprOp::UInvert, var, nullptr);
 }
 
 Expr Var::operator+() {
-    auto var = context->get_var(name);
+    auto var = module->get_var(name);
     return Expr(ExprOp::UPlus, var, nullptr);
 }
 
@@ -141,15 +141,15 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
 VarSlice &Var::operator[](uint32_t bit) { return (*this)[{bit, bit}]; }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
-    : Var(parent->context, ::format("%s[%d:%d]", parent->name, high, low), high - low + 1,
+    : Var(parent->module, ::format("%s[%d:%d]", parent->name, high, low), high - low + 1,
           parent->is_signed) {}
 
 Expr::Expr(ExprOp op, Var *left, Var *right) : op(op), left(left), right(right) {
     if (left == nullptr) throw std::runtime_error("left operand is null");
-    if (right != nullptr && left->context != right->context)
+    if (right != nullptr && left->module != right->module)
         throw std::runtime_error(
             ::format("%s context is different from that of %s's", left->name, right->name));
-    context = left->context;
+    module = left->module;
     if (right != nullptr && left->width != right->width)
         throw std::runtime_error(
             ::format("left (%s) width (%d) doesn't match with right (%s) width (%d", left->name,
@@ -164,9 +164,10 @@ Expr::Expr(ExprOp op, Var *left, Var *right) : op(op), left(left), right(right) 
     else
         is_signed = left->is_signed;
 
+
     // add it to context's vars
-    context->add_expr(*this);
+    module->add_expr(*this);
 }
 
-Var::Var(Context *c, std::string name, uint32_t width, bool is_signed)
-    : name(std::move(name)), width(width), is_signed(is_signed), context(c) {}
+Var::Var(Module *module, std::string name, uint32_t width, bool is_signed)
+    : name(std::move(name)), width(width), is_signed(is_signed), module(module) {}

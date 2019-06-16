@@ -28,7 +28,7 @@ std::string ExprOpStr(ExprOp op);
 
 struct Var {
 public:
-    Var(Context *c, std::string name, uint32_t width, bool is_signed);
+    Var(Module *m, std::string name, uint32_t width, bool is_signed);
 
     std::string name;
     uint32_t width;
@@ -56,10 +56,11 @@ public:
     VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
     VarSlice &operator[](uint32_t bit);
 
-    Context *context;
+    Module *module;
 
 protected:
-    Var() : name(), width(), is_signed(false), context(nullptr) {}
+    Var() : name(), width(), is_signed(false), module(nullptr) {}
+
 
 private:
     std::pair<Var *, Var *> get_binary_var_ptr(const Var &var);

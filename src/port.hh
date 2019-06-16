@@ -16,9 +16,9 @@ public:
     PortDirection direction;
     PortType type;
 
-    Port(Context *c, PortDirection direction, const std::string &name, uint32_t width);
+    Port(Module *module, PortDirection direction, const std::string &name, uint32_t width);
 
-    Port(Context *c, PortDirection direction, const std::string &name, uint32_t width,
+    Port(Module *module, PortDirection direction, const std::string &name, uint32_t width,
          PortType type, bool is_signed);
 };
 

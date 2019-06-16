@@ -20,8 +20,8 @@ TEST(module, load) {  // NOLINT
 TEST(module, port) {  // NOLINT
     Context c;
     auto mod = c.module("module");
-    Port p_in(&c, PortDirection::In, "in", 1);
-    Port p_out(&c, PortDirection::Out, "out", 1);
+    Port p_in(&mod, PortDirection::In, "in", 1);
+    Port p_out(&mod, PortDirection::Out, "out", 1);
     mod.add_port(p_in);
     mod.add_port(p_out);
 }
@@ -29,11 +29,11 @@ TEST(module, port) {  // NOLINT
 TEST(module, expr) {  // NOLINT
     Context c;
     auto mod = c.module("module");
-    Port p_in(&c, PortDirection::In, "in", 1);
-    Port p_out(&c, PortDirection::Out, "out", 1);
+    Port p_in(&mod, PortDirection::In, "in", 1);
+    Port p_out(&mod, PortDirection::Out, "out", 1);
 
-    Var &var1 = c.var("a", 1);
-    Var var2 = c.var("b", 1);
+    Var &var1 = mod.var("a", 1);
+    Var var2 = mod.var("b", 1);
     auto expr = var1 + var2;
     EXPECT_EQ(expr.left, &var1);
     // var2 is stored in stack
