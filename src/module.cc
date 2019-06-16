@@ -17,11 +17,12 @@ using std::runtime_error;
 using std::string;
 using std::vector;
 
-std::map<::string, Port> get_port_from_verilog(Module *module, const ::string &filename,
-                                               const ::string &module_name) {
+std::map<::string, std::shared_ptr<Port>> get_port_from_verilog(Module *module,
+                                                                const ::string &filename,
+                                                                const ::string &module_name) {
     slang::SourceManager source_manager;
     slang::Compilation compilation;
-    std::map<::string, Port> ports;
+    std::map<::string, std::shared_ptr<Port>> ports;
     auto buffer = source_manager.readSource(filename);
     slang::Bag options;
     auto ast_tree = slang::SyntaxTree::fromBuffer(buffer, source_manager, options);
@@ -55,7 +56,8 @@ std::map<::string, Port> get_port_from_verilog(Module *module, const ::string &f
             const auto &type = p.getType();
             const auto width = type.getBitWidth();
             const auto is_signed = type.isSigned();
-            ports.emplace(name, Port(module, direction, name, width, PortType::Data, is_signed));
+            ports.emplace(name, std::make_shared<Port>(module, direction, name, width,
+                                                       PortType::Data, is_signed));
         }
     }
 
@@ -72,7 +74,7 @@ Module Module::from_verilog(Context *context, const std::string &src_file,
     mod.lib_files_.emplace_back(src_file);
     mod.lib_files_ = vector<::string>(lib_files.begin(), lib_files.end());
     // const auto &ports = ;
-    mod.ports = get_port_from_verilog(&mod, src_file, top_name);
+    mod.ports_ = get_port_from_verilog(&mod, src_file, top_name);
     // verify the existence of each lib files
     for (auto const &filename : mod.lib_files_) {
         if (!exists(filename)) throw ::runtime_error(::format("%s does not exist", filename));
@@ -80,14 +82,13 @@ Module Module::from_verilog(Context *context, const std::string &src_file,
 
     // assign port types
     for (auto const &[port_name, port_type] : port_types) {
-        if (mod.ports.find(port_name) == mod.ports.end())
+        if (mod.ports_.find(port_name) == mod.ports_.end())
             throw ::runtime_error(::format("unable to find port %s", port_name));
-        mod.ports.at(port_name).type = port_type;
+        mod.ports_.at(port_name)->type = port_type;
     }
 
     return mod;
 }
-
 
 Var &Module::var(const std::string &var_name, uint32_t width) {
     return var(var_name, width, false);
@@ -105,16 +106,25 @@ Var &Module::var(const std::string &var_name, uint32_t width, bool is_signed) {
     return *get_var(var_name);
 }
 
-void Module::add_expr(const std::shared_ptr<Expr> &expr) {
-    if (vars_.find(expr->name) == vars_.end()) {
-        if (expr->module != this) {
-            throw ::runtime_error(::format("%s's context is not the same", expr->name));
-        }
-        vars_.emplace(expr->name, expr);
-    }
-}
-
 std::shared_ptr<Var> Module::get_var(const std::string &var_name) {
     if (vars_.find(var_name) == vars_.end()) return nullptr;
     return vars_.at(var_name);
+}
+
+Port &Module::port(PortDirection direction, const std::string &port_name, uint32_t width) {
+    return port(direction, port_name, width, PortType::Data, false);
+}
+
+Port &Module::port(PortDirection direction, const std::string &port_name, uint32_t width,
+                   PortType type, bool is_signed) {
+    if (ports_.find(port_name) != ports_.end())
+        throw ::runtime_error(::format("%s already exists in %s", port_name, name));
+    ports_.emplace(port_name,
+                   std::make_shared<Port>(this, direction, port_name, width, type, is_signed));
+    return *ports_.at(port_name);
+}
+
+std::shared_ptr<Port> Module::get_port(const std::string &port_name) {
+    if (ports_.find(port_name) == ports_.end()) return nullptr;
+    return ports_.at(port_name);
 }

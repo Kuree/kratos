@@ -162,12 +162,9 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
     else
         name = ::format("(%s %s)", ExprOpStr(op), left->name);
     if (right != nullptr)
-        is_signed = left->is_signed | right->is_signed;
+        is_signed = left->is_signed & right->is_signed;
     else
         is_signed = left->is_signed;
-
-    // add it to context's vars
-    module->add_expr(::shared_ptr<Expr>(this));
 }
 
 Var::Var(Module *module, std::string name, uint32_t width, bool is_signed)
