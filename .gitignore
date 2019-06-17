@@ -34,3 +34,6 @@
 # Clion
 .idea
 cmake-build-debug
+
+# Python
+env
