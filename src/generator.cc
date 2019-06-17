@@ -5,8 +5,8 @@
 #include <regex>
 #include <unordered_set>
 #include "fmt/format.h"
+#include "generator.hh"
 #include "io.hh"
-#include "module.hh"
 #include "slang/compilation/Compilation.h"
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/text/SourceManager.h"
@@ -17,7 +17,7 @@ using std::runtime_error;
 using std::string;
 using std::vector;
 
-std::map<::string, std::shared_ptr<Port>> get_port_from_verilog(Module *module,
+std::map<::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *module,
                                                                 const ::string &filename,
                                                                 const ::string &module_name) {
     slang::SourceManager source_manager;
@@ -29,7 +29,7 @@ std::map<::string, std::shared_ptr<Port>> get_port_from_verilog(Module *module,
     compilation.addSyntaxTree(ast_tree);
     const auto &def = compilation.getDefinition(module_name);
     if (!def) {
-        throw ::runtime_error(::format("unable to find %s from %s", module_name, filename));
+        throw ::runtime_error(::format("unable to find {0} from {1}", module_name, filename));
     }
     const auto &port_map = def->getPortMap();
     for (auto const &[name, symbol] : port_map) {
@@ -64,67 +64,87 @@ std::map<::string, std::shared_ptr<Port>> get_port_from_verilog(Module *module,
     return ports;
 }
 
-Module Module::from_verilog(Context *context, const std::string &src_file,
-                            const std::string &top_name, const std::vector<std::string> &lib_files,
-                            const std::map<std::string, PortType> &port_types) {
-    if (!exists(src_file)) throw ::runtime_error(::format("%s does not exist", src_file));
+Generator Generator::from_verilog(Context *context, const std::string &src_file,
+                                  const std::string &top_name,
+                                  const std::vector<std::string> &lib_files,
+                                  const std::map<std::string, PortType> &port_types) {
+    if (!exists(src_file)) throw ::runtime_error(::format("{0} does not exist", src_file));
 
-    Module mod(context, top_name);
+    Generator mod(context, top_name);
     // the src file will be treated a a lib file as well
     mod.lib_files_.emplace_back(src_file);
     mod.lib_files_ = vector<::string>(lib_files.begin(), lib_files.end());
     // const auto &ports = ;
-    mod.ports_ = get_port_from_verilog(&mod, src_file, top_name);
+    const auto ports = get_port_from_verilog(&mod, src_file, top_name);
+    for (auto const &[port_name, port] : ports) {
+        mod.ports_.emplace(port_name);
+        mod.vars_.emplace(port_name, port);
+    }
     // verify the existence of each lib files
     for (auto const &filename : mod.lib_files_) {
-        if (!exists(filename)) throw ::runtime_error(::format("%s does not exist", filename));
+        if (!exists(filename)) throw ::runtime_error(::format("{0} does not exist", filename));
     }
 
     // assign port types
     for (auto const &[port_name, port_type] : port_types) {
         if (mod.ports_.find(port_name) == mod.ports_.end())
-            throw ::runtime_error(::format("unable to find port %s", port_name));
-        mod.ports_.at(port_name)->type = port_type;
+            throw ::runtime_error(::format("unable to find port {0}", port_name));
+        std::shared_ptr<Var> &var_p = mod.vars_.at(port_name);
+        std::shared_ptr<Port> port_p = std::static_pointer_cast<Port>(var_p);
+        (*port_p).type = port_type;
     }
 
     return mod;
 }
 
-Var &Module::var(const std::string &var_name, uint32_t width) {
+Var &Generator::var(const std::string &var_name, uint32_t width) {
     return var(var_name, width, false);
 }
 
-Var &Module::var(const std::string &var_name, uint32_t width, bool is_signed) {
+Var &Generator::var(const std::string &var_name, uint32_t width, bool is_signed) {
     if (vars_.find(var_name) != vars_.end()) {
         auto v_p = get_var(var_name);
         if (v_p->width != width || v_p->is_signed != is_signed)
             throw std::runtime_error(
-                ::format("redefinition of %s with different width/sign", var_name));
+                ::format("redefinition of {0} with different width/sign", var_name));
         return *v_p;
     }
     vars_.emplace(var_name, std::make_shared<Var>(this, var_name, width, is_signed));
     return *get_var(var_name);
 }
 
-std::shared_ptr<Var> Module::get_var(const std::string &var_name) {
+std::shared_ptr<Var> Generator::get_var(const std::string &var_name) {
     if (vars_.find(var_name) == vars_.end()) return nullptr;
     return vars_.at(var_name);
 }
 
-Port &Module::port(PortDirection direction, const std::string &port_name, uint32_t width) {
+Port &Generator::port(PortDirection direction, const std::string &port_name, uint32_t width) {
     return port(direction, port_name, width, PortType::Data, false);
 }
 
-Port &Module::port(PortDirection direction, const std::string &port_name, uint32_t width,
-                   PortType type, bool is_signed) {
+Port &Generator::port(PortDirection direction, const std::string &port_name, uint32_t width,
+                      PortType type, bool is_signed) {
     if (ports_.find(port_name) != ports_.end())
-        throw ::runtime_error(::format("%s already exists in %s", port_name, name));
-    ports_.emplace(port_name,
-                   std::make_shared<Port>(this, direction, port_name, width, type, is_signed));
-    return *ports_.at(port_name);
+        throw ::runtime_error(::format("%s already exists in {0}", port_name, name));
+    auto p = std::make_shared<Port>(this, direction, port_name, width, type, is_signed);
+    vars_.emplace(port_name, p);
+    return *p;
 }
 
-std::shared_ptr<Port> Module::get_port(const std::string &port_name) {
+std::shared_ptr<Port> Generator::get_port(const std::string &port_name) {
     if (ports_.find(port_name) == ports_.end()) return nullptr;
-    return ports_.at(port_name);
+    auto var_p = vars_.at(port_name);
+    return std::static_pointer_cast<Port>(var_p);
+}
+
+Expr &Generator::expr(ExprOp op, const std::shared_ptr<Var> &left,
+                      const std::shared_ptr<Var> &right) {
+    auto expr = std::make_shared<Expr>(op, left, right);
+    if (vars_.find(expr->name) != vars_.end()) {
+        auto p = vars_.at(expr->name);
+        expr = std::static_pointer_cast<Expr>(p);
+    } else {
+        vars_.emplace(expr->name, expr);
+    }
+    return *expr;
 }

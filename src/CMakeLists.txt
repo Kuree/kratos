@@ -1,4 +1,4 @@
-add_library(dusk port.cc port.hh module.cc module.hh io.cc io.hh wire.cc
+add_library(dusk port.cc port.hh generator.cc generator.hh io.cc io.hh wire.cc
         wire.hh expr.hh context.hh expr.cc context.cc)
 
 target_link_libraries(dusk PUBLIC slang)

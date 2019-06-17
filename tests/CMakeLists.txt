@@ -6,9 +6,9 @@ foreach (_test_file ${TEST_VECTORS})
             ${CMAKE_CURRENT_BINARY_DIR}/${_test_name} COPYONLY)
 endforeach ()
 
-add_executable(test_module test_module.cc)
-target_link_libraries(test_module gtest dusk gtest_main)
+add_executable(test_generator test_generator.cc)
+target_link_libraries(test_generator gtest dusk gtest_main)
 
-gtest_discover_tests(test_module
+gtest_discover_tests(test_generator
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vectors)
 

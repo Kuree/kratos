@@ -28,7 +28,7 @@ std::string ExprOpStr(ExprOp op);
 
 struct Var: public std::enable_shared_from_this<Var> {
 public:
-    Var(Module *m, std::string name, uint32_t width, bool is_signed);
+    Var(Generator *m, std::string name, uint32_t width, bool is_signed);
 
     std::string name;
     uint32_t width;
@@ -36,30 +36,30 @@ public:
 
     // overload all the operators
     // unary
-    Expr operator~();
-    Expr operator-();
-    Expr operator+();
+    Expr& operator~();
+    Expr& operator-();
+    Expr& operator+();
     // binary
-    Expr operator+(const Var &var);
-    Expr operator-(const Var &var);
-    Expr operator*(const Var &var);
-    Expr operator%(const Var &var);
-    Expr operator/(const Var &var);
-    Expr operator>>(const Var &var);
-    Expr operator<<(const Var &var);
-    Expr operator|(const Var &var);
-    Expr operator&(const Var &var);
-    Expr operator^(const Var &var);
-    Expr ashr(const Var &var);
+    Expr& operator+(const Var &var);
+    Expr& operator-(const Var &var);
+    Expr& operator*(const Var &var);
+    Expr& operator%(const Var &var);
+    Expr& operator/(const Var &var);
+    Expr& operator>>(const Var &var);
+    Expr& operator<<(const Var &var);
+    Expr& operator|(const Var &var);
+    Expr& operator&(const Var &var);
+    Expr& operator^(const Var &var);
+    Expr& ashr(const Var &var);
 
 
     VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
     VarSlice &operator[](uint32_t bit);
 
-    Module *module;
+    Generator *generator;
 
 protected:
-    Var() : name(), width(), is_signed(false), module(nullptr) {}
+    Var() : name(), width(), is_signed(false), generator(nullptr) {}
 
 
 private:
@@ -81,6 +81,7 @@ struct Expr : public Var {
     ExprOp op;
     std::shared_ptr<Var> left;
     std::shared_ptr<Var> right;
+
     Expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 };
 

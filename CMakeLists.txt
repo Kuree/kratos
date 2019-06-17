@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 # turn every warnings on
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -fPIC")
 
-
+set(SLANG_EXCLUDE_TESTS ON)
 # extern
 add_subdirectory(extern/googletest/)
 add_subdirectory(extern/slang)

@@ -7,19 +7,19 @@
 #include <vector>
 
 struct Port;
-class Module;
+class Generator;
 struct Expr;
 struct Var;
 struct VarSlice;
 
 class Context {
 private:
-    std::unordered_map<std::string, std::vector<std::unique_ptr<Module>>> modules_;
+    std::unordered_map<std::string, std::vector<std::unique_ptr<Generator>>> modules_;
 
 public:
     Context() = default;
 
-    Module &module(const std::string &name);
+    Generator &generator(const std::string &name);
 };
 
 #endif  // DUSK_CONTEXT_HH

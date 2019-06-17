@@ -7,10 +7,10 @@ using fmt::format;
 using std::runtime_error;
 using std::string;
 
-Port::Port(Module* module, PortDirection direction, const std::string& name, uint32_t width)
+Port::Port(Generator* module, PortDirection direction, const std::string& name, uint32_t width)
     : Port(module, direction, name, width, PortType::Data, false) {}
 
-Port::Port(Module* module, PortDirection direction, const ::string& name, uint32_t width, PortType type,
+Port::Port(Generator* module, PortDirection direction, const ::string& name, uint32_t width, PortType type,
            bool is_signed)
     : Var(module, name, width, is_signed), direction(direction), type(type) {
     if ((type == PortType::AsyncReset || type == PortType::Clock || type == PortType::ClockEnable ||

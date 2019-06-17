@@ -1,8 +1,8 @@
 #include "expr.hh"
 #include <stdexcept>
 #include "fmt/format.h"
+#include "generator.hh"
 #include "io.hh"
-#include "module.hh"
 
 using fmt::format;
 using std::make_shared;
@@ -45,92 +45,95 @@ std::string ExprOpStr(ExprOp op) {
 }
 
 std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(const Var &var) {
-    auto left = module->get_var(name);
+    auto left = generator->get_var(name);
     if (left == nullptr)
-        throw std::runtime_error(::format("unable to find port %s from context", var.name));
-    auto right = module->get_var(var.name);
+        throw std::runtime_error(
+            ::format("unable to find port {0} from {1}", var.name, var.generator->name));
+    auto right = generator->get_var(var.name);
     if (right == nullptr)
-        throw std::runtime_error(::format("unable to find port %s from context", var.name));
+        throw std::runtime_error(
+            ::format("unable to find port {0} from {1}", var.name, var.generator->name));
     return {left, right};
 }
 
-Expr Var::operator-(const Var &var) {
+Expr& Var::operator-(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Minus, left, right);
+    return generator->expr(ExprOp::Minus, left, right);
 }
 
-Expr Var::operator-() {
-    auto var = module->get_var(name);
-    return Expr(ExprOp::Minus, var, nullptr);
+Expr& Var::operator-() {
+    auto var = generator->get_var(name);
+    return generator->expr(ExprOp::Minus, var, nullptr);
 }
 
-Expr Var::operator~() {
-    auto var = module->get_var(name);
-    return Expr(ExprOp::UInvert, var, nullptr);
+Expr& Var::operator~() {
+    auto var = generator->get_var(name);
+    return generator->expr(ExprOp::UInvert, var, nullptr);
 }
 
-Expr Var::operator+() {
-    auto var = module->get_var(name);
-    return Expr(ExprOp::UPlus, var, nullptr);
+Expr& Var::operator+() {
+    auto var = generator->get_var(name);
+    return generator->expr(ExprOp::UPlus, var, nullptr);
 }
 
-Expr Var::operator+(const Var &var) {
+Expr& Var::operator+(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Add, left, right);
+    return generator->expr(ExprOp::Add, left, right);
 }
 
-Expr Var::operator*(const Var &var) {
+Expr& Var::operator*(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Multiply, left, right);
+    return generator->expr(ExprOp::Multiply, left, right);
 }
 
-Expr Var::operator%(const Var &var) {
+Expr& Var::operator%(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Mod, left, right);
+    return generator->expr(ExprOp::Mod, left, right);
 }
 
-Expr Var::operator/(const Var &var) {
+Expr& Var::operator/(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Divide, left, right);
+    return generator->expr(ExprOp::Divide, left, right);
 }
 
-Expr Var::operator>>(const Var &var) {
+Expr& Var::operator>>(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::LogicalShiftRight, left, right);
+    return generator->expr(ExprOp::LogicalShiftRight, left, right);
 }
 
-Expr Var::operator<<(const Var &var) {
+Expr& Var::operator<<(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::ShiftLeft, left, right);
+    return generator->expr(ExprOp::ShiftLeft, left, right);
 }
 
-Expr Var::operator|(const Var &var) {
+Expr& Var::operator|(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Or, left, right);
+    return generator->expr(ExprOp::Or, left, right);
 }
 
-Expr Var::operator&(const Var &var) {
+Expr& Var::operator&(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::And, left, right);
+    return generator->expr(ExprOp::And, left, right);
 }
 
-Expr Var::operator^(const Var &var) {
+Expr& Var::operator^(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::Xor, left, right);
+    return generator->expr(ExprOp::Xor, left, right);
 }
 
-Expr Var::ashr(const Var &var) {
+Expr& Var::ashr(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
-    return Expr(ExprOp::SignedShiftRight, left, right);
+    return generator->expr(ExprOp::SignedShiftRight, left, right);
 }
 
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     auto const [high, low] = slice;
     if (low > high) {
-        throw ::runtime_error(::format("low (%d) cannot be larger than (%d)", low, high));
+        throw ::runtime_error(::format("low ({0}) cannot be larger than ({1})", low, high));
     }
     if (high >= width) {
-        throw ::runtime_error(::format("high (%d) has to be smaller than width (%d)", high, width));
+        throw ::runtime_error(
+            ::format("high ({0}) has to be smaller than width ({1})", high, width));
     }
     // if we already has the slice
     if (slices_.find(slice) != slices_.end()) return slices_.at(slice);
@@ -142,30 +145,31 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
 VarSlice &Var::operator[](uint32_t bit) { return (*this)[{bit, bit}]; }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
-    : Var(parent->module, ::format("%s[%d:%d]", parent->name, high, low), high - low + 1,
+    : Var(parent->generator, ::format("{0}[{1}:{2}]", parent->name, high, low), high - low + 1,
           parent->is_signed) {}
+
 
 Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
     : op(op), left(left), right(right) {
     if (left == nullptr) throw std::runtime_error("left operand is null");
-    if (right != nullptr && left->module != right->module)
+    if (right != nullptr && left->generator != right->generator)
         throw std::runtime_error(
-            ::format("%s context is different from that of %s's", left->name, right->name));
-    module = left->module;
+            ::format("{0} context is different from that of {1}'s", left->name, right->name));
+    generator = left->generator;
     if (right != nullptr && left->width != right->width)
         throw std::runtime_error(
-            ::format("left (%s) width (%d) doesn't match with right (%s) width (%d", left->name,
-                     left->width, right->name, right->width));
+            ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
+                     left->name, left->width, right->name, right->width));
     width = left->width;
     if (right != nullptr)
-        name = ::format("(%s %s %s)", left->name, ExprOpStr(op), right->name);
+        name = ::format("({0} {1} {2})", left->name, ExprOpStr(op), right->name);
     else
-        name = ::format("(%s %s)", ExprOpStr(op), left->name);
+        name = ::format("({0} {1})", ExprOpStr(op), left->name);
     if (right != nullptr)
         is_signed = left->is_signed & right->is_signed;
     else
         is_signed = left->is_signed;
 }
 
-Var::Var(Module *module, std::string name, uint32_t width, bool is_signed)
-    : name(std::move(name)), width(width), is_signed(is_signed), module(module) {}
+Var::Var(Generator *module, std::string name, uint32_t width, bool is_signed)
+    : name(std::move(name)), width(width), is_signed(is_signed), generator(module) {}
