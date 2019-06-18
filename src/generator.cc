@@ -1,12 +1,12 @@
 #include <utility>
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include <unordered_set>
 #include "fmt/format.h"
 #include "generator.hh"
-#include "io.hh"
 #include "slang/compilation/Compilation.h"
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/text/SourceManager.h"
@@ -16,6 +16,7 @@ using fmt::format;
 using std::runtime_error;
 using std::string;
 using std::vector;
+namespace fs = std::filesystem;
 
 std::map<::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *module,
                                                                 const ::string &filename,
@@ -68,7 +69,7 @@ Generator Generator::from_verilog(Context *context, const std::string &src_file,
                                   const std::string &top_name,
                                   const std::vector<std::string> &lib_files,
                                   const std::map<std::string, PortType> &port_types) {
-    if (!exists(src_file)) throw ::runtime_error(::format("{0} does not exist", src_file));
+    if (!fs::exists(src_file)) throw ::runtime_error(::format("{0} does not exist", src_file));
 
     Generator mod(context, top_name);
     // the src file will be treated a a lib file as well
@@ -82,7 +83,7 @@ Generator Generator::from_verilog(Context *context, const std::string &src_file,
     }
     // verify the existence of each lib files
     for (auto const &filename : mod.lib_files_) {
-        if (!exists(filename)) throw ::runtime_error(::format("{0} does not exist", filename));
+        if (!fs::exists(filename)) throw ::runtime_error(::format("{0} does not exist", filename));
     }
 
     // assign port types

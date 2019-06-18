@@ -32,9 +32,26 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ(expr_unary.name, "(- a)");
 
     // test raw expr
-    expr = Expr(ExprOp::Add, var1.shared_from_this(), var2.shared_from_this());
+    // we have to use the reference version to use shared_from_this
+    Var &var3 = mod.var("c", 1);
+    expr = Expr(ExprOp::Add, var1.shared_from_this(), var3.shared_from_this());
     EXPECT_EQ(expr.generator, &mod);
-    EXPECT_EQ(expr.name, "(a + b)");
+    EXPECT_EQ(expr.name, "(a + c)");
+
+    // test to_string
+    EXPECT_EQ(var1.to_string(), "a");
+    EXPECT_EQ(expr.to_string(), "a + c");
+
+    // test slice
+    Var &wire = mod.var("d", 4);
+    auto slice_expr = wire[{2, 0}];
+    EXPECT_EQ(slice_expr.parent, wire.shared_from_this().get());
+    EXPECT_EQ(slice_expr.high, 2);
+    EXPECT_EQ(slice_expr.low, 0);
+    EXPECT_EQ(slice_expr.name, "d[2:0]");
+
+    // test other ops
+    EXPECT_EQ((var1.eq(var3)).to_string(), "a == c");
 }
 
 TEST(expr, assign) {  // NOLINT

@@ -2,7 +2,6 @@
 #include <stdexcept>
 #include "fmt/format.h"
 #include "generator.hh"
-#include "io.hh"
 
 using fmt::format;
 using std::make_shared;
@@ -39,6 +38,16 @@ std::string ExprOpStr(ExprOp op) {
             return "&";
         case Xor:
             return "^";
+        case LessThan:
+            return "<";
+        case GreaterThan:
+            return ">";
+        case LessEqThan:
+            return "<=";
+        case GreaterEqThan:
+            return ">=";
+        case Eq:
+            return "==";
         default:
             throw std::runtime_error("unable to find op");
     }
@@ -126,6 +135,31 @@ Expr &Var::ashr(const Var &var) {
     return generator->expr(ExprOp::SignedShiftRight, left, right);
 }
 
+Expr &Var::operator<(const Var &var) {
+    const auto &[left, right] = get_binary_var_ptr(var);
+    return generator->expr(ExprOp::LessThan, left, right);
+}
+
+Expr &Var::operator>(const Var &var) {
+    const auto &[left, right] = get_binary_var_ptr(var);
+    return generator->expr(ExprOp::GreaterThan, left, right);
+}
+
+Expr &Var::operator<=(const Var &var) {
+    const auto &[left, right] = get_binary_var_ptr(var);
+    return generator->expr(ExprOp::LessEqThan, left, right);
+}
+
+Expr &Var::operator>=(const Var &var) {
+    const auto &[left, right] = get_binary_var_ptr(var);
+    return generator->expr(ExprOp::GreaterEqThan, left, right);
+}
+
+Expr &Var::eq(const Var &var) {
+    const auto &[left, right] = get_binary_var_ptr(var);
+    return generator->expr(ExprOp::Eq, left, right);
+}
+
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     auto const [high, low] = slice;
     if (low > high) {
@@ -142,11 +176,16 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     return slices_.at(slice);
 }
 
+std::string Var::to_string() { return name; }
+
 VarSlice &Var::operator[](uint32_t bit) { return (*this)[{bit, bit}]; }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     : Var(parent->generator, ::format("{0}[{1}:{2}]", parent->name, high, low), high - low + 1,
-          parent->is_signed) {}
+          parent->is_signed, VarType::Slice),
+      parent(parent),
+      low(low),
+      high(high) {}
 
 Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
     : op(op), left(left), right(right) {
@@ -168,23 +207,53 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
         is_signed = left->is_signed & right->is_signed;
     else
         is_signed = left->is_signed;
+    type_ = VarType::Expression;
 }
 
-Var::Var(Generator *module, std::string name, uint32_t width, bool is_signed)
-    : name(std::move(name)), width(width), is_signed(is_signed), generator(module) {}
+Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_signed)
+    : Var(module, name, width, is_signed, VarType::Base) {}
 
-void Var::assign(const std::shared_ptr<Var> &var) {
+Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_signed, VarType type)
+    : name(name), width(width), is_signed(is_signed), generator(module), type_(type) {
+    if (module == nullptr) throw ::runtime_error(::format("module is null for {0}", name));
+}
+
+std::string assign_type_name(AssignmentType type) {
+    switch (type) {
+        case AssignmentType::Blocking:
+            return "blocking";
+        case AssignmentType ::NonBlocking:
+            return "non-blocking";
+        default:
+            return "unknown";
+    }
+}
+
+void Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     var->sinks_.emplace(shared_from_this());
     src_ = var;
+    if (assign_type_ == AssignmentType::Undefined)
+        assign_type_ = type;
+    else if (type != AssignmentType::Undefined && assign_type_ != type)
+        throw ::runtime_error(::format("cannot assign {0} {1} to {2} {3}", assign_type_name(type),
+                                       var->name, assign_type_, name));
 }
 
-Var& Var::operator=(const std::shared_ptr<Var> &var) {
+Var &Var::operator=(const std::shared_ptr<Var> &var) {
     assign(var);
     return *this;
 }
 
-void Var::assign(Var &var) {
+void Var::assign(Var &var, AssignmentType type) {
     // need to find the pointer
     auto var_ptr = var.shared_from_this();
-    assign(var_ptr);
+    assign(var_ptr, type);
+}
+
+std::string Expr::to_string() {
+    if (right != nullptr) {
+        return ::format("{0} {1} {2}", left->name, ExprOpStr(op), right->name);
+    } else {
+        return ::format("{0} {1}", ExprOpStr(op), left->name);
+    }
 }
