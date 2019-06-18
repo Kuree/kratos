@@ -11,6 +11,9 @@ class Generator;
 struct Expr;
 struct Var;
 struct VarSlice;
+class Stmt;
+class AssignStmt;
+enum AssignmentType: int;
 
 class Context {
 private:

@@ -1,4 +1,12 @@
 #include "stmt.hh"
 
-AssignmentStmt::AssignmentStmt(const std::shared_ptr<Var>& left, const std::shared_ptr<Var>& right)
-    : Stmt(StatementType ::Assign), left(left), right(right) {}
+using std::move;
+
+AssignStmt::AssignStmt(std::shared_ptr<Var> left, std::shared_ptr<Var> right)
+    : AssignStmt(::move(left), ::move(right), AssignmentType::Undefined) {}
+
+AssignStmt::AssignStmt(std::shared_ptr<Var> left, std::shared_ptr<Var> right, AssignmentType type)
+    : Stmt(StatementType ::Assign),
+      left_(::move(left)),
+      right_(::move(right)),
+      assign_type_(type) {}

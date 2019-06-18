@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include "fmt/format.h"
 #include "generator.hh"
+#include "stmt.hh"
 
 using fmt::format;
 using std::make_shared;
@@ -229,25 +230,43 @@ std::string assign_type_name(AssignmentType type) {
     }
 }
 
-void Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
-    var->sinks_.emplace(shared_from_this());
-    src_ = var;
-    if (assign_type_ == AssignmentType::Undefined)
-        assign_type_ = type;
-    else if (type != AssignmentType::Undefined && assign_type_ != type)
-        throw ::runtime_error(::format("cannot assign {0} {1} to {2} {3}", assign_type_name(type),
-                                       var->name, assign_type_, name));
+AssignStmt &Var::assign(const std::shared_ptr<Var> &var) {
+    return assign(var, AssignmentType::Undefined);
 }
 
-Var &Var::operator=(const std::shared_ptr<Var> &var) {
-    assign(var);
-    return *this;
+AssignStmt &Var::assign(Var &var) {
+    return assign(var, AssignmentType::Undefined);
 }
 
-void Var::assign(Var &var, AssignmentType type) {
+AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
+    auto const &stmt = ::make_shared<AssignStmt>(shared_from_this(), var, type);
+    // determine the type
+    AssignmentType self_type = AssignmentType::Undefined;
+    for (auto const &sink : sinks_) {
+        if (sink->assign_type() != AssignmentType::Undefined) {
+            self_type = sink->assign_type();
+            break;
+        }
+    }
+    // push the stmt into its sinks
+    sinks_.emplace(stmt);
+    if (self_type == AssignmentType::Undefined) self_type = type;
+    // check if the assignment match existing ones
+    for (auto const &sink : sinks_) {
+        if (sink->assign_type() != self_type)
+            throw ::runtime_error(
+                ::format("{0}'s assignment type ({1}) does not match with {2}'s {3}", var->name,
+                         assign_type_name(type), name, assign_type_name(self_type)));
+    }
+    // put it into the generator's assignment
+    generator->add_stmt(stmt);
+    return *stmt;
+}
+
+AssignStmt &Var::assign(Var &var, AssignmentType type) {
     // need to find the pointer
     auto var_ptr = var.shared_from_this();
-    assign(var_ptr, type);
+    return assign(var_ptr, type);
 }
 
 std::string Expr::to_string() {

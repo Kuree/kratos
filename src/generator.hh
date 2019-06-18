@@ -15,9 +15,9 @@ public:
     std::string name;
 
     static Generator from_verilog(Context *context, const std::string &src_file,
-                               const std::string &top_name,
-                               const std::vector<std::string> &lib_files,
-                               const std::map<std::string, PortType> &port_types);
+                                  const std::string &top_name,
+                                  const std::vector<std::string> &lib_files,
+                                  const std::map<std::string, PortType> &port_types);
 
     Generator(Context *context, std::string name) : name(std::move(name)), context(context) {}
 
@@ -32,6 +32,7 @@ public:
     std::shared_ptr<Port> get_port(const std::string &port_name);
     std::shared_ptr<Var> get_var(const std::string &var_name);
 
+    void add_stmt(std::shared_ptr<Stmt> stmt) { stmts_.emplace(std::move(stmt)); }
 
 private:
     std::vector<std::string> lib_files_;
@@ -40,6 +41,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<Var>> vars_;
     std::set<std::string> ports_;
 
+    std::set<std::shared_ptr<Stmt>> stmts_;
 };
 
 #endif  // DUSK_MODULE_HH

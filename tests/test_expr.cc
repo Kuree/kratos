@@ -1,6 +1,7 @@
 #include "../src/expr.hh"
 #include "../src/generator.hh"
 #include "gtest/gtest.h"
+#include "../src/stmt.hh"
 
 TEST(expr, arith) {  // NOLINT
     Context c;
@@ -62,7 +63,8 @@ TEST(expr, assign) {  // NOLINT
     auto &var2 = mod.var("b", 1);
     auto &var3 = mod.var("c", 1);
     auto &var4 = var1 + var2;
-    var3.assign(var4);
-    EXPECT_EQ(var3.src(), var4.shared_from_this());
-    EXPECT_TRUE(var4.sinks().find(var3.shared_from_this()) != var4.sinks().end());
+    auto &assign_stmt = var3.assign(var4);
+    EXPECT_EQ(assign_stmt.right(), var4.shared_from_this());
+    auto stmt = std::static_pointer_cast<AssignStmt>(assign_stmt.shared_from_this());
+    EXPECT_TRUE(var3.sinks().find(stmt) != var3.sinks().end());
 }

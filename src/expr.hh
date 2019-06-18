@@ -3,6 +3,7 @@
 
 #include <set>
 #include <string>
+#include <unordered_set>
 #include "context.hh"
 
 enum ExprOp {
@@ -35,8 +36,6 @@ enum ExprOp {
 std::string ExprOpStr(ExprOp op);
 
 enum VarType { Base, Expression, Slice };
-
-enum AssignmentType { Blocking, NonBlocking, Undefined };
 
 struct Var : public std::enable_shared_from_this<Var> {
 public:
@@ -73,26 +72,22 @@ public:
     VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
     VarSlice &operator[](uint32_t bit);
     // assignment
-    void assign(const std::shared_ptr<Var> &var) { assign(var, AssignmentType::Blocking); }
-    void assign(Var &var) { assign(var, AssignmentType::Blocking); }
-    void assign(const std::shared_ptr<Var> &var, AssignmentType type);
-    void assign(Var &var, AssignmentType type);
-    Var &operator=(const std::shared_ptr<Var> &var);
+    AssignStmt &assign(const std::shared_ptr<Var> &var);
+    AssignStmt &assign(Var &var);
+    AssignStmt &assign(const std::shared_ptr<Var> &var, AssignmentType type);
+    AssignStmt &assign(Var &var, AssignmentType type);
 
     Generator *generator;
 
-    const std::shared_ptr<Var> src() const { return src_; }
-    const std::set<std::shared_ptr<Var>> sinks() { return sinks_; }
-
     VarType type() const { return type_; }
+    std::unordered_set<std::shared_ptr<AssignStmt>> sinks() const { return sinks_; };
 
     virtual std::string to_string();
 
 protected:
     Var() : name(), width(), is_signed(false), generator(nullptr), type_(Base) {}
 
-    std::shared_ptr<Var> src_ = nullptr;
-    std::set<std::shared_ptr<Var>> sinks_;
+    std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
 
     VarType type_ = VarType::Base;
 
@@ -100,7 +95,6 @@ private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var);
     std::map<std::pair<uint32_t, uint32_t>, VarSlice> slices_;
 
-    AssignmentType assign_type_ = AssignmentType::Undefined;
 };
 
 struct VarSlice : public Var {
