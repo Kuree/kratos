@@ -1,6 +1,7 @@
 #ifndef DUSK_EXPR_HH
 #define DUSK_EXPR_HH
 
+#include <set>
 #include <string>
 #include "context.hh"
 
@@ -26,7 +27,7 @@ enum ExprOp {
 
 std::string ExprOpStr(ExprOp op);
 
-struct Var: public std::enable_shared_from_this<Var> {
+struct Var : public std::enable_shared_from_this<Var> {
 public:
     Var(Generator *m, std::string name, uint32_t width, bool is_signed);
 
@@ -36,39 +37,46 @@ public:
 
     // overload all the operators
     // unary
-    Expr& operator~();
-    Expr& operator-();
-    Expr& operator+();
+    Expr &operator~();
+    Expr &operator-();
+    Expr &operator+();
     // binary
-    Expr& operator+(const Var &var);
-    Expr& operator-(const Var &var);
-    Expr& operator*(const Var &var);
-    Expr& operator%(const Var &var);
-    Expr& operator/(const Var &var);
-    Expr& operator>>(const Var &var);
-    Expr& operator<<(const Var &var);
-    Expr& operator|(const Var &var);
-    Expr& operator&(const Var &var);
-    Expr& operator^(const Var &var);
-    Expr& ashr(const Var &var);
-
-
+    Expr &operator+(const Var &var);
+    Expr &operator-(const Var &var);
+    Expr &operator*(const Var &var);
+    Expr &operator%(const Var &var);
+    Expr &operator/(const Var &var);
+    Expr &operator>>(const Var &var);
+    Expr &operator<<(const Var &var);
+    Expr &operator|(const Var &var);
+    Expr &operator&(const Var &var);
+    Expr &operator^(const Var &var);
+    Expr &ashr(const Var &var);
+    // slice
     VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
     VarSlice &operator[](uint32_t bit);
+    // assignment
+    void assign(const std::shared_ptr<Var> &var);
+    void assign(Var &var);
+    Var& operator=(const std::shared_ptr<Var> &var);
 
     Generator *generator;
+
+    const std::shared_ptr<Var> src() const { return src_; }
+    const std::set<std::shared_ptr<Var>> sinks() { return sinks_; }
 
 protected:
     Var() : name(), width(), is_signed(false), generator(nullptr) {}
 
+    std::shared_ptr<Var> src_ = nullptr;
+    std::set<std::shared_ptr<Var>> sinks_;
 
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var);
     std::map<std::pair<uint32_t, uint32_t>, VarSlice> slices_;
 };
 
-
-struct VarSlice: public Var {
+struct VarSlice : public Var {
 public:
     Var *parent = nullptr;
     uint32_t low = 0;

@@ -56,72 +56,72 @@ std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(co
     return {left, right};
 }
 
-Expr& Var::operator-(const Var &var) {
+Expr &Var::operator-(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Minus, left, right);
 }
 
-Expr& Var::operator-() {
+Expr &Var::operator-() {
     auto var = generator->get_var(name);
     return generator->expr(ExprOp::Minus, var, nullptr);
 }
 
-Expr& Var::operator~() {
+Expr &Var::operator~() {
     auto var = generator->get_var(name);
     return generator->expr(ExprOp::UInvert, var, nullptr);
 }
 
-Expr& Var::operator+() {
+Expr &Var::operator+() {
     auto var = generator->get_var(name);
     return generator->expr(ExprOp::UPlus, var, nullptr);
 }
 
-Expr& Var::operator+(const Var &var) {
+Expr &Var::operator+(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Add, left, right);
 }
 
-Expr& Var::operator*(const Var &var) {
+Expr &Var::operator*(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Multiply, left, right);
 }
 
-Expr& Var::operator%(const Var &var) {
+Expr &Var::operator%(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Mod, left, right);
 }
 
-Expr& Var::operator/(const Var &var) {
+Expr &Var::operator/(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Divide, left, right);
 }
 
-Expr& Var::operator>>(const Var &var) {
+Expr &Var::operator>>(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::LogicalShiftRight, left, right);
 }
 
-Expr& Var::operator<<(const Var &var) {
+Expr &Var::operator<<(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::ShiftLeft, left, right);
 }
 
-Expr& Var::operator|(const Var &var) {
+Expr &Var::operator|(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Or, left, right);
 }
 
-Expr& Var::operator&(const Var &var) {
+Expr &Var::operator&(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::And, left, right);
 }
 
-Expr& Var::operator^(const Var &var) {
+Expr &Var::operator^(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Xor, left, right);
 }
 
-Expr& Var::ashr(const Var &var) {
+Expr &Var::ashr(const Var &var) {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::SignedShiftRight, left, right);
 }
@@ -148,7 +148,6 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     : Var(parent->generator, ::format("{0}[{1}:{2}]", parent->name, high, low), high - low + 1,
           parent->is_signed) {}
 
-
 Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
     : op(op), left(left), right(right) {
     if (left == nullptr) throw std::runtime_error("left operand is null");
@@ -173,3 +172,19 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
 
 Var::Var(Generator *module, std::string name, uint32_t width, bool is_signed)
     : name(std::move(name)), width(width), is_signed(is_signed), generator(module) {}
+
+void Var::assign(const std::shared_ptr<Var> &var) {
+    var->sinks_.emplace(shared_from_this());
+    src_ = var;
+}
+
+Var& Var::operator=(const std::shared_ptr<Var> &var) {
+    assign(var);
+    return *this;
+}
+
+void Var::assign(Var &var) {
+    // need to find the pointer
+    auto var_ptr = var.shared_from_this();
+    assign(var_ptr);
+}
