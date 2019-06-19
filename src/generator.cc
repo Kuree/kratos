@@ -149,3 +149,20 @@ Expr &Generator::expr(ExprOp op, const std::shared_ptr<Var> &left,
     }
     return *expr;
 }
+
+Const &Generator::constant(int64_t value, uint32_t width) {
+    return constant(value, width, false);
+}
+
+Const &Generator::constant(int64_t value, uint32_t width, bool is_signed) {
+    Const v(this, value, width, is_signed);
+    std::shared_ptr<Const> ptr;
+    if (vars_.find(v.name) != vars_.end()) {
+        ptr = std::static_pointer_cast<Const>(vars_.at(v.name));
+    } else {
+        ptr = std::make_shared<Const>(this, value, width, is_signed);
+        // add a new var
+        vars_.emplace(ptr->name, ptr);
+    }
+    return *ptr;
+}

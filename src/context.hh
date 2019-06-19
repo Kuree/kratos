@@ -10,6 +10,7 @@ struct Port;
 class Generator;
 struct Expr;
 struct Var;
+struct Const;
 struct VarSlice;
 class Stmt;
 class AssignStmt;

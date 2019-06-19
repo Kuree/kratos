@@ -71,3 +71,13 @@ TEST(expr, assign) {  // NOLINT
     auto raw_stmt = AssignStmt(var3.shared_from_this(), var4.shared_from_this());
     EXPECT_EQ(raw_stmt.left(), assign_stmt.left());
 }
+
+TEST(expr, const_val) { // NOLINT
+   Context c;
+   auto mod = c.generator("module");
+   auto c0 = mod.constant(10, 4);
+   EXPECT_ANY_THROW(mod.constant(10, 4, true));
+   auto c1 = mod.constant(-4, 4, true);
+   EXPECT_EQ(c0.to_string(), "4'hA");
+   EXPECT_EQ(c1.to_string(), "-4'h4");
+}

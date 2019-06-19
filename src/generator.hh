@@ -26,6 +26,8 @@ public:
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width);
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width, PortType type,
                bool is_signed);
+    Const &constant(int64_t value, uint32_t width);
+    Const &constant(int64_t value, uint32_t width, bool is_signed);
 
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 

@@ -35,7 +35,7 @@ enum ExprOp {
 
 std::string ExprOpStr(ExprOp op);
 
-enum VarType { Base, Expression, Slice };
+enum VarType { Base, Expression, Slice, ConstValue };
 
 struct Var : public std::enable_shared_from_this<Var> {
 public:
@@ -94,7 +94,6 @@ protected:
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var);
     std::map<std::pair<uint32_t, uint32_t>, VarSlice> slices_;
-
 };
 
 struct VarSlice : public Var {
@@ -106,7 +105,18 @@ public:
     VarSlice(Var *parent, uint32_t high, uint32_t low);
 };
 
-struct Const: public Var
+struct Const : public Var {
+    // need to rewrite the const backend since the biggest number is uint64_t, which may not
+public:
+    Const(Generator *m, int64_t value, uint32_t width, bool is_signed);
+
+    int64_t value() { return value_; }
+
+    std::string to_string() override;
+
+private:
+    int64_t value_;
+};
 
 struct Expr : public Var {
     ExprOp op;

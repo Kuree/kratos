@@ -234,9 +234,7 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var) {
     return assign(var, AssignmentType::Undefined);
 }
 
-AssignStmt &Var::assign(Var &var) {
-    return assign(var, AssignmentType::Undefined);
-}
+AssignStmt &Var::assign(Var &var) { return assign(var, AssignmentType::Undefined); }
 
 AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     auto const &stmt = ::make_shared<AssignStmt>(shared_from_this(), var, type);
@@ -261,6 +259,42 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     // put it into the generator's assignment
     generator->add_stmt(stmt);
     return *stmt;
+}
+
+Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed)
+    : Var(generator, ::format("{0}", value), width, is_signed, VarType::ConstValue), value_() {
+    // need to deal with the signed value
+    if (is_signed) {
+        // compute the -max value
+        uint64_t temp = (~0ull) << (width - 1);
+        int64_t min = 0;
+        std::memcpy(&min, &temp, sizeof(min));
+        if (value < min)
+            throw ::runtime_error(::format(
+                "{0} is smaller than the minimum value ({1}) given width {2}", value, min, width));
+        temp = (1ull << (width - 1) )- 1;
+        int64_t max;
+        std::memcpy(&max, &temp, sizeof(max));
+        if (value > max)
+            throw ::runtime_error(::format(
+                "{0} is larger than the maximum value ({1}) given width {2}", value, max, width));
+    } else {
+        uint64_t max = (1ull << width) - 1;
+        uint64_t unsigned_value;
+        std::memcpy(&unsigned_value, &value, sizeof(unsigned_value));
+        if (unsigned_value > max)
+            throw ::runtime_error(::format(
+                "{0} is larger than the maximum value ({1}) given width {2}", value, max, width));
+    }
+    value_ = value;
+}
+
+std::string Const::to_string() {
+    if (is_signed && value_ < 0) {
+        return ::format("-{0}'h{1:X}", width, -value_);
+    } else {
+        return ::format("{0}'h{1:X}", width, value_);
+    }
 }
 
 AssignStmt &Var::assign(Var &var, AssignmentType type) {
