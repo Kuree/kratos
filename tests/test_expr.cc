@@ -65,6 +65,9 @@ TEST(expr, assign) {  // NOLINT
     auto &var4 = var1 + var2;
     auto &assign_stmt = var3.assign(var4);
     EXPECT_EQ(assign_stmt.right(), var4.shared_from_this());
+    EXPECT_EQ(assign_stmt.left(), var3.shared_from_this());
     auto stmt = std::static_pointer_cast<AssignStmt>(assign_stmt.shared_from_this());
     EXPECT_TRUE(var3.sinks().find(stmt) != var3.sinks().end());
+    auto raw_stmt = AssignStmt(var3.shared_from_this(), var4.shared_from_this());
+    EXPECT_EQ(raw_stmt.left(), assign_stmt.left());
 }

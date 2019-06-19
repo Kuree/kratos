@@ -106,6 +106,8 @@ public:
     VarSlice(Var *parent, uint32_t high, uint32_t low);
 };
 
+struct Const: public Var
+
 struct Expr : public Var {
     ExprOp op;
     std::shared_ptr<Var> left;
