@@ -93,3 +93,22 @@ void SequentialStmtBlock::add_condition(
     }
     conditions_.emplace(condition);
 }
+
+SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
+    : Stmt(StatementType::Switch), target_(target) {
+    // we don't allow const target
+    if (target->type() == VarType::ConstValue)
+        throw ::runtime_error(::format("switch target cannot be const value {0}", target->name));
+}
+
+void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
+                                 const std::shared_ptr<Stmt> &stmt) {
+    // we want to make sure that we don't have duplicated switch case
+    for (const auto &[case_var, body] : body_) {
+        const auto &case_const = case_var->as<Const>();
+        if (case_const->value() == switch_case->value())
+            throw ::runtime_error(
+                ::format("{0} already exists in the case statement", case_const->value()));
+    }
+    body_.emplace(switch_case, stmt);
+}

@@ -8,6 +8,8 @@ enum AssignmentType : int { Blocking, NonBlocking, Undefined };
 enum StatementBlockType { Combinational, Sequential };
 enum BlockEdgeType { Posedge, Negedge };
 
+class StmtBlock;
+
 class Stmt : public std::enable_shared_from_this<Stmt> {
 public:
     explicit Stmt(StatementType type) : type_(type) {}
@@ -63,9 +65,19 @@ private:
 };
 
 class SwitchStmt : public Stmt {
-    SwitchStmt();
+public:
+    explicit SwitchStmt(const std::shared_ptr<Var> &target);
+
+    void add_switch_case(const std::shared_ptr<Const> &switch_case,
+                         const std::shared_ptr<Stmt> &stmt);
+
+    const std::shared_ptr<Var> target() const { return target_; }
+
+    const std::map<std::shared_ptr<Const>, std::shared_ptr<Stmt>> &body() const { return body_; }
 
 private:
+    std::shared_ptr<Var> target_;
+    std::map<std::shared_ptr<Const>, std::shared_ptr<Stmt>> body_;
 };
 
 /// this is for always block

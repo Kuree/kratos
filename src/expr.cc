@@ -233,6 +233,7 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_sig
     if (module == nullptr) throw ::runtime_error(::format("module is null for {0}", name));
 }
 
+// may need to look at this https://stackoverflow.com/q/28828957
 std::string assign_type_name(AssignmentType type) {
     switch (type) {
         case AssignmentType::Blocking:
