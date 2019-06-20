@@ -7,15 +7,16 @@ using fmt::format;
 using std::runtime_error;
 using std::string;
 
-Port::Port(Generator* module, PortDirection direction, const std::string& name, uint32_t width)
-    : Port(module, direction, name, width, PortType::Data, false) {}
-
 Port::Port(Generator* module, PortDirection direction, const ::string& name, uint32_t width,
            PortType type, bool is_signed)
-    : Var(module, name, width, is_signed), direction(direction), type(type) {
+    : Var(module, name, width, is_signed, VarType::PortIO), direction_(direction), type_(type) {
     if ((type == PortType::AsyncReset || type == PortType::Clock || type == PortType::ClockEnable ||
          type == PortType::Reset) &&
         width > 1) {
         throw ::runtime_error(::format("%s's width has be 1, got %d", name, width));
     }
+}
+
+void Port::set_port_type(PortType type) {
+    type_ = type;
 }

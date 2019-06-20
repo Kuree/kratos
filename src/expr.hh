@@ -37,7 +37,7 @@ bool is_relational_op(ExprOp op);
 
 std::string ExprOpStr(ExprOp op);
 
-enum VarType { Base, Expression, Slice, ConstValue };
+enum VarType { Base, Expression, Slice, ConstValue, PortIO };
 
 struct Var : public std::enable_shared_from_this<Var> {
 public:
@@ -83,6 +83,9 @@ public:
 
     VarType type() const { return type_; }
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks() const { return sinks_; };
+
+    template<typename T>
+    std::shared_ptr<T> as() { return std::static_pointer_cast<T>(shared_from_this()); }
 
     virtual std::string to_string();
 

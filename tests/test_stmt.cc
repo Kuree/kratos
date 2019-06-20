@@ -50,10 +50,17 @@ TEST(stmt, block) {  // NOLINT
     auto &var2 = mod.var("b", 2);
     auto &var3 = mod.var("c", 4);
     auto &var4 = mod.var("d", 4);
+    auto &clk = mod.port(PortDirection::In, "clk", 1, PortType::Clock, false);
     //
-    auto block_stmt = StmtBlock(StatementBlockType::Sequential);
-    block_stmt.add_statement(var1.assign(var2));
+    auto seq_block = SequentialStmtBlock();
+    seq_block.add_statement(var1.assign(var2));
     // error checking
-    EXPECT_ANY_THROW(block_stmt.add_statement(var1.assign(var2, AssignmentType::Blocking)));
-    EXPECT_ANY_THROW(block_stmt.add_statement(var3.assign(var4, AssignmentType::Blocking)));
+    EXPECT_ANY_THROW(seq_block.add_statement(var1.assign(var2, AssignmentType::Blocking)));
+    EXPECT_ANY_THROW(seq_block.add_statement(var3.assign(var4, AssignmentType::Blocking)));
+    auto comb_block = CombinationalStmtBlock();
+    comb_block.add_statement(var3.assign(var4));
+    EXPECT_EQ(var3.assign(var4).assign_type(), AssignmentType::Blocking);
+    EXPECT_NO_THROW(seq_block.add_condition({BlockEdgeType::Posedge, clk.shared_from_this()}));
+    EXPECT_ANY_THROW(seq_block.add_condition({BlockEdgeType::Posedge, var1.shared_from_this()}));
+    EXPECT_EQ(seq_block.get_conditions().size(), 1);
 }

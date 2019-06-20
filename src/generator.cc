@@ -92,7 +92,7 @@ Generator Generator::from_verilog(Context *context, const std::string &src_file,
             throw ::runtime_error(::format("unable to find port {0}", port_name));
         std::shared_ptr<Var> &var_p = mod.vars_.at(port_name);
         std::shared_ptr<Port> port_p = std::static_pointer_cast<Port>(var_p);
-        (*port_p).type = port_type;
+        port_p->set_port_type(port_type);
     }
 
     return mod;

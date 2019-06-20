@@ -1,6 +1,7 @@
 #include "stmt.hh"
 #include <algorithm>
 #include "fmt/format.h"
+#include "port.hh"
 
 using fmt::format;
 using std::move;
@@ -77,4 +78,18 @@ void StmtBlock::add_statement(std::shared_ptr<Stmt> stmt) {
         }
     }
     stmts_.emplace_back(stmt);
+}
+
+void SequentialStmtBlock::add_condition(
+    const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition) {
+    // notice that the condition variable cannot be used as a condition
+    // for now we only allow Port (clk and reset) type to use as conditions
+    if (condition.second->type() != VarType::PortIO)
+        throw ::runtime_error("only ports are allowed for sequential block condition.");
+    const auto &port = condition.second->as<Port>();
+    if (port->port_type() != PortType::AsyncReset && port->port_type() != PortType::Clock) {
+        throw ::runtime_error(
+            "only clock and async reset allowed to use as sequential block condition");
+    }
+    conditions_.emplace(condition);
 }

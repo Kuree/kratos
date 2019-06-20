@@ -6,6 +6,7 @@
 enum StatementType { If, Switch, Assign, Block };
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
 enum StatementBlockType { Combinational, Sequential };
+enum BlockEdgeType { Posedge, Negedge };
 
 class Stmt : public std::enable_shared_from_this<Stmt> {
 public:
@@ -70,14 +71,34 @@ private:
 /// this is for always block
 class StmtBlock : public Stmt {
 public:
-    explicit StmtBlock(StatementBlockType type);
     StatementBlockType block_type() const { return block_type_; }
     void add_statement(std::shared_ptr<Stmt> stmt);
     void add_statement(Stmt &stmt) { add_statement(stmt.shared_from_this()); }
+
+protected:
+    explicit StmtBlock(StatementBlockType type);
 
 private:
     StatementBlockType block_type_;
     std::vector<std::shared_ptr<Stmt>> stmts_;
 };
 
+class CombinationalStmtBlock : public StmtBlock {
+public:
+    CombinationalStmtBlock() : StmtBlock(StatementBlockType::Combinational) {}
+};
+
+class SequentialStmtBlock : public StmtBlock {
+public:
+    SequentialStmtBlock() : StmtBlock(StatementBlockType::Sequential) {}
+
+    const std::set<std::pair<BlockEdgeType, std::shared_ptr<Var>>> &get_conditions() const {
+        return conditions_;
+    }
+
+    void add_condition(const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition);
+
+private:
+    std::set<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
+};
 #endif  // DUSK_STMT_HH
