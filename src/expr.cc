@@ -171,10 +171,13 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
             ::format("high ({0}) has to be smaller than width ({1})", high, width));
     }
     // if we already has the slice
-    if (slices_.find(slice) != slices_.end()) return slices_.at(slice);
+    if (slices_.find(slice) != slices_.end()) return *slices_.at(slice);
     // create a new one
-    slices_.emplace(slice, VarSlice(this, high, low));
-    return slices_.at(slice);
+    // notice that slice is not part of generator's variables. It's handled by the parent (var)
+    // itself
+    auto var_slice = ::make_shared<VarSlice>(this, high, low);
+    slices_.emplace(slice, var_slice);
+    return *slices_.at(slice);
 }
 
 std::string Var::to_string() { return name; }

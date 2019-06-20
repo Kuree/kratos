@@ -17,4 +17,7 @@ TEST(stmt, assign) { // NOLINT
     EXPECT_EQ(mod.stmts_count(), 1);
     auto stmt_ptr = mod.get_stmt(0)->as<AssignStmt>();
     EXPECT_EQ(stmt_ptr, stmt.shared_from_this());
+
+    // try slice assign
+    EXPECT_NO_THROW(var1.assign(var3[{1, 0}]));
 }

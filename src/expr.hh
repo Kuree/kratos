@@ -93,7 +93,7 @@ protected:
 
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var);
-    std::map<std::pair<uint32_t, uint32_t>, VarSlice> slices_;
+    std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> slices_;
 };
 
 struct VarSlice : public Var {

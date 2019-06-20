@@ -50,6 +50,8 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ(slice_expr.high, 2);
     EXPECT_EQ(slice_expr.low, 0);
     EXPECT_EQ(slice_expr.name, "d[2:0]");
+    // test the raw interface. users should not do that
+    EXPECT_EQ(VarSlice(&wire, 2, 1).width, 2);
 
     // test other ops
     EXPECT_EQ((var1.eq(var3)).to_string(), "a == c");
