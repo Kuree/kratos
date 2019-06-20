@@ -256,8 +256,6 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
                 ::format("{0}'s assignment type ({1}) does not match with {2}'s {3}", var->name,
                          assign_type_name(type), name, assign_type_name(self_type)));
     }
-    // put it into the generator's assignment
-    generator->add_stmt(stmt);
     return *stmt;
 }
 

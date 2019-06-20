@@ -3,13 +3,18 @@
 #include "context.hh"
 #include "expr.hh"
 
-enum StatementType { If, Switch, Assign };
+enum StatementType { If, Switch, Assign, Block };
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
+enum StatementBlockType { Combinational, Sequential };
 
-class Stmt: public std::enable_shared_from_this<Stmt> {
+class Stmt : public std::enable_shared_from_this<Stmt> {
 public:
     explicit Stmt(StatementType type) : type_(type) {}
     StatementType type() { return type_; }
+    template <typename T>
+    std::shared_ptr<T> as() {
+        return std::static_pointer_cast<T>(shared_from_this());
+    }
 
 protected:
     StatementType type_;
@@ -17,8 +22,9 @@ protected:
 
 class AssignStmt : public Stmt {
 public:
-    AssignStmt(std::shared_ptr<Var> left, std::shared_ptr<Var> right);
-    AssignStmt(std::shared_ptr<Var> left, std::shared_ptr<Var> right, AssignmentType type);
+    AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
+    AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right,
+               AssignmentType type);
 
     AssignmentType assign_type() { return assign_type_; }
 
@@ -32,7 +38,7 @@ private:
     AssignmentType assign_type_;
 };
 
-class IfStmt: public Stmt {
+class IfStmt : public Stmt {
 public:
     IfStmt(std::shared_ptr<Var> predicate);
 
@@ -41,16 +47,29 @@ public:
     const std::vector<std::shared_ptr<Stmt>> else_body() const { return else_body_; }
     void add_then_stmt(std::shared_ptr<Stmt> stmt);
     void add_else_stmt(std::shared_ptr<Stmt> stmt);
+
 private:
     std::shared_ptr<Var> predicate_;
     std::vector<std::shared_ptr<Stmt>> then_body_;
     std::vector<std::shared_ptr<Stmt>> else_body_;
 };
 
-class SwitchStmt: public Stmt {
+class SwitchStmt : public Stmt {
     SwitchStmt();
 
 private:
+};
+
+/// this is for always block
+class StmtBlock : public Stmt {
+public:
+    explicit StmtBlock(StatementBlockType type);
+    StatementBlockType block_type() const { return block_type_; }
+    void add_statement(const std::shared_ptr<Stmt> &stmt);
+
+private:
+    StatementBlockType block_type_;
+    std::vector<std::shared_ptr<Stmt>> stmts_;
 };
 
 #endif  // DUSK_STMT_HH

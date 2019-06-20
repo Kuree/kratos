@@ -34,7 +34,10 @@ public:
     std::shared_ptr<Port> get_port(const std::string &port_name);
     std::shared_ptr<Var> get_var(const std::string &var_name);
 
-    void add_stmt(std::shared_ptr<Stmt> stmt) { stmts_.emplace(std::move(stmt)); }
+    void add_stmt(std::shared_ptr<Stmt> stmt) { stmts_.emplace_back(std::move(stmt)); }
+
+    uint64_t stmts_count() { return stmts_.size(); }
+    std::shared_ptr<Stmt> get_stmt(uint32_t index) { return stmts_[index]; }
 
 private:
     std::vector<std::string> lib_files_;
@@ -43,7 +46,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<Var>> vars_;
     std::set<std::string> ports_;
 
-    std::set<std::shared_ptr<Stmt>> stmts_;
+    std::vector<std::shared_ptr<Stmt>> stmts_;
 };
 
-#endif  // DUSK_MODULE_HH
+#endif  // DUSK_MODULE_HH22
