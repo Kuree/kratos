@@ -260,6 +260,12 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
             break;
         }
     }
+    // this is effectively an SSA implementation here
+    for (auto const &exist_stmt: sinks_) {
+        if (exist_stmt->equal(stmt)) {
+            return *exist_stmt;
+        }
+    }
     // push the stmt into its sinks
     sinks_.emplace(stmt);
     if (self_type == AssignmentType::Undefined) self_type = type;

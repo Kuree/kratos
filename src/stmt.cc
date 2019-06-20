@@ -28,6 +28,14 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
     }
 }
 
+bool AssignStmt::equal(const std::shared_ptr<AssignStmt> &stmt) const {
+    return left_ == stmt->left_ && right_ == stmt->right_;
+}
+
+bool AssignStmt::operator==(const AssignStmt &stmt) const {
+    return left_ == stmt.left_ && right_ == stmt.right_;
+}
+
 IfStmt::IfStmt(std::shared_ptr<Var> predicate)
     : Stmt(StatementType::If), predicate_(::move(predicate)) {}
 
@@ -53,5 +61,6 @@ void StmtBlock::add_statement(const std::shared_ptr<Stmt> &stmt) {
     if (std::find(stmts_.begin(), stmts_.end(), stmt) != stmts_.end()) {
         throw ::runtime_error("cannot add the same block to the block list");
     }
+    //
     stmts_.emplace_back(stmt);
 }

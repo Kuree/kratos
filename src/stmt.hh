@@ -31,6 +31,9 @@ public:
     const std::shared_ptr<Var> left() const { return left_; }
     const std::shared_ptr<Var> right() const { return right_; }
 
+    bool equal(const std::shared_ptr<AssignStmt> &stmt) const;
+    bool operator==(const AssignStmt &stmt) const;
+
 private:
     std::shared_ptr<Var> left_ = nullptr;
     std::shared_ptr<Var> right_ = nullptr;
@@ -40,13 +43,16 @@ private:
 
 class IfStmt : public Stmt {
 public:
-    IfStmt(std::shared_ptr<Var> predicate);
+    explicit IfStmt(std::shared_ptr<Var> predicate);
+    explicit IfStmt(Var &var) : IfStmt(var.shared_from_this()) {}
 
     const std::shared_ptr<Var> predicate() const { return predicate_; }
     const std::vector<std::shared_ptr<Stmt>> then_body() const { return then_body_; }
     const std::vector<std::shared_ptr<Stmt>> else_body() const { return else_body_; }
     void add_then_stmt(const std::shared_ptr<Stmt> &stmt);
+    void add_then_stmt(Stmt &stmt) { add_then_stmt(stmt.shared_from_this()); }
     void add_else_stmt(const std::shared_ptr<Stmt> &stmt);
+    void add_else_stmt(Stmt &stmt) { add_else_stmt(stmt.shared_from_this()); }
 
 private:
     std::shared_ptr<Var> predicate_;
