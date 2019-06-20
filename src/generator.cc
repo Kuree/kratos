@@ -150,9 +150,7 @@ Expr &Generator::expr(ExprOp op, const std::shared_ptr<Var> &left,
     return *expr;
 }
 
-Const &Generator::constant(int64_t value, uint32_t width) {
-    return constant(value, width, false);
-}
+Const &Generator::constant(int64_t value, uint32_t width) { return constant(value, width, false); }
 
 Const &Generator::constant(int64_t value, uint32_t width, bool is_signed) {
     Const v(this, value, width, is_signed);

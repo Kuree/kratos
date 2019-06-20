@@ -1,9 +1,9 @@
-#include "../src/stmt.hh"
 #include "../src/context.hh"
 #include "../src/generator.hh"
+#include "../src/stmt.hh"
 #include "gtest/gtest.h"
 
-TEST(stmt, assign) { // NOLINT
+TEST(stmt, assign) {  // NOLINT
     Context c;
     auto &mod = c.generator("test");
     auto &var1 = mod.var("a", 2);

@@ -7,6 +7,4 @@ class VerilogModule {
     VerilogModule(Generator &generator);
 };
 
-
-
-#endif //DUSK_CODE_GEN_H
+#endif  // DUSK_CODE_GEN_H

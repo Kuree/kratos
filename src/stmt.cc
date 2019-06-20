@@ -1,6 +1,6 @@
 #include "stmt.hh"
-#include "fmt/format.h"
 #include <algorithm>
+#include "fmt/format.h"
 
 using fmt::format;
 using std::move;
@@ -9,7 +9,8 @@ using std::runtime_error;
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
     : AssignStmt(left, right, AssignmentType::Undefined) {}
 
-AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right, AssignmentType type)
+AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right,
+                       AssignmentType type)
     : Stmt(StatementType ::Assign), left_(left), right_(right), assign_type_(type) {
     if (left == nullptr) throw ::runtime_error("left hand side is empty");
     if (right == nullptr) throw ::runtime_error("right hand side is empty");

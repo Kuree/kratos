@@ -1,7 +1,7 @@
 #include "../src/expr.hh"
 #include "../src/generator.hh"
-#include "gtest/gtest.h"
 #include "../src/stmt.hh"
+#include "gtest/gtest.h"
 
 TEST(expr, arith) {  // NOLINT
     Context c;
@@ -74,12 +74,12 @@ TEST(expr, assign) {  // NOLINT
     EXPECT_EQ(raw_stmt.left(), assign_stmt.left());
 }
 
-TEST(expr, const_val) { // NOLINT
-   Context c;
-   auto mod = c.generator("module");
-   auto c0 = mod.constant(10, 4);
-   EXPECT_ANY_THROW(mod.constant(10, 4, true));
-   auto c1 = mod.constant(-4, 4, true);
-   EXPECT_EQ(c0.to_string(), "4'hA");
-   EXPECT_EQ(c1.to_string(), "-4'h4");
+TEST(expr, const_val) {  // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto c0 = mod.constant(10, 4);
+    EXPECT_ANY_THROW(mod.constant(10, 4, true));
+    auto c1 = mod.constant(-4, 4, true);
+    EXPECT_EQ(c0.to_string(), "4'hA");
+    EXPECT_EQ(c1.to_string(), "-4'h4");
 }

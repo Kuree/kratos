@@ -273,7 +273,7 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
         if (value < min)
             throw ::runtime_error(::format(
                 "{0} is smaller than the minimum value ({1}) given width {2}", value, min, width));
-        temp = (1ull << (width - 1) )- 1;
+        temp = (1ull << (width - 1)) - 1;
         int64_t max;
         std::memcpy(&max, &temp, sizeof(max));
         if (value > max)
