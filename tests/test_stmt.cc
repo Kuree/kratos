@@ -23,9 +23,13 @@ TEST(stmt, assign) {  // NOLINT
 
     // try slice assign
     EXPECT_NO_THROW(var1.assign(var3[{1, 0}]));
+
+    // duplicated yet wrong assignment
+    var3.assign(var4, AssignmentType::Blocking);
+    EXPECT_ANY_THROW(var3.assign(var4, AssignmentType::NonBlocking));
 }
 
-TEST(stmt, if_stmt) {   // NOLINT
+TEST(stmt, if_stmt) {  // NOLINT
     Context c;
     auto &mod = c.generator("test");
     auto &var1 = mod.var("a", 2);
@@ -37,4 +41,19 @@ TEST(stmt, if_stmt) {   // NOLINT
     if_.add_else_stmt(var3.assign(var4));
     EXPECT_EQ(if_.then_body().back(), var1.assign(var2).shared_from_this());
     EXPECT_EQ(if_.else_body().back(), var3.assign(var4).shared_from_this());
+}
+
+TEST(stmt, block) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("test");
+    auto &var1 = mod.var("a", 2);
+    auto &var2 = mod.var("b", 2);
+    auto &var3 = mod.var("c", 4);
+    auto &var4 = mod.var("d", 4);
+    //
+    auto block_stmt = StmtBlock(StatementBlockType::Sequential);
+    block_stmt.add_statement(var1.assign(var2));
+    // error checking
+    EXPECT_ANY_THROW(block_stmt.add_statement(var1.assign(var2, AssignmentType::Blocking)));
+    EXPECT_ANY_THROW(block_stmt.add_statement(var3.assign(var4, AssignmentType::Blocking)));
 }

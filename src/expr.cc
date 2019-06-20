@@ -261,8 +261,17 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
         }
     }
     // this is effectively an SSA implementation here
-    for (auto const &exist_stmt: sinks_) {
+    for (auto &exist_stmt : sinks_) {
         if (exist_stmt->equal(stmt)) {
+            // check if the assign statement type match
+            if (exist_stmt->assign_type() == AssignmentType::Undefined &&
+                type == AssignmentType::Blocking)
+                exist_stmt->set_assign_type(type);
+            else if (exist_stmt->assign_type() == AssignmentType::Undefined &&
+                     type == AssignmentType::NonBlocking)
+                exist_stmt->set_assign_type(type);
+            else if (type != AssignmentType::Undefined && exist_stmt->assign_type() != type)
+                throw ::runtime_error("Assignment type mistach with existing one");
             return *exist_stmt;
         }
     }

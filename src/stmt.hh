@@ -26,7 +26,8 @@ public:
     AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right,
                AssignmentType type);
 
-    AssignmentType assign_type() { return assign_type_; }
+    AssignmentType assign_type() const { return assign_type_; }
+    void set_assign_type(AssignmentType assign_type) { assign_type_ = assign_type; }
 
     const std::shared_ptr<Var> left() const { return left_; }
     const std::shared_ptr<Var> right() const { return right_; }
@@ -71,7 +72,8 @@ class StmtBlock : public Stmt {
 public:
     explicit StmtBlock(StatementBlockType type);
     StatementBlockType block_type() const { return block_type_; }
-    void add_statement(const std::shared_ptr<Stmt> &stmt);
+    void add_statement(std::shared_ptr<Stmt> stmt);
+    void add_statement(Stmt &stmt) { add_statement(stmt.shared_from_this()); }
 
 private:
     StatementBlockType block_type_;

@@ -53,7 +53,7 @@ void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 
-void StmtBlock::add_statement(const std::shared_ptr<Stmt> &stmt) {
+void StmtBlock::add_statement(std::shared_ptr<Stmt> stmt) {
     // it cannot add another block stmt
     if (stmt->type() == StatementType::Block) {
         throw ::runtime_error("cannot add statement block to another statement block");
@@ -61,6 +61,20 @@ void StmtBlock::add_statement(const std::shared_ptr<Stmt> &stmt) {
     if (std::find(stmts_.begin(), stmts_.end(), stmt) != stmts_.end()) {
         throw ::runtime_error("cannot add the same block to the block list");
     }
-    //
+    // if it is an assign statement, check the assignment as well
+    if (stmt->type() == StatementType::Assign) {
+        auto assign_stmt = stmt->as<AssignStmt>();
+        if (assign_stmt->assign_type() == AssignmentType::Undefined) {
+            assign_stmt->set_assign_type(block_type() == StatementBlockType::Combinational
+                                             ? AssignmentType::Blocking
+                                             : AssignmentType::NonBlocking);
+        } else if (assign_stmt->assign_type() == AssignmentType::NonBlocking &&
+                   block_type_ == StatementBlockType::Combinational) {
+            throw ::runtime_error("cannot add blocking assignment to a sequential block");
+        } else if (assign_stmt->assign_type() == AssignmentType::Blocking &&
+                   block_type_ == StatementBlockType::Sequential) {
+            throw ::runtime_error("cannot add non-blocking assignment to a combinational block");
+        }
+    }
     stmts_.emplace_back(stmt);
 }
