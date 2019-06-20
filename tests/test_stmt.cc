@@ -21,3 +21,12 @@ TEST(stmt, assign) {  // NOLINT
     // try slice assign
     EXPECT_NO_THROW(var1.assign(var3[{1, 0}]));
 }
+
+TEST(stmt, if_stmt) {   // NOLINT
+    Context c;
+    auto &mod = c.generator("test");
+    auto &var1 = mod.var("a", 2);
+    auto &var2 = mod.var("b", 2, true);
+    auto &var3 = mod.var("c", 4);
+    auto &var4 = mod.var("d", 4);
+}

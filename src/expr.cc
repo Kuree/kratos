@@ -11,6 +11,12 @@ using std::shared_ptr;
 using std::string;
 using std::vector;
 
+bool is_relational_op(ExprOp op) {
+    static std::unordered_set<ExprOp> ops = {ExprOp::LessThan, ExprOp::GreaterThan,
+                                             ExprOp::LessEqThan, ExprOp::GreaterEqThan, ExprOp::Eq};
+    return ops.find(op) != ops.end();
+}
+
 std::string ExprOpStr(ExprOp op) {
     switch (op) {
         case UInvert:
@@ -202,7 +208,12 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
         throw std::runtime_error(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
                      left->name, left->width, right->name, right->width));
-    width = left->width;
+    // if it's a predicate/relational op, the width is one
+    if (is_relational_op(op))
+        width = 1;
+    else
+        width = left->width;
+
     if (right != nullptr)
         name = ::format("({0} {1} {2})", left->name, ExprOpStr(op), right->name);
     else

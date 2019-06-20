@@ -31,9 +31,17 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
 IfStmt::IfStmt(std::shared_ptr<Var> predicate)
     : Stmt(StatementType::If), predicate_(::move(predicate)) {}
 
-void IfStmt::add_then_stmt(std::shared_ptr<Stmt> stmt) { then_body_.emplace_back(::move(stmt)); }
+void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
+    if (stmt->type() == StatementType::Block)
+        throw ::runtime_error("cannot add statement block to the if statement body");
+    then_body_.emplace_back(stmt);
+}
 
-void IfStmt::add_else_stmt(std::shared_ptr<Stmt> stmt) { else_body_.emplace_back(::move(stmt)); }
+void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
+    if (stmt->type() == StatementType::Block)
+        throw ::runtime_error("cannot add statement block to the if statement body");
+    else_body_.emplace_back(stmt);
+}
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 

@@ -57,6 +57,16 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ((var1.eq(var3)).to_string(), "a == c");
 }
 
+TEST(expr, relational) {    // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+
+    auto &var1 = mod.var("a", 2);
+    auto &var2 = mod.var("b", 2);
+    auto &exp = var1 >= var2;
+    EXPECT_EQ(exp.width, 1);
+}
+
 TEST(expr, assign) {  // NOLINT
     Context c;
     auto mod = c.generator("module");

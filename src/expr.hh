@@ -33,6 +33,8 @@ enum ExprOp {
     Eq
 };
 
+bool is_relational_op(ExprOp op);
+
 std::string ExprOpStr(ExprOp op);
 
 enum VarType { Base, Expression, Slice, ConstValue };

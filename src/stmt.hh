@@ -45,8 +45,8 @@ public:
     const std::shared_ptr<Var> predicate() const { return predicate_; }
     const std::vector<std::shared_ptr<Stmt>> then_body() const { return then_body_; }
     const std::vector<std::shared_ptr<Stmt>> else_body() const { return else_body_; }
-    void add_then_stmt(std::shared_ptr<Stmt> stmt);
-    void add_else_stmt(std::shared_ptr<Stmt> stmt);
+    void add_then_stmt(const std::shared_ptr<Stmt> &stmt);
+    void add_else_stmt(const std::shared_ptr<Stmt> &stmt);
 
 private:
     std::shared_ptr<Var> predicate_;
