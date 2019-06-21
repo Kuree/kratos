@@ -10,7 +10,7 @@
 #include "context.hh"
 #include "port.hh"
 
-class Generator {
+class Generator: public ASTNode {
 public:
     std::string name;
 
@@ -38,6 +38,11 @@ public:
 
     uint64_t stmts_count() { return stmts_.size(); }
     std::shared_ptr<Stmt> get_stmt(uint32_t index) { return stmts_[index]; }
+
+    // AST stuff
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    uint64_t child_count() override { return stmts_count(); }
+    ASTNode *get_child(uint64_t index) override;
 
 private:
     std::vector<std::string> lib_files_;

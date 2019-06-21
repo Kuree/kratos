@@ -14,6 +14,11 @@ struct Const;
 struct VarSlice;
 class Stmt;
 class AssignStmt;
+class IfStmt;
+class SwitchStmt;
+class StmtBlock;
+class CombinationalStmtBlock;
+class SequentialStmtBlock;
 enum AssignmentType: int;
 
 class Context {

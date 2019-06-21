@@ -39,7 +39,7 @@ public:
     bool operator==(const AssignStmt &stmt) const;
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit<AssignStmt>(this); }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 2; }
     ASTNode *get_child(uint64_t index) override;
 
@@ -64,7 +64,7 @@ public:
     void add_else_stmt(Stmt &stmt) { add_else_stmt(stmt.shared_from_this()); }
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit<IfStmt>(this); }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 1 + then_body_.size() + else_body_.size(); }
     ASTNode *get_child(uint64_t index) override;
 
@@ -86,7 +86,7 @@ public:
     const std::map<std::shared_ptr<Const>, std::shared_ptr<Stmt>> &body() const { return body_; }
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit<SwitchStmt>(this); }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return body_.size() + 1; }
     ASTNode *get_child(uint64_t index) override;
 
@@ -120,7 +120,7 @@ public:
     CombinationalStmtBlock() : StmtBlock(StatementBlockType::Combinational) {}
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit<CombinationalStmtBlock>(this); }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
 class SequentialStmtBlock : public StmtBlock {
@@ -133,7 +133,7 @@ public:
 
     void add_condition(const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition);
 
-    void accept(ASTVisitor *visitor) override { visitor->visit<SequentialStmtBlock>(this); }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
 
 private:
     std::set<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;

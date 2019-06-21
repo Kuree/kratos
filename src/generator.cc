@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include "fmt/format.h"
 #include "generator.hh"
+#include "stmt.hh"
 #include "slang/compilation/Compilation.h"
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/text/SourceManager.h"
@@ -163,4 +164,11 @@ Const &Generator::constant(int64_t value, uint32_t width, bool is_signed) {
         vars_.emplace(ptr->name, ptr);
     }
     return *ptr;
+}
+
+ASTNode* Generator::get_child(uint64_t index) {
+    if (index < child_count())
+        return stmts_[index].get();
+    else
+        return nullptr;
 }

@@ -93,9 +93,9 @@ public:
     virtual std::string to_string();
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit<Var>(this); }
-    uint64_t child_count() override { return 1; }
-    ASTNode *get_child(uint64_t index) override { return index == 0 ? this : nullptr; }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    uint64_t child_count() override { return 0; }
+    ASTNode *get_child(uint64_t) override { return nullptr; }
 
 protected:
     Var() : name(), width(), is_signed(false), generator(nullptr), type_(Base) {}
@@ -117,7 +117,7 @@ public:
 
     VarSlice(Var *parent, uint32_t high, uint32_t low);
 
-    void accept(ASTVisitor *visitor) override { visitor->visit<VarSlice>(this); }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
 struct Const : public Var {
@@ -129,7 +129,7 @@ public:
 
     std::string to_string() override;
 
-    void accept(ASTVisitor *visitor) override { visitor->visit<Const>(this); }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
 
 private:
     int64_t value_;
@@ -144,7 +144,7 @@ struct Expr : public Var {
     std::string to_string() override;
 
     // AST
-    void accept(ASTVisitor *visitor) override { visitor->visit<Expr>(this); }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return right ? 2 : 1; }
     ASTNode *get_child(uint64_t index) override;
 };
