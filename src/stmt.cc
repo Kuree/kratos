@@ -37,6 +37,15 @@ bool AssignStmt::operator==(const AssignStmt &stmt) const {
     return left_ == stmt.left_ && right_ == stmt.right_;
 }
 
+ASTNode *AssignStmt::get_child(uint64_t index) {
+    if (index == 0)
+        return left_.get();
+    else if (index == 1)
+        return right_.get();
+    else
+        return nullptr;
+}
+
 IfStmt::IfStmt(std::shared_ptr<Var> predicate)
     : Stmt(StatementType::If), predicate_(::move(predicate)) {}
 
@@ -50,6 +59,17 @@ void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
         throw ::runtime_error("cannot add statement block to the if statement body");
     else_body_.emplace_back(stmt);
+}
+
+ASTNode *IfStmt::get_child(uint64_t index) {
+    if (index == 0)
+        return predicate_.get();
+    else if (index < then_body_.size() + 1)
+        return then_body_[index - 1].get();
+    else if (index < then_body_.size() + else_body_.size() + 1)
+        return else_body_[index - then_body_.size() - 1].get();
+    else
+        return nullptr;
 }
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
@@ -111,4 +131,20 @@ void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                 ::format("{0} already exists in the case statement", case_const->value()));
     }
     body_.emplace(switch_case, stmt);
+}
+
+ASTNode *SwitchStmt::get_child(uint64_t index) {
+    if (index == 0) {
+        return target_.get();
+    } else if (index < body_.size() + 1) {
+        // this is not an efficient way for doing this
+        std::vector<std::shared_ptr<Const>> keys;
+        for (const auto &[key, value]: body_)
+            keys.emplace_back(key);
+        auto const key = keys[index - 1];
+        return body_[key].get();
+    }
+    else {
+        return nullptr;
+    }
 }

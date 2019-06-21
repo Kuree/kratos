@@ -10,7 +10,7 @@ enum BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
 
-class Stmt : public std::enable_shared_from_this<Stmt> {
+class Stmt : public std::enable_shared_from_this<Stmt>, public ASTNode {
 public:
     explicit Stmt(StatementType type) : type_(type) {}
     StatementType type() { return type_; }
@@ -38,6 +38,11 @@ public:
     bool equal(const std::shared_ptr<AssignStmt> &stmt) const;
     bool operator==(const AssignStmt &stmt) const;
 
+    // AST stuff
+    void accept(ASTVisitor *visitor) override { visitor->visit<AssignStmt>(this); }
+    uint64_t child_count() override { return 2; }
+    ASTNode *get_child(uint64_t index) override;
+
 private:
     std::shared_ptr<Var> left_ = nullptr;
     std::shared_ptr<Var> right_ = nullptr;
@@ -58,6 +63,11 @@ public:
     void add_else_stmt(const std::shared_ptr<Stmt> &stmt);
     void add_else_stmt(Stmt &stmt) { add_else_stmt(stmt.shared_from_this()); }
 
+    // AST stuff
+    void accept(ASTVisitor *visitor) override { visitor->visit<IfStmt>(this); }
+    uint64_t child_count() override { return 1 + then_body_.size() + else_body_.size(); }
+    ASTNode *get_child(uint64_t index) override;
+
 private:
     std::shared_ptr<Var> predicate_;
     std::vector<std::shared_ptr<Stmt>> then_body_;
@@ -75,6 +85,11 @@ public:
 
     const std::map<std::shared_ptr<Const>, std::shared_ptr<Stmt>> &body() const { return body_; }
 
+    // AST stuff
+    void accept(ASTVisitor *visitor) override { visitor->visit<SwitchStmt>(this); }
+    uint64_t child_count() override { return body_.size() + 1; }
+    ASTNode *get_child(uint64_t index) override;
+
 private:
     std::shared_ptr<Var> target_;
     std::map<std::shared_ptr<Const>, std::shared_ptr<Stmt>> body_;
@@ -87,17 +102,25 @@ public:
     void add_statement(std::shared_ptr<Stmt> stmt);
     void add_statement(Stmt &stmt) { add_statement(stmt.shared_from_this()); }
 
+    uint64_t child_count() override { return stmts_.size(); }
+    ASTNode *get_child(uint64_t index) override {
+        return index < stmts_.size() ? stmts_[index].get() : nullptr;
+    }
+
 protected:
     explicit StmtBlock(StatementBlockType type);
+    std::vector<std::shared_ptr<Stmt>> stmts_;
 
 private:
     StatementBlockType block_type_;
-    std::vector<std::shared_ptr<Stmt>> stmts_;
 };
 
 class CombinationalStmtBlock : public StmtBlock {
 public:
     CombinationalStmtBlock() : StmtBlock(StatementBlockType::Combinational) {}
+
+    // AST stuff
+    void accept(ASTVisitor *visitor) override { visitor->visit<CombinationalStmtBlock>(this); }
 };
 
 class SequentialStmtBlock : public StmtBlock {
@@ -109,6 +132,8 @@ public:
     }
 
     void add_condition(const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition);
+
+    void accept(ASTVisitor *visitor) override { visitor->visit<SequentialStmtBlock>(this); }
 
 private:
     std::set<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;

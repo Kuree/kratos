@@ -338,3 +338,12 @@ std::string Expr::to_string() {
         return ::format("{0} {1}", ExprOpStr(op), left->name);
     }
 }
+
+ASTNode *Expr::get_child(uint64_t index) {
+    if (index == 0)
+        return left.get();
+    else if (index == 1)
+        return right ? right.get() : nullptr;
+    else
+        return nullptr;
+}

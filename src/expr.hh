@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <unordered_set>
+#include "ast.hh"
 #include "context.hh"
 
 enum ExprOp {
@@ -39,7 +40,7 @@ std::string ExprOpStr(ExprOp op);
 
 enum VarType { Base, Expression, Slice, ConstValue, PortIO };
 
-struct Var : public std::enable_shared_from_this<Var> {
+struct Var : public std::enable_shared_from_this<Var>, public ASTNode {
 public:
     Var(Generator *m, const std::string &name, uint32_t width, bool is_signed);
     Var(Generator *m, const std::string &name, uint32_t width, bool is_signed, VarType type);
@@ -84,10 +85,17 @@ public:
     VarType type() const { return type_; }
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks() const { return sinks_; };
 
-    template<typename T>
-    std::shared_ptr<T> as() { return std::static_pointer_cast<T>(shared_from_this()); }
+    template <typename T>
+    std::shared_ptr<T> as() {
+        return std::static_pointer_cast<T>(shared_from_this());
+    }
 
     virtual std::string to_string();
+
+    // AST stuff
+    void accept(ASTVisitor *visitor) override { visitor->visit<Var>(this); }
+    uint64_t child_count() override { return 1; }
+    ASTNode *get_child(uint64_t index) override { return index == 0 ? this : nullptr; }
 
 protected:
     Var() : name(), width(), is_signed(false), generator(nullptr), type_(Base) {}
@@ -108,6 +116,8 @@ public:
     uint32_t high = 0;
 
     VarSlice(Var *parent, uint32_t high, uint32_t low);
+
+    void accept(ASTVisitor *visitor) override { visitor->visit<VarSlice>(this); }
 };
 
 struct Const : public Var {
@@ -118,6 +128,8 @@ public:
     int64_t value() { return value_; }
 
     std::string to_string() override;
+
+    void accept(ASTVisitor *visitor) override { visitor->visit<Const>(this); }
 
 private:
     int64_t value_;
@@ -130,6 +142,11 @@ struct Expr : public Var {
 
     Expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
     std::string to_string() override;
+
+    // AST
+    void accept(ASTVisitor *visitor) override { visitor->visit<Expr>(this); }
+    uint64_t child_count() override { return right ? 2 : 1; }
+    ASTNode *get_child(uint64_t index) override;
 };
 
 #endif  // DUSK_EXPR_HH
