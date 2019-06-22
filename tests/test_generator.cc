@@ -1,8 +1,8 @@
+#include "../src/expr.hh"
 #include "../src/generator.hh"
+#include "../src/pass.hh"
 #include "../src/port.hh"
 #include "../src/stmt.hh"
-#include "../src/expr.hh"
-#include "../src/pass.hh"
 #include "gtest/gtest.h"
 
 TEST(generator, load) {  // NOLINT
@@ -27,8 +27,7 @@ TEST(generator, port) {  // NOLINT
     mod.port(PortDirection::Out, "out", 1);
 }
 
-
-TEST(pass, assignment_fix) {    // NOLINT
+TEST(pass, assignment_fix) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
     auto &port1 = mod.port(PortDirection::In, "in", 1);
@@ -38,4 +37,24 @@ TEST(pass, assignment_fix) {    // NOLINT
     mod.add_stmt(expr.shared_from_this());
     fix_assignment_type(&mod);
     EXPECT_EQ(expr.assign_type(), AssignmentType::Blocking);
+}
+
+TEST(pass, unused_var) {  // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto &port1 = mod.port(PortDirection::In, "in", 1);
+    auto &port2 = mod.port(PortDirection::Out, "out", 1);
+    auto &var1 = mod.var("c", 1);
+    auto &var2 = mod.var("d", 1);
+    mod.add_stmt(var1.assign(port1).shared_from_this());
+    mod.add_stmt(port2.assign(var1).shared_from_this());
+    // var2 is unused
+    (void)var2;
+
+    EXPECT_TRUE(mod.get_var("d") != nullptr);
+    remove_unused_vars(&mod);
+
+    EXPECT_TRUE(mod.get_var("d") == nullptr);
+    EXPECT_TRUE(mod.get_var("in") != nullptr);
+    EXPECT_TRUE(mod.get_var("c") != nullptr);
 }

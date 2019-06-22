@@ -7,3 +7,6 @@
 [submodule "extern/fmt"]
 	path = extern/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "extern/NanoLog"]
+	path = extern/NanoLog
+	url = https://github.com/Iyengar111/NanoLog

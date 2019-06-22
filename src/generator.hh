@@ -10,7 +10,7 @@
 #include "context.hh"
 #include "port.hh"
 
-class Generator: public ASTNode {
+class Generator : public ASTNode {
 public:
     std::string name;
 
@@ -33,11 +33,19 @@ public:
 
     std::shared_ptr<Port> get_port(const std::string &port_name);
     std::shared_ptr<Var> get_var(const std::string &var_name);
+    const std::unordered_map<std::string, std::shared_ptr<Var>> &vars() const { return vars_; }
+    void remove_var(const std::string &var_name) {
+        if (vars_.find(var_name) != vars_.end()) vars_.erase(var_name);
+    }
 
     void add_stmt(std::shared_ptr<Stmt> stmt) { stmts_.emplace_back(std::move(stmt)); }
 
     uint64_t stmts_count() { return stmts_.size(); }
     std::shared_ptr<Stmt> get_stmt(uint32_t index) { return stmts_[index]; }
+
+    // child generator. needed for generator merge
+    void add_child_generator(const std::shared_ptr<Generator> &child) { children_.emplace(child); }
+    void remove_child_generator(const std::shared_ptr<Generator> &child);
 
     // AST stuff
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
@@ -52,6 +60,8 @@ private:
     std::set<std::string> ports_;
 
     std::vector<std::shared_ptr<Stmt>> stmts_;
+
+    std::set<std::shared_ptr<Generator>> children_;
 };
 
 #endif  // DUSK_MODULE_HH22

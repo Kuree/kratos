@@ -7,11 +7,11 @@
 #include <unordered_set>
 #include "fmt/format.h"
 #include "generator.hh"
-#include "stmt.hh"
 #include "slang/compilation/Compilation.h"
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/text/SourceManager.h"
 #include "slang/util/Bag.h"
+#include "stmt.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -166,9 +166,13 @@ Const &Generator::constant(int64_t value, uint32_t width, bool is_signed) {
     return *ptr;
 }
 
-ASTNode* Generator::get_child(uint64_t index) {
+ASTNode *Generator::get_child(uint64_t index) {
     if (index < child_count())
         return stmts_[index].get();
     else
         return nullptr;
+}
+
+void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) {
+    if (children_.find(child) != children_.end()) children_.erase(child);
 }

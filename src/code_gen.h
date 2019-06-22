@@ -4,7 +4,7 @@
 #include "context.hh"
 
 class VerilogModule {
-    VerilogModule(Generator &generator);
+    VerilogModule(Generator *generator);
 };
 
 #endif  // DUSK_CODE_GEN_H

@@ -252,6 +252,11 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var) {
 AssignStmt &Var::assign(Var &var) { return assign(var, AssignmentType::Undefined); }
 
 AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
+    // if it's a constant or expression, it can't be assigned to
+    if (type_ == VarType::ConstValue)
+        throw ::runtime_error(::format("Cannot assign {0} to a const {1}", var->name, name));
+    else if (type_ == VarType::Expression)
+        throw ::runtime_error(::format("Cannot assign {0} to an expression", var->name, name));
     auto const &stmt = ::make_shared<AssignStmt>(shared_from_this(), var, type);
     // determine the type
     AssignmentType self_type = AssignmentType::Undefined;

@@ -4,3 +4,4 @@ add_library(dusk port.cc port.hh generator.cc generator.hh
 target_link_libraries(dusk PUBLIC slang)
 target_include_directories(dusk PUBLIC ../extern/abseil-cpp)
 target_include_directories(dusk PUBLIC ../extern/slang/include)
+target_include_directories(dusk PUBLIC ../extern/NanoLog)
