@@ -229,3 +229,10 @@ void Generator::rename_var(const std::string &old_name, const std::string &new_n
     // rename the var
     var->name = new_name;
 }
+
+void Generator::remove_stmt(const std::shared_ptr<Stmt> &stmt) {
+    auto pos = std::find(stmts_.begin(), stmts_.end(), stmt);
+    if (pos != stmts_.end()) {
+        stmts_.erase(pos);
+    }
+}

@@ -330,6 +330,15 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     return *stmt;
 }
 
+void Var::unassign(const std::shared_ptr<Var> &var) {
+    // FIXME make it more efficient
+    auto stmt = assign(var).shared_from_this()->as<AssignStmt>();
+    var->sinks_.erase(stmt);
+    sources_.erase(stmt);
+    // erase from parent if any
+    generator->remove_stmt(stmt);
+}
+
 Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed)
     : Var(generator, ::format("{0}", value), width, is_signed, VarType::ConstValue), value_() {
     // need to deal with the signed value

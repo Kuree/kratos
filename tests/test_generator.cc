@@ -41,6 +41,18 @@ TEST(generator, rename_var) {   // NOLINT
     EXPECT_EQ(stmt2.right()->to_string(), "c[0:0]");
 }
 
+TEST(generator, remove_stmt) {  // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto &a = mod.var("a", 2);
+    auto &b = mod.var("b", 2);
+    auto stmt = a.assign(b).shared_from_this();
+    mod.add_stmt(stmt);
+    EXPECT_EQ(mod.get_stmt(0), stmt);
+    mod.remove_stmt(a.assign(b).shared_from_this());
+    EXPECT_EQ(mod.get_stmt(0), nullptr);
+}
+
 TEST(pass, assignment_fix) {  // NOLINT
     Context c;
     auto mod = c.generator("module");

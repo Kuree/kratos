@@ -43,10 +43,13 @@ public:
     }
     void rename_var(const std::string &old_name, const std::string &new_name);
 
+    // statements
     void add_stmt(std::shared_ptr<Stmt> stmt);
-
     uint64_t stmts_count() { return stmts_.size(); }
-    std::shared_ptr<Stmt> get_stmt(uint32_t index) { return stmts_[index]; }
+    std::shared_ptr<Stmt> get_stmt(uint32_t index) {
+        return index < stmts_.size() ? stmts_[index] : nullptr;
+    }
+    void remove_stmt(const std::shared_ptr<Stmt> &stmt);
 
     // child generator. needed for generator merge
     void add_child_generator(const std::shared_ptr<Generator> &child, bool merge);

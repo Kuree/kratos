@@ -154,6 +154,32 @@ ASTNode *SwitchStmt::get_child(uint64_t index) {
     }
 }
 
+std::unordered_set<std::shared_ptr<AssignStmt>> filter_assignments_with_target(
+    const std::unordered_set<std::shared_ptr<AssignStmt>> &stmts, const Generator *target,
+    bool lhs) {
+    std::unordered_set<std::shared_ptr<AssignStmt>> result;
+    for (const auto &stmt : stmts) {
+        if (lhs) {
+            if (stmt->left()->generator == target) result.emplace(stmt);
+        } else {
+            if (stmt->right()->generator == target) result.emplace(stmt);
+        }
+    }
+    return result;
+}
+
+std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> filter_slice_pairs_with_target(
+    const std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> &slices,
+    Generator *target, bool lhs) {
+    std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> result;
+    for (auto const &[slice_pair, slice] : slices) {
+        if (!filter_assignments_with_target(slice->sources(), target, lhs).empty()) {
+            result.emplace(slice_pair, slice);
+        }
+    }
+    return result;
+}
+
 ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *parent)
     : Stmt(StatementType::ModuleInstantiation), target_(target), parent_(parent) {
     auto const &port_names = target->get_port_names();
@@ -162,15 +188,16 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
         auto const port_direction = port->port_direction();
         if (port_direction == PortDirection::In) {
             // if we're connected to a base variable and no slice, we are good
-            const auto slices = port->get_slices();
-            const auto &sources = port->sources();
+            const auto &slices = filter_slice_pairs_with_target(port->get_slices(), parent, false);
+            const auto &sources = filter_assignments_with_target(port->sources(), parent, false);
             // because an input cannot be an register, it can only has one
-            // source (all bits combined
+            // source (all bits combined)
             if (slices.empty()) {
                 if (sources.empty())
                     throw ::runtime_error(
                         ::format("{0}.{1} is not connected", target->name, port_name));
-                if (sources.size() > 1) throw ::runtime_error(
+                if (sources.size() > 1)
+                    throw ::runtime_error(
                         ::format("{0}.{1} is driven by multiple nets", target->name, port_name));
                 // add it to the port mapping and we are good to go
                 auto const &stmt = *sources.begin();
@@ -181,10 +208,52 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                 if (!sources.empty())
                     throw ::runtime_error(
                         ::format("{0}.{1} is over-connected", target->name, port_name));
-                // concat the variables together
+                // concat the variables together and use that as a mapping
+                std::vector<std::pair<uint32_t, uint32_t>> slice_pairs;
+                for (auto const &iter : slices) slice_pairs.emplace_back(iter.first);
+                std::sort(slice_pairs.begin(), slice_pairs.end(),
+                          [](const auto &a, const auto &b) -> bool { return a.first < b.first; });
+                // check if we have everything
+                auto const low = slice_pairs[0].first;
+                auto const high = slice_pairs.back().second;
+                if (low != 0)
+                    throw ::runtime_error(
+                        ::format("{0}.{1}[{2}:0] is floating", target->name, port_name, low + 1));
+                if (high != port->width - 1)
+                    throw ::runtime_error(::format("{0}.{1}[{2}:{3}] is floating", target->name,
+                                                   port_name, port->width - 1, high + 1));
+
+                if (slice_pairs.size() == 1) {
+                    if ((high - low + 1) == port->width) {
+                        // special cases, don't know why the user just connects it without slicing
+                        port_mapping_.emplace(port, slices.at(slice_pairs[0]));
+                    } else {
+                        throw ::runtime_error(::format("{0}.{1}[{2}:{3}] is floating", target->name,
+                                                       port_name, port->width - 1, high + 1));
+                    }
+                } else {
+                    // mapped with a concat'ed variable
+                    // check if all the inputs are there and no overlapping
+                    for (uint32_t i = 0; i < slice_pairs.size() - 1; i++) {
+                        if (slice_pairs[i].second != slice_pairs[i + 1].first - 1) {
+                            throw ::runtime_error(
+                                ::format("{0}.{1}[{2}:{3}] is floating", target->name, port_name,
+                                         slice_pairs[i + 1].first - 1, slice_pairs[i].second + 1));
+                        }
+                    }
+                    auto &concat = slices.at(slice_pairs[0])->concat(*slices.at(slice_pairs[1]));
+                    for (uint32_t i = 2; i < slice_pairs.size(); i++) {
+                        concat.concat(*slices.at(slice_pairs[i]));
+                    }
+                    port_mapping_.emplace(port, concat.shared_from_this());
+                }
             }
-
-
+        } else if (port_direction == PortDirection::Out) {
+            // need to find out if there is any sources connected to the slices
+            const auto &slices = filter_slice_pairs_with_target(port->get_slices(), parent, true);
+            const auto &sinks = filter_assignments_with_target(port->sinks(), parent, true);
+        } else {
+            throw ::runtime_error("Inout port type not implemented");
         }
     }
 }

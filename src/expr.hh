@@ -84,6 +84,7 @@ public:
     AssignStmt &assign(Var &var);
     AssignStmt &assign(const std::shared_ptr<Var> &var, AssignmentType type);
     AssignStmt &assign(Var &var, AssignmentType type);
+    void unassign(const std::shared_ptr<Var> &var);
 
     Generator *generator;
     ASTNode *parent() override;
