@@ -12,6 +12,7 @@ struct Expr;
 struct Var;
 struct Const;
 struct VarSlice;
+struct VarConcat;
 class Stmt;
 class AssignStmt;
 class IfStmt;

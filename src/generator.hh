@@ -41,6 +41,7 @@ public:
     void remove_var(const std::string &var_name) {
         if (vars_.find(var_name) != vars_.end()) vars_.erase(var_name);
     }
+    void rename_var(const std::string &old_name, const std::string &new_name);
 
     void add_stmt(std::shared_ptr<Stmt> stmt);
 
@@ -60,7 +61,7 @@ public:
 
     std::unordered_set<std::string> get_vars();
 
-    std::string get_unique_variable_name(const std::string &prefix, const std::string name);
+    std::string get_unique_variable_name(const std::string &prefix, const std::string &var_name);
 
 private:
     std::vector<std::string> lib_files_;

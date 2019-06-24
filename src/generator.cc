@@ -188,7 +188,7 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
 
 std::unordered_set<std::string> Generator::get_vars() {
     std::unordered_set<std::string> result;
-    for (auto const &[name, ptr]: vars_) {
+    for (auto const &[name, ptr] : vars_) {
         if (ptr->type() == VarType::PortIO) {
             result.emplace(name);
         }
@@ -201,15 +201,16 @@ void Generator::add_stmt(std::shared_ptr<Stmt> stmt) {
     stmts_.emplace_back(std::move(stmt));
 }
 
-std::string Generator::get_unique_variable_name(const std::string &prefix, const std::string name) {
+std::string Generator::get_unique_variable_name(const std::string &prefix,
+                                                const std::string &var_name) {
     // NOTE: this is not thread-safe!
     uint32_t count = 0;
     std::string result_name;
     while (true) {
         if (prefix.empty()) {
-            result_name = ::format("{0}_{1}", name, count);
+            result_name = ::format("{0}_{1}", var_name, count);
         } else {
-           result_name = ::format("{0}${1}_{2}", prefix, name, count);
+            result_name = ::format("{0}${1}_{2}", prefix, var_name, count);
         }
         if (get_var(result_name)) {
             break;
@@ -218,4 +219,13 @@ std::string Generator::get_unique_variable_name(const std::string &prefix, const
         }
     }
     return result_name;
+}
+
+void Generator::rename_var(const std::string &old_name, const std::string &new_name) {
+    auto var = get_var(old_name);
+    if (!var) return;
+    // Using C++17 to replace the key
+    vars_.extract(old_name).key() = new_name;
+    // rename the var
+    var->name = new_name;
 }

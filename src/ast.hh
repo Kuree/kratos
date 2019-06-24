@@ -34,6 +34,7 @@ public:
     virtual void visit(Generator *) {}
     virtual void visit(Var *) {}
     virtual void visit(VarSlice *) {}
+    virtual void visit(VarConcat *) {}
     virtual void visit(Expr *) {}
     virtual void visit(Const *) {}
     virtual void visit(AssignStmt *) {}

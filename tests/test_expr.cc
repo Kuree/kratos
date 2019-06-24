@@ -49,7 +49,7 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ(slice_expr.parent_var, wire.shared_from_this().get());
     EXPECT_EQ(slice_expr.high, 2);
     EXPECT_EQ(slice_expr.low, 0);
-    EXPECT_EQ(slice_expr.name, "d[2:0]");
+    EXPECT_EQ(slice_expr.to_string(), "d[2:0]");
     // test the raw interface. users should not do that
     EXPECT_EQ(VarSlice(&wire, 2, 1).width, 2);
 
@@ -92,4 +92,23 @@ TEST(expr, const_val) {  // NOLINT
     auto c1 = mod.constant(-4, 4, true);
     EXPECT_EQ(c0.to_string(), "4'hA");
     EXPECT_EQ(c1.to_string(), "-4'h4");
+}
+
+TEST(expr, concat) {    // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto &var1 = mod.var("a", 1);
+    auto &var2 = mod.var("b", 1);
+    auto &var3 = var1.concat(var2);
+    auto &var3_ = var3.concat(var2);
+    EXPECT_EQ(var3_.to_string(), "{a, b, b}");
+
+    // test raw constructor
+    const auto &concat = VarConcat(&mod, var1.shared_from_this(), var2.shared_from_this());
+    EXPECT_EQ(concat.to_string(), var3.to_string());
+
+    // test copy constructor
+    const auto &var4 = VarConcat(var3);
+    // copy constructor won't work
+    EXPECT_ANY_THROW(var4.shared_from_this());
 }

@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <unordered_set>
+#include <vector>
 #include "ast.hh"
 #include "context.hh"
 
@@ -74,6 +75,10 @@ public:
     // slice
     VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
     VarSlice &operator[](uint32_t bit);
+    // concat
+    virtual VarConcat &concat(Var &var);
+    std::unordered_set<std::shared_ptr<VarConcat>> concat_vars;
+
     // assignment
     AssignStmt &assign(const std::shared_ptr<Var> &var);
     AssignStmt &assign(Var &var);
@@ -86,7 +91,7 @@ public:
     VarType type() const { return type_; }
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks() const { return sinks_; };
     std::unordered_set<std::shared_ptr<AssignStmt>> sources() const { return sources_; };
-    const std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> get_slices() const {
+    std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> &get_slices() {
         return slices_;
     }
 
@@ -95,7 +100,7 @@ public:
         return std::static_pointer_cast<T>(shared_from_this());
     }
 
-    virtual std::string to_string();
+    virtual std::string to_string() const;
 
     // AST stuff
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
@@ -131,6 +136,22 @@ public:
     ASTNode *parent() override;
 
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+
+    static std::string get_slice_name(const std::string &parent_name, uint32_t high, uint32_t low);
+
+    std::string to_string() const override;
+};
+
+struct VarConcat : public Var {
+public:
+    std::vector<std::shared_ptr<Var>> vars;
+    VarConcat(Generator *m, const std::shared_ptr<Var> &first,
+              const std::shared_ptr<Var> &second);
+    VarConcat(const VarConcat &var);
+
+    VarConcat &concat(Var &var) override;
+
+    std::string to_string() const override;
 };
 
 struct Const : public Var {
@@ -140,7 +161,7 @@ public:
 
     int64_t value() { return value_; }
 
-    std::string to_string() override;
+    std::string to_string() const override;
 
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
 
@@ -154,7 +175,7 @@ struct Expr : public Var {
     std::shared_ptr<Var> right;
 
     Expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
-    std::string to_string() override;
+    std::string to_string() const override;
 
     // AST
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }

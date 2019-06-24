@@ -186,16 +186,40 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     return *slices_.at(slice);
 }
 
-std::string Var::to_string() { return name; }
+VarConcat &Var::concat(Var &var) {
+    auto ptr = var.shared_from_this();
+    // notice that we effectively created an implicit sink->sink by creating a concat
+    // however, it's not an assignment, that's why we need to use concat_vars to hold the
+    // vars
+    for (auto const &exist_var : concat_vars) {
+        // reuse the existing variables
+        if (exist_var->vars.size() == 2 && exist_var->vars.back() == ptr) {
+            return *exist_var;
+        }
+    }
+    auto concat_ptr = std::make_shared<VarConcat>(generator, shared_from_this(), ptr);
+    concat_vars.emplace(concat_ptr);
+    return *concat_ptr;
+}
+
+std::string Var::to_string() const { return name; }
 
 VarSlice &Var::operator[](uint32_t bit) { return (*this)[{bit, bit}]; }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
-    : Var(parent->generator, ::format("{0}[{1}:{2}]", parent->name, high, low), high - low + 1,
+    : Var(parent->generator, "", high - low + 1,
           parent->is_signed, VarType::Slice),
       parent_var(parent),
       low(low),
       high(high) {}
+
+std::string VarSlice::get_slice_name(const std::string &parent_name, uint32_t high, uint32_t low) {
+    return ::format("{0}[{1}:{2}]", parent_name, high, low);
+}
+
+std::string VarSlice::to_string() const {
+    return get_slice_name(parent_var->to_string(), high, low);
+}
 
 Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
     : op(op), left(left), right(right) {
@@ -334,7 +358,39 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
     value_ = value;
 }
 
-std::string Const::to_string() {
+VarConcat::VarConcat(Generator *m, const std::shared_ptr<Var> &first,
+                     const std::shared_ptr<Var> &second)
+    : Var(m, "", first->width + second->width,
+          first->is_signed && second->is_signed) {
+    vars.emplace_back(first);
+    vars.emplace_back(second);
+}
+
+VarConcat &VarConcat::concat(Var &var) {
+    std::shared_ptr<VarConcat> new_var = std::make_shared<VarConcat>(*this);
+    new_var->vars.emplace_back(var.shared_from_this());
+    new_var->width += var.width;
+    // update the upstream vars about linking
+    for (auto &var_ptr: new_var->vars) {
+        var_ptr->concat_vars.emplace(new_var);
+    }
+    return *new_var;
+}
+
+std::string VarConcat::to_string() const {
+    std::vector<std::string> var_names;
+    for (const auto &ptr: vars)
+        var_names.emplace_back(ptr->to_string());
+    auto content = fmt::join(var_names.begin(), var_names.end(), ", ");
+    return ::format("{{{0}}}", content);
+}
+
+VarConcat::VarConcat(const VarConcat &var)
+    : Var(var.generator, var.name, var.width, var.is_signed) {
+    vars = std::vector<std::shared_ptr<Var>>(var.vars.begin(), var.vars.end());
+}
+
+std::string Const::to_string() const {
     if (is_signed && value_ < 0) {
         return ::format("-{0}'h{1:X}", width, -value_);
     } else {
@@ -348,7 +404,7 @@ AssignStmt &Var::assign(Var &var, AssignmentType type) {
     return assign(var_ptr, type);
 }
 
-std::string Expr::to_string() {
+std::string Expr::to_string() const {
     if (right != nullptr) {
         return ::format("{0} {1} {2}", left->name, ExprOpStr(op), right->name);
     } else {

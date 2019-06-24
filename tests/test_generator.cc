@@ -27,6 +27,20 @@ TEST(generator, port) {  // NOLINT
     mod.port(PortDirection::Out, "out", 1);
 }
 
+TEST(generator, rename_var) {   // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto &a = mod.var("a", 2);
+    auto &b = mod.var("b", 2);
+    auto &d = mod.var("d", 1);
+    auto &stmt1 = a.assign(b);
+    auto &stmt2 = d.assign(a[{0, 0}]);
+    mod.rename_var("a", "c");
+    EXPECT_EQ(a.name, "c");
+    EXPECT_EQ(stmt1.left()->to_string(), "c");
+    EXPECT_EQ(stmt2.right()->to_string(), "c[0:0]");
+}
+
 TEST(pass, assignment_fix) {  // NOLINT
     Context c;
     auto mod = c.generator("module");

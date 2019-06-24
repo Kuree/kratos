@@ -177,12 +177,11 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                 port_mapping_.emplace(port, stmt->right());
                 continue;
             } else {
-                // we can't have a port that is driven by slice and variables
+                // we can't have an import port that is driven by both slice and variables
                 if (!sources.empty())
                     throw ::runtime_error(
                         ::format("{0}.{1} is over-connected", target->name, port_name));
-                // in this case we actually need to create a new variable
-                // basically refactor all the variable in the parent (connected var) instances.
+                // concat the variables together
             }
 
 
