@@ -58,3 +58,30 @@ TEST(pass, unused_var) {  // NOLINT
     EXPECT_TRUE(mod.get_var("in") != nullptr);
     EXPECT_TRUE(mod.get_var("c") != nullptr);
 }
+
+TEST(pass, connectivity) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &port1 = mod1.port(PortDirection::In, "in", 1);
+    auto &port2 = mod1.port(PortDirection::Out, "out", 1);
+
+    EXPECT_ANY_THROW(verify_generator_connectivity(&mod1));
+    port2.assign(port1);
+
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
+
+    auto &mod2 = c.generator("module2");
+    EXPECT_NE(&mod1, &mod2);
+
+    mod1.add_child_generator(mod2.shared_from_this(), false);
+    EXPECT_ANY_THROW(mod1.port(PortDirection::In, "in", 1));
+    auto &port3 = mod2.port(PortDirection::In, "in", 1);
+    port3.assign(port1);
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
+
+    auto &port4 = mod2.port(PortDirection::Out, "out", 1);
+    EXPECT_ANY_THROW(verify_generator_connectivity(&mod1));
+    port4.assign(port3);
+
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
+}

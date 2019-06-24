@@ -1,5 +1,6 @@
 #ifndef DUSK_STMT_HH
 #define DUSK_STMT_HH
+#include <vector>
 #include "context.hh"
 #include "expr.hh"
 
@@ -19,8 +20,12 @@ public:
         return std::static_pointer_cast<T>(shared_from_this());
     }
 
+    ASTNode *parent() override;
+    virtual void set_parent(Generator *mod) { parent_ = mod; }
+
 protected:
     StatementType type_;
+    Generator *parent_ = nullptr;
 };
 
 class AssignStmt : public Stmt {

@@ -127,9 +127,10 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
 Port &Generator::port(PortDirection direction, const std::string &port_name, uint32_t width,
                       PortType type, bool is_signed) {
     if (ports_.find(port_name) != ports_.end())
-        throw ::runtime_error(::format("%s already exists in {0}", port_name, name));
+        throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
     auto p = std::make_shared<Port>(this, direction, port_name, width, type, is_signed);
     vars_.emplace(port_name, p);
+    ports_.emplace(port_name);
     return *p;
 }
 
@@ -173,6 +174,29 @@ ASTNode *Generator::get_child(uint64_t index) {
         return nullptr;
 }
 
+void Generator::add_child_generator(const std::shared_ptr<Generator> &child, bool merge) {
+    children_.emplace(child);
+    child_merge_map_[child] = merge;
+}
+
 void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) {
-    if (children_.find(child) != children_.end()) children_.erase(child);
+    if (children_.find(child) != children_.end()) {
+        children_.erase(child);
+        child_merge_map_.erase(child);
+    }
+}
+
+std::unordered_set<std::string> Generator::get_vars() {
+    std::unordered_set<std::string> result;
+    for (auto const &[name, ptr]: vars_) {
+        if (ptr->type() == VarType::PortIO) {
+            result.emplace(name);
+        }
+    }
+    return result;
+}
+
+void Generator::add_stmt(std::shared_ptr<Stmt> stmt) {
+    stmt->set_parent(this);
+    stmts_.emplace_back(std::move(stmt));
 }

@@ -193,7 +193,7 @@ VarSlice &Var::operator[](uint32_t bit) { return (*this)[{bit, bit}]; }
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     : Var(parent->generator, ::format("{0}[{1}:{2}]", parent->name, high, low), high - low + 1,
           parent->is_signed, VarType::Slice),
-      parent(parent),
+      parent_var(parent),
       low(low),
       high(high) {}
 
@@ -233,6 +233,9 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_sig
     if (module == nullptr) throw ::runtime_error(::format("module is null for {0}", name));
 }
 
+ASTNode* Var::parent() { return generator; }
+ASTNode* VarSlice::parent() {return parent_var; }
+
 // may need to look at this https://stackoverflow.com/q/28828957
 std::string assign_type_name(AssignmentType type) {
     switch (type) {
@@ -267,7 +270,7 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
         }
     }
     // this is effectively an SSA implementation here
-    for (auto &exist_stmt : sinks_) {
+    for (auto &exist_stmt : var->sinks_) {
         if (exist_stmt->equal(stmt)) {
             // check if the assign statement type match
             if (exist_stmt->assign_type() == AssignmentType::Undefined &&
@@ -277,19 +280,23 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
                      type == AssignmentType::NonBlocking)
                 exist_stmt->set_assign_type(type);
             else if (type != AssignmentType::Undefined && exist_stmt->assign_type() != type)
-                throw ::runtime_error("Assignment type mistach with existing one");
+                throw ::runtime_error("Assignment type mismatch with existing one");
             return *exist_stmt;
         }
     }
-    // push the stmt into its sinks
-    sinks_.emplace(stmt);
+    // push the stmt into its sources
+    var->sinks_.emplace(stmt);
+    sources_.emplace(stmt);
     if (self_type == AssignmentType::Undefined) self_type = type;
-    // check if the assignment match existing ones
-    for (auto const &sink : sinks_) {
-        if (sink->assign_type() != self_type)
+    // check if the assignment match existing ones. if existing ones are unknown
+    // assign them
+    for (auto const &sink : var->sinks_) {
+        if (sink->assign_type() == AssignmentType::Undefined)
+            sink->set_assign_type(self_type);
+        else if (sink->assign_type() != self_type)
             throw ::runtime_error(
                 ::format("{0}'s assignment type ({1}) does not match with {2}'s {3}", var->name,
-                         assign_type_name(type), name, assign_type_name(self_type)));
+                         assign_type_name(sink->assign_type()), name, assign_type_name(self_type)));
     }
     return *stmt;
 }

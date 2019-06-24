@@ -81,9 +81,14 @@ public:
     AssignStmt &assign(Var &var, AssignmentType type);
 
     Generator *generator;
+    ASTNode *parent() override;
 
     VarType type() const { return type_; }
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks() const { return sinks_; };
+    std::unordered_set<std::shared_ptr<AssignStmt>> sources() const { return sources_; };
+    const std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> get_slices() const {
+        return slices_;
+    }
 
     template <typename T>
     std::shared_ptr<T> as() {
@@ -101,6 +106,7 @@ protected:
     Var() : name(), width(), is_signed(false), generator(nullptr), type_(Base) {}
 
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
+    std::unordered_set<std::shared_ptr<AssignStmt>> sources_;
 
     VarType type_ = VarType::Base;
 
@@ -111,11 +117,12 @@ private:
 
 struct VarSlice : public Var {
 public:
-    Var *parent = nullptr;
+    Var *parent_var = nullptr;
     uint32_t low = 0;
     uint32_t high = 0;
 
     VarSlice(Var *parent, uint32_t high, uint32_t low);
+    ASTNode *parent() override;
 
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
 };

@@ -1,4 +1,5 @@
 #include "ast.hh"
+#include "generator.hh"
 
 void ASTVisitor::visit_root(ASTNode *root) {
     // recursively call visits
@@ -7,4 +8,11 @@ void ASTVisitor::visit_root(ASTNode *root) {
     for (uint64_t i = 0; i < child_count; i++) {
         visit_root(root->get_child(i));
     }
+}
+
+void ASTVisitor::visit_generator_root(Generator* generator) {
+    auto &children = generator->get_child_generators();
+    generator->accept_generator(this);
+    for (auto &child: children)
+        visit_generator_root(child.get());
 }

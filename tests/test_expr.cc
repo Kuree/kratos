@@ -46,7 +46,7 @@ TEST(expr, arith) {  // NOLINT
     // test slice
     Var &wire = mod.var("d", 4);
     auto slice_expr = wire[{2, 0}];
-    EXPECT_EQ(slice_expr.parent, wire.shared_from_this().get());
+    EXPECT_EQ(slice_expr.parent_var, wire.shared_from_this().get());
     EXPECT_EQ(slice_expr.high, 2);
     EXPECT_EQ(slice_expr.low, 0);
     EXPECT_EQ(slice_expr.name, "d[2:0]");

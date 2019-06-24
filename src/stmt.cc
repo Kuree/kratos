@@ -1,4 +1,5 @@
 #include "stmt.hh"
+#include "generator.hh"
 #include <algorithm>
 #include "fmt/format.h"
 #include "port.hh"
@@ -6,6 +7,8 @@
 using fmt::format;
 using std::move;
 using std::runtime_error;
+
+ASTNode* Stmt::parent() { return parent_; }
 
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
     : AssignStmt(left, right, AssignmentType::Undefined) {}
