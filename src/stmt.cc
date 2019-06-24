@@ -55,12 +55,14 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
         throw ::runtime_error("cannot add statement block to the if statement body");
+    stmt->set_parent(this);
     then_body_.emplace_back(stmt);
 }
 
 void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
         throw ::runtime_error("cannot add statement block to the if statement body");
+    stmt->set_parent(this);
     else_body_.emplace_back(stmt);
 }
 
@@ -100,6 +102,7 @@ void StmtBlock::add_statement(std::shared_ptr<Stmt> stmt) {
             throw ::runtime_error("cannot add non-blocking assignment to a combinational block");
         }
     }
+    stmt->set_parent(this);
     stmts_.emplace_back(stmt);
 }
 
@@ -133,6 +136,7 @@ void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
             throw ::runtime_error(
                 ::format("{0} already exists in the case statement", case_const->value()));
     }
+    stmt->set_parent(this);
     body_.emplace(switch_case, stmt);
 }
 

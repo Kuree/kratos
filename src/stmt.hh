@@ -21,11 +21,11 @@ public:
     }
 
     ASTNode *parent() override;
-    virtual void set_parent(Generator *mod) { parent_ = mod; }
+    virtual void set_parent(ASTNode *parent) { parent_ = parent; }
 
 protected:
     StatementType type_;
-    Generator *parent_ = nullptr;
+    ASTNode *parent_ = nullptr;
 };
 
 class AssignStmt : public Stmt {
