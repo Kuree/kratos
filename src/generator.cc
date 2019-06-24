@@ -200,3 +200,22 @@ void Generator::add_stmt(std::shared_ptr<Stmt> stmt) {
     stmt->set_parent(this);
     stmts_.emplace_back(std::move(stmt));
 }
+
+std::string Generator::get_unique_variable_name(const std::string &prefix, const std::string name) {
+    // NOTE: this is not thread-safe!
+    uint32_t count = 0;
+    std::string result_name;
+    while (true) {
+        if (prefix.empty()) {
+            result_name = ::format("{0}_{1}", name, count);
+        } else {
+           result_name = ::format("{0}${1}_{2}", prefix, name, count);
+        }
+        if (get_var(result_name)) {
+            break;
+        } else {
+            count++;
+        }
+    }
+    return result_name;
+}

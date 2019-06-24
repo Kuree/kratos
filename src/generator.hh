@@ -60,6 +60,8 @@ public:
 
     std::unordered_set<std::string> get_vars();
 
+    std::string get_unique_variable_name(const std::string &prefix, const std::string name);
+
 private:
     std::vector<std::string> lib_files_;
     Context *context;

@@ -155,4 +155,37 @@ ASTNode *SwitchStmt::get_child(uint64_t index) {
 }
 
 ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *parent)
-    : Stmt(StatementType::ModuleInstantiation), target_(target), parent_(parent) {}
+    : Stmt(StatementType::ModuleInstantiation), target_(target), parent_(parent) {
+    auto const &port_names = target->get_port_names();
+    for (auto const &port_name : port_names) {
+        auto const &port = target->get_port(port_name);
+        auto const port_direction = port->port_direction();
+        if (port_direction == PortDirection::In) {
+            // if we're connected to a base variable and no slice, we are good
+            const auto slices = port->get_slices();
+            const auto &sources = port->sources();
+            // because an input cannot be an register, it can only has one
+            // source (all bits combined
+            if (slices.empty()) {
+                if (sources.empty())
+                    throw ::runtime_error(
+                        ::format("{0}.{1} is not connected", target->name, port_name));
+                if (sources.size() > 1) throw ::runtime_error(
+                        ::format("{0}.{1} is driven by multiple nets", target->name, port_name));
+                // add it to the port mapping and we are good to go
+                auto const &stmt = *sources.begin();
+                port_mapping_.emplace(port, stmt->right());
+                continue;
+            } else {
+                // we can't have a port that is driven by slice and variables
+                if (!sources.empty())
+                    throw ::runtime_error(
+                        ::format("{0}.{1} is over-connected", target->name, port_name));
+                // in this case we actually need to create a new variable
+                // basically refactor all the variable in the parent (connected var) instances.
+            }
+
+
+        }
+    }
+}
