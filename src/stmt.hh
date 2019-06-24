@@ -4,16 +4,16 @@
 #include "context.hh"
 #include "expr.hh"
 
-enum StatementType { If, Switch, Assign, Block };
+enum StatementType { If, Switch, Assign, Block, ModuleInstantiation};
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
-enum StatementBlockType { Combinational, Sequential };
+enum StatementBlockType { Combinational, Sequential};
 enum BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
 
 class Stmt : public std::enable_shared_from_this<Stmt>, public ASTNode {
 public:
-    explicit Stmt(StatementType type) : type_(type) {}
+    explicit Stmt(StatementType type) : ASTNode(ASTNodeKind::StmtKind), type_(type) {}
     StatementType type() { return type_; }
     template <typename T>
     std::shared_ptr<T> as() {
@@ -142,5 +142,23 @@ public:
 
 private:
     std::set<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
+};
+
+class ModuleInstantiationStmt : public Stmt {
+public:
+    ModuleInstantiationStmt(Generator *target, Generator *parent);
+
+    uint64_t child_count() override { return 1; }
+    ASTNode *get_child(uint64_t index) override { return index == 0 ? this : nullptr; }
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+
+    const std::map<std::shared_ptr<Var>, std::shared_ptr<Var>> &port_mapping() const {
+        return port_mapping_;
+    }
+
+private:
+    Generator *target_;
+    Generator *parent_;
+    std::map<std::shared_ptr<Var>, std::shared_ptr<Var>> port_mapping_;
 };
 #endif  // DUSK_STMT_HH

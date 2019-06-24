@@ -229,12 +229,17 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_sig
     : Var(module, name, width, is_signed, VarType::Base) {}
 
 Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_signed, VarType type)
-    : name(name), width(width), is_signed(is_signed), generator(module), type_(type) {
+    : ASTNode(ASTNodeKind::VarKind),
+      name(name),
+      width(width),
+      is_signed(is_signed),
+      generator(module),
+      type_(type) {
     if (module == nullptr) throw ::runtime_error(::format("module is null for {0}", name));
 }
 
-ASTNode* Var::parent() { return generator; }
-ASTNode* VarSlice::parent() {return parent_var; }
+ASTNode *Var::parent() { return generator; }
+ASTNode *VarSlice::parent() { return parent_var; }
 
 // may need to look at this https://stackoverflow.com/q/28828957
 std::string assign_type_name(AssignmentType type) {

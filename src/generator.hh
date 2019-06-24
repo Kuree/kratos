@@ -19,7 +19,8 @@ public:
                                   const std::vector<std::string> &lib_files,
                                   const std::map<std::string, PortType> &port_types);
 
-    Generator(Context *context, std::string name) : name(std::move(name)), context(context) {}
+    Generator(Context *context, std::string name)
+        : ASTNode(ASTNodeKind::GeneratorKind), name(std::move(name)), context(context) {}
 
     Var &var(const std::string &var_name, uint32_t width);
     Var &var(const std::string &var_name, uint32_t width, bool is_signed);
@@ -49,7 +50,7 @@ public:
     // child generator. needed for generator merge
     void add_child_generator(const std::shared_ptr<Generator> &child, bool merge);
     void remove_child_generator(const std::shared_ptr<Generator> &child);
-    std::set<std::shared_ptr<Generator>>& get_child_generators() { return children_; }
+    std::set<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
     void accept_generator(ASTVisitor *visitor) { visitor->visit_generator(this); }
 
     // AST stuff

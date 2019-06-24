@@ -103,7 +103,13 @@ public:
     ASTNode *get_child(uint64_t) override { return nullptr; }
 
 protected:
-    Var() : name(), width(), is_signed(false), generator(nullptr), type_(Base) {}
+    Var()
+        : ASTNode(ASTNodeKind::VarKind),
+          name(),
+          width(),
+          is_signed(false),
+          generator(nullptr),
+          type_(Base) {}
 
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
     std::unordered_set<std::shared_ptr<AssignStmt>> sources_;

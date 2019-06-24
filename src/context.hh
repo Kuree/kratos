@@ -19,6 +19,7 @@ class SwitchStmt;
 class StmtBlock;
 class CombinationalStmtBlock;
 class SequentialStmtBlock;
+class ModuleInstantiationStmt;
 enum AssignmentType: int;
 
 class Context {

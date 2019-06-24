@@ -1,14 +1,14 @@
 #include "stmt.hh"
-#include "generator.hh"
 #include <algorithm>
 #include "fmt/format.h"
+#include "generator.hh"
 #include "port.hh"
 
 using fmt::format;
 using std::move;
 using std::runtime_error;
 
-ASTNode* Stmt::parent() { return parent_; }
+ASTNode *Stmt::parent() { return parent_; }
 
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
     : AssignStmt(left, right, AssignmentType::Undefined) {}
@@ -142,12 +142,13 @@ ASTNode *SwitchStmt::get_child(uint64_t index) {
     } else if (index < body_.size() + 1) {
         // this is not an efficient way for doing this
         std::vector<std::shared_ptr<Const>> keys;
-        for (const auto &[key, value]: body_)
-            keys.emplace_back(key);
+        for (const auto &[key, value] : body_) keys.emplace_back(key);
         auto const key = keys[index - 1];
         return body_[key].get();
-    }
-    else {
+    } else {
         return nullptr;
     }
 }
+
+ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *parent)
+    : Stmt(StatementType::ModuleInstantiation), target_(target), parent_(parent) {}
