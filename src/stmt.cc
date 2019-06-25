@@ -204,54 +204,22 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                 port_mapping_.emplace(port, stmt->right());
                 continue;
             } else {
-                // we can't have an import port that is driven by both slice and variables
-                if (!sources.empty())
-                    throw ::runtime_error(
-                        ::format("{0}.{1} is over-connected", target->name, port_name));
-                // concat the variables together and use that as a mapping
-                std::vector<std::pair<uint32_t, uint32_t>> slice_pairs;
-                for (auto const &iter : slices) slice_pairs.emplace_back(iter.first);
-                std::sort(slice_pairs.begin(), slice_pairs.end(),
-                          [](const auto &a, const auto &b) -> bool { return a.first < b.first; });
-                // check if we have everything
-                auto const low = slice_pairs[0].first;
-                auto const high = slice_pairs.back().second;
-                if (low != 0)
-                    throw ::runtime_error(
-                        ::format("{0}.{1}[{2}:0] is floating", target->name, port_name, low + 1));
-                if (high != port->width - 1)
-                    throw ::runtime_error(::format("{0}.{1}[{2}:{3}] is floating", target->name,
-                                                   port_name, port->width - 1, high + 1));
-
-                if (slice_pairs.size() == 1) {
-                    if ((high - low + 1) == port->width) {
-                        // special cases, don't know why the user just connects it without slicing
-                        port_mapping_.emplace(port, slices.at(slice_pairs[0]));
-                    } else {
-                        throw ::runtime_error(::format("{0}.{1}[{2}:{3}] is floating", target->name,
-                                                       port_name, port->width - 1, high + 1));
-                    }
-                } else {
-                    // mapped with a concat'ed variable
-                    // check if all the inputs are there and no overlapping
-                    for (uint32_t i = 0; i < slice_pairs.size() - 1; i++) {
-                        if (slice_pairs[i].second != slice_pairs[i + 1].first - 1) {
-                            throw ::runtime_error(
-                                ::format("{0}.{1}[{2}:{3}] is floating", target->name, port_name,
-                                         slice_pairs[i + 1].first - 1, slice_pairs[i].second + 1));
-                        }
-                    }
-                    auto &concat = slices.at(slice_pairs[0])->concat(*slices.at(slice_pairs[1]));
-                    for (uint32_t i = 2; i < slice_pairs.size(); i++) {
-                        concat.concat(*slices.at(slice_pairs[i]));
-                    }
-                    port_mapping_.emplace(port, concat.shared_from_this());
-                }
+                // you need to run a de-slice pass on the module references first
+                throw ::runtime_error("Input slices not supported in the statement. "
+                                      "Please run a de-couple pass first");
             }
         } else if (port_direction == PortDirection::Out) {
             // need to find out if there is any sources connected to the slices
             const auto &slices = filter_slice_pairs_with_target(port->get_slices(), parent, true);
             const auto &sinks = filter_assignments_with_target(port->sinks(), parent, true);
+            if (slices.empty()) {
+                if (!sinks.empty() && sinks.size() == 1) {
+                    port_mapping_.emplace(port, (*sinks.begin())->left());
+                } else if (!sinks.empty() && sinks.size() > 1) {
+                    throw ::runtime_error("Output slices not supported in the statement. "
+                                          "Please run a de-couple pass first");
+                }
+            }
         } else {
             throw ::runtime_error("Inout port type not implemented");
         }

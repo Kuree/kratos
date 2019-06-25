@@ -27,8 +27,8 @@ private:
 
 class ASTVisitor {
 public:
-    void visit_root(ASTNode *root);
-    void visit_generator_root(Generator *generator);
+    virtual void visit_root(ASTNode *root);
+    virtual void visit_generator_root(Generator *generator);
 
     // visit methods
     virtual void visit(Generator *) {}

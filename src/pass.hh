@@ -11,6 +11,9 @@ void remove_unused_vars(Generator* generator);
 
 void verify_generator_connectivity(Generator* generator);
 
+void create_module_instantiation(Generator* generator);
+
+std::map<std::string, std::string> generate_verilog(Generator *generator);
 
 // TODO: add following passes to improve the code efficiency
 //  1. check module hierarchy

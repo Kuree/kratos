@@ -111,3 +111,16 @@ TEST(pass, connectivity) {  // NOLINT
 
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 }
+
+TEST(pass, verilog_code_gen) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &port1 = mod1.port(PortDirection::In, "in", 1);
+    auto &port2 = mod1.port(PortDirection::Out, "out", 1);
+    mod1.add_stmt(port2.assign(port1, AssignmentType::Blocking).shared_from_this());
+    auto const &result = generate_verilog(&mod1);
+    EXPECT_EQ(result.size(), 1);
+    EXPECT_TRUE(result.find("module1") != result.end());
+    auto module_str = result.at("module1");
+    EXPECT_EQ(module_str, "");
+}

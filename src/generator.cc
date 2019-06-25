@@ -176,13 +176,13 @@ ASTNode *Generator::get_child(uint64_t index) {
 
 void Generator::add_child_generator(const std::shared_ptr<Generator> &child, bool merge) {
     children_.emplace(child);
-    child_merge_map_[child] = merge;
+    should_child_inline_[child] = merge;
 }
 
 void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) {
     if (children_.find(child) != children_.end()) {
         children_.erase(child);
-        child_merge_map_.erase(child);
+        should_child_inline_.erase(child);
     }
 }
 

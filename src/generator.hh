@@ -13,14 +13,15 @@
 class Generator : public std::enable_shared_from_this<Generator>, public ASTNode {
 public:
     std::string name;
+    std::string instance_name;
 
     static Generator from_verilog(Context *context, const std::string &src_file,
                                   const std::string &top_name,
                                   const std::vector<std::string> &lib_files,
                                   const std::map<std::string, PortType> &port_types);
 
-    Generator(Context *context, std::string name)
-        : ASTNode(ASTNodeKind::GeneratorKind), name(std::move(name)), context(context) {}
+    Generator(Context *context, const std::string &name)
+        : ASTNode(ASTNodeKind::GeneratorKind), name(name), instance_name(name), context(context) {}
 
     Var &var(const std::string &var_name, uint32_t width);
     Var &var(const std::string &var_name, uint32_t width, bool is_signed);
@@ -56,6 +57,15 @@ public:
     void remove_child_generator(const std::shared_ptr<Generator> &child);
     std::set<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
     void accept_generator(ASTVisitor *visitor) { visitor->visit_generator(this); }
+    bool should_child_inline(Generator *generator) const {
+        return should_child_inline_.at(generator->shared_from_this());
+    }
+    void set_child_inline(Generator *generator, bool value) {
+        should_child_inline_[generator->shared_from_this()] = value;
+    }
+
+    // if imported from verilog
+    bool external() { return !lib_files_.empty(); }
 
     // AST stuff
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
@@ -76,7 +86,7 @@ private:
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
     std::set<std::shared_ptr<Generator>> children_;
-    std::map<std::shared_ptr<Generator>, bool> child_merge_map_;
+    std::map<std::shared_ptr<Generator>, bool> should_child_inline_;
 };
 
 #endif  // DUSK_MODULE_HH22
