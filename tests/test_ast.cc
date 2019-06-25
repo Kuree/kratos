@@ -7,11 +7,15 @@
 
 class VarVisitor: public ASTVisitor {
 public:
+    uint32_t max_level = 0;
     VarVisitor(): ASTVisitor(), vars() {}
     void visit(Var* var) override {
+        if (max_level < level)
+            max_level = level;
         vars.emplace_back(var);
     }
     std::vector<Var*> vars;
+    uint32_t current_level() { return level; }
 };
 
 TEST(ast, visit_var) {  // NOLINT
@@ -42,4 +46,6 @@ TEST(ast, visit_if) {  // NOLINT
     VarVisitor visitor;
     visitor.visit_root(if_stmt.ast_node());
     EXPECT_EQ(visitor.vars.size(), 4);
+    EXPECT_EQ(visitor.max_level, 2);
+    EXPECT_EQ(visitor.current_level(), 0);
 }

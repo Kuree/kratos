@@ -151,6 +151,7 @@ public:
     VarConcat(const VarConcat &var);
 
     VarConcat &concat(Var &var) override;
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
 
     std::string to_string() const override;
 };

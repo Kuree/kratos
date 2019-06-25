@@ -26,7 +26,7 @@ public:
                 throw std::runtime_error(::format("{0} already has a parent",
                                                   child_node->parent->generator->instance_name));
             child_node->parent = parent_node;
-            parent_node->children.emplace(child_node);
+            parent_node->children.emplace(child_node->generator);
         }
     }
 
@@ -34,7 +34,7 @@ private:
     GeneratorGraph *g_;
 };
 
-GeneratorGraph::GeneratorGraph(Generator *generator): root_(generator) {
+GeneratorGraph::GeneratorGraph(Generator *generator) : root_(generator) {
     // first pass create nodes for each generator
     GeneratorVisitor visitor(this);
     visitor.visit_generator_root(generator);
@@ -79,7 +79,7 @@ void topological_sort_helper(GeneratorGraph *g, GeneratorNode *node,
     queue.push(node);
 }
 
-std::queue<GeneratorNode*> GeneratorGraph::topological_sort() {
+std::queue<GeneratorNode *> GeneratorGraph::topological_sort() {
     std::unordered_set<GeneratorNode *> visited;
     std::queue<GeneratorNode *> queue;
     for (auto &iter : nodes_) {
@@ -92,13 +92,47 @@ std::queue<GeneratorNode*> GeneratorGraph::topological_sort() {
     return queue;
 }
 
-std::vector<Generator*> GeneratorGraph::get_sorted_generators() {
+std::vector<Generator *> GeneratorGraph::get_sorted_generators() {
     auto queue = topological_sort();
-    std::vector<Generator*> result;
+    std::vector<Generator *> result;
     result.reserve(queue.size());
     while (!queue.empty()) {
-        result.emplace_back(queue.front());
+        result.emplace_back(queue.front()->generator);
         queue.pop();
+    }
+    return result;
+}
+
+std::vector<std::unordered_set<Generator *>> GeneratorGraph::get_leveled_generators() {
+    // this is a modified breath-first search
+    std::queue<std::pair<Generator *, uint32_t>> queue;
+    std::unordered_map<GeneratorNode *, uint32_t> level_index;
+
+    queue.push({root_, 0});
+    uint32_t max_level = 0;
+
+    while (!queue.empty()) {
+        const auto &[generator, current_level] = queue.front();
+        queue.pop();
+        auto const &node = get_node(generator);
+        if (level_index.find(node) == level_index.end() || level_index.at(node) < current_level) {
+            // update the new level
+            level_index[node] = current_level;
+        }
+        // loop through all the child generators
+        for (const auto &child_generator : generator->get_child_generators()) {
+            queue.push({child_generator.get(), current_level + 1});
+        }
+        if (current_level > max_level)
+            max_level = current_level;
+    }
+
+    // construct the result
+    std::vector<std::unordered_set<Generator *>> result;
+    // notice that max is exclusive
+    result.resize(max_level + 1);
+    for (auto const &[generator_node, level]: level_index) {
+        result[level].emplace(generator_node->generator);
     }
     return result;
 }

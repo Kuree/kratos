@@ -46,6 +46,9 @@ public:
 
     // generator specific traversal
     virtual void visit_generator(Generator *) {}
+
+protected:
+    uint32_t level = 0;
 };
 
 #endif  // DUSK_AST_HH
