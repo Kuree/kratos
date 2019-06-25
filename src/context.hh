@@ -22,6 +22,7 @@ class CombinationalStmtBlock;
 class SequentialStmtBlock;
 class ModuleInstantiationStmt;
 enum AssignmentType: int;
+enum HashStrategy: int;
 
 class Context {
 private:

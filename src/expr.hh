@@ -8,7 +8,7 @@
 #include "ast.hh"
 #include "context.hh"
 
-enum ExprOp {
+enum ExprOp: uint64_t {
     // unary
     UInvert,
     UMinus,

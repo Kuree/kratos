@@ -27,7 +27,7 @@ TEST(generator, port) {  // NOLINT
     mod.port(PortDirection::Out, "out", 1);
 }
 
-TEST(generator, rename_var) {   // NOLINT
+TEST(generator, rename_var) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
     auto &a = mod.var("a", 2);
@@ -123,4 +123,30 @@ TEST(pass, verilog_code_gen) {  // NOLINT
     EXPECT_TRUE(result.find("module1") != result.end());
     auto module_str = result.at("module1");
     EXPECT_EQ(module_str, "");
+}
+
+TEST(pass, generator_hash) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
+    auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
+    mod1.add_stmt(port1_2.assign(port1_1, AssignmentType::Blocking).shared_from_this());
+
+    auto &mod2 = c.generator("module1");
+    auto &port2_1 = mod2.port(PortDirection::In, "in", 1);
+    auto &port2_2 = mod2.port(PortDirection::Out, "out", 1);
+    mod2.add_stmt(port2_2.assign(port2_1, AssignmentType::Blocking).shared_from_this());
+
+    auto &mod3 = c.generator("module1");
+    auto &port3_1 = mod3.port(PortDirection::In, "in", 1);
+    auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
+    mod3.add_stmt(
+        port3_2.assign(port3_1 + mod3.constant(1, 1), AssignmentType::Blocking).shared_from_this());
+
+    hash_generators(&mod1, HashStrategy::SequentialHash);
+    hash_generators(&mod2, HashStrategy::SequentialHash);
+    hash_generators(&mod3, HashStrategy::SequentialHash);
+
+    EXPECT_EQ(c.get_hash(&mod1), c.get_hash(&mod2));
+    EXPECT_NE(c.get_hash(&mod1), c.get_hash(&mod3));
 }

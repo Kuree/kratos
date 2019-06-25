@@ -6,6 +6,8 @@
 #include "stmt.hh"
 #include "hash.hh"
 
+enum HashStrategy: int { SequentialHash, ParallelHash };
+
 void fix_assignment_type(Generator* generator);
 
 void remove_unused_vars(Generator* generator);

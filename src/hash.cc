@@ -4,6 +4,7 @@
 #include "generator.hh"
 #include "graph.hh"
 #include "stmt.hh"
+#include "pass.hh"
 
 /*
  * Once this project is moved to gcc-9, we will use the parallel execution
