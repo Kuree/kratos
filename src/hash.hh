@@ -3,11 +3,8 @@
 
 #include "context.hh"
 
-enum HashStrategy { SequentialHash, ParallelHash};
+enum HashStrategy { SequentialHash, ParallelHash };
 
 void hash_generators(Context *context, Generator *root, HashStrategy strategy);
 
-void hash_generator(Context* context, Generator *generator);
-
-
-#endif //DUSK_HASH_HH
+#endif  // DUSK_HASH_HH

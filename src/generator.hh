@@ -21,7 +21,7 @@ public:
                                   const std::map<std::string, PortType> &port_types);
 
     Generator(Context *context, const std::string &name)
-        : ASTNode(ASTNodeKind::GeneratorKind), name(name), instance_name(name), context(context) {}
+        : ASTNode(ASTNodeKind::GeneratorKind), name(name), instance_name(name), context_(context) {}
 
     Var &var(const std::string &var_name, uint32_t width);
     Var &var(const std::string &var_name, uint32_t width, bool is_signed);
@@ -76,9 +76,11 @@ public:
 
     std::string get_unique_variable_name(const std::string &prefix, const std::string &var_name);
 
+    Context *context() const { return context_; }
+
 private:
     std::vector<std::string> lib_files_;
-    Context *context;
+    Context *context_;
 
     std::unordered_map<std::string, std::shared_ptr<Var>> vars_;
     std::set<std::string> ports_;

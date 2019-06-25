@@ -329,3 +329,8 @@ std::map<std::string, std::string> generate_verilog(Generator* generator) {
     }
     return result;
 }
+
+void hash_generators(Generator* generator, HashStrategy strategy) {
+    // this is a helper function
+    hash_generators(generator->context(), generator, strategy);
+}

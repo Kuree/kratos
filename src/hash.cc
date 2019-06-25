@@ -1,33 +1,15 @@
 #include "hash.hh"
 #include "ast.hh"
+#include "expr.hh"
 #include "generator.hh"
 #include "graph.hh"
 #include "stmt.hh"
-#include "expr.hh"
 
 /*
  * Once this project is moved to gcc-9, we will use the parallel execution
  * #include <numeric>
  * #include <execution>
  */
-
-void hash_generators(Context* context, Generator* root, HashStrategy strategy) {
-    // compute the generator graph
-    GeneratorGraph g(root);
-    // if it's sequential, do topological sort
-    // if it's parallel, do level sort
-    // TODO: a potential way to optimize further is to filter out generators with
-    //  unique names
-    if (strategy == HashStrategy::SequentialHash) {
-        auto const& sequence = g.get_sorted_generators();
-        for (auto& node : sequence) {
-            hash_generator(context, node);
-        }
-    } else if (strategy == HashStrategy::ParallelHash) {
-        g.get_leveled_generators();
-        throw std::runtime_error("not implemented");
-    }
-}
 
 // Below code has minor changes to pass clang-tidy made by me (Keyi)
 /// XXHash (64 bit), based on Yann Collet's descriptions, see http://cyan4973.github.io/xxHash/
@@ -213,7 +195,7 @@ inline uint64_t hash_64_fnv1a(const void* key, const uint64_t len) {
     uint64_t hash = 0xcbf29ce484222325;
     uint64_t prime = 0x100000001b3;
 
-    for(uint32_t i = 0; i < len; ++i) {
+    for (uint32_t i = 0; i < len; ++i) {
         uint8_t value = data[i];
         hash = hash ^ value;
         hash *= prime;
@@ -221,8 +203,7 @@ inline uint64_t hash_64_fnv1a(const void* key, const uint64_t len) {
 
     return hash;
 
-} //hash_64_fnv1a
-
+}  // hash_64_fnv1a
 
 constexpr uint64_t shift_const(uint64_t value, uint8_t amount) {
     return (value << amount) | (value >> (64u - amount));
@@ -234,7 +215,7 @@ public:
         // compute the hash for all vars
         auto vars = root->get_vars();
         var_hashs_.reserve(vars.size());
-        for (const auto &var: vars) {
+        for (const auto& var : vars) {
             uint64_t var_hash = hash_64_fnv1a(var.c_str(), var.size());
             var_hashs_.emplace_back(var_hash);
         }
@@ -259,7 +240,7 @@ public:
     }
     void visit(IfStmt* stmt) override {
         // magic number comes from here https://stackoverflow.com/a/4948967
-        // based on the requirements, warpped shifting doesn't matter since it keeps
+        // based on the requirements, warped shifting doesn't matter since it keeps
         // the number of 0 and 1 the same. And I don't think the shifting will
         // introduce any correlation either
         constexpr uint64_t if_signature = shift_const(0x9e3779b97f4a7c16, 1);
@@ -279,8 +260,8 @@ public:
     }
     void visit(SequentialStmtBlock* stmt) override {
         std::string cond;
-        auto const &conditions = stmt->get_conditions();
-        for (auto const &[type, var]: conditions) {
+        auto const& conditions = stmt->get_conditions();
+        for (auto const& [type, var] : conditions) {
             if (type == BlockEdgeType::Posedge)
                 cond.append("1" + var->to_string());
             else
@@ -290,9 +271,7 @@ public:
         constexpr uint64_t seq_signature = shift_const(0x9e3779b97f4a7c16, 3);
         stmt_hashs_.emplace_back(hash ^ seq_signature);
     }
-    void visit(ModuleInstantiationStmt*) override {
-        throw std::runtime_error("NOT IMPLEMENTED");
-    }
+    void visit(ModuleInstantiationStmt*) override { throw std::runtime_error("NOT IMPLEMENTED"); }
 
 private:
     std::vector<uint64_t> var_hashs_;
@@ -302,8 +281,6 @@ private:
     inline static uint64_t shift(uint64_t value, uint8_t amount) {
         return (value << amount) | (value >> (64u - amount));
     }
-
-
 };
 
 void hash_generator(Context* context, Generator* generator) {
@@ -312,4 +289,22 @@ void hash_generator(Context* context, Generator* generator) {
     hash_visitor.visit_root(generator);
     uint64_t hash_value = hash_visitor.produce_hash();
     context->add_hash(generator, hash_value);
+}
+
+void hash_generators(Context* context, Generator* root, HashStrategy strategy) {
+    // compute the generator graph
+    GeneratorGraph g(root);
+    // if it's sequential, do topological sort
+    // if it's parallel, do level sort
+    // TODO: a potential way to optimize further is to filter out generators with
+    //  unique names
+    if (strategy == HashStrategy::SequentialHash) {
+        auto const& sequence = g.get_sorted_generators();
+        for (auto& node : sequence) {
+            hash_generator(context, node);
+        }
+    } else if (strategy == HashStrategy::ParallelHash) {
+        g.get_leveled_generators();
+        throw std::runtime_error("not implemented");
+    }
 }
