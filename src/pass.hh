@@ -8,17 +8,19 @@
 
 enum HashStrategy: int { SequentialHash, ParallelHash };
 
-void fix_assignment_type(Generator* generator);
+void fix_assignment_type(Generator* top);
 
-void remove_unused_vars(Generator* generator);
+void remove_unused_vars(Generator* top);
 
-void verify_generator_connectivity(Generator* generator);
+void verify_generator_connectivity(Generator* top);
 
-void create_module_instantiation(Generator* generator);
+void create_module_instantiation(Generator* top);
 
-void hash_generators(Generator* generator, HashStrategy strategy);
+void hash_generators(Generator* top, HashStrategy strategy);
 
-std::map<std::string, std::string> generate_verilog(Generator *generator);
+void uniquify_generators(Generator* top);
+
+std::map<std::string, std::string> generate_verilog(Generator *top);
 
 // TODO: add following passes to improve the code efficiency
 //  1. check module hierarchy

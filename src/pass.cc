@@ -35,14 +35,14 @@ class AssignmentTypeBlockVisitor : public ASTVisitor {
     }
 };
 
-void fix_assignment_type(Generator* generator) {
+void fix_assignment_type(Generator* top) {
     // first we fix all the block assignment
     AssignmentTypeBlockVisitor visitor;
-    visitor.visit_root(generator->ast_node());
+    visitor.visit_root(top->ast_node());
 
     // then we assign any existing assignment as blocking assignment
     AssignmentTypeVisitor final_visitor(AssignmentType::Blocking, false);
-    final_visitor.visit_root(generator->ast_node());
+    final_visitor.visit_root(top->ast_node());
 }
 
 class VarAccumulationVisitor : public ASTVisitor {
@@ -54,22 +54,22 @@ public:
     std::set<std::string> vars;
 };
 
-void remove_unused_vars(Generator* generator) {
+void remove_unused_vars(Generator* top) {
     // get a set of all variables
     std::set<std::string> var_names;
-    for (auto const& [var_name, var] : generator->vars()) {
+    for (auto const& [var_name, var] : top->vars()) {
         if (var->type() == VarType::Base) var_names.emplace(var_name);
     }
     // visit each assignment to see if we have used it or not
     VarAccumulationVisitor visitor;
-    visitor.visit_root(generator);
+    visitor.visit_root(top);
 
     // result set
     std::set<std::string> diff_set;
     std::set_difference(var_names.begin(), var_names.end(), visitor.vars.begin(),
                         visitor.vars.end(), std::inserter(diff_set, diff_set.end()));
     for (const auto& var_name : diff_set) {
-        generator->remove_var(var_name);
+        top->remove_var(var_name);
     }
 }
 
@@ -119,9 +119,9 @@ private:
     bool is_top_level_;
 };
 
-void verify_generator_connectivity(Generator* generator) {
+void verify_generator_connectivity(Generator* top) {
     GeneratorConnectivityVisitor visitor;
-    visitor.visit_generator_root(generator);
+    visitor.visit_generator_root(top);
 }
 
 class ModuleInstantiationVisitor : public ASTVisitor {
@@ -137,9 +137,9 @@ public:
     }
 };
 
-void create_module_instantiation(Generator* generator) {
+void create_module_instantiation(Generator* top) {
     ModuleInstantiationVisitor visitor;
-    visitor.visit_generator_root(generator);
+    visitor.visit_generator_root(top);
 }
 
 class UniqueGeneratorVisitor : public ASTVisitor {
@@ -317,12 +317,12 @@ private:
     }
 };
 
-std::map<std::string, std::string> generate_verilog(Generator* generator) {
+std::map<std::string, std::string> generate_verilog(Generator* top) {
     // this pass assumes that all the generators has been uniquified
     std::map<std::string, std::string> result;
     // first get all the unique generators
     UniqueGeneratorVisitor unique_visitor;
-    unique_visitor.visit_generator_root(generator);
+    unique_visitor.visit_generator_root(top);
     for (auto& [module_name, module_gen] : unique_visitor.generator_map) {
         SystemVerilogCodeGen codegen(module_gen);
         result.emplace(module_name, codegen.str());
@@ -330,7 +330,42 @@ std::map<std::string, std::string> generate_verilog(Generator* generator) {
     return result;
 }
 
-void hash_generators(Generator* generator, HashStrategy strategy) {
+void hash_generators(Generator* top, HashStrategy strategy) {
     // this is a helper function
-    hash_generators(generator->context(), generator, strategy);
+    hash_generators(top->context(), top, strategy);
+}
+
+void uniquify_generators(Generator* top) {
+    // we assume users has run the hash_generators function
+    Context* context = top->context();
+    auto const& names = context->get_generator_names();
+    for (auto const& name : names) {
+        const auto module_instances = context->get_generators_by_name(name);
+        // notice that since it is a set copied by value, it is fine to iterate through it
+        if (module_instances.size() == 1)
+            // only one module. we are good
+            continue;
+        // there is almost little change that the hash value will be 0
+        // but still, there is a tiny chance...
+        uint64_t hash = 0;
+        for (auto& instance : module_instances) {
+            auto ptr = instance.get();
+            if (context->has_hash(ptr)) {
+                if (hash == 0) {
+                    hash = context->get_hash(ptr);
+                } else if (context->get_hash(ptr) != hash) {
+                    // we need to uniquify it
+                    // this is a naive way
+                    uint32_t count = 0;
+                    while (true) {
+                        const std::string new_name = ::format("{0}_unq{1}", name, count++);
+                        if (!context->generator_name_exists(new_name)) {
+                            context->change_generator_name(ptr, new_name);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

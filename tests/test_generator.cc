@@ -149,4 +149,10 @@ TEST(pass, generator_hash) {  // NOLINT
 
     EXPECT_EQ(c.get_hash(&mod1), c.get_hash(&mod2));
     EXPECT_NE(c.get_hash(&mod1), c.get_hash(&mod3));
+
+    // use mod1 as top. this is fine since we manually force other modules to be hashed
+    uniquify_generators(&mod1);
+    EXPECT_EQ(mod1.name, "module1");
+    EXPECT_EQ(mod2.name, "module1");
+    EXPECT_EQ(mod3.name, "module1_unq0");
 }

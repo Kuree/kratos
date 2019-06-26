@@ -222,7 +222,8 @@ public:
         }
     }
     uint64_t produce_hash() {
-        uint64_t var_hash = 0;
+        // use generator name as a seed
+        uint64_t var_hash = hash_64_fnv1a(root_->name.c_str(), root_->name.size()) << 32u;
         for (const uint64_t var : var_hashs_) var_hash = var_hash ^ var;
         // use var_hash as a seed
         uint64_t stmt_hash =

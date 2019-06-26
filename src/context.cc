@@ -41,3 +41,41 @@ uint64_t Context::get_hash(Generator *generator) {
         throw ::runtime_error(::format("{0}'s hash has not been computed", generator->name));
     return generator_hash_.at(generator);
 }
+
+void Context::change_generator_name(Generator *generator, const std::string &new_name) {
+    // first we need to make sure that the generator is within the context
+    auto const &old_name = generator->name;
+    if (generator->context() != this)
+        throw ::runtime_error(::format("{0}'s context is different", old_name));
+    // remove it from the list
+    auto shared_ptr = generator->shared_from_this();
+    if (modules_.find(generator->name) == modules_.end())
+        throw ::runtime_error(::format("cannot find generator {0} in context", old_name));
+    auto &list = modules_.at(generator->name);
+    auto pos = std::find(list.begin(), list.end(), shared_ptr);
+    if (pos == list.end())
+        throw ::runtime_error(::format("unable to find generator {0} in context", old_name));
+    // we need to erase it
+    list.erase(pos);
+    // change it's name and put it to a new list
+    generator->name = new_name;
+    modules_[new_name].emplace(shared_ptr);
+}
+
+bool Context::generator_name_exists(const std::string &name) const {
+    return modules_.find(name) != modules_.end();
+}
+
+std::set<std::shared_ptr<Generator>> Context::get_generators_by_name(
+    const std::string &name) const {
+    if (!generator_name_exists(name)) return {};
+    return modules_.at(name);
+}
+
+std::unordered_set<std::string> Context::get_generator_names() const {
+    std::unordered_set<std::string> result;
+    for (auto const &iter: modules_) {
+        result.emplace(iter.first);
+    }
+    return result;
+}

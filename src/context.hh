@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 
 struct Port;
@@ -39,6 +40,11 @@ public:
     void add_hash(Generator* generator, uint64_t hash);
     bool has_hash(Generator* generator);
     uint64_t get_hash(Generator* generator);
+
+    void change_generator_name(Generator* generator, const std::string &new_name);
+    bool generator_name_exists(const std::string &name) const;
+    std::set<std::shared_ptr<Generator>> get_generators_by_name(const std::string &name) const;
+    std::unordered_set<std::string> get_generator_names() const;
 };
 
 #endif  // DUSK_CONTEXT_HH
