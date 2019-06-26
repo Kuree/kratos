@@ -20,6 +20,8 @@ void hash_generators(Generator* top, HashStrategy strategy);
 
 void uniquify_generators(Generator* top);
 
+void uniquify_module_instances(Generator* top);
+
 std::map<std::string, std::string> generate_verilog(Generator *top);
 
 // TODO: add following passes to improve the code efficiency

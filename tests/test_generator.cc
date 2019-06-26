@@ -156,3 +156,21 @@ TEST(pass, generator_hash) {  // NOLINT
     EXPECT_EQ(mod2.name, "module1");
     EXPECT_EQ(mod3.name, "module1_unq0");
 }
+
+TEST(pass, generator_instance) {    // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &mod2 = c.generator("module2");
+    auto &mod3 = c.generator("module2");
+    auto &mod4 = c.generator("module2");
+    mod4.instance_name = "new_module";
+
+    mod1.add_child_generator(mod2.shared_from_this(), true);
+    mod1.add_child_generator(mod3.shared_from_this(), true);
+    mod1.add_child_generator(mod4.shared_from_this(), true);
+
+    uniquify_module_instances(&mod1);
+    EXPECT_EQ(mod2.instance_name, "module2_inst");
+    EXPECT_EQ(mod3.instance_name, "module2_inst0");
+    EXPECT_EQ(mod4.instance_name, "new_module");
+}

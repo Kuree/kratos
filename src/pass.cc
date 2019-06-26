@@ -369,3 +369,41 @@ void uniquify_generators(Generator* top) {
         }
     }
 }
+
+class ModuleInstanceVisitor: public ASTVisitor {
+public:
+    void visit_generator(Generator *generator) override {
+        std::unordered_set<std::string> names;
+        auto children = generator->get_child_generators();
+        for (auto &child: children) {
+            std::string instance_name;
+            if (child->instance_name == child->name) {
+                // renamed to inst
+                instance_name = ::format("{0}_inst", child->name);
+            } else {
+                instance_name = child->instance_name;
+            }
+            if (names.find(instance_name) == names.end()) {
+                // we are good
+                child->instance_name = instance_name;
+            } else {
+                uint32_t count = 0;
+                while (true) {
+                    std::string new_name = ::format("{0}{1}", instance_name, count++);
+                    if (names.find(new_name) == names.end()) {
+                        // we are good
+                        child->instance_name = new_name;
+                        break;
+                    }
+                }
+            }
+            // add it to the names list
+            names.emplace(child->instance_name);
+        }
+    }
+};
+
+void uniquify_module_instances(Generator* top) {
+    ModuleInstanceVisitor visitor;
+    visitor.visit_generator_root(top);
+}
