@@ -40,6 +40,9 @@ public:
     const std::shared_ptr<Var> left() const { return left_; }
     const std::shared_ptr<Var> right() const { return right_; }
 
+    void set_left(const std::shared_ptr<Var> &left) { left_ = left; }
+    void set_right(const std::shared_ptr<Var> &right) { right_ = right;}
+
     bool equal(const std::shared_ptr<AssignStmt> &stmt) const;
     bool operator==(const AssignStmt &stmt) const;
 

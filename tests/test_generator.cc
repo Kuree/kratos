@@ -174,3 +174,34 @@ TEST(pass, generator_instance) {    // NOLINT
     EXPECT_EQ(mod3.instance_name, "module2_inst0");
     EXPECT_EQ(mod4.instance_name, "new_module");
 }
+
+TEST(pass, decouple1) { // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
+    auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("module2");
+    auto &port2_1 = mod2.port(PortDirection::In, "in", 1);
+    //auto &port2_2 = mod2.port(PortDirection::Out, "out", 1);
+
+    auto &mod3 = c.generator("module3");
+    auto &port3_1 = mod3.port(PortDirection::In, "in", 2);
+    //auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
+
+    mod1.add_child_generator(mod2.shared_from_this(), false);
+    mod1.add_child_generator(mod3.shared_from_this(), false);
+
+    port2_1.assign(port1_2);
+    port3_1.assign(port1_1.concat(port2_1));
+
+    EXPECT_EQ(mod1.stmts_count(), 0);
+    decouple_generator_ports(&mod1);
+    EXPECT_EQ(mod1.stmts_count(), 1);
+    auto new_var = mod1.get_var("module3$in_0");
+    EXPECT_TRUE(new_var != nullptr);
+
+    EXPECT_EQ(new_var->sources().size(), 1);
+    auto new_var_src = (*new_var->sources().begin())->right();
+    EXPECT_EQ(new_var_src, port1_1.concat(port2_1).shared_from_this());
+}

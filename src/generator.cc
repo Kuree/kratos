@@ -176,6 +176,7 @@ ASTNode *Generator::get_child(uint64_t index) {
 
 void Generator::add_child_generator(const std::shared_ptr<Generator> &child, bool merge) {
     children_.emplace(child);
+    child->parent_generator_ = this;
     should_child_inline_[child] = merge;
 }
 
@@ -212,7 +213,7 @@ std::string Generator::get_unique_variable_name(const std::string &prefix,
         } else {
             result_name = ::format("{0}${1}_{2}", prefix, var_name, count);
         }
-        if (get_var(result_name)) {
+        if (!get_var(result_name)) {
             break;
         } else {
             count++;

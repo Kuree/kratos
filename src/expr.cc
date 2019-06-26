@@ -207,8 +207,7 @@ std::string Var::to_string() const { return name; }
 VarSlice &Var::operator[](uint32_t bit) { return (*this)[{bit, bit}]; }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
-    : Var(parent->generator, "", high - low + 1,
-          parent->is_signed, VarType::Slice),
+    : Var(parent->generator, "", high - low + 1, parent->is_signed, VarType::Slice),
       parent_var(parent),
       low(low),
       high(high) {}
@@ -369,8 +368,8 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
 
 VarConcat::VarConcat(Generator *m, const std::shared_ptr<Var> &first,
                      const std::shared_ptr<Var> &second)
-    : Var(m, "", first->width + second->width,
-          first->is_signed && second->is_signed) {
+    : Var(m, "", first->width + second->width, first->is_signed && second->is_signed,
+          VarType::Expression) {
     vars.emplace_back(first);
     vars.emplace_back(second);
 }
@@ -380,7 +379,7 @@ VarConcat &VarConcat::concat(Var &var) {
     new_var->vars.emplace_back(var.shared_from_this());
     new_var->width += var.width;
     // update the upstream vars about linking
-    for (auto &var_ptr: new_var->vars) {
+    for (auto &var_ptr : new_var->vars) {
         var_ptr->concat_vars.emplace(new_var);
     }
     return *new_var;
@@ -388,8 +387,7 @@ VarConcat &VarConcat::concat(Var &var) {
 
 std::string VarConcat::to_string() const {
     std::vector<std::string> var_names;
-    for (const auto &ptr: vars)
-        var_names.emplace_back(ptr->to_string());
+    for (const auto &ptr : vars) var_names.emplace_back(ptr->to_string());
     auto content = fmt::join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
 }
@@ -428,4 +426,49 @@ ASTNode *Expr::get_child(uint64_t index) {
         return right ? right.get() : nullptr;
     else
         return nullptr;
+}
+
+void Var::move_src_to(Var *var, Var *new_var, Generator* parent) {
+    // only base and port vars are allowed
+    if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
+        throw ::runtime_error("Only base or port variables are allowed.");
+
+    for (auto &stmt : var->sources_) {
+        if (stmt->left() != var->shared_from_this())
+            throw ::runtime_error("Var assignment is wrong.");
+        stmt->set_left(new_var->shared_from_this());
+        new_var->sources_.emplace(stmt);
+    }
+
+    // need to deal with slices as well
+    for (auto &[slice, slice_var] : var->slices_) {
+        auto &new_var_slice = (*new_var)[slice];
+        move_src_to(slice_var.get(), &new_var_slice, parent);
+    }
+    // create an assignment and add it to the parent
+    auto &stmt = var->assign(new_var->shared_from_this());
+    parent->add_stmt(stmt.shared_from_this());
+}
+
+void Var::move_sink_to(Var *var, Var *new_var, Generator* parent) {
+    // only base and port vars are allowed
+    if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
+        throw ::runtime_error("Only base or port variables are allowed.");
+
+    for (auto &stmt : var->sinks_) {
+        if (stmt->right() != var->shared_from_this())
+            throw ::runtime_error("Var assignment is wrong.");
+        stmt->set_right(new_var->shared_from_this());
+        new_var->sinks_.emplace(stmt);
+    }
+
+    // need to deal with slices as well
+    for (auto &[slice, slice_var] : var->slices_) {
+        auto &new_var_slice = (*new_var)[slice];
+        move_sink_to(slice_var.get(), &new_var_slice, parent);
+    }
+
+    // create an assignment and add it to the parent
+    auto &stmt = new_var->assign(var->shared_from_this());
+    parent->add_stmt(stmt.shared_from_this());
 }

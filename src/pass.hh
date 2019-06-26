@@ -18,11 +18,14 @@ void create_module_instantiation(Generator* top);
 
 void hash_generators(Generator* top, HashStrategy strategy);
 
+void decouple_generator_ports(Generator *top);
+
 void uniquify_generators(Generator* top);
 
 void uniquify_module_instances(Generator* top);
 
 std::map<std::string, std::string> generate_verilog(Generator *top);
+
 
 // TODO: add following passes to improve the code efficiency
 //  1. check module hierarchy

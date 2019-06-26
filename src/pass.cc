@@ -370,12 +370,12 @@ void uniquify_generators(Generator* top) {
     }
 }
 
-class ModuleInstanceVisitor: public ASTVisitor {
+class ModuleInstanceVisitor : public ASTVisitor {
 public:
-    void visit_generator(Generator *generator) override {
+    void visit_generator(Generator* generator) override {
         std::unordered_set<std::string> names;
         auto children = generator->get_child_generators();
-        for (auto &child: children) {
+        for (auto& child : children) {
             std::string instance_name;
             if (child->instance_name == child->name) {
                 // renamed to inst
@@ -405,5 +405,89 @@ public:
 
 void uniquify_module_instances(Generator* top) {
     ModuleInstanceVisitor visitor;
+    visitor.visit_generator_root(top);
+}
+
+class GeneratorPortVisitor : public ASTVisitor {
+public:
+    void visit_generator(Generator* generator) override {
+        if (!generator->parent()) {
+            // this is top level module, no need to worry about it
+            return;
+        }
+        auto const& port_names = generator->get_port_names();
+
+        for (auto const& port_name : port_names) {
+            auto port = generator->get_port(port_name);
+            auto const port_direction = port->port_direction();
+            if (port_direction == PortDirection::In) {
+                // if we're connected to a base variable and no slice, we are good
+                const auto slices = port->get_slices();
+                const auto& sources = port->sources();
+                // because an input cannot be an register, it can only has one
+                // source (all bits combined)
+                if (slices.empty()) {
+                    if (sources.empty())
+                        throw ::runtime_error(
+                            ::format("{0}.{1} is not connected", generator->name, port_name));
+                    if (sources.size() > 1)
+                        throw ::runtime_error(::format("{0}.{1} is driven by multiple nets",
+                                                       generator->name, port_name));
+                    // add it to the port mapping and we are good to go
+                    auto const& stmt = *sources.begin();
+                    // if the source is not a base variable, create one and use it to connect
+                    // otherwise we're good to go.
+                    auto src = stmt->right();
+                    if (src->type() == VarType::Base ||
+                        (src->type() == VarType::PortIO && src->parent() == generator->parent())) {
+                        continue;
+                    }
+                } else {
+                    // we can't have a port that is driven by slice and variables
+                    if (!sources.empty())
+                        throw ::runtime_error(
+                            ::format("{0}.{1} is over-connected", generator->name, port_name));
+                }
+                // create a new variable
+                auto ast_parent = generator->parent();
+                if (!ast_parent)
+                    throw ::runtime_error(::format(
+                        "{0}'s parent is empty but it's not a top module", generator->name));
+                auto parent = reinterpret_cast<Generator*>(ast_parent);
+                auto new_name = parent->get_unique_variable_name(generator->name, port_name);
+                auto& var = parent->var(new_name, port->width, port->is_signed);
+                // replace all the sources
+                Var::move_src_to(port.get(), &var, parent);
+            } else if (port_direction == PortDirection::Out) {
+                // same logic as the port dir in
+                // if we're connected to a base variable and no slice, we are good
+                const auto slices = port->get_slices();
+                const auto& sinks = port->sinks();
+                if (slices.empty()) {
+                    if (sinks.size() <= 1) {
+                        // we're good to go since we can re-use the sink variables, or don't even
+                        // bother to connect since no one is using it
+                        continue;
+                    }
+                }
+                // create a new variable
+                auto ast_parent = generator->parent();
+                if (!ast_parent)
+                    throw ::runtime_error(::format(
+                        "{0}'s parent is empty but it's not a top module", generator->name));
+                auto parent = reinterpret_cast<Generator*>(ast_parent);
+                auto new_name = parent->get_unique_variable_name(generator->name, port_name);
+                auto& var = parent->var(new_name, port->width, port->is_signed);
+                // replace all the sources
+                Var::move_sink_to(port.get(), &var, parent);
+            } else {
+                throw ::runtime_error("Not implement yet");
+            }
+        }
+    }
+};
+
+void decouple_generator_ports(Generator* top) {
+    GeneratorPortVisitor visitor;
     visitor.visit_generator_root(top);
 }

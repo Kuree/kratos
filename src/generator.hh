@@ -38,7 +38,6 @@ public:
     std::shared_ptr<Var> get_var(const std::string &var_name);
     const std::set<std::string> &get_port_names() const { return ports_; }
     const std::unordered_map<std::string, std::shared_ptr<Var>> &vars() const { return vars_; }
-
     void remove_var(const std::string &var_name) {
         if (vars_.find(var_name) != vars_.end()) vars_.erase(var_name);
     }
@@ -78,6 +77,8 @@ public:
 
     Context *context() const { return context_; }
 
+    ASTNode* parent() override { return parent_generator_; }
+
 private:
     std::vector<std::string> lib_files_;
     Context *context_;
@@ -89,6 +90,8 @@ private:
 
     std::set<std::shared_ptr<Generator>> children_;
     std::map<std::shared_ptr<Generator>, bool> should_child_inline_;
+
+    Generator *parent_generator_ = nullptr;
 };
 
 #endif  // DUSK_MODULE_HH22
