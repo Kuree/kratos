@@ -1,0 +1,28 @@
+language: minimal
+
+services:
+    - docker
+
+install:
+    - docker pull keyiz/manylinux-verilator
+    - docker run -d --name manylinux --rm -i -t keyiz/manylinux-verilator bash
+
+script:
+    - docker cp ../kratos manylinux:/
+    - docker exec -i manylinux bash -c "pip install conan"
+    - docker exec -i manylinux bash -c 'cd kratos && python setup.py bdist_wheel'
+    - docker exec -i manylinux bash -c 'cd kratos && auditwheel show dist/*'
+    - docker exec -i manylinux bash -c 'cd kratos && auditwheel repair dist/*'
+
+after_success:
+    - echo [distutils]                                  > ~/.pypirc
+    - echo index-servers =                             >> ~/.pypirc
+    - echo "  pypi"                                    >> ~/.pypirc
+    - echo                                             >> ~/.pypirc
+    - echo [pypi]                                      >> ~/.pypirc
+    - echo repository=https://upload.pypi.org/legacy/  >> ~/.pypirc
+    - echo username=keyi                               >> ~/.pypirc
+    - echo password=$PYPI_PASSWORD                     >> ~/.pypirc
+    - docker cp ~/.pypirc manylinux:/home/
+    - docker exec -i manylinux bash -c 'cd kratos/ && twine upload --config-file /home/.pypirc wheelhouse/*'
+
