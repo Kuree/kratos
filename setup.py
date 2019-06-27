@@ -71,6 +71,9 @@ class CMakeBuild(build_ext):
 
 setup(
     name='kratos',
+    packages=[
+        "kratos"
+    ],
     version='0.0.1',
     author='Keyi Zhang',
     author_email='keyi@stanford.edu',
@@ -79,4 +82,7 @@ setup(
     ext_modules=[CMakeExtension('_kratos')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
+    install_requires=[
+        "astor",
+    ],
 )

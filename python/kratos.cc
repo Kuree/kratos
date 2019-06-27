@@ -90,7 +90,15 @@ void init_common_expr(T &class_) {
         .def(py::self > py::self)   // NOLINT
         .def(py::self <= py::self)  // NOLINT
         .def(py::self >= py::self)  // NOLINT
-        .def("eq", &K::eq);
+        .def("eq", &K::eq)
+        .def("__getitem__", [](K &k, std::pair<uint32_t, uint32_t> v) { return k[v]; })
+        .def("__getitem__", [](K &k, uint32_t idx) { return k[idx]; })
+        .def("assign", py::overload_cast<const ::shared_ptr<Var> &>(&K::assign))
+        .def("type", &K::type)
+        .def("concat", &K::concat)
+        .def_readwrite("name", &K::name)
+        .def_readwrite("width", &K::width)
+        .def_readwrite("signed", &K::is_signed);
 }
 
 template <typename T>
@@ -147,6 +155,8 @@ void init_generator(py::module &m) {
         .def("vars", &Generator::vars)
         .def("add_stmt", &Generator::add_stmt)
         .def("remove_stmt", &Generator::remove_stmt)
+        .def("sequential", &Generator::sequential)
+        .def("combinational", &Generator::combinational)
         .def("add_child_generator", &Generator::add_child_generator)
         .def("remove_child_generator", &Generator::remove_child_generator)
         .def("get_child_generators", &Generator::get_child_generators)
@@ -154,7 +164,9 @@ void init_generator(py::module &m) {
         .def("set_child_inline", &Generator::set_child_inline)
         .def("external", &Generator::external)
         .def("get_unique_variable_name", &Generator::get_unique_variable_name)
-        .def("context", &Generator::context);
+        .def("context", &Generator::context)
+        .def_readwrite("instance_name", &Generator::instance_name)
+        .def_readwrite("name", &Generator::name);
 }
 
 void init_stmt(py::module &m) {
@@ -196,7 +208,9 @@ void init_stmt(py::module &m) {
                                                                              "SequentialStmtBlock")
         .def(py::init<>())
         .def("get_conditions", &SequentialStmtBlock::get_conditions)
-        .def("add_condition", &SequentialStmtBlock::add_condition);
+        .def("add_condition", &SequentialStmtBlock::add_condition)
+        .def("add_statement",
+             py::overload_cast<::shared_ptr<Stmt>>(&SequentialStmtBlock::add_statement));
 
     py::class_<ModuleInstantiationStmt, ::shared_ptr<ModuleInstantiationStmt>, Stmt>(
         m, "ModuleInstantiationStmt")

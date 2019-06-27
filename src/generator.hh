@@ -50,6 +50,9 @@ public:
         return index < stmts_.size() ? stmts_[index] : nullptr;
     }
     void remove_stmt(const std::shared_ptr<Stmt> &stmt);
+    // helper function to initiate the blocks
+    std::shared_ptr<SequentialStmtBlock> sequential();
+    std::shared_ptr<CombinationalStmtBlock> combinational();
 
     // child generator. needed for generator merge
     void add_child_generator(const std::shared_ptr<Generator> &child, bool merge);

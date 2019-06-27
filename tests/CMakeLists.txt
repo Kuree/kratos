@@ -1,5 +1,5 @@
 # test files
-file(GLOB TEST_VECTORS ${CMAKE_CURRENT_SOURCE_DIR}/vectors/*)
+file(GLOB TEST_VECTORS ${CMAKE_CURRENT_SOURCE_DIR}/vectors/*.sv)
 foreach (_test_file ${TEST_VECTORS})
     get_filename_component(_test_name ${_test_file} NAME)
     configure_file(${_test_file}

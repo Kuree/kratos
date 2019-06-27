@@ -1,0 +1,28 @@
+from kratos import Generator
+
+
+def test_expr():
+    mod = Generator("module", "a")
+    a = mod.var("a", 2)
+    b = mod.var("b", 2)
+    expr = a + b
+    assert str(expr) == "a + b"
+
+
+def test_slice():
+    mod = Generator("module", "a")
+    a = mod.var("a", 2)
+    b = a[0]
+    assert b.width == 1
+    b = a[1, 0]
+    assert b.width == 2
+    assert str(b) == "a[1:0]"
+
+
+def test_assign():
+    mod = Generator("module", "a")
+    a = mod.var("a", 2)
+    b = mod.var("b", 2)
+    assign = a.assign(b)
+    assert assign.left() == a
+    assert assign.right() == b

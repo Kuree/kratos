@@ -237,3 +237,15 @@ void Generator::remove_stmt(const std::shared_ptr<Stmt> &stmt) {
         stmts_.erase(pos);
     }
 }
+
+std::shared_ptr<SequentialStmtBlock> Generator::sequential() {
+    auto stmt = std::make_shared<SequentialStmtBlock>();
+    add_stmt(stmt);
+    return stmt;
+}
+
+std::shared_ptr<CombinationalStmtBlock> Generator::combinational() {
+    auto stmt = std::make_shared<CombinationalStmtBlock>();
+    add_stmt(stmt);
+    return stmt;
+}
