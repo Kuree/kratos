@@ -159,6 +159,8 @@ public:
         return port_mapping_;
     }
 
+    const Generator* target() { return target_; }
+
 private:
     Generator *target_;
     Generator *parent_;

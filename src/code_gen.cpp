@@ -22,4 +22,6 @@ VerilogModule::VerilogModule(Generator *generator) {
     uniquify_generators(generator);
     LOG_INFO << "Running pass: uniquify_module_instances";
     uniquify_module_instances(generator);
+    LOG_INFO << "Running pass: create_module_instantiation";
+    create_module_instantiation(generator);
 }

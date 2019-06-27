@@ -126,12 +126,12 @@ void verify_generator_connectivity(Generator* top) {
 
 class ModuleInstantiationVisitor : public ASTVisitor {
 public:
-    void visit(Generator* generator) override {
+    void visit_generator(Generator* generator) override {
         for (auto& child : generator->get_child_generators()) {
             if (!generator->should_child_inline(child.get())) {
                 // create instantiation statement
-                auto stmt = ModuleInstantiationStmt(child.get(), generator);
-                generator->add_stmt(stmt.shared_from_this());
+                auto stmt = std::make_shared<ModuleInstantiationStmt>(child.get(), generator);
+                generator->add_stmt(stmt);
             }
         }
     }
@@ -146,13 +146,13 @@ class UniqueGeneratorVisitor : public ASTVisitor {
 public:
     std::map<std::string, Generator*> generator_map;
 
-    void visit_generator_root(Generator* generator) override {
+    void visit_generator(Generator* generator) override {
         visit(generator);
-        ASTVisitor::visit_generator_root(generator);
     }
 
     void visit(Generator* generator) override {
-        if (generator_map.find(generator->name) != generator_map.end()) return;
+        if (generator_map.find(generator->name) != generator_map.end())
+            return;
         // a unique one
         if (!generator->external()) generator_map.emplace(generator->name, generator);
     }
@@ -222,7 +222,10 @@ private:
             return to_string(reinterpret_cast<StmtBlock*>(node));
         } else if (stmt_ptr->type() == StatementType::If) {
             return to_string(reinterpret_cast<IfStmt*>(node));
-        } else {
+        } else if (stmt_ptr->type() == StatementType::ModuleInstantiation) {
+            return to_string(reinterpret_cast<ModuleInstantiationStmt*>(node));
+        }
+        else {
             throw ::runtime_error("Not implemented");
         }
     }
@@ -293,16 +296,32 @@ private:
     }
 
     std::string to_string(IfStmt* stmt) {
-        std::stringstream sstream;
-        sstream << ::format("if ({0}) begin\n", stmt->predicate()->to_string());
+        std::string s(indent());
+        s.append(::format("if ({0}) begin\n", stmt->predicate()->to_string()));
         indent_++;
 
         for (uint32_t i = 0; i < stmt->child_count(); i++) {
-            sstream << dispatch_str(stmt->get_child(i));
+            s.append(dispatch_str(stmt->get_child(i)));
         }
 
         indent_--;
-        sstream << "end\n";
+        s.append("end\n");
+        return s;
+    }
+
+    std::string to_string(ModuleInstantiationStmt* stmt) {
+        std::stringstream sstream;
+        sstream << indent() << stmt->target()->name << " " << stmt->target()->instance_name << " ("
+                << std::endl;
+        indent_++;
+        uint32_t count = 0;
+        for (auto const& [internal, external] : stmt->port_mapping()) {
+            const auto& end = count++ < stmt->port_mapping().size() - 1 ? ")," : ")";
+            sstream << indent() << "." << internal->to_string() << "(" << external->to_string()
+                    << end << std::endl;
+        }
+        sstream << ");" << std::endl << std::endl;
+        indent_--;
         return sstream.str();
     }
 

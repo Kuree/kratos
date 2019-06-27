@@ -122,7 +122,7 @@ TEST(pass, verilog_code_gen) {  // NOLINT
     EXPECT_EQ(result.size(), 1);
     EXPECT_TRUE(result.find("module1") != result.end());
     auto module_str = result.at("module1");
-    EXPECT_EQ(module_str, "");
+    EXPECT_FALSE(module_str.empty());
 }
 
 TEST(pass, generator_hash) {  // NOLINT
@@ -204,4 +204,33 @@ TEST(pass, decouple1) { // NOLINT
     EXPECT_EQ(new_var->sources().size(), 1);
     auto new_var_src = (*new_var->sources().begin())->right();
     EXPECT_EQ(new_var_src, port1_1.concat(port2_1).shared_from_this());
+}
+
+TEST(pass, verilog_instance) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
+    auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("module2");
+    auto &port2_1 = mod2.port(PortDirection::In, "in", 2);
+    auto &port2_2 = mod2.port(PortDirection::Out, "out", 2);
+
+
+    auto &stmt = port2_2.assign(port2_1);
+    mod2.add_stmt(stmt.shared_from_this());
+    stmt = port2_1.assign(port1_1.concat(port1_1));
+    mod2.add_stmt(stmt.shared_from_this());
+    stmt = port1_2.assign(port1_1);
+    mod1.add_stmt(stmt.shared_from_this());
+
+    mod1.add_child_generator(mod2.shared_from_this(), false);
+    // lazy. just use this pass to fix the assignment type
+    fix_assignment_type(&mod1);
+    create_module_instantiation(&mod1);
+    auto const &result = generate_verilog(&mod1);
+    EXPECT_EQ(result.size(), 2);
+    EXPECT_TRUE(result.find("module1") != result.end());
+    auto module_str = result.at("module1");
+    EXPECT_FALSE(module_str.empty());
 }
