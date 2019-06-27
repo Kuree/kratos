@@ -60,7 +60,8 @@ std::string ExprOpStr(ExprOp op) {
     }
 }
 
-std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(const Var &var) {
+std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(
+    const Var &var) const {
     auto left = generator->get_var(name);
     if (left == nullptr)
         throw std::runtime_error(
@@ -72,97 +73,97 @@ std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(co
     return {left, right};
 }
 
-Expr &Var::operator-(const Var &var) {
+Expr &Var::operator-(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Minus, left, right);
 }
 
-Expr &Var::operator-() {
+Expr &Var::operator-() const {
     auto var = generator->get_var(name);
     return generator->expr(ExprOp::Minus, var, nullptr);
 }
 
-Expr &Var::operator~() {
+Expr &Var::operator~() const {
     auto var = generator->get_var(name);
     return generator->expr(ExprOp::UInvert, var, nullptr);
 }
 
-Expr &Var::operator+() {
+Expr &Var::operator+() const {
     auto var = generator->get_var(name);
     return generator->expr(ExprOp::UPlus, var, nullptr);
 }
 
-Expr &Var::operator+(const Var &var) {
+Expr &Var::operator+(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Add, left, right);
 }
 
-Expr &Var::operator*(const Var &var) {
+Expr &Var::operator*(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Multiply, left, right);
 }
 
-Expr &Var::operator%(const Var &var) {
+Expr &Var::operator%(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Mod, left, right);
 }
 
-Expr &Var::operator/(const Var &var) {
+Expr &Var::operator/(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Divide, left, right);
 }
 
-Expr &Var::operator>>(const Var &var) {
+Expr &Var::operator>>(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::LogicalShiftRight, left, right);
 }
 
-Expr &Var::operator<<(const Var &var) {
+Expr &Var::operator<<(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::ShiftLeft, left, right);
 }
 
-Expr &Var::operator|(const Var &var) {
+Expr &Var::operator|(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Or, left, right);
 }
 
-Expr &Var::operator&(const Var &var) {
+Expr &Var::operator&(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::And, left, right);
 }
 
-Expr &Var::operator^(const Var &var) {
+Expr &Var::operator^(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Xor, left, right);
 }
 
-Expr &Var::ashr(const Var &var) {
+Expr &Var::ashr(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::SignedShiftRight, left, right);
 }
 
-Expr &Var::operator<(const Var &var) {
+Expr &Var::operator<(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::LessThan, left, right);
 }
 
-Expr &Var::operator>(const Var &var) {
+Expr &Var::operator>(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::GreaterThan, left, right);
 }
 
-Expr &Var::operator<=(const Var &var) {
+Expr &Var::operator<=(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::LessEqThan, left, right);
 }
 
-Expr &Var::operator>=(const Var &var) {
+Expr &Var::operator>=(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::GreaterEqThan, left, right);
 }
 
-Expr &Var::eq(const Var &var) {
+Expr &Var::eq(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Eq, left, right);
 }
@@ -428,7 +429,7 @@ ASTNode *Expr::get_child(uint64_t index) {
         return nullptr;
 }
 
-void Var::move_src_to(Var *var, Var *new_var, Generator* parent) {
+void Var::move_src_to(Var *var, Var *new_var, Generator *parent) {
     // only base and port vars are allowed
     if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
         throw ::runtime_error("Only base or port variables are allowed.");
@@ -450,7 +451,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator* parent) {
     parent->add_stmt(stmt.shared_from_this());
 }
 
-void Var::move_sink_to(Var *var, Var *new_var, Generator* parent) {
+void Var::move_sink_to(Var *var, Var *new_var, Generator *parent) {
     // only base and port vars are allowed
     if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
         throw ::runtime_error("Only base or port variables are allowed.");

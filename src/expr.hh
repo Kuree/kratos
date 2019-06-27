@@ -52,26 +52,26 @@ public:
 
     // overload all the operators
     // unary
-    Expr &operator~();
-    Expr &operator-();
-    Expr &operator+();
+    Expr &operator~() const;
+    Expr &operator-() const;
+    Expr &operator+() const;
     // binary
-    Expr &operator+(const Var &var);
-    Expr &operator-(const Var &var);
-    Expr &operator*(const Var &var);
-    Expr &operator%(const Var &var);
-    Expr &operator/(const Var &var);
-    Expr &operator>>(const Var &var);
-    Expr &operator<<(const Var &var);
-    Expr &operator|(const Var &var);
-    Expr &operator&(const Var &var);
-    Expr &operator^(const Var &var);
-    Expr &ashr(const Var &var);
-    Expr &operator<(const Var &var);
-    Expr &operator>(const Var &var);
-    Expr &operator<=(const Var &var);
-    Expr &operator>=(const Var &var);
-    Expr &eq(const Var &var);
+    Expr &operator+(const Var &var) const;
+    Expr &operator-(const Var &var) const;
+    Expr &operator*(const Var &var) const;
+    Expr &operator%(const Var &var) const;
+    Expr &operator/(const Var &var) const;
+    Expr &operator>>(const Var &var) const;
+    Expr &operator<<(const Var &var) const;
+    Expr &operator|(const Var &var) const;
+    Expr &operator&(const Var &var) const;
+    Expr &operator^(const Var &var) const;
+    Expr &ashr(const Var &var) const;
+    Expr &operator<(const Var &var) const;
+    Expr &operator>(const Var &var) const;
+    Expr &operator<=(const Var &var) const;
+    Expr &operator>=(const Var &var) const;
+    Expr &eq(const Var &var) const;
     // slice
     VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
     VarSlice &operator[](uint32_t bit);
@@ -126,7 +126,7 @@ protected:
     VarType type_ = VarType::Base;
 
 private:
-    std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var);
+    std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
     std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> slices_;
 };
 

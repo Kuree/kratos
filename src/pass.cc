@@ -351,7 +351,7 @@ std::map<std::string, std::string> generate_verilog(Generator* top) {
 
 void hash_generators(Generator* top, HashStrategy strategy) {
     // this is a helper function
-    hash_generators(top->context(), top, strategy);
+    hash_generators_context(top->context(), top, strategy);
 }
 
 void uniquify_generators(Generator* top) {

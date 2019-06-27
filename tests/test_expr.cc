@@ -22,6 +22,11 @@ TEST(expr, arith) {  // NOLINT
     expr = (var1 - var2).ashr(var2);
     EXPECT_EQ(expr.name, "((a - b) >>> b)");
 
+    // test expr to expr
+    expr = var1 - var2;
+    expr = expr + expr;
+    EXPECT_EQ(expr.name, "((a - b) + (a - b))");
+
     // test auto collapsing
     auto &expr1 = var1 - var2;
     auto &expr2 = var1 - var2;

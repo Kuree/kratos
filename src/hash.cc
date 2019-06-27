@@ -293,7 +293,7 @@ void hash_generator(Context* context, Generator* generator) {
     context->add_hash(generator, hash_value);
 }
 
-void hash_generators(Context* context, Generator* root, HashStrategy strategy) {
+void hash_generators_context(Context* context, Generator* root, HashStrategy strategy) {
     // compute the generator graph
     GeneratorGraph g(root);
     // if it's sequential, do topological sort

@@ -3,6 +3,6 @@
 
 #include "context.hh"
 
-void hash_generators(Context *context, Generator *root, HashStrategy strategy);
+void hash_generators_context(Context *context, Generator *root, HashStrategy strategy);
 
 #endif  // KRATOS_HASH_HH
