@@ -10,11 +10,12 @@ set(SLANG_EXCLUDE_TESTS ON)
 # extern
 add_subdirectory(extern/googletest/)
 add_subdirectory(extern/slang)
+add_subdirectory(extern/pybind11)
 
 include(GoogleTest)
 
 add_subdirectory(src)
-
+add_subdirectory(python)
 
 enable_testing()
 add_subdirectory(tests)
