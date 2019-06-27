@@ -1,11 +1,11 @@
-#ifndef DUSK_CONTEXT_HH
-#define DUSK_CONTEXT_HH
+#ifndef KRATOS_CONTEXT_HH
+#define KRATOS_CONTEXT_HH
 
 #include <map>
 #include <memory>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
-#include <set>
 
 struct Port;
 class Generator;
@@ -22,8 +22,8 @@ class StmtBlock;
 class CombinationalStmtBlock;
 class SequentialStmtBlock;
 class ModuleInstantiationStmt;
-enum AssignmentType: int;
-enum HashStrategy: int;
+enum AssignmentType : int;
+enum HashStrategy : int;
 
 class Context {
 private:
@@ -33,7 +33,7 @@ private:
 public:
     Context() = default;
 
-    Generator &generator(const std::string &name);
+    Generator& generator(const std::string& name);
 
     void remove(Generator* generator);
 
@@ -41,10 +41,10 @@ public:
     bool has_hash(Generator* generator);
     uint64_t get_hash(Generator* generator);
 
-    void change_generator_name(Generator* generator, const std::string &new_name);
-    bool generator_name_exists(const std::string &name) const;
-    std::set<std::shared_ptr<Generator>> get_generators_by_name(const std::string &name) const;
+    void change_generator_name(Generator* generator, const std::string& new_name);
+    bool generator_name_exists(const std::string& name) const;
+    std::set<std::shared_ptr<Generator>> get_generators_by_name(const std::string& name) const;
     std::unordered_set<std::string> get_generator_names() const;
 };
 
-#endif  // DUSK_CONTEXT_HH
+#endif  // KRATOS_CONTEXT_HH

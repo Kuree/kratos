@@ -1,12 +1,12 @@
-#ifndef DUSK_STMT_HH
-#define DUSK_STMT_HH
+#ifndef KRATOS_STMT_HH
+#define KRATOS_STMT_HH
 #include <vector>
 #include "context.hh"
 #include "expr.hh"
 
-enum StatementType { If, Switch, Assign, Block, ModuleInstantiation};
+enum StatementType { If, Switch, Assign, Block, ModuleInstantiation };
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
-enum StatementBlockType { Combinational, Sequential};
+enum StatementBlockType { Combinational, Sequential };
 enum BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
@@ -41,7 +41,7 @@ public:
     const std::shared_ptr<Var> right() const { return right_; }
 
     void set_left(const std::shared_ptr<Var> &left) { left_ = left; }
-    void set_right(const std::shared_ptr<Var> &right) { right_ = right;}
+    void set_right(const std::shared_ptr<Var> &right) { right_ = right; }
 
     bool equal(const std::shared_ptr<AssignStmt> &stmt) const;
     bool operator==(const AssignStmt &stmt) const;
@@ -159,11 +159,11 @@ public:
         return port_mapping_;
     }
 
-    const Generator* target() { return target_; }
+    const Generator *target() { return target_; }
 
 private:
     Generator *target_;
     Generator *parent_;
     std::map<std::shared_ptr<Var>, std::shared_ptr<Var>> port_mapping_;
 };
-#endif  // DUSK_STMT_HH
+#endif  // KRATOS_STMT_HH

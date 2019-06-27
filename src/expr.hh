@@ -1,5 +1,5 @@
-#ifndef DUSK_EXPR_HH
-#define DUSK_EXPR_HH
+#ifndef KRATOS_EXPR_HH
+#define KRATOS_EXPR_HH
 
 #include <set>
 #include <string>
@@ -8,7 +8,7 @@
 #include "ast.hh"
 #include "context.hh"
 
-enum ExprOp: uint64_t {
+enum ExprOp : uint64_t {
     // unary
     UInvert,
     UMinus,
@@ -96,8 +96,8 @@ public:
         return slices_;
     }
 
-    static void move_src_to(Var *var, Var *new_var, Generator* parent);
-    static void move_sink_to(Var *var, Var *new_var, Generator* parent);
+    static void move_src_to(Var *var, Var *new_var, Generator *parent);
+    static void move_sink_to(Var *var, Var *new_var, Generator *parent);
 
     template <typename T>
     std::shared_ptr<T> as() {
@@ -149,8 +149,7 @@ public:
 struct VarConcat : public Var {
 public:
     std::vector<std::shared_ptr<Var>> vars;
-    VarConcat(Generator *m, const std::shared_ptr<Var> &first,
-              const std::shared_ptr<Var> &second);
+    VarConcat(Generator *m, const std::shared_ptr<Var> &first, const std::shared_ptr<Var> &second);
     VarConcat(const VarConcat &var);
 
     VarConcat &concat(Var &var) override;
@@ -188,4 +187,4 @@ struct Expr : public Var {
     ASTNode *get_child(uint64_t index) override;
 };
 
-#endif  // DUSK_EXPR_HH
+#endif  // KRATOS_EXPR_HH

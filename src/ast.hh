@@ -1,5 +1,5 @@
-#ifndef DUSK_AST_HH
-#define DUSK_AST_HH
+#ifndef KRATOS_AST_HH
+#define KRATOS_AST_HH
 
 #include <cstdint>
 #include "context.hh"
@@ -51,4 +51,4 @@ protected:
     uint32_t level = 0;
 };
 
-#endif  // DUSK_AST_HH
+#endif  // KRATOS_AST_HH

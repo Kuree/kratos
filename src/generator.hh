@@ -1,7 +1,7 @@
 #include <utility>
 
-#ifndef DUSK_MODULE_HH
-#define DUSK_MODULE_HH
+#ifndef KRATOS_MODULE_HH
+#define KRATOS_MODULE_HH
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -77,7 +77,7 @@ public:
 
     Context *context() const { return context_; }
 
-    ASTNode* parent() override { return parent_generator_; }
+    ASTNode *parent() override { return parent_generator_; }
 
 private:
     std::vector<std::string> lib_files_;
@@ -94,4 +94,4 @@ private:
     Generator *parent_generator_ = nullptr;
 };
 
-#endif  // DUSK_MODULE_HH22
+#endif  // KRATOS_MODULE_HH22

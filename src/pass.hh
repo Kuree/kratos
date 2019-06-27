@@ -1,5 +1,5 @@
-#ifndef DUSK_PASS_HH
-#define DUSK_PASS_HH
+#ifndef KRATOS_PASS_HH
+#define KRATOS_PASS_HH
 
 #include "ast.hh"
 #include "context.hh"
@@ -33,4 +33,4 @@ std::map<std::string, std::string> generate_verilog(Generator *top);
 //  3. remove a var
 //  4. remove a child generator
 
-#endif  // DUSK_PASS_HH
+#endif  // KRATOS_PASS_HH

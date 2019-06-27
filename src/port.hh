@@ -1,5 +1,5 @@
-#ifndef DUSK_PORT_HH
-#define DUSK_PORT_HH
+#ifndef KRATOS_PORT_HH
+#define KRATOS_PORT_HH
 
 #include <set>
 #include <string>
@@ -26,4 +26,4 @@ private:
     PortType type_;
 };
 
-#endif  // DUSK_PORT_HH
+#endif  // KRATOS_PORT_HH
