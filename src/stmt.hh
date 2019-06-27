@@ -23,6 +23,10 @@ public:
     ASTNode *parent() override;
     virtual void set_parent(ASTNode *parent) { parent_ = parent; }
 
+    void accept(ASTVisitor*) override {}
+    uint64_t child_count() override { return 0; }
+    ASTNode *get_child(uint64_t) override { return nullptr; };
+
 protected:
     StatementType type_;
     ASTNode *parent_ = nullptr;
