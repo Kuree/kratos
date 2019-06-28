@@ -1,4 +1,4 @@
-from kratos import Generator, PortDirection, PortType, BlockEdgeType
+from kratos import Generator, PortDirection, PortType, BlockEdgeType, always
 
 
 def test_generator():
@@ -21,18 +21,18 @@ def test_async_reg():
             # define inputs and outputs
             self._in = self.port("in", width, PortDirection.In)
             self._out = self.port("out", width, PortDirection.Out)
-            self._clk = self.port("clk", width, PortDirection.In, PortType.Clock)
-            self._rst = self.port("rst", width, PortDirection.In,
+            self._clk = self.port("clk", 1, PortDirection.In, PortType.Clock)
+            self._rst = self.port("rst", 1, PortDirection.In,
                                   PortType.AsyncReset)
             self._val = self.var("val", width)
 
             # add combination and sequential blocks
-            self.add_seq(self.seq_code_block,
-                         (BlockEdgeType.Posedge, self._clk,
-                          BlockEdgeType.Posedge, self._rst))
+            self.add_seq(self.seq_code_block)
 
             self.add_comb(self.comb_code_block)
 
+        @always([(BlockEdgeType.Posedge, "clk"),
+                 (BlockEdgeType.Posedge, "rst")])
         def seq_code_block(self):
             if ~self._rst:
                 self._val = 0
@@ -43,4 +43,4 @@ def test_async_reg():
             self._out = self._val
 
     reg_width = 16
-    reg = AsyncReg(16)
+    reg = AsyncReg(reg_width)

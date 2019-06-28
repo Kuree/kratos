@@ -13,7 +13,7 @@ Port::Port(Generator* module, PortDirection direction, const ::string& name, uin
     if ((type == PortType::AsyncReset || type == PortType::Clock || type == PortType::ClockEnable ||
          type == PortType::Reset) &&
         width > 1) {
-        throw ::runtime_error(::format("%s's width has be 1, got %d", name, width));
+        throw ::runtime_error(::format("{0}'s width has be 1, got {1}", name, width));
     }
 }
 
