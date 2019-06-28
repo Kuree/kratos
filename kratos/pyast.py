@@ -2,11 +2,8 @@ import ast
 
 
 class IfNodeVisitor(ast.NodeTransformer):
-    def __init__(self, model_variable_name: str,
-                 predicate_model_name: bool = True):
+    def __init__(self):
         super().__init__()
-        self.model_name = model_variable_name
-        self.predicate_model_name = predicate_model_name
 
     def visit_If(self, node: ast.If):
         predicate = node.test
@@ -18,21 +15,34 @@ class IfNodeVisitor(ast.NodeTransformer):
 
         # recursive call
         for idx, node in enumerate(expression):
-            if_exp = IfNodeVisitor(self.model_name, self.predicate_model_name)
+            if_exp = IfNodeVisitor()
             expression[idx] = if_exp.visit(node)
         for idx, node in enumerate(else_expression):
-            else_exp = IfNodeVisitor(self.model_name, self.predicate_model_name)
+            else_exp = IfNodeVisitor()
             else_expression[idx] = else_exp.visit(node)
 
-        if_node = ast.Call(func=ast.Attribute(value=ast.Name(id=self.model_name,
+        if_node = ast.Call(func=ast.Attribute(value=ast.Name(id="self",
                                                              ctx=ast.Load()),
-                                              attr="If",
+                                              attr="if_",
                                               cts=ast.Load()),
                            args=[predicate] + expression,
                            keywords=[],
                            ctx=ast.Load)
-        else_node = ast.Call(func=ast.Attribute(attr="Else", value=if_node,
+        else_node = ast.Call(func=ast.Attribute(attr="else_", value=if_node,
                                                 cts=ast.Load()),
                              args=else_expression, keywords=[])
 
         return ast.Expr(value=else_node)
+
+
+class AssignmentNodeVisitor(ast.NodeTransformer):
+    def __init__(self):
+        super().__init__()
+
+    def visit_Assign(self, node: ast.Assign):
+        pass
+
+
+class TransformStatementList:
+    def __init__(self):
+        pass
