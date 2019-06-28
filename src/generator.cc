@@ -111,8 +111,9 @@ Var &Generator::var(const std::string &var_name, uint32_t width, bool is_signed)
                 ::format("redefinition of {0} with different width/sign", var_name));
         return *v_p;
     }
-    vars_.emplace(var_name, std::make_shared<Var>(this, var_name, width, is_signed));
-    return *get_var(var_name);
+    auto p = std::make_shared<Var>(this, var_name, width, is_signed);
+    vars_.emplace(var_name, p);
+    return *p;
 }
 
 std::shared_ptr<Var> Generator::get_var(const std::string &var_name) {
@@ -190,7 +191,7 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
 std::unordered_set<std::string> Generator::get_vars() {
     std::unordered_set<std::string> result;
     for (auto const &[name, ptr] : vars_) {
-        if (ptr->type() == VarType::PortIO) {
+        if (ptr->type() != VarType::PortIO) {
             result.emplace(name);
         }
     }

@@ -1,6 +1,7 @@
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include "../src/codegen.h"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
 #include "../src/pass.hh"
@@ -98,7 +99,9 @@ void init_common_expr(T &class_) {
         .def("concat", &K::concat)
         .def_readwrite("name", &K::name)
         .def_readwrite("width", &K::width)
-        .def_readwrite("signed", &K::is_signed);
+        .def_readwrite("signed", &K::is_signed)
+        .def("sources", &K::sources)
+        .def("sinks", &K::sinks);
 }
 
 template <typename T>
@@ -140,31 +143,38 @@ void init_context(py::module &m) {
 void init_generator(py::module &m) {
     auto generator = py::class_<Generator, ::shared_ptr<Generator>>(m, "Generator");
     generator.def("from_verilog", &Generator::from_verilog)
-        .def("var", py::overload_cast<const std::string &, uint32_t>(&Generator::var))
-        .def("var", py::overload_cast<const std::string &, uint32_t, bool>(&Generator::var))
+        .def("var", py::overload_cast<const std::string &, uint32_t>(&Generator::var),
+             py::return_value_policy::reference)
+        .def("var", py::overload_cast<const std::string &, uint32_t, bool>(&Generator::var),
+             py::return_value_policy::reference)
         .def("port",
-             py::overload_cast<PortDirection, const std::string &, uint32_t>(&Generator::port))
+             py::overload_cast<PortDirection, const std::string &, uint32_t>(&Generator::port),
+             py::return_value_policy::reference)
         .def("port",
              py::overload_cast<PortDirection, const std::string &, uint32_t, PortType, bool>(
-                 &Generator::port))
-        .def("constant", py::overload_cast<int64_t, uint32_t>(&Generator::constant))
-        .def("constant", py::overload_cast<int64_t, uint32_t, bool>(&Generator::constant))
-        .def("get_port", &Generator::get_port)
-        .def("get_var", &Generator::get_var)
+                 &Generator::port),
+             py::return_value_policy::reference)
+        .def("constant", py::overload_cast<int64_t, uint32_t>(&Generator::constant),
+             py::return_value_policy::reference)
+        .def("constant", py::overload_cast<int64_t, uint32_t, bool>(&Generator::constant),
+             py::return_value_policy::reference)
+        .def("get_port", &Generator::get_port, py::return_value_policy::reference)
+        .def("get_var", &Generator::get_var, py::return_value_policy::reference)
         .def("get_port_names", &Generator::get_port_names)
         .def("vars", &Generator::vars)
         .def("add_stmt", &Generator::add_stmt)
         .def("remove_stmt", &Generator::remove_stmt)
-        .def("sequential", &Generator::sequential)
-        .def("combinational", &Generator::combinational)
-        .def("add_child_generator", &Generator::add_child_generator)
+        .def("sequential", &Generator::sequential, py::return_value_policy::reference)
+        .def("combinational", &Generator::combinational, py::return_value_policy::reference)
+        .def("add_child_generator", &Generator::add_child_generator,
+             py::return_value_policy::reference)
         .def("remove_child_generator", &Generator::remove_child_generator)
         .def("get_child_generators", &Generator::get_child_generators)
         .def("should_child_inline", &Generator::should_child_inline)
         .def("set_child_inline", &Generator::set_child_inline)
         .def("external", &Generator::external)
         .def("get_unique_variable_name", &Generator::get_unique_variable_name)
-        .def("context", &Generator::context)
+        .def("context", &Generator::context, py::return_value_policy::reference)
         .def_readwrite("instance_name", &Generator::instance_name)
         .def_readwrite("name", &Generator::name);
 }
@@ -177,10 +187,10 @@ void init_stmt(py::module &m) {
     py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt>(m, "AssignStmt")
         .def("assign_type", &AssignStmt::assign_type)
         .def("set_assign_type", &AssignStmt::set_assign_type)
-        .def("left", &AssignStmt::left)
-        .def("right", &AssignStmt::right)
         .def("set_left", &AssignStmt::set_left)
-        .def("set_right", &AssignStmt::set_right);
+        .def("set_right", &AssignStmt::set_right)
+        .def_property_readonly("left", [](const AssignStmt &stmt) { return stmt.left(); })
+        .def_property_readonly("right", [](const AssignStmt &stmt) { return stmt.right(); });
 
     py::class_<IfStmt, ::shared_ptr<IfStmt>, Stmt>(m, "IfStmt")
         .def(py::init<::shared_ptr<Var>>())
@@ -217,6 +227,12 @@ void init_stmt(py::module &m) {
         .def(py::init<Generator *, Generator *>());
 }
 
+void init_code_gen(py::module &m) {
+    py::class_<VerilogModule>(m, "VerilogModule")
+        .def(py::init<Generator *>())
+        .def("verilog_src", &VerilogModule::verilog_src);
+}
+
 PYBIND11_MODULE(_kratos, m) {
     m.doc() = "C++ Python binding for kratos";
     init_enum(m);
@@ -225,4 +241,5 @@ PYBIND11_MODULE(_kratos, m) {
     init_context(m);
     init_generator(m);
     init_stmt(m);
+    init_code_gen(m);
 }

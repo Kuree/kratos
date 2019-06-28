@@ -416,7 +416,7 @@ std::string Expr::to_string() const {
     if (right != nullptr) {
         return ::format("{0} {1} {2}", left->name, ExprOpStr(op), right->name);
     } else {
-        return ::format("{0} {1}", ExprOpStr(op), left->name);
+        return ::format("{0}{1}", ExprOpStr(op), left->name);
     }
 }
 

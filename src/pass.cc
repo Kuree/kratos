@@ -7,6 +7,37 @@
 using fmt::format;
 using std::runtime_error;
 
+std::string assign_type_to_string(AssignmentType type) {
+    if (type == AssignmentType::Blocking)
+        return "blocking";
+    else if (type == AssignmentType::NonBlocking)
+        return "non-blocking";
+    else
+        return "undefined";
+}
+
+std::string ast_type_to_string(ASTNodeKind kind) {
+    if (kind == ASTNodeKind::StmtKind)
+        return "Statement";
+    else if (kind == ASTNodeKind::VarKind)
+        return "Variable";
+    else
+        return "Generator";
+}
+
+std::string var_type_to_string(VarType type) {
+    if (type == VarType::Base)
+        return "Base";
+    else if (type == VarType::PortIO)
+        return "Port";
+    else if (type == VarType::Expression)
+        return "Expression";
+    else if (type == VarType::ConstValue)
+        return "Const";
+    else
+        return "Slice";
+}
+
 class AssignmentTypeVisitor : public ASTVisitor {
 public:
     explicit AssignmentTypeVisitor(AssignmentType type, bool check_type = true)
@@ -15,7 +46,9 @@ public:
         if (stmt->assign_type() == AssignmentType::Undefined) {
             stmt->set_assign_type(type_);
         } else if (check_type_ && stmt->assign_type() != type_) {
-            throw ::runtime_error(::format("mismatch in assignment type"));
+            throw ::runtime_error(::format("mismatch in assignment type. should be {0}, got {1}",
+                                           assign_type_to_string(type_),
+                                           assign_type_to_string(stmt->assign_type())));
         }
     }
 
@@ -26,7 +59,7 @@ private:
 
 class AssignmentTypeBlockVisitor : public ASTVisitor {
     void visit(CombinationalStmtBlock* block) override {
-        AssignmentTypeVisitor visitor(AssignmentType::NonBlocking, true);
+        AssignmentTypeVisitor visitor(AssignmentType::Blocking, true);
         visitor.visit_root(block->ast_node());
     }
     void visit(SequentialStmtBlock* block) override {
@@ -146,13 +179,10 @@ class UniqueGeneratorVisitor : public ASTVisitor {
 public:
     std::map<std::string, Generator*> generator_map;
 
-    void visit_generator(Generator* generator) override {
-        visit(generator);
-    }
+    void visit_generator(Generator* generator) override { visit(generator); }
 
     void visit(Generator* generator) override {
-        if (generator_map.find(generator->name) != generator_map.end())
-            return;
+        if (generator_map.find(generator->name) != generator_map.end()) return;
         // a unique one
         if (!generator->external()) generator_map.emplace(generator->name, generator);
     }
@@ -164,7 +194,9 @@ public:
         // output module definition
         stream_ << ::format("module {0} (\n", generator->name);
         generate_ports(generator);
-        stream_ << ");\n";
+        stream_ << ");\n\n";
+        generate_variables(generator);
+
 
         for (uint32_t i = 0; i < generator->child_count(); i++) {
             stream_ << dispatch_str(generator->get_child(i));
@@ -174,12 +206,19 @@ public:
     }
     const std::string str() { return stream_.str(); }
 
+    uint32_t indent_size = 2;
+
 private:
     uint32_t indent_ = 0;
     std::stringstream stream_;
     Generator* generator_;
 
+    static inline std::string get_var_width_str(const std::shared_ptr<Var>& var) {
+        return var->width > 1 ? ::format("[{0}:0]", var->width - 1) : "";
+    }
+
     void generate_ports(Generator* generator) {
+        indent_++;
         // sort the names
         auto& port_names_set = generator->get_port_names();
         std::vector<std::string> port_names(port_names_set.begin(), port_names_set.end());
@@ -189,9 +228,21 @@ private:
             auto port = generator->get_port(port_name);
             stream_ << indent()
                     << ::format("{0} {1} {2} {3}{4}\n", get_port_dir_name(port->port_direction()),
-                                port->is_signed ? "signed" : "",
-                                port->width > 1 ? ::format("[{0}:0]", port->width - 1) : "",
-                                port_name, (i == port_names.size() - 1) ? "" : ",");
+                                port->is_signed ? "signed" : "", get_var_width_str(port), port_name,
+                                (i == port_names.size() - 1) ? "" : ",");
+        }
+        indent_--;
+    }
+
+    void generate_variables(Generator* generator) {
+        auto const& vars = generator->get_vars();
+        for (auto const& var_name : vars) {
+            auto const& var = generator->get_var(var_name);
+            if (var->type() == VarType::Base) {
+                stream_ << ::format("logic {0} {1} {2};", var->is_signed ? "signed" : "",
+                                    get_var_width_str(var), var->name)
+                        << std::endl;
+            }
         }
     }
 
@@ -207,14 +258,16 @@ private:
 
     std::string indent() {
         std::string result;
-        result.resize(indent_);
-        for (uint32_t i = 0; i < indent_; i++) result[i] = ' ';
+        uint32_t num_indent = indent_ * indent_size;
+        result.resize(num_indent);
+        for (uint32_t i = 0; i < num_indent; i++) result[i] = ' ';
         return result;
     }
 
     std::string dispatch_str(ASTNode* node) {
         if (node->ast_node_type() != ASTNodeKind::StmtKind)
-            throw ::runtime_error("Cannot codegen non-statement node");
+            throw ::runtime_error(::format("Cannot codegen non-statement node. Got {0}",
+                                           ast_type_to_string(node->ast_node_type())));
         auto stmt_ptr = reinterpret_cast<Stmt*>(node);
         if (stmt_ptr->type() == StatementType::Assign) {
             return to_string(reinterpret_cast<AssignStmt*>(node));
@@ -224,8 +277,7 @@ private:
             return to_string(reinterpret_cast<IfStmt*>(node));
         } else if (stmt_ptr->type() == StatementType::ModuleInstantiation) {
             return to_string(reinterpret_cast<ModuleInstantiationStmt*>(node));
-        }
-        else {
+        } else {
             throw ::runtime_error("Not implemented");
         }
     }
@@ -269,7 +321,7 @@ private:
         }
         std::stringstream sstream;
         std::string sensitive_list_str = join(sensitive_list.begin(), sensitive_list.end(), ", ");
-        sstream << "\nalways @(" << sensitive_list_str << ") begin";
+        sstream << "\nalways @(" << sensitive_list_str << ") begin\n";
         indent_++;
 
         for (uint32_t i = 0; i < stmt->child_count(); i++) {
@@ -277,7 +329,7 @@ private:
         }
 
         indent_--;
-        sstream << "end\n";
+        sstream << indent() << "end\n";
         return sstream.str();
     }
 
@@ -291,7 +343,7 @@ private:
         }
 
         indent_--;
-        sstream << "end\n\n";
+        sstream << indent() << "end\n\n";
         return sstream.str();
     }
 
@@ -300,12 +352,25 @@ private:
         s.append(::format("if ({0}) begin\n", stmt->predicate()->to_string()));
         indent_++;
 
-        for (uint32_t i = 0; i < stmt->child_count(); i++) {
-            s.append(dispatch_str(stmt->get_child(i)));
+        auto const &then_body = stmt->then_body();
+        for (auto const &child : then_body) {
+            s.append(dispatch_str(child.get()));
         }
 
         indent_--;
-        s.append("end\n");
+        s.append(indent()).append("end\n");
+        
+        auto const &else_body = stmt->else_body();
+        if (!else_body.empty()) {
+            s.append(indent()).append("else begin\n");
+            indent_++;
+
+            for (auto const &child : else_body) {
+                s.append(dispatch_str(child.get()));
+            }
+            indent_--;
+        }
+        s.append(indent()).append("end\n");
         return s;
     }
 

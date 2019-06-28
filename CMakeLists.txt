@@ -11,6 +11,7 @@ set(SLANG_EXCLUDE_TESTS ON)
 add_subdirectory(extern/googletest/)
 add_subdirectory(extern/slang)
 add_subdirectory(extern/pybind11)
+add_subdirectory(extern/NanoLog)
 
 include(GoogleTest)
 

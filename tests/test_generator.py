@@ -1,4 +1,5 @@
-from kratos import Generator, PortDirection, PortType, BlockEdgeType, always
+from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
+    verilog
 
 
 def test_generator():
@@ -44,3 +45,14 @@ def test_async_reg():
 
     reg_width = 16
     reg = AsyncReg(reg_width)
+    # produce verilog
+    verilog_src = verilog(reg)
+    assert "register" in verilog_src
+    reg_src = verilog_src["register"]
+    assert reg_src != ""
+    # TODO:
+    #  add a util function to check generated verilog
+
+
+if __name__ == "__main__":
+    test_async_reg()

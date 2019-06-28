@@ -86,6 +86,9 @@ class Generator:
         return self.__generator.port(direction.value, name, width,
                                      port_type.value, signed)
 
+    def get_var(self, name):
+        return self.__generator.get_var(name)
+
     def const(self, value: int, width: int, signed: bool = False):
         return self.__generator.constant(value, width, signed)
 
@@ -104,17 +107,11 @@ class Generator:
         for stmt in stmts:
             seq.add_stmt(stmt)
 
-        # add it to the generator
-        self.internal_generator.add_stmt(seq.stmt())
-
     def add_comb(self, fn):
         _, stmts = transform_stmt_block(self, fn, False)
         comb = CombinationalCodeBlock(self)
         for stmt in stmts:
             comb.add_stmt(stmt)
-
-        # add it to the generator
-        self.internal_generator.add_stmt(comb.stmt())
 
     @staticmethod
     def clear_context():
@@ -129,3 +126,8 @@ def always(sensitivity):
     def wrapper(fn):
         return fn
     return wrapper
+
+
+def verilog(generator: Generator):
+    code_gen = _kratos.VerilogModule(generator.internal_generator)
+    return code_gen.verilog_src()
