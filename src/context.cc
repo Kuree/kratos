@@ -79,3 +79,8 @@ std::unordered_set<std::string> Context::get_generator_names() const {
     }
     return result;
 }
+
+void Context::clear() {
+    modules_.clear();
+    generator_hash_.clear();
+}

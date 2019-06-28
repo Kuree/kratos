@@ -134,7 +134,7 @@ void init_expr(py::module &m) {
 
 void init_context(py::module &m) {
     auto context = py::class_<Context>(m, "Context");
-    context.def(py::init()).def("generator", &Context::generator);
+    context.def(py::init()).def("generator", &Context::generator).def("clear", &Context::clear);
 }
 
 void init_generator(py::module &m) {

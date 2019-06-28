@@ -116,6 +116,10 @@ class Generator:
         # add it to the generator
         self.internal_generator.add_stmt(comb.stmt())
 
+    @staticmethod
+    def clear_context():
+        Generator.__context.clear()
+
 
 def always(sensitivity):
     for edge, var in sensitivity:

@@ -45,6 +45,8 @@ public:
     bool generator_name_exists(const std::string& name) const;
     std::set<std::shared_ptr<Generator>> get_generators_by_name(const std::string& name) const;
     std::unordered_set<std::string> get_generator_names() const;
+
+    void clear();
 };
 
 #endif  // KRATOS_CONTEXT_HH
