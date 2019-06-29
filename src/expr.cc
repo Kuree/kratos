@@ -1,6 +1,6 @@
 #include "expr.hh"
-#include <stdexcept>
 #include <iostream>
+#include <stdexcept>
 #include "fmt/format.h"
 #include "generator.hh"
 #include "stmt.hh"
@@ -315,8 +315,8 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
         }
     }
     // push the stmt into its sources
-    var->sinks_.emplace(stmt);
-    sources_.emplace(stmt);
+    var->add_sink(stmt);
+    add_source(stmt);
     if (self_type == AssignmentType::Undefined) self_type = type;
     // check if the assignment match existing ones. if existing ones are unknown
     // assign them
@@ -368,12 +368,37 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
     value_ = value;
 }
 
+VarSigned::VarSigned(Var *parent)
+    : Var(parent->generator, "", parent->width, true, parent->type()), parent_var_(parent) {}
+
+AssignStmt &VarSigned::assign(const std::shared_ptr<Var> &, AssignmentType) {
+    throw ::runtime_error(::format("{0} is not allowed to be a sink", to_string()));
+}
+
+std::string VarSigned::to_string() const {
+    return ::format("$signed({0})", parent_var_->to_string());
+}
+
+void VarSigned::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }
+
+std::shared_ptr<Var> Var::signed_() {
+    if (is_signed) {
+        return shared_from_this();
+    } else if (signed_self_) {
+        return signed_self_;
+    } else {
+        signed_self_ = std::make_shared<VarSigned>(this);
+        return signed_self_;
+    }
+}
+
 void Const::set_value(int64_t new_value) {
     try {
         Const c(generator, new_value, width, is_signed);
         value_ = new_value;
     } catch (::runtime_error &) {
-        std::cerr << ::format("Unable to set value from {0} to {1}", value_, new_value) << std::endl;
+        std::cerr << ::format("Unable to set value from {0} to {1}", value_, new_value)
+                  << std::endl;
     }
 }
 

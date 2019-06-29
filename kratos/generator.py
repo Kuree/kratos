@@ -128,6 +128,11 @@ def always(sensitivity):
     return wrapper
 
 
+def signed(var):
+    assert isinstance(var, _kratos.Var)
+    return var.signed_()
+
+
 def verilog(generator: Generator):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     return code_gen.verilog_src()

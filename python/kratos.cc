@@ -101,7 +101,8 @@ void init_common_expr(T &class_) {
         .def_readwrite("width", &K::width)
         .def_readwrite("signed", &K::is_signed)
         .def("sources", &K::sources)
-        .def("sinks", &K::sinks);
+        .def("sinks", &K::sinks)
+        .def("signed_", &K::signed_);
 }
 
 template <typename T>

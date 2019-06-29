@@ -78,11 +78,13 @@ public:
     // concat
     virtual VarConcat &concat(Var &var);
     std::unordered_set<std::shared_ptr<VarConcat>> concat_vars;
+    // sign
+    std::shared_ptr<Var> signed_();
 
     // assignment
     AssignStmt &assign(const std::shared_ptr<Var> &var);
     AssignStmt &assign(Var &var);
-    AssignStmt &assign(const std::shared_ptr<Var> &var, AssignmentType type);
+    virtual AssignStmt &assign(const std::shared_ptr<Var> &var, AssignmentType type);
     AssignStmt &assign(Var &var, AssignmentType type);
     void unassign(const std::shared_ptr<Var> &var);
 
@@ -98,6 +100,8 @@ public:
 
     static void move_src_to(Var *var, Var *new_var, Generator *parent);
     static void move_sink_to(Var *var, Var *new_var, Generator *parent);
+    virtual void add_sink(const std::shared_ptr<AssignStmt> &stmt) { sinks_.emplace(stmt); }
+    virtual void add_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.emplace(stmt); }
 
     template <typename T>
     std::shared_ptr<T> as() {
@@ -128,6 +132,21 @@ protected:
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
     std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> slices_;
+
+    std::shared_ptr<Var> signed_self_ = nullptr;
+};
+
+struct VarSigned : public Var {
+public:
+    explicit VarSigned(Var *parent);
+    AssignStmt &assign(const std::shared_ptr<Var> &var, AssignmentType type) override;
+
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+
+    std::string to_string() const override;
+
+private:
+    Var *parent_var_ = nullptr;
 };
 
 struct VarSlice : public Var {

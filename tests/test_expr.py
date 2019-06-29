@@ -1,4 +1,4 @@
-from kratos import Generator
+from kratos import Generator, signed
 
 
 def test_expr():
@@ -24,5 +24,12 @@ def test_assign():
     a = mod.var("a", 2)
     b = mod.var("b", 2)
     assign = a.assign(b)
-    assert assign.left() == a
-    assert assign.right() == b
+    assert assign.left == a
+    assert assign.right == b
+
+
+def test_signed():
+    mod = Generator("module", "a")
+    a = mod.var("a", 2)
+    c = signed(a)
+    assert str(c) == "$signed(a)"
