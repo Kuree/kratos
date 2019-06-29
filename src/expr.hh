@@ -164,6 +164,7 @@ public:
     Const(Generator *m, int64_t value, uint32_t width, bool is_signed);
 
     int64_t value() { return value_; }
+    void set_value(int64_t new_value);
 
     std::string to_string() const override;
 

@@ -1,6 +1,7 @@
 #include "pass.hh"
 #include <algorithm>
 #include <sstream>
+#include <iostream>
 #include "fmt/format.h"
 #include "generator.hh"
 
@@ -76,6 +77,47 @@ void fix_assignment_type(Generator* top) {
     // then we assign any existing assignment as blocking assignment
     AssignmentTypeVisitor final_visitor(AssignmentType::Blocking, false);
     final_visitor.visit_root(top->ast_node());
+}
+
+class VerifyAssignmentVisitor : public ASTVisitor {
+public:
+    explicit VerifyAssignmentVisitor(Generator* generator) : generator_(generator) {}
+
+    void visit(AssignStmt* stmt) override {
+        const auto left = stmt->left();
+        auto right = stmt->right();
+        // if the right hand side is a const and it's safe to do so, we will let it happen
+        if (left->width != right->width) {
+            if (right->type() == VarType::ConstValue) {
+                auto old_value = right->as<Const>();
+                try {
+                    auto &new_const =
+                        generator_->constant(old_value->value(), left->width, old_value->is_signed);
+                    stmt->set_right(new_const.shared_from_this());
+                    right = new_const.shared_from_this();
+                } catch (::runtime_error &) {
+                    std::cerr << "Failed to convert constants. Expect an exception" << std::endl;
+                }
+            }
+        }
+        if (left->width != right->width)
+            throw ::runtime_error(
+                ::format("assignment width doesn't match. left ({0}): {1} right ({2}): {3}",
+                         left->to_string(), left->width, right->to_string(), right->width));
+        if (left->is_signed != right->is_signed)
+            throw ::runtime_error(
+                ::format("assignment sign doesn't match. left ({0}): {1} right ({2}): {3}",
+                         left->to_string(), left->is_signed, right->to_string(), right->is_signed));
+    }
+
+private:
+    Generator* generator_;
+};
+
+void verify_assignments(Generator* top) {
+    // verify the assignment width match, and sign as well
+    VerifyAssignmentVisitor visitor(top);
+    visitor.visit_root(top);
 }
 
 class VarAccumulationVisitor : public ASTVisitor {
@@ -196,7 +238,6 @@ public:
         generate_ports(generator);
         stream_ << ");\n\n";
         generate_variables(generator);
-
 
         for (uint32_t i = 0; i < generator->child_count(); i++) {
             stream_ << dispatch_str(generator->get_child(i));
@@ -352,20 +393,20 @@ private:
         s.append(::format("if ({0}) begin\n", stmt->predicate()->to_string()));
         indent_++;
 
-        auto const &then_body = stmt->then_body();
-        for (auto const &child : then_body) {
+        auto const& then_body = stmt->then_body();
+        for (auto const& child : then_body) {
             s.append(dispatch_str(child.get()));
         }
 
         indent_--;
         s.append(indent()).append("end\n");
-        
-        auto const &else_body = stmt->else_body();
+
+        auto const& else_body = stmt->else_body();
         if (!else_body.empty()) {
             s.append(indent()).append("else begin\n");
             indent_++;
 
-            for (auto const &child : else_body) {
+            for (auto const& child : else_body) {
                 s.append(dispatch_str(child.get()));
             }
             indent_--;

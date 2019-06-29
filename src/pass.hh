@@ -10,6 +10,8 @@ enum HashStrategy: int { SequentialHash, ParallelHash };
 
 void fix_assignment_type(Generator* top);
 
+void verify_assignments(Generator* top);
+
 void remove_unused_vars(Generator* top);
 
 void verify_generator_connectivity(Generator* top);

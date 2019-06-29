@@ -1,5 +1,6 @@
 #include "expr.hh"
 #include <stdexcept>
+#include <iostream>
 #include "fmt/format.h"
 #include "generator.hh"
 #include "stmt.hh"
@@ -340,7 +341,7 @@ void Var::unassign(const std::shared_ptr<Var> &var) {
 }
 
 Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed)
-    : Var(generator, ::format("{0}", value), width, is_signed, VarType::ConstValue), value_() {
+    : Var(generator, "", width, is_signed, VarType::ConstValue), value_() {
     // need to deal with the signed value
     if (is_signed) {
         // compute the -max value
@@ -365,6 +366,15 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
                 "{0} is larger than the maximum value ({1}) given width {2}", value, max, width));
     }
     value_ = value;
+}
+
+void Const::set_value(int64_t new_value) {
+    try {
+        Const c(generator, new_value, width, is_signed);
+        value_ = new_value;
+    } catch (::runtime_error &) {
+        std::cerr << ::format("Unable to set value from {0} to {1}", value_, new_value) << std::endl;
+    }
 }
 
 VarConcat::VarConcat(Generator *m, const std::shared_ptr<Var> &first,

@@ -95,6 +95,8 @@ private:
     std::map<std::shared_ptr<Generator>, bool> should_child_inline_;
 
     Generator *parent_generator_ = nullptr;
+
+    std::unordered_set<std::shared_ptr<Const>> consts_;
 };
 
 #endif  // KRATOS_MODULE_HH22

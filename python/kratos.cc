@@ -127,6 +127,8 @@ void init_expr(py::module &m) {
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
     init_var_derived(const_);
+    const_.def("value", &Const::value)
+        .def("set_value", &Const::set_value);
 
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
     init_var_derived(slice);

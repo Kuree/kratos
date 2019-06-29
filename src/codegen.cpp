@@ -11,6 +11,7 @@ VerilogModule::VerilogModule(Generator *generator) {
     fix_assignment_type(generator);
     // LOG_INFO << "Running pass:  remove_unused_vars";
     remove_unused_vars(generator);
+    verify_assignments(generator);
     // LOG_INFO << "Running pass: verify_generator_connectivity";
     verify_generator_connectivity(generator);
     // TODO:
