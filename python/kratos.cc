@@ -6,6 +6,7 @@
 #include "../src/generator.hh"
 #include "../src/pass.hh"
 #include "../src/stmt.hh"
+#include "../src/util.hh"
 
 namespace py = pybind11;
 using std::shared_ptr;
@@ -69,6 +70,13 @@ void init_pass(py::module &m) {
     pass_m.def("uniquify_generators", &uniquify_generators);
     pass_m.def("uniquify_module_instances", &uniquify_module_instances);
     pass_m.def("generate_verilog", &generate_verilog);
+}
+
+// util submodule
+void init_util(py::module &m) {
+    auto util_m = m.def_submodule("util");
+
+    util_m.def("is_valid_verilog", &is_valid_verilog);
 }
 
 template <typename T, typename K>
@@ -245,4 +253,5 @@ PYBIND11_MODULE(_kratos, m) {
     init_generator(m);
     init_stmt(m);
     init_code_gen(m);
+    init_util(m);
 }

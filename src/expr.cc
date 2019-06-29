@@ -4,6 +4,7 @@
 #include "fmt/format.h"
 #include "generator.hh"
 #include "stmt.hh"
+#include "util.hh"
 
 using fmt::format;
 using std::make_shared;
@@ -16,49 +17,6 @@ bool is_relational_op(ExprOp op) {
     static std::unordered_set<ExprOp> ops = {ExprOp::LessThan, ExprOp::GreaterThan,
                                              ExprOp::LessEqThan, ExprOp::GreaterEqThan, ExprOp::Eq};
     return ops.find(op) != ops.end();
-}
-
-std::string ExprOpStr(ExprOp op) {
-    switch (op) {
-        case UInvert:
-            return "~";
-        case UMinus:
-        case Minus:
-            return "-";
-        case UPlus:
-        case Add:
-            return "+";
-        case Divide:
-            return "/";
-        case Multiply:
-            return "*";
-        case Mod:
-            return "%";
-        case LogicalShiftRight:
-            return ">>";
-        case SignedShiftRight:
-            return ">>>";
-        case ShiftLeft:
-            return "<<";
-        case Or:
-            return "|";
-        case And:
-            return "&";
-        case Xor:
-            return "^";
-        case LessThan:
-            return "<";
-        case GreaterThan:
-            return ">";
-        case LessEqThan:
-            return "<=";
-        case GreaterEqThan:
-            return ">=";
-        case Eq:
-            return "==";
-        default:
-            throw std::runtime_error("unable to find op");
-    }
 }
 
 std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(
@@ -193,14 +151,14 @@ VarConcat &Var::concat(Var &var) {
     // notice that we effectively created an implicit sink->sink by creating a concat
     // however, it's not an assignment, that's why we need to use concat_vars to hold the
     // vars
-    for (auto const &exist_var : concat_vars) {
+    for (auto const &exist_var : concat_vars_) {
         // reuse the existing variables
         if (exist_var->vars.size() == 2 && exist_var->vars.back() == ptr) {
             return *exist_var;
         }
     }
     auto concat_ptr = std::make_shared<VarConcat>(generator, shared_from_this(), ptr);
-    concat_vars.emplace(concat_ptr);
+    concat_vars_.emplace(concat_ptr);
     return *concat_ptr;
 }
 
@@ -266,18 +224,6 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_sig
 ASTNode *Var::parent() { return generator; }
 ASTNode *VarSlice::parent() { return parent_var; }
 
-// may need to look at this https://stackoverflow.com/q/28828957
-std::string assign_type_name(AssignmentType type) {
-    switch (type) {
-        case AssignmentType::Blocking:
-            return "blocking";
-        case AssignmentType ::NonBlocking:
-            return "non-blocking";
-        default:
-            return "unknown";
-    }
-}
-
 AssignStmt &Var::assign(const std::shared_ptr<Var> &var) {
     return assign(var, AssignmentType::Undefined);
 }
@@ -326,7 +272,7 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
         else if (sink->assign_type() != self_type)
             throw ::runtime_error(
                 ::format("{0}'s assignment type ({1}) does not match with {2}'s {3}", var->name,
-                         assign_type_name(sink->assign_type()), name, assign_type_name(self_type)));
+                assign_type_to_str(sink->assign_type()), name, assign_type_to_str(self_type)));
     }
     return *stmt;
 }
@@ -416,7 +362,7 @@ VarConcat &VarConcat::concat(Var &var) {
     new_var->width += var.width;
     // update the upstream vars about linking
     for (auto &var_ptr : new_var->vars) {
-        var_ptr->concat_vars.emplace(new_var);
+        var_ptr->add_concat_var(new_var);
     }
     return *new_var;
 }

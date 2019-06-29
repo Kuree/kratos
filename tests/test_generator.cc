@@ -3,6 +3,7 @@
 #include "../src/pass.hh"
 #include "../src/port.hh"
 #include "../src/stmt.hh"
+#include "../src/util.hh"
 #include "gtest/gtest.h"
 
 TEST(generator, load) {  // NOLINT
@@ -157,7 +158,7 @@ TEST(pass, generator_hash) {  // NOLINT
     EXPECT_EQ(mod3.name, "module1_unq0");
 }
 
-TEST(pass, generator_instance) {    // NOLINT
+TEST(pass, generator_instance) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("module1");
     auto &mod2 = c.generator("module2");
@@ -175,7 +176,7 @@ TEST(pass, generator_instance) {    // NOLINT
     EXPECT_EQ(mod4.instance_name, "new_module");
 }
 
-TEST(pass, decouple1) { // NOLINT
+TEST(pass, decouple1) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("module1");
     auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
@@ -183,11 +184,11 @@ TEST(pass, decouple1) { // NOLINT
 
     auto &mod2 = c.generator("module2");
     auto &port2_1 = mod2.port(PortDirection::In, "in", 1);
-    //auto &port2_2 = mod2.port(PortDirection::Out, "out", 1);
+    // auto &port2_2 = mod2.port(PortDirection::Out, "out", 1);
 
     auto &mod3 = c.generator("module3");
     auto &port3_1 = mod3.port(PortDirection::In, "in", 2);
-    //auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
+    // auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
 
     mod1.add_child_generator(mod2.shared_from_this(), false);
     mod1.add_child_generator(mod3.shared_from_this(), false);
@@ -216,7 +217,6 @@ TEST(pass, verilog_instance) {  // NOLINT
     auto &port2_1 = mod2.port(PortDirection::In, "in", 2);
     auto &port2_2 = mod2.port(PortDirection::Out, "out", 2);
 
-
     auto &stmt = port2_2.assign(port2_1);
     mod2.add_stmt(stmt.shared_from_this());
     stmt = port2_1.assign(port1_1.concat(port1_1));
@@ -231,6 +231,6 @@ TEST(pass, verilog_instance) {  // NOLINT
     auto const &result = generate_verilog(&mod1);
     EXPECT_EQ(result.size(), 2);
     EXPECT_TRUE(result.find("module1") != result.end());
-    auto module_str = result.at("module1");
-    EXPECT_FALSE(module_str.empty());
+    auto module_str = result.at("module1") + "\n" + result.at("module2");
+    EXPECT_TRUE(is_valid_verilog(module_str));
 }

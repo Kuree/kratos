@@ -37,8 +37,6 @@ enum ExprOp : uint64_t {
 
 bool is_relational_op(ExprOp op);
 
-std::string ExprOpStr(ExprOp op);
-
 enum VarType { Base, Expression, Slice, ConstValue, PortIO };
 
 struct Var : public std::enable_shared_from_this<Var>, public ASTNode {
@@ -77,7 +75,7 @@ public:
     VarSlice &operator[](uint32_t bit);
     // concat
     virtual VarConcat &concat(Var &var);
-    std::unordered_set<std::shared_ptr<VarConcat>> concat_vars;
+    void add_concat_var(const std::shared_ptr<VarConcat> &var) { concat_vars_.emplace(var); }
     // sign
     std::shared_ptr<Var> signed_();
 
@@ -128,6 +126,8 @@ protected:
     std::unordered_set<std::shared_ptr<AssignStmt>> sources_;
 
     VarType type_ = VarType::Base;
+
+    std::unordered_set<std::shared_ptr<VarConcat>> concat_vars_;
 
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;

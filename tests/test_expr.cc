@@ -60,6 +60,8 @@ TEST(expr, arith) {  // NOLINT
 
     // test other ops
     EXPECT_EQ((var1.eq(var3)).to_string(), "a == c");
+    EXPECT_EQ(var1.signed_()->to_string(), "$signed(a)");
+    EXPECT_EQ(VarSigned(&var1).to_string(), "$signed(a)");
 }
 
 TEST(expr, relational) {    // NOLINT

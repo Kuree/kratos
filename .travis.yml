@@ -13,6 +13,7 @@ script:
     - docker exec -i manylinux bash -c 'cd kratos && python setup.py bdist_wheel'
     - docker exec -i manylinux bash -c 'cd kratos && auditwheel show dist/*'
     - docker exec -i manylinux bash -c 'cd kratos && auditwheel repair dist/*'
+    - docker exec -i manylinux bash -c 'cd kratos && pytest tests/'
 
 after_success:
     - echo [distutils]                                  > ~/.pypirc

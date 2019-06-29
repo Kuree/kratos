@@ -1,43 +1,13 @@
 #include "pass.hh"
 #include <algorithm>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 #include "fmt/format.h"
 #include "generator.hh"
+#include "util.hh"
 
 using fmt::format;
 using std::runtime_error;
-
-std::string assign_type_to_string(AssignmentType type) {
-    if (type == AssignmentType::Blocking)
-        return "blocking";
-    else if (type == AssignmentType::NonBlocking)
-        return "non-blocking";
-    else
-        return "undefined";
-}
-
-std::string ast_type_to_string(ASTNodeKind kind) {
-    if (kind == ASTNodeKind::StmtKind)
-        return "Statement";
-    else if (kind == ASTNodeKind::VarKind)
-        return "Variable";
-    else
-        return "Generator";
-}
-
-std::string var_type_to_string(VarType type) {
-    if (type == VarType::Base)
-        return "Base";
-    else if (type == VarType::PortIO)
-        return "Port";
-    else if (type == VarType::Expression)
-        return "Expression";
-    else if (type == VarType::ConstValue)
-        return "Const";
-    else
-        return "Slice";
-}
 
 class AssignmentTypeVisitor : public ASTVisitor {
 public:
@@ -48,8 +18,8 @@ public:
             stmt->set_assign_type(type_);
         } else if (check_type_ && stmt->assign_type() != type_) {
             throw ::runtime_error(::format("mismatch in assignment type. should be {0}, got {1}",
-                                           assign_type_to_string(type_),
-                                           assign_type_to_string(stmt->assign_type())));
+                                           assign_type_to_str(type_),
+                                           assign_type_to_str(stmt->assign_type())));
         }
     }
 
@@ -91,11 +61,11 @@ public:
             if (right->type() == VarType::ConstValue) {
                 auto old_value = right->as<Const>();
                 try {
-                    auto &new_const =
+                    auto& new_const =
                         generator_->constant(old_value->value(), left->width, old_value->is_signed);
                     stmt->set_right(new_const.shared_from_this());
                     right = new_const.shared_from_this();
-                } catch (::runtime_error &) {
+                } catch (::runtime_error&) {
                     std::cerr << "Failed to convert constants. Expect an exception" << std::endl;
                 }
             }
@@ -268,7 +238,7 @@ private:
             auto const& port_name = port_names[i];
             auto port = generator->get_port(port_name);
             stream_ << indent()
-                    << ::format("{0} {1} {2} {3}{4}\n", get_port_dir_name(port->port_direction()),
+                    << ::format("{0} {1} {2} {3}{4}\n", port_dir_to_str(port->port_direction()),
                                 port->is_signed ? "signed" : "", get_var_width_str(port), port_name,
                                 (i == port_names.size() - 1) ? "" : ",");
         }
@@ -284,16 +254,6 @@ private:
                                     get_var_width_str(var), var->name)
                         << std::endl;
             }
-        }
-    }
-
-    static std::string get_port_dir_name(PortDirection direction) {
-        if (direction == PortDirection::In) {
-            return "input";
-        } else if (direction == PortDirection::Out) {
-            return "output";
-        } else {
-            return "inout";
         }
     }
 
