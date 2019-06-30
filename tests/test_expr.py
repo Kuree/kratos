@@ -2,7 +2,7 @@ from kratos import Generator, signed
 
 
 def test_expr():
-    mod = Generator("module", "a")
+    mod = Generator("module")
     a = mod.var("a", 2)
     b = mod.var("b", 2)
     expr = a + b
@@ -10,7 +10,7 @@ def test_expr():
 
 
 def test_slice():
-    mod = Generator("module", "a")
+    mod = Generator("module")
     a = mod.var("a", 2)
     b = a[0]
     assert b.width == 1
@@ -20,7 +20,7 @@ def test_slice():
 
 
 def test_assign():
-    mod = Generator("module", "a")
+    mod = Generator("module")
     a = mod.var("a", 2)
     b = mod.var("b", 2)
     assign = a.assign(b)
@@ -29,7 +29,7 @@ def test_assign():
 
 
 def test_signed():
-    mod = Generator("module", "a")
+    mod = Generator("module")
     a = mod.var("a", 2)
     c = signed(a)
     assert str(c) == "$signed(a)"

@@ -234,3 +234,16 @@ TEST(pass, verilog_instance) {  // NOLINT
     auto module_str = result.at("module1") + "\n" + result.at("module2");
     EXPECT_TRUE(is_valid_verilog(module_str));
 }
+
+TEST(pass, verilog_stub) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    mod1.port(PortDirection::In, "in", 1);
+    mod1.port(PortDirection::Out, "out", 1);
+    // set it to stub
+    mod1.set_is_stub(true);
+
+    EXPECT_NO_THROW(zero_out_stubs(&mod1));
+
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
+}

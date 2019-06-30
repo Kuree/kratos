@@ -122,6 +122,8 @@ class GeneratorConnectivityVisitor : public ASTVisitor {
 public:
     GeneratorConnectivityVisitor() : is_top_level_(true) {}
     void visit_generator(Generator* generator) override {
+        // skip if it's an external module or stub module
+        if (generator->external() || generator->is_stub()) return;
         const auto& port_names = generator->get_port_names();
         for (const auto& port_name : port_names) {
             auto const& port = generator->get_port(port_name);
@@ -203,6 +205,9 @@ public:
 class SystemVerilogCodeGen {
 public:
     explicit SystemVerilogCodeGen(Generator* generator) : generator_(generator) {
+        // if it's an external file, we don't output anything
+        if (generator->external()) return;
+
         // output module definition
         stream_ << ::format("module {0} (\n", generator->name);
         generate_ports(generator);
@@ -445,7 +450,6 @@ void uniquify_generators(Generator* top) {
                     while (true) {
                         const std::string new_name = ::format("{0}_unq{1}", name, count++);
                         if (!context->generator_name_exists(new_name)) {
-                            printf("change to new name %s\n", new_name.c_str());
                             context->change_generator_name(ptr, new_name);
                             break;
                         }
@@ -578,5 +582,47 @@ public:
 
 void decouple_generator_ports(Generator* top) {
     GeneratorPortVisitor visitor;
+    visitor.visit_generator_root(top);
+}
+
+class StubGeneratorVisitor : public ASTVisitor {
+public:
+    void visit_generator(Generator* generator) override {
+        if (!generator->is_stub()) return;
+        // to be a stub, there shouldn't be any extra variables
+        if (generator->stmts_count() > 0) {
+            throw ::runtime_error(::format("{0} is marked as a stub but contains statements"));
+        }
+
+        // has to be the exact same number of ports and vars, otherwise it means there are
+        // some variables being declared
+        auto vars = generator->get_vars();
+        auto ports = generator->get_port_names();
+        if (!vars.empty()) {
+            throw ::runtime_error(
+                fmt::format("{0} is declared as stub but has declared variables", generator->name));
+        }
+
+        for (auto const& port_name : ports) {
+            auto port = generator->get_port(port_name);
+            if (port->port_direction() == PortDirection::In) {
+                if (!port->sinks().empty())
+                    throw ::runtime_error(
+                        fmt::format("{0}.{1} is driving a net, but {0} is declared as a stub",
+                                    generator->name, port_name));
+            } else {
+                if (!port->sources().empty())
+                    throw ::runtime_error(
+                        fmt::format("{0}.{1} is driven by a net, but {0} is declared as a stub",
+                                    generator->name, port_name));
+                generator->add_stmt(
+                    port->assign(generator->constant(0, port->width)).shared_from_this());
+            }
+        }
+    }
+};
+
+void zero_out_stubs(Generator* top) {
+    StubGeneratorVisitor visitor;
     visitor.visit_generator_root(top);
 }

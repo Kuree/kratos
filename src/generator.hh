@@ -82,6 +82,9 @@ public:
 
     ASTNode *parent() override { return parent_generator_; }
 
+    bool is_stub() const { return is_stub_; }
+    void set_is_stub(bool value) { is_stub_ = value; }
+
 private:
     std::vector<std::string> lib_files_;
     Context *context_;
@@ -97,6 +100,8 @@ private:
     Generator *parent_generator_ = nullptr;
 
     std::unordered_set<std::shared_ptr<Const>> consts_;
+
+    bool is_stub_ = false;
 };
 
 #endif  // KRATOS_MODULE_HH22

@@ -9,6 +9,9 @@ VerilogModule::VerilogModule(Generator *generator) {
     // run multiple passes
     // LOG_INFO << "Running pass: fix_assignment_type";
     fix_assignment_type(generator);
+
+    zero_out_stubs(generator);
+
     // LOG_INFO << "Running pass:  remove_unused_vars";
     remove_unused_vars(generator);
     verify_assignments(generator);
