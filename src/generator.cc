@@ -74,8 +74,9 @@ Generator Generator::from_verilog(Context *context, const std::string &src_file,
 
     Generator mod(context, top_name);
     // the src file will be treated a a lib file as well
+    mod.lib_files_.reserve(1 + lib_files.size());
     mod.lib_files_.emplace_back(src_file);
-    mod.lib_files_ = vector<::string>(lib_files.begin(), lib_files.end());
+    mod.lib_files_.insert(mod.lib_files_.end(), lib_files.begin(), lib_files.end());
     // const auto &ports = ;
     const auto ports = get_port_from_verilog(&mod, src_file, top_name);
     for (auto const &[port_name, port] : ports) {

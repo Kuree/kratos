@@ -1,6 +1,7 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
     verilog, is_valid_verilog
 from kratos.passes import uniquify_generators, hash_generators
+import os
 
 
 def test_generator():
@@ -126,5 +127,17 @@ def test_mod_instantiation():
     assert is_valid_verilog(mod_src["mod1"])
 
 
+def test_external_module():
+    src_file = os.path.join(os.path.dirname(__file__), "vectors", "module1.sv")
+    mod = Generator.from_verilog("module1", src_file, [], {})
+    assert mod.internal_generator.external_filename() == src_file
+    assert mod.name == "module1"
+    assert mod.internal_generator.external()
+    hash_generators(mod)
+    c = Generator.get_context()
+    assert c.has_hash(mod.internal_generator)
+    assert c.get_hash(mod.internal_generator) != 0
+
+
 if __name__ == "__main__":
-    test_mod_instantiation()
+    test_external_module()

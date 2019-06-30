@@ -1,6 +1,7 @@
 import enum
 from .pyast import transform_stmt_block
 import _kratos
+from typing import List, Dict
 
 
 # this is a wrapper python class to interface with the underlying python
@@ -107,9 +108,9 @@ class Generator:
 
     def port(self, name: str, width: int, direction: PortDirection,
              port_type: PortType = PortType.Data,
-             signed: bool = False) -> _kratos.Port:
+             is_signed: bool = False) -> _kratos.Port:
         return self.__generator.port(direction.value, name, width,
-                                     port_type.value, signed)
+                                     port_type.value, is_signed)
 
     def get_var(self, name):
         return self.__generator.get_var(name)
@@ -157,6 +158,19 @@ class Generator:
     @staticmethod
     def get_context():
         return Generator.__context
+
+    @staticmethod
+    def from_verilog(top_name: str, src_file: str, lib_files: List[str],
+                     port_mapping: Dict[str, PortType]):
+        g = Generator("")
+        _port_mapping = {}
+        for name, _type in port_mapping.items():
+            _port_mapping[name] = _type.value
+        g.__generator = _kratos.Generator.from_verilog(Generator.__context,
+                                                       src_file, top_name,
+                                                       lib_files, _port_mapping)
+        Generator.__context.add(g.__generator)
+        return g
 
 
 def always(sensitivity):

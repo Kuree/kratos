@@ -5,6 +5,7 @@
 #include "graph.hh"
 #include "stmt.hh"
 #include "pass.hh"
+#include <fstream>
 
 /*
  * Once this project is moved to gcc-9, we will use the parallel execution
@@ -293,17 +294,38 @@ void hash_generator(Context* context, Generator* generator) {
     context->add_hash(generator, hash_value);
 }
 
+void hash_generator_src(Context* context, Generator* generator) {
+    auto filename = generator->external_filename();
+    std::ifstream fs(filename);
+
+    std::string content;
+    content.assign(std::istreambuf_iterator<char>(fs),
+        std::istreambuf_iterator<char>());
+    uint64_t hash = XXHash64::hash(content.c_str(), content.size(), 0);
+    context->add_hash(generator, hash);
+}
+
 void hash_generators_context(Context* context, Generator* root, HashStrategy strategy) {
     // compute the generator graph
     GeneratorGraph g(root);
     // if it's sequential, do topological sort
     // if it's parallel, do level sort
     // TODO: a potential way to optimize further is to filter out generators with
-    //  unique names
+    //  unique names, see #3 issue on Github
     if (strategy == HashStrategy::SequentialHash) {
         auto const& sequence = g.get_sorted_generators();
         for (auto& node : sequence) {
-            hash_generator(context, node);
+            // different cases
+            if (node->external()) {
+                if (node->external_filename().empty()) {
+                    // user marked external file, skip it
+                    continue;
+                } else {
+                    hash_generator_src(context, node);
+                }
+            } else {
+                hash_generator(context, node);
+            }
         }
     } else if (strategy == HashStrategy::ParallelHash) {
         g.get_leveled_generators();

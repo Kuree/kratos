@@ -15,6 +15,10 @@ Generator &Context::generator(const std::string &name) {
     return *p;
 }
 
+void Context::add(Generator *generator) {
+    modules_[generator->name].emplace(generator->shared_from_this());
+}
+
 void Context::remove(Generator *generator) {
     if (modules_.find(generator->name) == modules_.end()) return;
     auto &module_set = modules_.at(generator->name);

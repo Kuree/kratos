@@ -83,7 +83,8 @@ public:
     void set_is_stub(bool value) { is_stub_ = value; }
 
     // if imported from verilog or specified
-    bool external() { return !lib_files_.empty() || is_external_; }
+    bool external() { return (!lib_files_.empty()) || is_external_; }
+    std::string external_filename() const { return lib_files_.empty()? "": lib_files_[0]; }
     void set_external(bool value) { is_external_ = value; }
 
 private:

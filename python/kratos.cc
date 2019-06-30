@@ -159,7 +159,10 @@ void init_context(py::module &m) {
         .def("clear", &Context::clear)
         .def("get_hash", &Context::get_hash)
         .def("get_generators_by_name", &Context::get_generators_by_name)
-        .def("hash_table_size", &Context::hash_table_size);
+        .def("hash_table_size", &Context::hash_table_size)
+        .def("change_generator_name", &Context::change_generator_name)
+        .def("add", &Context::add)
+        .def("has_hash", &Context::has_hash);
 }
 
 void init_generator(py::module &m) {
@@ -196,6 +199,7 @@ void init_generator(py::module &m) {
         .def("set_child_inline", &Generator::set_child_inline)
         .def("external", &Generator::external)
         .def("set_external", &Generator::set_external)
+        .def("external_filename", &Generator::external_filename)
         .def("is_stub", &Generator::is_stub)
         .def("set_is_stub", &Generator::set_is_stub)
         .def("get_unique_variable_name", &Generator::get_unique_variable_name)

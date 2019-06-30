@@ -37,6 +37,7 @@ public:
     Generator& generator(const std::string& name);
 
     void remove(Generator* generator);
+    void add(Generator* generator);
 
     void add_hash(Generator* generator, uint64_t hash);
     bool has_hash(Generator* generator);
