@@ -66,9 +66,6 @@ public:
         should_child_inline_[generator->shared_from_this()] = value;
     }
 
-    // if imported from verilog
-    bool external() { return !lib_files_.empty(); }
-
     // AST stuff
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return stmts_count(); }
@@ -84,6 +81,10 @@ public:
 
     bool is_stub() const { return is_stub_; }
     void set_is_stub(bool value) { is_stub_ = value; }
+
+    // if imported from verilog or specified
+    bool external() { return !lib_files_.empty() || is_external_; }
+    void set_external(bool value) { is_external_ = value; }
 
 private:
     std::vector<std::string> lib_files_;
@@ -102,6 +103,7 @@ private:
     std::unordered_set<std::shared_ptr<Const>> consts_;
 
     bool is_stub_ = false;
+    bool is_external_ = false;
 };
 
 #endif  // KRATOS_MODULE_HH22

@@ -85,6 +85,22 @@ class Generator:
     def instance_name(self, name: str):
         self.__generator.instance_name = name
 
+    @property
+    def is_stub(self):
+        return self.__generator.is_stub()
+
+    @is_stub.setter
+    def is_stub(self, value: bool):
+        self.__generator.set_is_stub(value)
+
+    @property
+    def external(self):
+        return self.__generator.external()
+
+    @external.setter
+    def external(self, value: bool):
+        self.__generator.set_external(value)
+
     def var(self, name: str, width: int,
             is_signed: bool = False) -> _kratos.Var:
         return self.__generator.var(name, width, is_signed)
