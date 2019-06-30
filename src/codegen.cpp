@@ -234,13 +234,39 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
     indent_--;
 }
 
+bool is_port_reg(Port *port) {
+    if (port->port_direction() != PortDirection::Out)
+        return false;
+    bool is_reg = false;
+    for (auto const &stmt: port->sources()) {
+        if (stmt->parent()->ast_node_type() != ASTNodeKind::GeneratorKind) {
+            is_reg = true;
+            break;
+        }
+    }
+    // slices
+    if(!is_reg) {
+        for (auto const& iter : port->get_slices()) {
+            if (is_reg)
+                break;
+            auto slice = iter.second;
+            for (auto const &stmt: slice->sources()) {
+                if (stmt->parent()->ast_node_type() != ASTNodeKind::GeneratorKind) {
+                    is_reg = true;
+                    break;
+                }
+            }
+        }
+    }
+    return is_reg;
+}
+
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     std::vector<std::string> strs;
     strs.reserve(8);
     strs.emplace_back(port_dir_to_str(port->port_direction()));
     if (port->is_signed) strs.emplace_back("signed");
-    if (port->port_direction() == PortDirection::Out &&
-        (*port->sources().begin())->assign_type() == AssignmentType::NonBlocking) {
+    if (is_port_reg(port)) {
         strs.emplace_back("reg");
     }
     strs.emplace_back(get_var_width_str(port));

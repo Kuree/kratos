@@ -139,5 +139,28 @@ def test_external_module():
     assert c.get_hash(mod.internal_generator) != 0
 
 
+def test_for_loop():
+    class Module(Generator):
+        def __init__(self, num_var: int):
+            super().__init__("mod")
+            self.num_var = num_var
+
+            self.inputs = []
+            for i in range(num_var):
+                self.inputs.append(self.port(f"in{i}", 1, PortDirection.In))
+            self.output = self.port("out", num_var, PortDirection.Out)
+
+            self.add_comb(self.code_block)
+
+        def code_block(self):
+            for i in range(self.num_var):
+                self.output[i] = self.inputs[i]
+
+    mod = Module(4)
+    mod_src = verilog(mod)
+    src = mod_src["mod"]
+    assert is_valid_verilog(src)
+
+
 if __name__ == "__main__":
-    test_external_module()
+    test_for_loop()

@@ -100,14 +100,14 @@ void init_common_expr(T &class_) {
         .def(py::self <= py::self, py::return_value_policy::reference)  // NOLINT
         .def(py::self >= py::self, py::return_value_policy::reference)  // NOLINT
         .def("eq", &K::eq, py::return_value_policy::reference)
-        .def("__getitem__", [](K &k, std::pair<uint32_t, uint32_t> v) { return k[v]; },
+        .def("__getitem__", [](K & k, std::pair<uint32_t, uint32_t> v) -> auto & { return k[v]; },
              py::return_value_policy::reference)
-        .def("__getitem__", [](K &k, uint32_t idx) { return k[idx]; },
+        .def("__getitem__", [](K & k, uint32_t idx) -> auto & { return k[idx]; },
              py::return_value_policy::reference)
         .def("assign", py::overload_cast<const ::shared_ptr<Var> &>(&K::assign),
              py::return_value_policy::reference)
         .def("type", &K::type)
-        .def("concat", &K::concat)
+        .def("concat", &K::concat, py::return_value_policy::reference)
         .def_readwrite("name", &K::name)
         .def_readwrite("width", &K::width)
         .def_readwrite("signed", &K::is_signed)
@@ -124,10 +124,10 @@ void init_var_base(py::class_<T, std::shared_ptr<T>> &class_) {
 template <typename T>
 void init_var_derived(py::class_<T, std::shared_ptr<T>, Var> &class_) {
     init_common_expr<py::class_<T, std::shared_ptr<T>, Var>, T>(class_);
-    class_.def("assign", [](const std::shared_ptr<Var> var_to,
-            const std::shared_ptr<T> var_from, AssignmentType type) {
-        return var_to->assign(var_from, type);
-    }, py::return_value_policy::reference);
+    class_.def("assign",
+               [](const std::shared_ptr<Var> var_to, const std::shared_ptr<T> var_from,
+                  AssignmentType type) -> auto & { return var_to->assign(var_from, type); },
+               py::return_value_policy::reference);
 }
 
 // deal with all the expr/var stuff
