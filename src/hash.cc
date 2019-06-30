@@ -234,7 +234,7 @@ public:
     }
 
     void visit(AssignStmt* stmt) override {
-        auto var = stmt->left()->to_string() + stmt->right()->to_string();
+        auto var = stmt->left()->to_string() + stmt->right()->to_string() + std::to_string(stmt->left()->width);
         uint64_t stmt_hash = hash_64_fnv1a(var.c_str(), var.size());
         // based on level
         stmt_hash = shift(stmt_hash, level);

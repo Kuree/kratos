@@ -445,11 +445,15 @@ void uniquify_generators(Generator* top) {
                     while (true) {
                         const std::string new_name = ::format("{0}_unq{1}", name, count++);
                         if (!context->generator_name_exists(new_name)) {
+                            printf("change to new name %s\n", new_name.c_str());
                             context->change_generator_name(ptr, new_name);
                             break;
                         }
                     }
                 }
+            } else {
+                throw ::runtime_error(
+                    ::format("{0} ({1}) doesn't have hash", ptr->instance_name, ptr->name));
             }
         }
     }

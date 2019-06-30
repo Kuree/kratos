@@ -90,8 +90,8 @@ public:
     ASTNode *parent() override;
 
     VarType type() const { return type_; }
-    std::unordered_set<std::shared_ptr<AssignStmt>> sinks() const { return sinks_; };
-    std::unordered_set<std::shared_ptr<AssignStmt>> sources() const { return sources_; };
+    const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const { return sinks_; };
+    const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const { return sources_; };
     std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> &get_slices() {
         return slices_;
     }

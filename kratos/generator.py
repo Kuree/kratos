@@ -65,9 +65,9 @@ class CombinationalCodeBlock(CodeBlock):
 class Generator:
     __context = _kratos.Context()
 
-    def __init__(self, name: str, instance_name: str):
+    def __init__(self, name: str):
         self.__generator = self.__context.generator(name)
-        self.__generator.instance_name = instance_name
+        self.__generator.instance_name = name
 
     @property
     def name(self):
@@ -77,8 +77,17 @@ class Generator:
     def name(self, name: str):
         self.__generator.name = name
 
-    def var(self, name: str, width: int, signed: bool = False) -> _kratos.Var:
-        return self.__generator.var(name, width, signed)
+    @property
+    def instance_name(self):
+        return self.__generator.name
+
+    @instance_name.setter
+    def instance_name(self, name: str):
+        self.__generator.instance_name = name
+
+    def var(self, name: str, width: int,
+            is_signed: bool = False) -> _kratos.Var:
+        return self.__generator.var(name, width, is_signed)
 
     def port(self, name: str, width: int, direction: PortDirection,
              port_type: PortType = PortType.Data,
@@ -113,9 +122,18 @@ class Generator:
         for stmt in stmts:
             comb.add_stmt(stmt)
 
+    def add_child_generator(self, generator: "Generator",
+                            in_line: bool = False):
+        self.__generator.add_child_generator(generator.__generator,
+                                             in_line)
+
     @staticmethod
     def clear_context():
         Generator.__context.clear()
+
+    @staticmethod
+    def get_context():
+        return Generator.__context
 
 
 def always(sensitivity):
@@ -125,6 +143,7 @@ def always(sensitivity):
 
     def wrapper(fn):
         return fn
+
     return wrapper
 
 

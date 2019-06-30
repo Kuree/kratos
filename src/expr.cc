@@ -21,14 +21,8 @@ bool is_relational_op(ExprOp op) {
 
 std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(
     const Var &var) const {
-    auto left = generator->get_var(name);
-    if (left == nullptr)
-        throw std::runtime_error(
-            ::format("unable to find port {0} from {1}", var.name, var.generator->name));
-    auto right = generator->get_var(var.name);
-    if (right == nullptr)
-        throw std::runtime_error(
-            ::format("unable to find port {0} from {1}", var.name, var.generator->name));
+    auto left = const_cast<Var *>(this)->shared_from_this();
+    auto right = const_cast<Var *>(&var)->shared_from_this();
     return {left, right};
 }
 
@@ -270,8 +264,8 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
         if (sink->assign_type() == AssignmentType::Undefined)
             sink->set_assign_type(self_type);
         else if (sink->assign_type() != self_type)
-            throw ::runtime_error(
-                ::format("{0}'s assignment type ({1}) does not match with {2}'s {3}", var->name,
+            throw ::runtime_error(::format(
+                "{0}'s assignment type ({1}) does not match with {2}'s {3}", var->name,
                 assign_type_to_str(sink->assign_type()), name, assign_type_to_str(self_type)));
     }
     return *stmt;

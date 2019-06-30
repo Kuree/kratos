@@ -82,34 +82,37 @@ void init_util(py::module &m) {
 template <typename T, typename K>
 void init_common_expr(T &class_) {
     class_.def("__repr__", &K::to_string)
-        .def(~py::self)
-        .def(-py::self)
-        .def(+py::self)
-        .def(py::self + py::self)   // NOLINT
-        .def(py::self - py::self)   // NOLINT
-        .def(py::self * py::self)   // NOLINT
-        .def(py::self % py::self)   // NOLINT
-        .def(py::self / py::self)   // NOLINT
-        .def(py::self >> py::self)  // NOLINT
-        .def(py::self | py::self)   // NOLINT
-        .def(py::self & py::self)   // NOLINT
-        .def(py::self ^ py::self)   // NOLINT
-        .def("ashr", &K::ashr)      // NOLINT
-        .def(py::self < py::self)   // NOLINT
-        .def(py::self > py::self)   // NOLINT
-        .def(py::self <= py::self)  // NOLINT
-        .def(py::self >= py::self)  // NOLINT
-        .def("eq", &K::eq)
-        .def("__getitem__", [](K &k, std::pair<uint32_t, uint32_t> v) { return k[v]; })
-        .def("__getitem__", [](K &k, uint32_t idx) { return k[idx]; })
-        .def("assign", py::overload_cast<const ::shared_ptr<Var> &>(&K::assign))
+        .def(~py::self, py::return_value_policy::reference)
+        .def(-py::self, py::return_value_policy::reference)
+        .def(+py::self, py::return_value_policy::reference)
+        .def(py::self + py::self, py::return_value_policy::reference)   // NOLINT
+        .def(py::self - py::self, py::return_value_policy::reference)   // NOLINT
+        .def(py::self * py::self, py::return_value_policy::reference)   // NOLINT
+        .def(py::self % py::self, py::return_value_policy::reference)   // NOLINT
+        .def(py::self / py::self, py::return_value_policy::reference)   // NOLINT
+        .def(py::self >> py::self, py::return_value_policy::reference)  // NOLINT
+        .def(py::self | py::self, py::return_value_policy::reference)   // NOLINT
+        .def(py::self & py::self, py::return_value_policy::reference)   // NOLINT
+        .def(py::self ^ py::self, py::return_value_policy::reference)   // NOLINT
+        .def("ashr", &K::ashr, py::return_value_policy::reference)      // NOLINT
+        .def(py::self < py::self, py::return_value_policy::reference)   // NOLINT
+        .def(py::self > py::self, py::return_value_policy::reference)   // NOLINT
+        .def(py::self <= py::self, py::return_value_policy::reference)  // NOLINT
+        .def(py::self >= py::self, py::return_value_policy::reference)  // NOLINT
+        .def("eq", &K::eq, py::return_value_policy::reference)
+        .def("__getitem__", [](K &k, std::pair<uint32_t, uint32_t> v) { return k[v]; },
+             py::return_value_policy::reference)
+        .def("__getitem__", [](K &k, uint32_t idx) { return k[idx]; },
+             py::return_value_policy::reference)
+        .def("assign", py::overload_cast<const ::shared_ptr<Var> &>(&K::assign),
+             py::return_value_policy::reference)
         .def("type", &K::type)
         .def("concat", &K::concat)
         .def_readwrite("name", &K::name)
         .def_readwrite("width", &K::width)
         .def_readwrite("signed", &K::is_signed)
-        .def("sources", &K::sources)
-        .def("sinks", &K::sinks)
+        .def("sources", &K::sources, py::return_value_policy::reference)
+        .def("sinks", &K::sinks, py::return_value_policy::reference)
         .def("signed_", &K::signed_);
 }
 
@@ -136,8 +139,7 @@ void init_expr(py::module &m) {
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
     init_var_derived(const_);
-    const_.def("value", &Const::value)
-        .def("set_value", &Const::set_value);
+    const_.def("value", &Const::value).def("set_value", &Const::set_value);
 
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
     init_var_derived(slice);
@@ -148,7 +150,12 @@ void init_expr(py::module &m) {
 
 void init_context(py::module &m) {
     auto context = py::class_<Context>(m, "Context");
-    context.def(py::init()).def("generator", &Context::generator).def("clear", &Context::clear);
+    context.def(py::init())
+        .def("generator", &Context::generator, py::return_value_policy::reference)
+        .def("clear", &Context::clear)
+        .def("get_hash", &Context::get_hash)
+        .def("get_generators_by_name", &Context::get_generators_by_name)
+        .def("hash_table_size", &Context::hash_table_size);
 }
 
 void init_generator(py::module &m) {
@@ -205,7 +212,7 @@ void init_stmt(py::module &m) {
 
     py::class_<IfStmt, ::shared_ptr<IfStmt>, Stmt>(m, "IfStmt")
         .def(py::init<::shared_ptr<Var>>())
-        .def("predicate", &IfStmt::predicate)
+        .def("predicate", &IfStmt::predicate, py::return_value_policy::reference)
         .def("then_body", &IfStmt::then_body)
         .def("else_body", &IfStmt::else_body)
         .def("add_then_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::add_then_stmt))
@@ -215,7 +222,7 @@ void init_stmt(py::module &m) {
     py::class_<SwitchStmt, ::shared_ptr<SwitchStmt>, Stmt>(m, "SwitchStmt")
         .def(py::init<const ::shared_ptr<Var> &>())
         .def("add_switch_case", &SwitchStmt::add_switch_case)
-        .def("target", &SwitchStmt::target)
+        .def("target", &SwitchStmt::target, py::return_value_policy::reference)
         .def("body", &SwitchStmt::body);
 
     py::class_<CombinationalStmtBlock, ::shared_ptr<CombinationalStmtBlock>, Stmt>(

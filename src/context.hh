@@ -42,6 +42,9 @@ public:
     bool has_hash(Generator* generator);
     uint64_t get_hash(Generator* generator);
 
+    // for debugging
+    uint64_t hash_table_size() const { return generator_hash_.size(); }
+
     void change_generator_name(Generator* generator, const std::string& new_name);
     bool generator_name_exists(const std::string& name) const;
     std::set<std::shared_ptr<Generator>> get_generators_by_name(const std::string& name) const;

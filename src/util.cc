@@ -4,13 +4,8 @@
 #include "stmt.hh"
 
 #include "slang/compilation/Compilation.h"
-#include "slang/diagnostics/DiagnosticWriter.h"
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/text/SourceManager.h"
-#include "slang/util/Bag.h"
-
-constexpr int ERROR_CODE = 2;
-
 
 std::string ExprOpStr(ExprOp op) {
     switch (op) {
@@ -102,6 +97,5 @@ bool is_valid_verilog(const std::string &src) {
     auto tree = slang::SyntaxTree::fromText(src, source_manager);
     compilation.addSyntaxTree(tree);
     auto &diagnostics = compilation.getParseDiagnostics();
-    slang::DiagnosticWriter writer(source_manager);
     return diagnostics.empty();
 }
