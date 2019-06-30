@@ -17,6 +17,7 @@ VerilogModule::VerilogModule(Generator *generator) {
     verify_assignments(generator);
     // LOG_INFO << "Running pass: verify_generator_connectivity";
     verify_generator_connectivity(generator);
+    check_mixed_assignment(generator);
     // TODO:
     //  add decouple-wire
     //  add inline pass

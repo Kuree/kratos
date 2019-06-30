@@ -626,3 +626,35 @@ void zero_out_stubs(Generator* top) {
     StubGeneratorVisitor visitor;
     visitor.visit_generator_root(top);
 }
+
+class MixedAssignmentVisitor : public ASTVisitor {
+public:
+    void visit_generator(Generator* generator) override {
+        auto const vars = generator->get_vars();
+        auto const ports = generator->get_port_names();
+        for (const auto& var_name : vars) {
+            checkout_assignment(generator, var_name);
+        }
+        for (const auto &port_name : ports) {
+            checkout_assignment(generator, port_name);
+        }
+        // TODO: check slice as well
+
+    }
+    void checkout_assignment(Generator* generator, const std::string& name) const {
+        auto const& var = generator->get_var(name);
+        AssignmentType type = Undefined;
+        for (auto const& stmt : var->sources()) {
+            if (type == Undefined)
+                type = stmt->assign_type();
+            else if (type != stmt->assign_type())
+                throw ::std::runtime_error(::fmt::v5::format(
+                    "Mixed assignment detected for variable {0}.{1}", generator->name, name));
+        }
+    }
+};
+
+void check_mixed_assignment(Generator* top) {
+    MixedAssignmentVisitor visitor;
+    visitor.visit_generator_root(top);
+}
