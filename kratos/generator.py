@@ -138,6 +138,13 @@ class Generator:
         for stmt in stmts:
             comb.add_stmt(stmt)
 
+    def wire(self, var_to, var_from):
+        # this is a top level direct wire assignment
+        self.add_stmt(var_to.assign(var_from))
+
+    def add_stmt(self, stmt):
+        self.__generator.add_stmt(stmt)
+
     def add_child_generator(self, generator: "Generator",
                             in_line: bool = False):
         self.__generator.add_child_generator(generator.__generator,

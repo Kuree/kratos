@@ -96,7 +96,7 @@ def test_else_if():
     mod_src = verilog(mod)
     assert "elseif" in mod_src
     src = mod_src["elseif"]
-    is_valid_verilog(src)
+    assert is_valid_verilog(src)
 
 
 if __name__ == "__main__":

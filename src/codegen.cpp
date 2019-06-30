@@ -216,9 +216,10 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
                 dispatch_node(child.get());
             }
             indent_--;
+
+            stream_ << indent() << "end" << ::endl;
         }
     }
-    stream_ << indent() << "end" << ::endl;
 }
 
 void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {

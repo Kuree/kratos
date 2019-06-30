@@ -375,9 +375,9 @@ VarConcat::VarConcat(const VarConcat &var)
 
 std::string Const::to_string() const {
     if (is_signed && value_ < 0) {
-        return ::format("-{0}'h{1:X}", width, -value_);
+        return ::format("-{0}\'h{1:X}", width, -value_);
     } else {
-        return ::format("{0}'h{1:X}", width, value_);
+        return ::format("{0}\'h{1:X}", width, value_);
     }
 }
 
