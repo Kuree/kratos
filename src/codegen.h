@@ -35,19 +35,19 @@ private:
 
     std::string indent();
 
-    std::string dispatch_str(ASTNode* node);
+    void dispatch_node(ASTNode* node);
 
-    std::string to_string(AssignStmt* stmt);
+    void stmt_code(AssignStmt* stmt);
 
-    std::string to_string(StmtBlock* stmt);
+    void stmt_code(StmtBlock* stmt);
 
-    std::string to_string(SequentialStmtBlock* stmt);
+    void stmt_code(SequentialStmtBlock* stmt);
 
-    std::string to_string(CombinationalStmtBlock* stmt);
+    void stmt_code(CombinationalStmtBlock* stmt);
 
-    std::string to_string(IfStmt* stmt);
+    void stmt_code(IfStmt* stmt);
 
-    std::string to_string(ModuleInstantiationStmt* stmt);
+    void stmt_code(ModuleInstantiationStmt* stmt);
 
     template <typename Iter>
     std::string join(Iter begin, Iter end, const std::string& sep) {

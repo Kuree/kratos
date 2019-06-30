@@ -8,6 +8,7 @@
 #include "util.hh"
 
 using fmt::format;
+using std::endl;
 using std::runtime_error;
 
 VerilogModule::VerilogModule(Generator* generator) {
@@ -43,16 +44,17 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator) : generator_(ge
     if (generator->external()) return;
 
     // output module definition
-    stream_ << ::format("module {0} (\n", generator->name);
+    stream_ << ::format("module {0} (", generator->name) << ::endl;
     generate_ports(generator);
-    stream_ << ");\n\n";
+    stream_ << ");" << ::endl << ::endl;
     generate_variables(generator);
 
     for (uint32_t i = 0; i < generator->child_count(); i++) {
-        stream_ << dispatch_str(generator->get_child(i));
+        dispatch_node(generator->get_child(i));
+        stream_ << ::endl;
     }
 
-    stream_ << ::format("\nendmodule   // {0}\n", generator->name);
+    stream_ << ::format("endmodule   // {0}", generator->name) << ::endl;
 }
 
 std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {
@@ -69,8 +71,9 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
         auto const& port_name = port_names[i];
         auto port = generator->get_port(port_name);
         stream_ << indent()
-                << ::format("{0}{1}\n", get_port_str(port.get()),
-                            (i == port_names.size() - 1) ? "" : ",");
+                << ::format("{0}{1}", get_port_str(port.get()),
+                            (i == port_names.size() - 1) ? "" : ",")
+                << ::endl;
     }
     indent_--;
 }
@@ -95,29 +98,29 @@ std::string SystemVerilogCodeGen::indent() {
     return result;
 }
 
-std::string SystemVerilogCodeGen::dispatch_str(ASTNode* node) {
+void SystemVerilogCodeGen::dispatch_node(ASTNode* node) {
     if (node->ast_node_type() != ASTNodeKind::StmtKind)
         throw ::runtime_error(::format("Cannot codegen non-statement node. Got {0}",
                                        ast_type_to_string(node->ast_node_type())));
     auto stmt_ptr = reinterpret_cast<Stmt*>(node);
     if (stmt_ptr->type() == StatementType::Assign) {
-        return to_string(reinterpret_cast<AssignStmt*>(node));
+        stmt_code(reinterpret_cast<AssignStmt*>(node));
     } else if (stmt_ptr->type() == StatementType::Block) {
-        return to_string(reinterpret_cast<StmtBlock*>(node));
+        stmt_code(reinterpret_cast<StmtBlock*>(node));
     } else if (stmt_ptr->type() == StatementType::If) {
-        return to_string(reinterpret_cast<IfStmt*>(node));
+        stmt_code(reinterpret_cast<IfStmt*>(node));
     } else if (stmt_ptr->type() == StatementType::ModuleInstantiation) {
-        return to_string(reinterpret_cast<ModuleInstantiationStmt*>(node));
+        stmt_code(reinterpret_cast<ModuleInstantiationStmt*>(node));
     } else {
         throw ::runtime_error("Not implemented");
     }
 }
 
-std::string SystemVerilogCodeGen::to_string(AssignStmt* stmt) {
+void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
     // assume that it's already de-coupled the module instantiation
     if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator != generator_) ||
         (stmt->right()->type() == VarType::PortIO && stmt->right()->generator != generator_))
-        return "";
+        return;
     const auto& left = stmt->left()->to_string();
     const auto& right = stmt->right()->to_string();
     if (stmt->parent() == generator_) {
@@ -125,100 +128,92 @@ std::string SystemVerilogCodeGen::to_string(AssignStmt* stmt) {
         if (stmt->assign_type() != AssignmentType::Blocking)
             throw ::runtime_error(
                 ::format("Top level assignment for {0} <- {1} has to be blocking", left, right));
-        return ::format("assign {0} = {1};\n", left, right);
+        stream_ << ::format("assign {0} = {1};", left, right) << ::endl;
     } else {
         if (stmt->assign_type() == AssignmentType::Blocking)
-            return ::format("{0}{1} = {2};\n", indent(), left, right);
+            stream_ << ::format("{0}{1} = {2};", indent(), left, right) << ::endl;
         else if (stmt->assign_type() == AssignmentType::NonBlocking)
-            return ::format("{0}{1} <= {2};\n", indent(), left, right);
+            stream_ << ::format("{0}{1} <= {2};", indent(), left, right) << ::endl;
         else
             throw ::runtime_error(::format("Undefined assignment for {0} <- {1}", left, right));
     }
 }
 
-std::string SystemVerilogCodeGen::to_string(StmtBlock* stmt) {
+void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
     if (stmt->block_type() == StatementBlockType::Sequential)
-        return to_string(reinterpret_cast<SequentialStmtBlock*>(stmt));
+        return stmt_code(reinterpret_cast<SequentialStmtBlock*>(stmt));
     else
-        return to_string(reinterpret_cast<CombinationalStmtBlock*>(stmt));
+        return stmt_code(reinterpret_cast<CombinationalStmtBlock*>(stmt));
 }
 
-std::string SystemVerilogCodeGen::to_string(SequentialStmtBlock* stmt) {
+void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
     // produce the sensitive list
     std::vector<std::string> sensitive_list;
     for (const auto& [type, var] : stmt->get_conditions()) {
         std::string edge = (type == BlockEdgeType::Posedge) ? "posedge" : "negedge";
         sensitive_list.emplace_back(::format("{0} {1}", edge, var->to_string()));
     }
-    std::stringstream sstream;
     std::string sensitive_list_str = join(sensitive_list.begin(), sensitive_list.end(), ", ");
-    sstream << "\nalways @(" << sensitive_list_str << ") begin\n";
+    stream_ << ::endl << "always @(" << sensitive_list_str << ") begin" << ::endl;
     indent_++;
 
     for (uint32_t i = 0; i < stmt->child_count(); i++) {
-        sstream << dispatch_str(stmt->get_child(i));
+        dispatch_node(stmt->get_child(i));
     }
 
     indent_--;
-    sstream << indent() << "end\n";
-    return sstream.str();
+    stream_ << indent() << "end" << ::endl;
 }
 
-std::string SystemVerilogCodeGen::to_string(CombinationalStmtBlock* stmt) {
-    std::stringstream sstream;
-    sstream << "\nalways_comb begin\n";
+void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
+    stream_ << "always_comb begin" << ::endl;
     indent_++;
 
     for (uint32_t i = 0; i < stmt->child_count(); i++) {
-        sstream << dispatch_str(stmt->get_child(i));
+        dispatch_node(stmt->get_child(i));
     }
 
     indent_--;
-    sstream << indent() << "end\n\n";
-    return sstream.str();
+    stream_ << indent() << "end" << ::endl << ::endl;
 }
 
-std::string SystemVerilogCodeGen::to_string(IfStmt* stmt) {
-    std::string s(indent());
-    s.append(::format("if ({0}) begin\n", stmt->predicate()->to_string()));
+void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
+    stream_ << indent() << ::format("if ({0}) begin", stmt->predicate()->to_string()) << ::endl;
     indent_++;
 
     auto const& then_body = stmt->then_body();
     for (auto const& child : then_body) {
-        s.append(dispatch_str(child.get()));
+        dispatch_node(child.get());
     }
 
     indent_--;
-    s.append(indent()).append("end\n");
+    stream_ << indent() << "end" << ::endl;
 
     auto const& else_body = stmt->else_body();
     if (!else_body.empty()) {
-        s.append(indent()).append("else begin\n");
+        stream_ << indent() << "else begin" << ::endl;
         indent_++;
 
         for (auto const& child : else_body) {
-            s.append(dispatch_str(child.get()));
+            dispatch_node(child.get());
         }
         indent_--;
     }
-    s.append(indent()).append("end\n");
-    return s;
+    stream_ << indent() << "end" << ::endl;
 }
 
-std::string SystemVerilogCodeGen::to_string(ModuleInstantiationStmt* stmt) {
-    std::stringstream sstream;
-    sstream << indent() << stmt->target()->name << " " << stmt->target()->instance_name << " ("
+void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
+    stream_ << indent() << stmt->target()->name << " " << stmt->target()->instance_name << " ("
             << std::endl;
     indent_++;
     uint32_t count = 0;
     for (auto const& [internal, external] : stmt->port_mapping()) {
         const auto& end = count++ < stmt->port_mapping().size() - 1 ? ")," : ")";
-        sstream << indent() << "." << internal->to_string() << "(" << external->to_string() << end
+        stream_ << indent() << "." << internal->to_string() << "(" << external->to_string() << end
                 << std::endl;
     }
-    sstream << ");" << std::endl << std::endl;
+    stream_ << ");" << std::endl << std::endl;
     indent_--;
-    return sstream.str();
 }
 
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {
