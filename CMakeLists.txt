@@ -4,7 +4,7 @@ project(kratos)
 set(CMAKE_CXX_STANDARD 17)
 
 # turn every warnings on
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -fPIC")
+set(CMAKE_CXX_FLAGS "-Wall -g -Wextra -Werror -fPIC")
 
 set(SLANG_EXCLUDE_TESTS ON)
 # extern

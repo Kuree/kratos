@@ -140,7 +140,7 @@ class Generator:
 
     def wire(self, var_to, var_from):
         # this is a top level direct wire assignment
-        self.add_stmt(var_to.assign(var_from))
+        self.add_stmt(var_to.assign(var_from, _kratos.AssignmentType.Blocking))
 
     def add_stmt(self, stmt):
         self.__generator.add_stmt(stmt)

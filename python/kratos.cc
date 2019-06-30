@@ -124,6 +124,10 @@ void init_var_base(py::class_<T, std::shared_ptr<T>> &class_) {
 template <typename T>
 void init_var_derived(py::class_<T, std::shared_ptr<T>, Var> &class_) {
     init_common_expr<py::class_<T, std::shared_ptr<T>, Var>, T>(class_);
+    class_.def("assign", [](const std::shared_ptr<Var> var_to,
+            const std::shared_ptr<T> var_from, AssignmentType type) {
+        return var_to->assign(var_from, type);
+    }, py::return_value_policy::reference);
 }
 
 // deal with all the expr/var stuff

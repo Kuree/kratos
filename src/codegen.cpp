@@ -27,8 +27,6 @@ VerilogModule::VerilogModule(Generator* generator) {
     // TODO:
     //  add decouple-wire
     //  add inline pass
-    // LOG_INFO << "Running pass: create_module_instantiation";
-    create_module_instantiation(generator);
     // LOG_INFO << "Running pass: uniquify_generators";
     uniquify_generators(generator);
     // LOG_INFO << "Running pass: uniquify_module_instances";
