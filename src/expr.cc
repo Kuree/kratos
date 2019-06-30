@@ -281,7 +281,7 @@ void Var::unassign(const std::shared_ptr<Var> &var) {
 }
 
 Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed)
-    : Var(generator, "", width, is_signed, VarType::ConstValue), value_() {
+    : Var(generator, std::to_string(value), width, is_signed, VarType::ConstValue), value_() {
     // need to deal with the signed value
     if (is_signed) {
         // compute the -max value

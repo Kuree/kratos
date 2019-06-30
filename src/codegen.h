@@ -27,6 +27,7 @@ private:
     uint32_t indent_ = 0;
     std::stringstream stream_;
     Generator* generator_;
+    bool skip_indent_ = false;
 
     static std::string get_var_width_str(const Var *var);
     void generate_ports(Generator* generator);

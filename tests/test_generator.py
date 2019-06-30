@@ -74,5 +74,30 @@ def test_module_unique():
     assert reg1.name != reg2.name
 
 
+def test_else_if():
+    class ElseIf(Generator):
+        def __init__(self):
+            super().__init__("elseif")
+            self._in0 = self.port("in0", 1, PortDirection.In)
+            self._in1 = self.port("in1", 1, PortDirection.In)
+            self._out = self.port("out", 1, PortDirection.Out)
+
+            self.add_comb(self.else_if)
+
+        def else_if(self):
+            if self._in0.eq(self.const(0, 1)):
+                self._out = 1
+            elif self._in1.eq(self.const(1, 1)):
+                self._out = 0
+            else:
+                self._out = 1
+
+    mod = ElseIf()
+    mod_src = verilog(mod)
+    assert "elseif" in mod_src
+    src = mod_src["elseif"]
+    is_valid_verilog(src)
+
+
 if __name__ == "__main__":
-    test_async_reg()
+    test_else_if()

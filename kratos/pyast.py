@@ -81,7 +81,11 @@ class Scope:
             def else_(self, *_args):
                 for stmt in _args:
                     self.scope.nested_stmts.add(stmt)
-                    self._if.add_else_stmt(stmt)
+                    if hasattr(stmt, "stmt"):
+                        self._if.add_else_stmt(stmt.stmt())
+                    else:
+                        self._if.add_else_stmt(stmt)
+                return self
 
             def stmt(self):
                 return self._if

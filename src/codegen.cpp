@@ -91,6 +91,10 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
 }
 
 std::string SystemVerilogCodeGen::indent() {
+    if (skip_indent_) {
+        skip_indent_ = false;
+        return "";
+    }
     std::string result;
     uint32_t num_indent = indent_ * indent_size;
     result.resize(num_indent);
@@ -191,13 +195,28 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
 
     auto const& else_body = stmt->else_body();
     if (!else_body.empty()) {
-        stream_ << indent() << "else begin" << ::endl;
-        indent_++;
-
-        for (auto const& child : else_body) {
-            dispatch_node(child.get());
+        // special case where there is another (and only) if statement nested inside the else body
+        // i.e. the else if case
+        bool skip = false;
+        if (else_body.size() == 1) {
+            auto const if_stmt = else_body[0];
+            if (if_stmt->type() == StatementType::If) {
+                skip = true;
+            }
         }
-        indent_--;
+        if (skip) {
+            stream_ << indent() << "else ";
+            skip_indent_ = true;
+            dispatch_node(else_body[0].get());
+        } else {
+            stream_ << indent() << "else begin" << ::endl;
+            indent_++;
+
+            for (auto const& child : else_body) {
+                dispatch_node(child.get());
+            }
+            indent_--;
+        }
     }
     stream_ << indent() << "end" << ::endl;
 }
