@@ -61,15 +61,18 @@ void init_enum(py::module &m) {
 void init_pass(py::module &m) {
     auto pass_m = m.def_submodule("passes");
 
-    pass_m.def("fix_assignment_type", &fix_assignment_type);
-    pass_m.def("remove_unused_vars", &remove_unused_vars);
-    pass_m.def("verify_generator_connectivity", &verify_generator_connectivity);
-    pass_m.def("create_module_instantiation", &create_module_instantiation);
-    pass_m.def("hash_generators", &hash_generators);
-    pass_m.def("decouple_generator_ports", &decouple_generator_ports);
-    pass_m.def("uniquify_generators", &uniquify_generators);
-    pass_m.def("uniquify_module_instances", &uniquify_module_instances);
-    pass_m.def("generate_verilog", &generate_verilog);
+    pass_m.def("fix_assignment_type", &fix_assignment_type)
+        .def("remove_unused_vars", &remove_unused_vars)
+        .def("verify_generator_connectivity", &verify_generator_connectivity)
+        .def("create_module_instantiation", &create_module_instantiation)
+        .def("hash_generators", &hash_generators)
+        .def("decouple_generator_ports", &decouple_generator_ports)
+        .def("uniquify_generators", &uniquify_generators)
+        .def("uniquify_module_instances", &uniquify_module_instances)
+        .def("generate_verilog", &generate_verilog)
+        .def("transform_if_to_case", &transform_if_to_case)
+        .def("remove_fanout_one_wires", &remove_fanout_one_wires)
+        .def("remove_pass_through_modules", &remove_pass_through_modules);
 }
 
 // util submodule
@@ -196,6 +199,8 @@ void init_generator(py::module &m) {
         .def("remove_child_generator", &Generator::remove_child_generator)
         .def("get_child_generators", &Generator::get_child_generators)
         .def("should_child_inline", &Generator::should_child_inline)
+        .def("is_child_generator", &Generator::is_child_generator)
+        .def("get_child_generator_size", &Generator::get_child_generator_size)
         .def("set_child_inline", &Generator::set_child_inline)
         .def("external", &Generator::external)
         .def("set_external", &Generator::set_external)

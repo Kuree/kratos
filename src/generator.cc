@@ -182,13 +182,23 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
     }
 }
 
-std::unordered_set<std::string> Generator::get_vars() {
-    std::unordered_set<std::string> result;
+bool Generator::is_child_generator(const std::shared_ptr<Generator> &child) {
+    return children_.find(child) != children_.end();
+}
+
+std::set<std::string> Generator::get_vars() {
+    std::set<std::string> result;
     for (auto const &[name, ptr] : vars_) {
         if (ptr->type() != VarType::PortIO) {
             result.emplace(name);
         }
     }
+    return result;
+}
+
+std::set<std::string> Generator::get_all_var_names() {
+    std::set<std::string> result;
+    for (auto const &[name, ptr] : vars_) result.emplace(name);
     return result;
 }
 

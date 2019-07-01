@@ -44,4 +44,6 @@ void transform_if_to_case(Generator *top);
 
 void remove_fanout_one_wires(Generator *top);
 
+void remove_pass_through_modules(Generator *top);
+
 #endif  // KRATOS_PASS_HH

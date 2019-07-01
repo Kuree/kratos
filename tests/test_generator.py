@@ -120,7 +120,9 @@ def test_mod_instantiation():
             self.wire(self._out, mod1.out_)
 
     mod = Mod2()
-    mod_src = verilog(mod)
+    # turn off pass through module optimization since it will remove
+    # mod2 completely
+    mod_src = verilog(mod, optimize_passthrough=False)
     assert "mod1" in mod_src
     assert "mod2" in mod_src
     assert is_valid_verilog(mod_src["mod2"])
@@ -186,5 +188,34 @@ def test_switch():
     assert is_valid_verilog(src)
 
 
+def test_pass_through():
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1")
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 1, PortDirection.Out)
+            self.wire(self.out_, self.in_)
+
+    class Mod2(Generator):
+        def __init__(self):
+            super().__init__("mod2")
+            self._in = self.port("in", 1, PortDirection.In)
+            self._out = self.port("out", 1, PortDirection.Out)
+
+            mod1 = Mod1()
+            self.add_child_generator(mod1)
+            self.wire(mod1.in_, self._in)
+            self.wire(self._out, mod1.out_)
+
+    mod = Mod2()
+    # turn off pass through module optimization since it will remove
+    # mod2 completely
+    mod_src = verilog(mod, optimize_passthrough=True)
+    assert "mod2" in mod_src
+    assert "mod1" not in mod_src
+    assert is_valid_verilog(mod_src["mod2"])
+    assert "mod1" not in mod_src["mod2"]
+
+
 if __name__ == "__main__":
-    test_for_loop()
+    test_pass_through()

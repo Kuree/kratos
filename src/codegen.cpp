@@ -11,8 +11,11 @@ using fmt::format;
 using std::endl;
 using std::runtime_error;
 
-void VerilogModule::run_passes(bool run_if_to_case_pass, bool run_fanout_one_pass) {
+void VerilogModule::run_passes(bool run_if_to_case_pass, bool remove_passthrough,
+                               bool run_fanout_one_pass) {
     // run multiple passes
+
+    if (remove_passthrough) remove_pass_through_modules(generator_);
 
     if (run_if_to_case_pass) transform_if_to_case(generator_);
 
@@ -21,8 +24,7 @@ void VerilogModule::run_passes(bool run_if_to_case_pass, bool run_fanout_one_pas
 
     zero_out_stubs(generator_);
 
-    if (run_fanout_one_pass)
-        remove_fanout_one_wires(generator_);
+    if (run_fanout_one_pass) remove_fanout_one_wires(generator_);
 
     // LOG_INFO << "Running pass:  remove_unused_vars";
     remove_unused_vars(generator_);
@@ -255,8 +257,7 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
             stream_ << "begin" << ::endl;
             indent_++;
 
-            for (auto const& st : iter.second)
-                dispatch_node(st.get());
+            for (auto const& st : iter.second) dispatch_node(st.get());
 
             indent_--;
             stream_ << indent() << "end" << ::endl;
@@ -271,7 +272,7 @@ bool is_port_reg(Port* port) {
     if (port->port_direction() != PortDirection::Out) return false;
     bool is_reg = false;
     for (auto const& stmt : port->sources()) {
-        if (!stmt->parent()) // top level assignments
+        if (!stmt->parent())  // top level assignments
             return false;
         if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
             is_reg = true;

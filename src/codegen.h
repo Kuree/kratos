@@ -9,7 +9,7 @@ class VerilogModule {
 public:
     explicit VerilogModule(Generator *generator): generator_(generator) {}
 
-    void run_passes(bool run_if_to_case_pass, bool run_fanout_one_pass);
+    void run_passes(bool run_if_to_case_pass, bool remove_passthrough, bool run_fanout_one_pass);
 
     const std::map<std::string, std::string> &verilog_src() const { return verilog_src_; }
 

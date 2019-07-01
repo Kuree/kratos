@@ -248,7 +248,7 @@ TEST(pass, verilog_stub) {  // NOLINT
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 }
 
-TEST(pass, if_case) {   // NOLINT
+TEST(pass, if_case) {  // NOLINT
     Context c;
     auto &mod = c.generator("module1");
     auto &in = mod.port(PortDirection::In, "in", 3);
@@ -263,7 +263,7 @@ TEST(pass, if_case) {   // NOLINT
     mod.add_stmt(stmt_list);
 
     transform_if_to_case(&mod);
-    auto stmt = reinterpret_cast<Stmt*>(mod.get_child(0)->get_child(0));
+    auto stmt = reinterpret_cast<Stmt *>(mod.get_child(0)->get_child(0));
     EXPECT_TRUE(stmt->type() == StatementType::Switch);
     auto switch_ = stmt->as<SwitchStmt>();
     EXPECT_EQ(switch_->body().size(), 2);
@@ -273,7 +273,7 @@ TEST(pass, if_case) {   // NOLINT
     EXPECT_TRUE(result.find("module1") != result.end());
 }
 
-TEST(pass, fanout) {    // NOLINT
+TEST(pass, fanout) {  // NOLINT
     Context c;
     auto &mod = c.generator("module1");
     auto &in = mod.port(PortDirection::In, "in", 3);
@@ -294,12 +294,38 @@ TEST(pass, fanout) {    // NOLINT
 
     // remove unused variables
     remove_unused_vars(&mod);
-    EXPECT_EQ(mod.get_var("a"),  nullptr);
+    EXPECT_EQ(mod.get_var("a"), nullptr);
     EXPECT_EQ(mod.get_var("b"), nullptr);
 
     fix_assignment_type(&mod);
     auto mod_src = generate_verilog(&mod);
     auto src = mod_src["module1"];
     EXPECT_TRUE(is_valid_verilog(src));
-    EXPECT_TRUE(src.find('b') ==  std::string::npos);
+    EXPECT_TRUE(src.find('b') == std::string::npos);
+}
+
+TEST(pass, pass_through_module) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &in1 = mod1.port(PortDirection::In, "in", 1);
+    auto &out1 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("module2");
+    auto &in2 = mod2.port(PortDirection::In, "in", 1);
+    auto &out2 = mod2.port(PortDirection::Out, "out", 1);
+    mod2.add_stmt(out2.assign(in2).shared_from_this());
+
+    mod1.add_child_generator(mod2.shared_from_this(), false);
+    mod1.add_stmt(in2.assign(in1).shared_from_this());
+    mod1.add_stmt(out1.assign(out2).shared_from_this());
+
+    remove_pass_through_modules(&mod1);
+
+    EXPECT_TRUE(in2.sources().empty());
+    EXPECT_TRUE(out2.sinks().empty());
+
+    EXPECT_EQ(mod1.get_child_generator_size(), 0);
+    EXPECT_FALSE(mod1.is_child_generator(mod2.shared_from_this()));
+
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 }

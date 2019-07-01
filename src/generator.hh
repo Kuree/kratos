@@ -58,6 +58,8 @@ public:
     void add_child_generator(const std::shared_ptr<Generator> &child, bool merge);
     void remove_child_generator(const std::shared_ptr<Generator> &child);
     std::set<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
+    uint64_t get_child_generator_size() const { return children_.size(); }
+    bool is_child_generator(const std::shared_ptr<Generator> &child);
     void accept_generator(ASTVisitor *visitor) { visitor->visit_generator(this); }
     bool should_child_inline(Generator *generator) const {
         return should_child_inline_.at(generator->shared_from_this());
@@ -71,7 +73,9 @@ public:
     uint64_t child_count() override { return stmts_count(); }
     ASTNode *get_child(uint64_t index) override;
 
-    std::unordered_set<std::string> get_vars();
+    std::set<std::string> get_vars();
+
+    std::set<std::string> get_all_var_names();
 
     std::string get_unique_variable_name(const std::string &prefix, const std::string &var_name);
 
