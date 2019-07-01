@@ -86,9 +86,9 @@ def test_else_if():
             self.add_code(self.else_if)
 
         def else_if(self):
-            if self._in0.eq(self.const(0, 1)):
+            if self._in0 == self.const(1, 1):
                 self._out = 1
-            elif self._in1.eq(self.const(1, 1)):
+            elif self._in1 == self.const(1, 1):
                 self._out = 0
             else:
                 self._out = 1
@@ -173,9 +173,9 @@ def test_switch():
             self.add_code(self.logic)
 
         def logic(self):
-            if self._in.eq(self.const(0, 3)):
+            if self._in == self.const(0, 3):
                 self._out = 0
-            elif self._in.eq(self.const(1, 3)):
+            elif self._in == self.const(1, 3):
                 self._out = 1
             else:
                 self._out = 2

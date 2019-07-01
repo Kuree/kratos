@@ -10,8 +10,28 @@ class IfNodeVisitor(ast.NodeTransformer):
         super().__init__()
         self.generator = generator
 
+    def __change_if_predicate(self, node):
+        if not isinstance(node, ast.Compare):
+            return node
+        op = node.ops[0]
+        if not isinstance(op, ast.Eq):
+            return node
+        left = node.left
+        left_src = astor.to_source(left)
+        left_val = eval(left_src, {"self": self.generator})
+        if isinstance(left_val, _kratos.Var):
+            # change it into a function all
+            return ast.Call(func=ast.Attribute(value=left,
+                                               attr="eq",
+                                               cts=ast.Load()),
+                            args=node.comparators,
+                            keywords=[],
+                            ctx=ast.Load)
+
     def visit_If(self, node: ast.If):
         predicate = node.test
+        # if it's a var comparison, we change it to eq functional call
+        predicate = self.__change_if_predicate(predicate)
         # we only replace stuff if the predicate has something to do with the
         # verilog variable
         predicate_src = astor.to_source(predicate)
