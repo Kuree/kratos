@@ -113,14 +113,14 @@ class Scope:
         return self.stmt_list
 
 
-def transform_stmt_block(generator, fn, is_seq):
+def transform_stmt_block(generator, fn):
     fn_src = inspect.getsource(fn)
     fn_name = fn.__name__
     func_tree = ast.parse(textwrap.dedent(fn_src))
     fn_body = func_tree.body[0]
     # extract the sensitivity list from the decorator
     sensitivity = extract_sensitivity_from_dec(fn_body.decorator_list,
-                                               fn_name, is_seq)
+                                               fn_name)
     # remove the decorator
     fn_body.decorator_list = []
     # check the function args. it should only has one self now
@@ -158,10 +158,8 @@ def transform_stmt_block(generator, fn, is_seq):
     return sensitivity, stmts
 
 
-def extract_sensitivity_from_dec(deco_list, fn_name, is_seq):
-    if not is_seq:
-        assert len(deco_list) == 0, \
-            f"{fn_name} is called with @always but is combinational"
+def extract_sensitivity_from_dec(deco_list, fn_name):
+    if len(deco_list) == 0:
         return []
     else:
         assert len(deco_list) == 1, \

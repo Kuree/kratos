@@ -30,9 +30,9 @@ class AsyncReg(Generator):
         self._val = self.var("val", width)
 
         # add combination and sequential blocks
-        self.add_seq(self.seq_code_block)
+        self.add_code(self.seq_code_block)
 
-        self.add_comb(self.comb_code_block)
+        self.add_code(self.comb_code_block)
 
     @always([(BlockEdgeType.Posedge, "clk"),
              (BlockEdgeType.Posedge, "rst")])
@@ -83,7 +83,7 @@ def test_else_if():
             self._in1 = self.port("in1", 1, PortDirection.In)
             self._out = self.port("out", 1, PortDirection.Out)
 
-            self.add_comb(self.else_if)
+            self.add_code(self.else_if)
 
         def else_if(self):
             if self._in0.eq(self.const(0, 1)):
@@ -150,7 +150,7 @@ def test_for_loop():
                 self.inputs.append(self.port(f"in{i}", 1, PortDirection.In))
             self.output = self.port("out", num_var, PortDirection.Out)
 
-            self.add_comb(self.code_block)
+            self.add_code(self.code_block)
 
         def code_block(self):
             for i in range(self.num_var):
@@ -170,7 +170,7 @@ def test_switch():
             self._in = self.port("in", 3, PortDirection.In)
             self._out = self.port("out", 3, PortDirection.Out)
 
-            self.add_comb(self.logic)
+            self.add_code(self.logic)
 
         def logic(self):
             if self._in.eq(self.const(0, 3)):

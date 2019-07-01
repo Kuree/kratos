@@ -122,22 +122,22 @@ class Generator:
     def internal_generator(self):
         return self.__generator
 
-    def add_seq(self, fn):
-        raw_sensitives, stmts = transform_stmt_block(self, fn, True)
-        sensitivity_list = []
-        for edge, var_name in raw_sensitives:
-            edge = BlockEdgeType[edge]
-            var = self.internal_generator.get_var(var_name)
-            sensitivity_list.append((edge, var))
-        seq = SequentialCodeBlock(self, sensitivity_list)
-        for stmt in stmts:
-            seq.add_stmt(stmt)
-
-    def add_comb(self, fn):
-        _, stmts = transform_stmt_block(self, fn, False)
-        comb = CombinationalCodeBlock(self)
-        for stmt in stmts:
-            comb.add_stmt(stmt)
+    def add_code(self, fn):
+        raw_sensitives, stmts = transform_stmt_block(self, fn)
+        if len(raw_sensitives) == 0:
+            # it's a combinational block
+            comb = CombinationalCodeBlock(self)
+            for stmt in stmts:
+                comb.add_stmt(stmt)
+        else:
+            sensitivity_list = []
+            for edge, var_name in raw_sensitives:
+                edge = BlockEdgeType[edge]
+                var = self.internal_generator.get_var(var_name)
+                sensitivity_list.append((edge, var))
+            seq = SequentialCodeBlock(self, sensitivity_list)
+            for stmt in stmts:
+                seq.add_stmt(stmt)
 
     def wire(self, var_to, var_from):
         # this is a top level direct wire assignment
