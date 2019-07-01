@@ -346,7 +346,7 @@ public:
                 auto new_name = parent->get_unique_variable_name(generator->name, port_name);
                 auto& var = parent->var(new_name, port->width, port->is_signed);
                 // replace all the sources
-                Var::move_src_to(port.get(), &var, parent);
+                Var::move_src_to(port.get(), &var, parent, true);
             } else if (port_direction == PortDirection::Out) {
                 // same logic as the port dir in
                 // if we're connected to a base variable and no slice, we are good
@@ -368,7 +368,7 @@ public:
                 auto new_name = parent->get_unique_variable_name(generator->name, port_name);
                 auto& var = parent->var(new_name, port->width, port->is_signed);
                 // replace all the sources
-                Var::move_sink_to(port.get(), &var, parent);
+                Var::move_sink_to(port.get(), &var, parent, true);
             } else {
                 throw ::runtime_error("Not implement yet");
             }
@@ -536,4 +536,48 @@ private:
 void transform_if_to_case(Generator* top) {
     TransformIfCase visitor;
     visitor.visit_root(top);
+}
+
+class VarFanOutVisitor : public ASTVisitor {
+public:
+    void visit_generator(Generator* generator) override {
+        auto const var_names = generator->get_vars();
+        for (auto const& var_name : var_names) {
+            auto var = generator->get_var(var_name);
+            std::vector<std::shared_ptr<Var>> chain;
+            compute_assign_chain(var, chain);
+            if (chain.size() <= 2) continue;    // nothing to be done
+
+            for (uint32_t i = 0; i < chain.size() - 1; i ++) {
+                auto pre = chain[i];
+                auto next = chain[i + 1];
+
+                next->unassign(pre);
+            }
+
+            auto dst = chain.back();
+            Var::move_src_to(var.get(), dst.get(), generator, false);
+        }
+    }
+
+    void static compute_assign_chain(const std::shared_ptr<Var>& var,
+                                     std::vector<std::shared_ptr<Var>>& queue) {
+        if (var->sinks().size() == 1) {
+            // we don't care about slices for now
+            if (!var->get_slices().empty()) return;
+            auto const& stmt = *(var->sinks().begin());
+            if (stmt->parent()->ast_node_kind() == ASTNodeKind::GeneratorKind) {
+                queue.emplace_back(var);
+                auto sink_var = stmt->left();
+                compute_assign_chain(sink_var, queue);
+            }
+        } else {
+            queue.emplace_back(var);
+        }
+    }
+};
+
+void remove_fanout_one_wires(Generator* top) {
+    VarFanOutVisitor visitor;
+    visitor.visit_generator_root(top);
 }

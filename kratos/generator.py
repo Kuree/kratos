@@ -189,7 +189,8 @@ def signed(var):
     return var.signed_()
 
 
-def verilog(generator: Generator, optimize_if: bool = True):
+def verilog(generator: Generator, optimize_if: bool = True,
+            optimize_fanout: bool = True):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
-    code_gen.run_passes(optimize_if)
+    code_gen.run_passes(optimize_if, optimize_fanout)
     return code_gen.verilog_src()

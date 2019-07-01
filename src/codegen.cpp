@@ -11,7 +11,7 @@ using fmt::format;
 using std::endl;
 using std::runtime_error;
 
-void VerilogModule::run_passes(bool run_if_to_case_pass) {
+void VerilogModule::run_passes(bool run_if_to_case_pass, bool run_fanout_one_pass) {
     // run multiple passes
 
     if (run_if_to_case_pass) transform_if_to_case(generator_);
@@ -20,6 +20,9 @@ void VerilogModule::run_passes(bool run_if_to_case_pass) {
     fix_assignment_type(generator_);
 
     zero_out_stubs(generator_);
+
+    if (run_fanout_one_pass)
+        remove_fanout_one_wires(generator_);
 
     // LOG_INFO << "Running pass:  remove_unused_vars";
     remove_unused_vars(generator_);
@@ -104,9 +107,9 @@ std::string SystemVerilogCodeGen::indent() {
 }
 
 void SystemVerilogCodeGen::dispatch_node(ASTNode* node) {
-    if (node->ast_node_type() != ASTNodeKind::StmtKind)
+    if (node->ast_node_kind() != ASTNodeKind::StmtKind)
         throw ::runtime_error(::format("Cannot codegen non-statement node. Got {0}",
-                                       ast_type_to_string(node->ast_node_type())));
+                                       ast_type_to_string(node->ast_node_kind())));
     auto stmt_ptr = reinterpret_cast<Stmt*>(node);
     if (stmt_ptr->type() == StatementType::Assign) {
         stmt_code(reinterpret_cast<AssignStmt*>(node));
@@ -270,7 +273,7 @@ bool is_port_reg(Port* port) {
     for (auto const& stmt : port->sources()) {
         if (!stmt->parent()) // top level assignments
             return false;
-        if (stmt->parent()->ast_node_type() != ASTNodeKind::GeneratorKind) {
+        if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
             is_reg = true;
             break;
         }
@@ -281,7 +284,7 @@ bool is_port_reg(Port* port) {
             if (is_reg) break;
             auto slice = iter.second;
             for (auto const& stmt : slice->sources()) {
-                if (stmt->parent()->ast_node_type() != ASTNodeKind::GeneratorKind) {
+                if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
                     is_reg = true;
                     break;
                 }

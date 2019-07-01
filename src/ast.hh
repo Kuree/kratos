@@ -19,7 +19,7 @@ public:
     ASTNode *ast_node() { return this; }
 
     virtual ASTNode *parent() { return nullptr; }
-    ASTNodeKind ast_node_type() { return ast_node_type_; }
+    ASTNodeKind ast_node_kind() { return ast_node_type_; }
 
 private:
     ASTNodeKind ast_node_type_;

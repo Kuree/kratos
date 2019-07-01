@@ -272,3 +272,34 @@ TEST(pass, if_case) {   // NOLINT
     auto result = generate_verilog(&mod);
     EXPECT_TRUE(result.find("module1") != result.end());
 }
+
+TEST(pass, fanout) {    // NOLINT
+    Context c;
+    auto &mod = c.generator("module1");
+    auto &in = mod.port(PortDirection::In, "in", 3);
+    auto &out = mod.port(PortDirection::Out, "out", 3);
+    auto &var1 = mod.var("a", 3);
+    auto &var2 = mod.var("b", 3);
+
+    mod.add_stmt(var1.assign(in).shared_from_this());
+    mod.add_stmt(var2.assign(var1).shared_from_this());
+    mod.add_stmt(out.assign(var2).shared_from_this());
+
+    remove_fanout_one_wires(&mod);
+
+    EXPECT_TRUE(var1.sinks().empty());
+    EXPECT_TRUE(var1.sources().empty());
+    EXPECT_TRUE(var2.sinks().empty());
+    EXPECT_TRUE(var2.sources().empty());
+
+    // remove unused variables
+    remove_unused_vars(&mod);
+    EXPECT_EQ(mod.get_var("a"),  nullptr);
+    EXPECT_EQ(mod.get_var("b"), nullptr);
+
+    fix_assignment_type(&mod);
+    auto mod_src = generate_verilog(&mod);
+    auto src = mod_src["module1"];
+    EXPECT_TRUE(is_valid_verilog(src));
+    EXPECT_TRUE(src.find('b') ==  std::string::npos);
+}

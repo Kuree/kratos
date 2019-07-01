@@ -96,8 +96,8 @@ public:
         return slices_;
     }
 
-    static void move_src_to(Var *var, Var *new_var, Generator *parent);
-    static void move_sink_to(Var *var, Var *new_var, Generator *parent);
+    static void move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_connection);
+    static void move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_connection);
     virtual void add_sink(const std::shared_ptr<AssignStmt> &stmt) { sinks_.emplace(stmt); }
     virtual void add_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.emplace(stmt); }
 
