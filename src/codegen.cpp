@@ -11,30 +11,33 @@ using fmt::format;
 using std::endl;
 using std::runtime_error;
 
-VerilogModule::VerilogModule(Generator* generator) {
+void VerilogModule::run_passes(bool run_if_to_case_pass) {
     // run multiple passes
-    // LOG_INFO << "Running pass: fix_assignment_type";
-    fix_assignment_type(generator);
 
-    zero_out_stubs(generator);
+    if (run_if_to_case_pass) transform_if_to_case(generator_);
+
+    // LOG_INFO << "Running pass: fix_assignment_type";
+    fix_assignment_type(generator_);
+
+    zero_out_stubs(generator_);
 
     // LOG_INFO << "Running pass:  remove_unused_vars";
-    remove_unused_vars(generator);
-    verify_assignments(generator);
+    remove_unused_vars(generator_);
+    verify_assignments(generator_);
     // LOG_INFO << "Running pass: verify_generator_connectivity";
-    verify_generator_connectivity(generator);
-    check_mixed_assignment(generator);
+    verify_generator_connectivity(generator_);
+    check_mixed_assignment(generator_);
     // TODO:
     //  add decouple-wire
     //  add inline pass
     // LOG_INFO << "Running pass: uniquify_generators";
-    uniquify_generators(generator);
+    uniquify_generators(generator_);
     // LOG_INFO << "Running pass: uniquify_module_instances";
-    uniquify_module_instances(generator);
+    uniquify_module_instances(generator_);
     // LOG_INFO << "Running pass: create_module_instantiation";
-    create_module_instantiation(generator);
+    create_module_instantiation(generator_);
     // LOG_INFO << "Running pass: generate_verilog";
-    verilog_src_ = generate_verilog(generator);
+    verilog_src_ = generate_verilog(generator_);
 }
 
 SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator) : generator_(generator) {
@@ -113,6 +116,8 @@ void SystemVerilogCodeGen::dispatch_node(ASTNode* node) {
         stmt_code(reinterpret_cast<IfStmt*>(node));
     } else if (stmt_ptr->type() == StatementType::ModuleInstantiation) {
         stmt_code(reinterpret_cast<ModuleInstantiationStmt*>(node));
+    } else if (stmt_ptr->type() == StatementType ::Switch) {
+        stmt_code(reinterpret_cast<SwitchStmt*>(node));
     } else {
         throw ::runtime_error("Not implemented");
     }
@@ -234,23 +239,48 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
     indent_--;
 }
 
-bool is_port_reg(Port *port) {
-    if (port->port_direction() != PortDirection::Out)
-        return false;
+void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
+    stream_ << indent() << "case (" << stmt->target()->to_string() << ")" << ::endl;
+    indent_++;
+    auto const& body = stmt->body();
+    for (auto& iter : body) {
+        stream_ << indent() << (iter.first ? iter.first->to_string() : "default") << ": ";
+        if (iter.second.empty()) {
+            throw ::runtime_error(
+                ::format("Switch statement condition {0} is empty!", iter.first->to_string()));
+        } else {
+            stream_ << "begin" << ::endl;
+            indent_++;
+
+            for (auto const& st : iter.second)
+                dispatch_node(st.get());
+
+            indent_--;
+            stream_ << indent() << "end" << ::endl;
+        }
+    }
+
+    indent_--;
+    stream_ << indent() << "endcase" << ::endl;
+}
+
+bool is_port_reg(Port* port) {
+    if (port->port_direction() != PortDirection::Out) return false;
     bool is_reg = false;
-    for (auto const &stmt: port->sources()) {
+    for (auto const& stmt : port->sources()) {
+        if (!stmt->parent()) // top level assignments
+            return false;
         if (stmt->parent()->ast_node_type() != ASTNodeKind::GeneratorKind) {
             is_reg = true;
             break;
         }
     }
     // slices
-    if(!is_reg) {
+    if (!is_reg) {
         for (auto const& iter : port->get_slices()) {
-            if (is_reg)
-                break;
+            if (is_reg) break;
             auto slice = iter.second;
-            for (auto const &stmt: slice->sources()) {
+            for (auto const& stmt : slice->sources()) {
                 if (stmt->parent()->ast_node_type() != ASTNodeKind::GeneratorKind) {
                     is_reg = true;
                     break;

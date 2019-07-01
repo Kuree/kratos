@@ -79,7 +79,7 @@ ASTNode *IfStmt::get_child(uint64_t index) {
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 
-void StmtBlock::add_statement(std::shared_ptr<Stmt> stmt) {
+void StmtBlock::add_statement(const std::shared_ptr<Stmt> &stmt) {
     // it cannot add another block stmt
     if (stmt->type() == StatementType::Block) {
         throw ::runtime_error("cannot add statement block to another statement block");
@@ -106,6 +106,10 @@ void StmtBlock::add_statement(std::shared_ptr<Stmt> stmt) {
     stmts_.emplace_back(stmt);
 }
 
+void StmtBlock::set_child(uint64_t index, const std::shared_ptr<Stmt> &stmt) {
+    if (index < stmts_.size()) stmts_[index] = stmt;
+}
+
 void SequentialStmtBlock::add_condition(
     const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition) {
     // notice that the condition variable cannot be used as a condition
@@ -129,27 +133,37 @@ SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
 
 void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                                  const std::shared_ptr<Stmt> &stmt) {
-    // we want to make sure that we don't have duplicated switch case
-    for (const auto &[case_var, body] : body_) {
-        const auto &case_const = case_var->as<Const>();
-        if (case_const->value() == switch_case->value())
-            throw ::runtime_error(
-                ::format("{0} already exists in the case statement", case_const->value()));
-    }
     stmt->set_parent(this);
-    body_.emplace(switch_case, stmt);
+    auto &body = body_[switch_case];
+    if (std::find(body.begin(), body.end(), stmt) != body.end())
+        throw ::runtime_error(::format("statement already exists in switch body with case {0}",
+                                       switch_case->to_string()));
+    body_[switch_case].emplace_back(stmt);
+}
+
+void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
+                                 const std::vector<std::shared_ptr<Stmt>> &stmts) {
+    for (auto &stmt : stmts) add_switch_case(switch_case, stmt);
+}
+
+uint64_t SwitchStmt::child_count() {
+    uint64_t i = 1;  // 1 for target
+    for (auto const &iter : body_) {
+        i += iter.second.size();
+    }
+    return i;
 }
 
 ASTNode *SwitchStmt::get_child(uint64_t index) {
     if (index == 0) {
         return target_.get();
-    } else if (index < body_.size() + 1) {
-        // this is not an efficient way for doing this
-        std::vector<std::shared_ptr<Const>> keys;
-        for (const auto &[key, value] : body_) keys.emplace_back(key);
-        auto const key = keys[index - 1];
-        return body_[key].get();
     } else {
+        index--;
+        for (auto const &iter : body_) {
+            for (auto const &stmt : iter.second) {
+                if (index-- == 0) return stmt.get();
+            }
+        }
         return nullptr;
     }
 }
@@ -205,8 +219,9 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                 continue;
             } else {
                 // you need to run a de-slice pass on the module references first
-                throw ::runtime_error("Input slices not supported in the statement. "
-                                      "Please run a de-couple pass first");
+                throw ::runtime_error(
+                    "Input slices not supported in the statement. "
+                    "Please run a de-couple pass first");
             }
         } else if (port_direction == PortDirection::Out) {
             // need to find out if there is any sources connected to the slices
@@ -216,8 +231,9 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                 if (!sinks.empty() && sinks.size() == 1) {
                     port_mapping_.emplace(port, (*sinks.begin())->left());
                 } else if (!sinks.empty() && sinks.size() > 1) {
-                    throw ::runtime_error("Output slices not supported in the statement. "
-                                          "Please run a de-couple pass first");
+                    throw ::runtime_error(
+                        "Output slices not supported in the statement. "
+                        "Please run a de-couple pass first");
                 }
             }
         } else {

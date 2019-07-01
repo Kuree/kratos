@@ -247,3 +247,28 @@ TEST(pass, verilog_stub) {  // NOLINT
 
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 }
+
+TEST(pass, if_case) {   // NOLINT
+    Context c;
+    auto &mod = c.generator("module1");
+    auto &in = mod.port(PortDirection::In, "in", 3);
+    auto &out = mod.port(PortDirection::Out, "out", 3);
+    auto if_stmt = std::make_shared<IfStmt>(in.eq(mod.constant(0, 3)));
+    if_stmt->add_then_stmt(out.assign(mod.constant(0, 3)));
+    auto if_stmt2 = std::make_shared<IfStmt>(in.eq(mod.constant(1, 3)));
+    if_stmt2->add_then_stmt(out.assign(mod.constant(1, 3)));
+    if_stmt->add_else_stmt(if_stmt2);
+    auto stmt_list = std::make_shared<CombinationalStmtBlock>();
+    stmt_list->add_statement(if_stmt);
+    mod.add_stmt(stmt_list);
+
+    transform_if_to_case(&mod);
+    auto stmt = reinterpret_cast<Stmt*>(mod.get_child(0)->get_child(0));
+    EXPECT_TRUE(stmt->type() == StatementType::Switch);
+    auto switch_ = stmt->as<SwitchStmt>();
+    EXPECT_EQ(switch_->body().size(), 2);
+
+    fix_assignment_type(&mod);
+    auto result = generate_verilog(&mod);
+    EXPECT_TRUE(result.find("module1") != result.end());
+}

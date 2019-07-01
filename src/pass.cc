@@ -2,10 +2,10 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include "codegen.h"
 #include "fmt/format.h"
 #include "generator.hh"
 #include "util.hh"
-#include "codegen.h"
 
 using fmt::format;
 using std::runtime_error;
@@ -431,11 +431,10 @@ public:
         for (const auto& var_name : vars) {
             checkout_assignment(generator, var_name);
         }
-        for (const auto &port_name : ports) {
+        for (const auto& port_name : ports) {
             checkout_assignment(generator, port_name);
         }
         // TODO: check slice as well
-
     }
     void checkout_assignment(Generator* generator, const std::string& name) const {
         auto const& var = generator->get_var(name);
@@ -453,4 +452,88 @@ public:
 void check_mixed_assignment(Generator* top) {
     MixedAssignmentVisitor visitor;
     visitor.visit_generator_root(top);
+}
+
+class TransformIfCase : public ASTVisitor {
+public:
+    void visit(CombinationalStmtBlock* stmts) override {
+        for (uint32_t i = 0; i < stmts->child_count(); i++) {
+            auto stmt = reinterpret_cast<Stmt*>(stmts->get_child(i));
+            Var* target = nullptr;
+            std::unordered_set<std::shared_ptr<Stmt>> if_stmts;
+            if (has_target_if(stmt, target, if_stmts)) {
+                auto switch_stmt = change_if_to_switch(stmt->as<IfStmt>(), if_stmts);
+                stmts->set_child(i, switch_stmt);
+            }
+        }
+    }
+    void visit(SequentialStmtBlock*) override {}
+
+private:
+    bool static has_target_if(Stmt* stmt, Var*& var,
+                              std::unordered_set<std::shared_ptr<Stmt>>& if_stmts) {
+        // keep track of which statement are used later to transform into switch statement
+        if (stmt->type() != StatementType::If && if_stmts.size() <= 1)
+            return false;
+        else if (stmt->type() != StatementType::If) {
+            // we have reach the end of the if-else chain
+            return true;
+        }
+        auto if_ = stmt->as<IfStmt>();
+        auto predicate = if_->predicate();
+        // predicate has to be a expression with equal comparison
+        if (predicate->type() != VarType::Expression) return false;
+        auto expr = predicate->as<Expr>();
+        if (expr->op != ExprOp::Eq) return false;
+        // has to be the same variable
+        if (var == nullptr) {
+            var = expr->left.get();
+        } else {
+            if (var != expr->left.get()) return false;
+        }
+        if (expr->right->type() != VarType::ConstValue) return false;
+        if (if_->else_body().size() > 1) return false;
+
+        if_stmts.emplace(if_);
+        if (if_->else_body().empty()) {
+            return true;
+        } else if (if_->then_body().size() > 1) {
+            return if_stmts.size() > 1;
+        } else {
+            return has_target_if(if_->else_body()[0].get(), var, if_stmts);
+        }
+    }
+
+    std::shared_ptr<SwitchStmt> static change_if_to_switch(
+        std::shared_ptr<IfStmt> stmt, const std::unordered_set<std::shared_ptr<Stmt>>& if_stmts) {
+        auto expr = stmt->predicate()->as<Expr>();
+        // we assume that this is a valid case (see has_target_if)
+        auto target = expr->left;
+        std::shared_ptr<SwitchStmt> switch_ = std::make_shared<SwitchStmt>(target);
+
+        while (if_stmts.find(stmt) != if_stmts.end()) {
+            auto condition = expr->right->as<Const>();
+            switch_->add_switch_case(condition, stmt->then_body());
+            if (!stmt->else_body().empty() &&
+                if_stmts.find(stmt->else_body()[0]) == if_stmts.end()) {
+                // we have reached the end
+                // add default statement
+                switch_->add_switch_case(nullptr, stmt->else_body());
+                break;
+            } else if (!stmt->else_body().empty()) {
+                // switch to the else case
+                stmt = stmt->else_body()[0]->as<IfStmt>();
+                expr = stmt->predicate()->as<Expr>();
+            } else {
+                break;
+            }
+        }
+
+        return switch_;
+    }
+};
+
+void transform_if_to_case(Generator* top) {
+    TransformIfCase visitor;
+    visitor.visit_root(top);
 }

@@ -10,11 +10,9 @@ TEST(expr, arith) {  // NOLINT
     Port &p_out = mod.port(PortDirection::Out, "out", 1);
 
     Var &var1 = mod.var("a", 1);
-    Var var2 = mod.var("b", 1);
-    auto expr = var1 + var2;
+    Var &var2 = mod.var("b", 1);
+    auto &expr = var1 + var2;
     EXPECT_EQ(expr.left.get(), &var1);
-    // var2 is stored in stack
-    EXPECT_NE(expr.right.get(), &var2);
 
     expr = p_in + p_out;
     EXPECT_EQ(expr.name, "(in + out)");

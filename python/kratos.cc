@@ -232,7 +232,12 @@ void init_stmt(py::module &m) {
 
     py::class_<SwitchStmt, ::shared_ptr<SwitchStmt>, Stmt>(m, "SwitchStmt")
         .def(py::init<const ::shared_ptr<Var> &>())
-        .def("add_switch_case", &SwitchStmt::add_switch_case)
+        .def("add_switch_case",
+             py::overload_cast<const std::shared_ptr<Const> &, const std::shared_ptr<Stmt> &>(
+                 &SwitchStmt::add_switch_case))
+        .def("add_switch_case", py::overload_cast<const std::shared_ptr<Const> &,
+                                                  const std::vector<std::shared_ptr<Stmt>> &>(
+                                    &SwitchStmt::add_switch_case))
         .def("target", &SwitchStmt::target, py::return_value_policy::reference)
         .def("body", &SwitchStmt::body);
 
@@ -241,7 +246,7 @@ void init_stmt(py::module &m) {
         .def(py::init<>())
         .def("block_type", &CombinationalStmtBlock::block_type)
         .def("add_statement",
-             py::overload_cast<::shared_ptr<Stmt>>(&CombinationalStmtBlock::add_statement));
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&CombinationalStmtBlock::add_statement));
 
     py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, Stmt>(m,
                                                                              "SequentialStmtBlock")
@@ -249,7 +254,7 @@ void init_stmt(py::module &m) {
         .def("get_conditions", &SequentialStmtBlock::get_conditions)
         .def("add_condition", &SequentialStmtBlock::add_condition)
         .def("add_statement",
-             py::overload_cast<::shared_ptr<Stmt>>(&SequentialStmtBlock::add_statement));
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&SequentialStmtBlock::add_statement));
 
     py::class_<ModuleInstantiationStmt, ::shared_ptr<ModuleInstantiationStmt>, Stmt>(
         m, "ModuleInstantiationStmt")
@@ -259,7 +264,8 @@ void init_stmt(py::module &m) {
 void init_code_gen(py::module &m) {
     py::class_<VerilogModule>(m, "VerilogModule")
         .def(py::init<Generator *>())
-        .def("verilog_src", &VerilogModule::verilog_src);
+        .def("verilog_src", &VerilogModule::verilog_src)
+        .def("run_passes", &VerilogModule::run_passes);
 }
 
 PYBIND11_MODULE(_kratos, m) {

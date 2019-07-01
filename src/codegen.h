@@ -7,12 +7,15 @@
 
 class VerilogModule {
 public:
-    explicit VerilogModule(Generator *generator);
+    explicit VerilogModule(Generator *generator): generator_(generator) {}
+
+    void run_passes(bool run_if_to_case_pass);
 
     const std::map<std::string, std::string> &verilog_src() const { return verilog_src_; }
 
 private:
     std::map<std::string, std::string> verilog_src_;
+    Generator *generator_;
 };
 
 
@@ -49,6 +52,8 @@ private:
     void stmt_code(IfStmt* stmt);
 
     void stmt_code(ModuleInstantiationStmt* stmt);
+
+    void stmt_code(SwitchStmt* stmt);
 
     template <typename Iter>
     std::string join(Iter begin, Iter end, const std::string& sep) {

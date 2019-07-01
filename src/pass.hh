@@ -39,4 +39,7 @@ std::map<std::string, std::string> generate_verilog(Generator *top);
 //  3. remove a var
 //  4. remove a child generator
 
+// These code below are optional passes that make the code more readable
+void transform_if_to_case(Generator *top);
+
 #endif  // KRATOS_PASS_HH

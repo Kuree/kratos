@@ -162,5 +162,29 @@ def test_for_loop():
     assert is_valid_verilog(src)
 
 
+def test_switch():
+    class Switch(Generator):
+        def __init__(self):
+            super().__init__("switch_test")
+
+            self._in = self.port("in", 3, PortDirection.In)
+            self._out = self.port("out", 3, PortDirection.Out)
+
+            self.add_comb(self.logic)
+
+        def logic(self):
+            if self._in.eq(self.const(0, 3)):
+                self._out = 0
+            elif self._in.eq(self.const(1, 3)):
+                self._out = 1
+            else:
+                self._out = 2
+
+    mod = Switch()
+    mod_src = verilog(mod)
+    src = mod_src["switch_test"]
+    assert is_valid_verilog(src)
+
+
 if __name__ == "__main__":
     test_for_loop()

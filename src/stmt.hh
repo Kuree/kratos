@@ -23,7 +23,7 @@ public:
     ASTNode *parent() override;
     virtual void set_parent(ASTNode *parent) { parent_ = parent; }
 
-    void accept(ASTVisitor*) override {}
+    void accept(ASTVisitor *) override {}
     uint64_t child_count() override { return 0; }
     ASTNode *get_child(uint64_t) override { return nullptr; };
 
@@ -93,31 +93,39 @@ public:
     void add_switch_case(const std::shared_ptr<Const> &switch_case,
                          const std::shared_ptr<Stmt> &stmt);
 
+    void add_switch_case(const std::shared_ptr<Const> &switch_case,
+                         const std::vector<std::shared_ptr<Stmt>> &stmts);
+
     const std::shared_ptr<Var> target() const { return target_; }
 
-    const std::map<std::shared_ptr<Const>, std::shared_ptr<Stmt>> &body() const { return body_; }
+    const std::map<std::shared_ptr<Const>, std::vector<std::shared_ptr<Stmt>>> &body() const {
+        return body_;
+    }
 
     // AST stuff
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
-    uint64_t child_count() override { return body_.size() + 1; }
+    uint64_t child_count() override;
     ASTNode *get_child(uint64_t index) override;
 
 private:
     std::shared_ptr<Var> target_;
-    std::map<std::shared_ptr<Const>, std::shared_ptr<Stmt>> body_;
+    // default case will be indexed as nullptr
+    std::map<std::shared_ptr<Const>, std::vector<std::shared_ptr<Stmt>>> body_;
 };
 
 /// this is for always block
 class StmtBlock : public Stmt {
 public:
     StatementBlockType block_type() const { return block_type_; }
-    void add_statement(std::shared_ptr<Stmt> stmt);
+    void add_statement(const std::shared_ptr<Stmt> &stmt);
     void add_statement(Stmt &stmt) { add_statement(stmt.shared_from_this()); }
 
     uint64_t child_count() override { return stmts_.size(); }
     ASTNode *get_child(uint64_t index) override {
         return index < stmts_.size() ? stmts_[index].get() : nullptr;
     }
+
+    void set_child(uint64_t index, const std::shared_ptr<Stmt> &stmt);
 
 protected:
     explicit StmtBlock(StatementBlockType type);
