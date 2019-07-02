@@ -305,6 +305,12 @@ void hash_generator_src(Context* context, Generator* generator) {
     context->add_hash(generator, hash);
 }
 
+void hash_generator_name(Context* context, Generator* generator) {
+    auto const &name = generator->name;
+    uint64_t hash = hash_64_fnv1a(name.c_str(), name.size());
+    context->add_hash(generator, hash);
+}
+
 void hash_generators_context(Context* context, Generator* root, HashStrategy strategy) {
     // compute the generator graph
     GeneratorGraph g(root);
@@ -323,6 +329,9 @@ void hash_generators_context(Context* context, Generator* root, HashStrategy str
                 } else {
                     hash_generator_src(context, node);
                 }
+            } else if (context->get_generators_by_name(node->name).size() == 1) {
+                // just need to hash the name
+                hash_generator_name(context, node);
             } else {
                 hash_generator(context, node);
             }
