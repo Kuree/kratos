@@ -61,8 +61,8 @@ def test_module_unique():
     reg2 = AsyncReg(1)
     reg2.instance_name = "test"
     parent = Generator("top")
-    parent.add_child_generator(reg1)
-    parent.add_child_generator(reg2)
+    parent.add_child_generator("reg1", reg1)
+    parent.add_child_generator("reg2", reg2)
 
     hash_generators(parent)
     c = Generator.get_context()
@@ -114,10 +114,10 @@ def test_mod_instantiation():
             self._in = self.port("in", 1, PortDirection.In)
             self._out = self.port("out", 1, PortDirection.Out)
 
-            mod1 = Mod1()
-            self.add_child_generator(mod1)
-            self.wire(mod1.in_, self._in)
-            self.wire(self._out, mod1.out_)
+            self.add_child_generator("mod1", Mod1())
+
+            self.wire(self["mod1"].in_, self._in)
+            self.wire(self._out, self["mod1"].out_)
 
     mod = Mod2()
     # turn off pass through module optimization since it will remove
@@ -203,7 +203,7 @@ def test_pass_through():
             self._out = self.port("out", 1, PortDirection.Out)
 
             mod1 = Mod1()
-            self.add_child_generator(mod1)
+            self.add_child_generator("mod1", mod1)
             self.wire(mod1.in_, self._in)
             self.wire(self._out, mod1.out_)
 
@@ -217,5 +217,29 @@ def test_pass_through():
     assert "mod1" not in mod_src["mod2"]
 
 
+def test_nested_if():
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1")
+            self.in_ = self.port("in", 2, PortDirection.In)
+            self.out_ = self.port("out", 2, PortDirection.Out)
+
+            self.add_code(self.nested_if)
+
+        def nested_if(self):
+            if self.in_ < self.const(1, 2):
+                if self.in_ < self.const(2, 2):
+                    self.out_ = 1
+                else:
+                    self.out_ = 3
+            else:
+                self.out_ = 2
+
+    mod = Mod1()
+    mod_src = verilog(mod)
+    src = mod_src["mod1"]
+    assert is_valid_verilog(src)
+
+
 if __name__ == "__main__":
-    test_pass_through()
+    test_nested_if()

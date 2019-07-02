@@ -121,6 +121,11 @@ Expr &Var::eq(const Var &var) const {
     return generator->expr(ExprOp::Eq, left, right);
 }
 
+Expr &Var::operator!=(const Var &var) const {
+    const auto &[left, right] = get_binary_var_ptr(var);
+    return generator->expr(ExprOp::Neq, left, right);
+}
+
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     auto const [high, low] = slice;
     if (low > high) {
@@ -389,9 +394,9 @@ AssignStmt &Var::assign(Var &var, AssignmentType type) {
 
 std::string Expr::to_string() const {
     if (right != nullptr) {
-        return ::format("{0} {1} {2}", left->name, ExprOpStr(op), right->name);
+        return ::format("{0} {1} {2}", left->to_string(), ExprOpStr(op), right->to_string());
     } else {
-        return ::format("{0}{1}", ExprOpStr(op), left->name);
+        return ::format("{0}{1}", ExprOpStr(op), left->to_string());
     }
 }
 

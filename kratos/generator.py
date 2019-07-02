@@ -68,7 +68,23 @@ class Generator:
 
     def __init__(self, name: str):
         self.__generator = self.__context.generator(name)
-        self.__generator.instance_name = name
+        self.__child_generator: Dict[str, Generator] = {}
+
+    def __getitem__(self, instance_name: str):
+        assert instance_name in self.__child_generator, \
+            f"{instance_name} does not exist in {self.instance_name}"
+        return self.__child_generator[instance_name]
+
+    def __setitem__(self, instance_name: str, generator: "Generator"):
+        if instance_name in self.__child_generator:
+            raise Exception(
+                f"{instance_name} already exists in {self.instance_name}")
+        assert isinstance(generator,
+                          Generator), "generator is not a Generator instance"
+
+        self.__child_generator[instance_name] = generator
+        self.__generator.add_child_generator(generator.__generator,
+                                             False)
 
     @property
     def name(self):
@@ -146,10 +162,8 @@ class Generator:
     def add_stmt(self, stmt):
         self.__generator.add_stmt(stmt)
 
-    def add_child_generator(self, generator: "Generator",
-                            in_line: bool = False):
-        self.__generator.add_child_generator(generator.__generator,
-                                             in_line)
+    def add_child_generator(self, instance_name: str, generator: "Generator"):
+        self[instance_name] = generator
 
     @staticmethod
     def clear_context():

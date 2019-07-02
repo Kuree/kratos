@@ -95,6 +95,8 @@ class Scope:
                 self._if = _kratos.IfStmt(target)
                 self.scope = scope
                 for stmt in args:
+                    if hasattr(stmt, "stmt"):
+                        stmt = stmt.stmt()
                     self.scope.nested_stmts.add(stmt)
                     self._if.add_then_stmt(stmt)
 

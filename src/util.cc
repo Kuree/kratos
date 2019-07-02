@@ -45,6 +45,8 @@ std::string ExprOpStr(ExprOp op) {
             return ">=";
         case Eq:
             return "==";
+        case Neq:
+            return "!=";
         default:
             throw std::runtime_error("unable to find op");
     }

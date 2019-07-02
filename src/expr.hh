@@ -32,7 +32,8 @@ enum ExprOp : uint64_t {
     GreaterThan,
     LessEqThan,
     GreaterEqThan,
-    Eq
+    Eq,
+    Neq
 };
 
 bool is_relational_op(ExprOp op);
@@ -69,6 +70,7 @@ public:
     Expr &operator>(const Var &var) const;
     Expr &operator<=(const Var &var) const;
     Expr &operator>=(const Var &var) const;
+    Expr &operator!=(const Var &var) const;
     Expr &eq(const Var &var) const;
     // slice
     VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);

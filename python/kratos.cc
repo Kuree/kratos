@@ -84,25 +84,44 @@ void init_util(py::module &m) {
 
 template <typename T, typename K>
 void init_common_expr(T &class_) {
+    // see how available object overloads here: https://docs.python.org/3/reference/datamodel.html
     class_.def("__repr__", &K::to_string)
-        .def(~py::self, py::return_value_policy::reference)
-        .def(-py::self, py::return_value_policy::reference)
-        .def(+py::self, py::return_value_policy::reference)
-        .def(py::self + py::self, py::return_value_policy::reference)   // NOLINT
-        .def(py::self - py::self, py::return_value_policy::reference)   // NOLINT
-        .def(py::self * py::self, py::return_value_policy::reference)   // NOLINT
-        .def(py::self % py::self, py::return_value_policy::reference)   // NOLINT
-        .def(py::self / py::self, py::return_value_policy::reference)   // NOLINT
-        .def(py::self >> py::self, py::return_value_policy::reference)  // NOLINT
-        .def(py::self | py::self, py::return_value_policy::reference)   // NOLINT
-        .def(py::self & py::self, py::return_value_policy::reference)   // NOLINT
-        .def(py::self ^ py::self, py::return_value_policy::reference)   // NOLINT
-        .def("ashr", &K::ashr, py::return_value_policy::reference)      // NOLINT
-        .def(py::self < py::self, py::return_value_policy::reference)   // NOLINT
-        .def(py::self > py::self, py::return_value_policy::reference)   // NOLINT
-        .def(py::self <= py::self, py::return_value_policy::reference)  // NOLINT
-        .def(py::self >= py::self, py::return_value_policy::reference)  // NOLINT
+        .def("__invert__", [](const K &var) -> Expr & { return ~var; },
+             py::return_value_policy::reference)
+        .def("__neg__", [](const K &var) -> Expr & { return -var; },
+             py::return_value_policy::reference)
+        .def("__pos__", [](const K &var) -> Expr & { return +var; },
+             py::return_value_policy::reference)
+        .def("__add__", [](const K &left, const Var &right) -> Expr & { return left + right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__sub__", [](const K &left, const Var &right) -> Expr & { return left - right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__mul__", [](const K &left, const Var &right) -> Expr & { return left * right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__mod__", [](const K &left, const Var &right) -> Expr & { return left % right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__div__", [](const K &left, const Var &right) -> Expr & { return left / right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__rshift__", [](const K &left, const Var &right) -> Expr & { return left >> right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__or__", [](const K &left, const Var &right) -> Expr & { return left | right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__and__", [](const K &left, const Var &right) -> Expr & { return left & right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__xor__", [](const K &left, const Var &right) -> Expr & { return left ^ right; },
+             py::return_value_policy::reference)                    // NOLINT
+        .def("ashr", &K::ashr, py::return_value_policy::reference)  // NOLINT
+        .def("__lt__", [](const K &left, const Var &right) -> Expr & { return left < right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__gt__", [](const K &left, const Var &right) -> Expr & { return left > right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__le__", [](const K &left, const Var &right) -> Expr & { return left <= right; },
+             py::return_value_policy::reference)  // NOLINT
+        .def("__ge__", [](const K &left, const Var &right) -> Expr & { return left >= right; },
+             py::return_value_policy::reference)  // NOLINT
         .def("eq", &K::eq, py::return_value_policy::reference)
+        .def("__neq__", [](const K &left, const Var &right) -> Expr & { return left != right; },
+             py::return_value_policy::reference)  // NOLINT
         .def("__getitem__", [](K & k, std::pair<uint32_t, uint32_t> v) -> auto & { return k[v]; },
              py::return_value_policy::reference)
         .def("__getitem__", [](K & k, uint32_t idx) -> auto & { return k[idx]; },
