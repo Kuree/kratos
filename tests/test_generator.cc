@@ -325,7 +325,7 @@ TEST(pass, pass_through_module) {  // NOLINT
     EXPECT_TRUE(out2.sinks().empty());
 
     EXPECT_EQ(mod1.get_child_generator_size(), 0);
-    EXPECT_FALSE(mod1.is_child_generator(mod2.shared_from_this()));
+    EXPECT_FALSE(mod1.has_child_generator(mod2.shared_from_this()));
 
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 }

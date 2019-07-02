@@ -59,7 +59,7 @@ public:
     void remove_child_generator(const std::shared_ptr<Generator> &child);
     std::set<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
     uint64_t get_child_generator_size() const { return children_.size(); }
-    bool is_child_generator(const std::shared_ptr<Generator> &child);
+    bool has_child_generator(const std::shared_ptr<Generator> &child);
     void accept_generator(ASTVisitor *visitor) { visitor->visit_generator(this); }
     bool should_child_inline(Generator *generator) const {
         return should_child_inline_.at(generator->shared_from_this());
@@ -67,6 +67,8 @@ public:
     void set_child_inline(Generator *generator, bool value) {
         should_child_inline_[generator->shared_from_this()] = value;
     }
+    void replace_child_generator(const std::shared_ptr<Generator> &target,
+                                 const std::shared_ptr<Generator> &new_generator);
 
     // AST stuff
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
@@ -88,7 +90,7 @@ public:
 
     // if imported from verilog or specified
     bool external() { return (!lib_files_.empty()) || is_external_; }
-    std::string external_filename() const { return lib_files_.empty()? "": lib_files_[0]; }
+    std::string external_filename() const { return lib_files_.empty() ? "" : lib_files_[0]; }
     void set_external(bool value) { is_external_ = value; }
 
 private:

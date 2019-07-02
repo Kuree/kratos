@@ -99,3 +99,20 @@ bool is_valid_verilog(const std::string &src) {
     auto &diagnostics = compilation.getParseDiagnostics();
     return diagnostics.empty();
 }
+
+std::string port_type_to_str(PortType type) {
+    switch (type) {
+        case PortType::Reset:
+            return "reset";
+        case PortType::Data:
+            return "data";
+        case PortType ::ClockEnable:
+            return "clk_en";
+        case PortType ::Clock:
+            return "clk";
+        case PortType ::AsyncReset:
+            return "async_reset";
+        default:
+            throw std::runtime_error("unknown port type");
+    }
+}

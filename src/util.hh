@@ -15,6 +15,8 @@ std::string assign_type_to_str(AssignmentType type);
 
 std::string port_dir_to_str(PortDirection direction);
 
+std::string port_type_to_str(PortType type);
+
 bool is_valid_verilog(const std::string &src);
 
 #endif  // KRATOS_UTIL_HH
