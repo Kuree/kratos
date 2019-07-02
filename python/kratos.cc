@@ -135,7 +135,8 @@ void init_common_expr(T &class_) {
         .def_readwrite("signed", &K::is_signed)
         .def("sources", &K::sources, py::return_value_policy::reference)
         .def("sinks", &K::sinks, py::return_value_policy::reference)
-        .def("signed_", &K::signed_);
+        .def("signed_", &K::signed_)
+        .def_property_readonly("generator", [](const K &var) { return var.generator; });
 }
 
 template <typename T>
@@ -162,6 +163,7 @@ void init_expr(py::module &m) {
 
     auto port = py::class_<Port, ::shared_ptr<Port>, Var>(m, "Port");
     init_var_derived(port);
+    port.def("port_direction", &Port::port_direction).def("port_type", &Port::port_type);
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
     init_var_derived(const_);
@@ -227,6 +229,7 @@ void init_generator(py::module &m) {
         .def("external_filename", &Generator::external_filename)
         .def("is_stub", &Generator::is_stub)
         .def("set_is_stub", &Generator::set_is_stub)
+        .def("wire_ports", &Generator::wire_ports)
         .def("get_unique_variable_name", &Generator::get_unique_variable_name)
         .def("context", &Generator::context, py::return_value_policy::reference)
         .def_readwrite("instance_name", &Generator::instance_name)

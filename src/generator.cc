@@ -324,3 +324,52 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
         parent_generator->add_child_generator(new_generator, inline_attribute);
     parent_generator->remove_child_generator(target);
 }
+
+void inline check_direction(const std::shared_ptr<Port> &port1, const std::shared_ptr<Port> &port2,
+                            bool same_direction = false) {
+    auto port1_dir = port1->port_direction();
+    PortDirection correct_dir;
+    if (same_direction)
+        correct_dir = port1_dir;
+    else if (port1_dir == PortDirection::In)
+        correct_dir = PortDirection ::Out;
+    else
+        correct_dir = PortDirection ::In;
+    if (port2->port_direction() != correct_dir) {
+        throw ::runtime_error(::format("Port {0} and port {1} doesn't match port direction",
+                                       port1->to_string(), port2->to_string()));
+    }
+}
+
+void Generator::wire_ports(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &port2) {
+    auto parent1 = port1->generator;
+    auto parent2 = port2->generator;
+    if (parent1 == parent2 && parent1 == this) {
+        // it's the same module
+        check_direction(port1, port2);
+        if (port1->port_direction() == PortDirection::In) {
+            add_stmt(port2->assign(port1).shared_from_this());
+        } else {
+            add_stmt(port1->assign(port2).shared_from_this());
+        }
+    } else {
+        if (parent1 == this && has_child_generator(parent2->shared_from_this())) {
+            check_direction(port1, port2, true);
+            if (port1->port_direction() == PortDirection::In)
+                add_stmt(port2->assign(port1).shared_from_this());
+            else
+                add_stmt(port1->assign(port2).shared_from_this());
+        } else if (parent2 == this && has_child_generator(parent1->shared_from_this())) {
+            check_direction(port1, port2, true);
+            if (port1->port_direction() == PortDirection::In)
+                add_stmt(port1->assign(port2).shared_from_this());
+            else
+                add_stmt(port2->assign(port1).shared_from_this());
+        } else {
+            throw ::runtime_error(
+                ::format("Cannot wire {0} and {1}. Please make sure they belong to the same module "
+                         "or parent",
+                         port1->to_string(), port2->to_string()));
+        }
+    }
+}

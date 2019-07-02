@@ -155,9 +155,18 @@ class Generator:
             for stmt in stmts:
                 seq.add_stmt(stmt)
 
+    def __assign(self, var_from, var_to):
+        self.add_stmt(var_from.assign(var_to, _kratos.AssignmentType.Blocking))
+
     def wire(self, var_to, var_from):
         # this is a top level direct wire assignment
-        self.add_stmt(var_to.assign(var_from, _kratos.AssignmentType.Blocking))
+        # notice that we can figure out the direction automatically if
+        # both of them are ports
+        if isinstance(var_to, _kratos.Port) and isinstance(var_from,
+                                                           _kratos.Port):
+            self.__generator.wire_ports(var_to, var_from)
+        else:
+            self.__assign(var_to, var_from)
 
     def add_stmt(self, stmt):
         self.__generator.add_stmt(stmt)
@@ -185,6 +194,14 @@ class Generator:
                                                        lib_files, _port_mapping)
         Generator.__context.add(g.__generator)
         return g
+
+    def __contains__(self, generator: "Generator"):
+        if not isinstance(generator, (Generator, _kratos.Generator)):
+            return False
+        elif isinstance(generator, Generator):
+            return self.__generator.has_child_generator(generator.__generator)
+        else:
+            return self.__generator.has_child_generator(generator)
 
 
 def always(sensitivity):

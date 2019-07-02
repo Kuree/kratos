@@ -241,5 +241,29 @@ def test_nested_if():
     assert is_valid_verilog(src)
 
 
+def test_fanout_mod_inst():
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1")
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 1, PortDirection.Out)
+            self.wire(self.out_, self.in_)
+
+    class Mod2(Generator):
+        def __init__(self):
+            super().__init__("mod2")
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 1, PortDirection.Out)
+
+            self.mod_1 = Mod1()
+            self.mod_2 = Mod1()
+
+            self.add_child_generator("mod1", self.mod_1)
+            self.add_child_generator("mod2", self.mod_2)
+
+            self.wire()
+
+
+
 if __name__ == "__main__":
-    test_nested_if()
+    test_pass_through()
