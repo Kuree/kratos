@@ -9,7 +9,7 @@ using fmt::format;
 class GeneratorVisitor : public ASTVisitor {
 public:
     explicit GeneratorVisitor(GeneratorGraph *g) : g_(g) {}
-    void visit_generator(Generator *generator) override { g_->add_node(generator); }
+    void visit(Generator *generator) override { g_->add_node(generator); }
 
 private:
     GeneratorGraph *g_;
@@ -18,7 +18,7 @@ private:
 class GeneratorGraphVisitor : public ASTVisitor {
 public:
     explicit GeneratorGraphVisitor(GeneratorGraph *g) : g_(g) {}
-    void visit_generator(Generator *generator) override {
+    void visit(Generator *generator) override {
         auto parent_node = g_->get_node(generator);
         for (auto const &child : generator->get_child_generators()) {
             auto child_node = g_->get_node(child.get());

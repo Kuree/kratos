@@ -60,7 +60,7 @@ public:
     std::vector<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
     uint64_t inline get_child_generator_size() const { return children_.size(); }
     bool has_child_generator(const std::shared_ptr<Generator> &child);
-    void accept_generator(ASTVisitor *visitor) { visitor->visit_generator(this); }
+    void accept_generator(ASTVisitor *visitor) { visitor->visit(this); }
     bool should_child_inline(Generator *generator) const {
         return should_child_inline_.at(generator->shared_from_this());
     }

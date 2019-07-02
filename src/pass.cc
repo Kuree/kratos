@@ -123,7 +123,7 @@ void remove_unused_vars(Generator* top) {
 class GeneratorConnectivityVisitor : public ASTVisitor {
 public:
     GeneratorConnectivityVisitor() : is_top_level_(true) {}
-    void visit_generator(Generator* generator) override {
+    void visit(Generator* generator) override {
         // skip if it's an external module or stub module
         if (generator->external() || generator->is_stub()) return;
         const auto& port_names = generator->get_port_names();
@@ -175,7 +175,7 @@ void verify_generator_connectivity(Generator* top) {
 
 class ModuleInstantiationVisitor : public ASTVisitor {
 public:
-    void visit_generator(Generator* generator) override {
+    void visit(Generator* generator) override {
         for (auto& child : generator->get_child_generators()) {
             if (!generator->should_child_inline(child.get())) {
                 // create instantiation statement
@@ -195,7 +195,7 @@ class UniqueGeneratorVisitor : public ASTVisitor {
 public:
     std::map<std::string, Generator*> generator_map;
 
-    void visit_generator(Generator* generator) override {
+    void visit(Generator* generator) override {
         if (generator_map.find(generator->name) != generator_map.end()) return;
         // a unique one
         if (!generator->external()) generator_map.emplace(generator->name, generator);
@@ -260,7 +260,7 @@ void uniquify_generators(Generator* top) {
 
 class ModuleInstanceVisitor : public ASTVisitor {
 public:
-    void visit_generator(Generator* generator) override {
+    void visit(Generator* generator) override {
         std::unordered_set<std::string> names;
         auto children = generator->get_child_generators();
         for (auto& child : children) {
@@ -298,7 +298,7 @@ void uniquify_module_instances(Generator* top) {
 
 class GeneratorPortVisitor : public ASTVisitor {
 public:
-    void visit_generator(Generator* generator) override {
+    void visit(Generator* generator) override {
         if (!generator->parent()) {
             // this is top level module, no need to worry about it
             return;
@@ -382,7 +382,7 @@ void decouple_generator_ports(Generator* top) {
 
 class StubGeneratorVisitor : public ASTVisitor {
 public:
-    void visit_generator(Generator* generator) override {
+    void visit(Generator* generator) override {
         if (!generator->is_stub()) return;
         // to be a stub, there shouldn't be any extra variables
         if (generator->stmts_count() > 0) {
@@ -424,7 +424,7 @@ void zero_out_stubs(Generator* top) {
 
 class MixedAssignmentVisitor : public ASTVisitor {
 public:
-    void visit_generator(Generator* generator) override {
+    void visit(Generator* generator) override {
         auto const vars = generator->get_vars();
         auto const ports = generator->get_port_names();
         for (const auto& var_name : vars) {
@@ -539,7 +539,7 @@ void transform_if_to_case(Generator* top) {
 
 class VarFanOutVisitor : public ASTVisitor {
 public:
-    void visit_generator(Generator* generator) override {
+    void visit(Generator* generator) override {
         auto var_names = generator->get_all_var_names();
         for (auto const& var_name : var_names) {
             auto var = generator->get_var(var_name);
@@ -592,7 +592,7 @@ void remove_fanout_one_wires(Generator* top) {
 
 class RemovePassThroughVisitor : public ASTVisitor {
 public:
-    void visit_generator(Generator* generator) override {
+    void visit(Generator* generator) override {
         const auto& children = generator->get_child_generators();
         std::set<std::shared_ptr<Generator>> child_to_remove;
         for (auto const& child : children) {

@@ -28,24 +28,24 @@ private:
 class ASTVisitor {
 public:
     virtual void visit_root(ASTNode *root);
+    // visit generators only
     virtual void visit_generator_root(Generator *generator);
 
     // visit methods
-    virtual void visit(Generator *) {}
-    virtual void visit(Var *) {}
-    virtual void visit(VarSlice *) {}
-    virtual void visit(VarConcat *) {}
-    virtual void visit(Expr *) {}
-    virtual void visit(Const *) {}
-    virtual void visit(AssignStmt *) {}
-    virtual void visit(IfStmt *) {}
-    virtual void visit(SwitchStmt *) {}
-    virtual void visit(CombinationalStmtBlock *) {}
-    virtual void visit(SequentialStmtBlock *) {}
-    virtual void visit(ModuleInstantiationStmt *) {}
+    virtual inline void visit(Var *) {}
+    virtual inline void visit(VarSlice *) {}
+    virtual inline void visit(VarConcat *) {}
+    virtual inline void visit(Expr *) {}
+    virtual inline void visit(Const *) {}
+    virtual inline void visit(AssignStmt *) {}
+    virtual inline void visit(IfStmt *) {}
+    virtual inline void visit(SwitchStmt *) {}
+    virtual inline void visit(CombinationalStmtBlock *) {}
+    virtual inline void visit(SequentialStmtBlock *) {}
+    virtual inline void visit(ModuleInstantiationStmt *) {}
 
     // generator specific traversal
-    virtual void visit_generator(Generator *) {}
+    virtual void visit(Generator *) {}
 
 protected:
     uint32_t level = 0;
