@@ -55,8 +55,8 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator) : generator_(ge
     stream_ << ");" << ::endl << ::endl;
     generate_variables(generator);
 
-    for (uint32_t i = 0; i < generator->child_count(); i++) {
-        dispatch_node(generator->get_child(i));
+    for (uint32_t i = 0; i < generator->stmts_count(); i++) {
+        dispatch_node(generator->get_stmt(i).get());
         stream_ << ::endl;
     }
 

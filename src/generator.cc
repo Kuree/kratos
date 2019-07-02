@@ -164,27 +164,32 @@ Const &Generator::constant(int64_t value, uint32_t width, bool is_signed) {
 }
 
 ASTNode *Generator::get_child(uint64_t index) {
-    if (index < child_count())
+    if (index < stmts_count())
         return stmts_[index].get();
+    else if (index < stmts_count() + get_child_generator_size())
+        return children_[index - stmts_count()].get();
     else
         return nullptr;
 }
 
 void Generator::add_child_generator(const std::shared_ptr<Generator> &child, bool merge) {
-    children_.emplace(child);
-    child->parent_generator_ = this;
-    should_child_inline_[child] = merge;
+    if (std::find(children_.begin(), children_.end(), child) == children_.end()) {
+        children_.emplace_back(child);
+        child->parent_generator_ = this;
+        should_child_inline_[child] = merge;
+    }
 }
 
 void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) {
-    if (children_.find(child) != children_.end()) {
-        children_.erase(child);
+    auto pos = std::find(children_.begin(), children_.end(), child);
+    if (pos != children_.end()) {
+        children_.erase(pos);
         should_child_inline_.erase(child);
     }
 }
 
 bool Generator::has_child_generator(const std::shared_ptr<Generator> &child) {
-    return children_.find(child) != children_.end();
+    return std::find(children_.begin(), children_.end(), child) != children_.end();
 }
 
 std::set<std::string> Generator::get_vars() {
@@ -263,6 +268,8 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
         throw ::runtime_error(::format("{0} is a top level module and thus cannot be replaced",
                                        target->instance_name));
     auto parent_generator = reinterpret_cast<Generator *>(parent);
+    if (parent_generator != this)
+        throw ::runtime_error(::format("{0} is not in {1}", target->instance_name, instance_name));
     if (!has_child_generator(target))
         throw ::runtime_error(
             ::format("{0} doesn't belong to {1}", target->instance_name, instance_name));
@@ -277,7 +284,7 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
     // checking
     for (auto const &port_name : target_port_names) {
         auto target_port = target->get_port(port_name);
-        auto new_port = target->get_port(port_name);
+        auto new_port = new_generator->get_port(port_name);
         if (!new_port) {
             throw ::runtime_error(::format("Could not find {0} from {1}, which is required by {2}",
                                            port_name, new_generator->instance_name,

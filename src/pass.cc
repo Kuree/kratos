@@ -43,7 +43,8 @@ class AssignmentTypeBlockVisitor : public ASTVisitor {
 void fix_assignment_type(Generator* top) {
     // first we fix all the block assignment
     AssignmentTypeBlockVisitor visitor;
-    visitor.visit_root(top->ast_node());
+    visitor.visit_root(top);
+    visitor.visit_generator_root(top);
 
     // then we assign any existing assignment as blocking assignment
     AssignmentTypeVisitor final_visitor(AssignmentType::Blocking, false);
@@ -194,9 +195,7 @@ class UniqueGeneratorVisitor : public ASTVisitor {
 public:
     std::map<std::string, Generator*> generator_map;
 
-    void visit_generator(Generator* generator) override { visit(generator); }
-
-    void visit(Generator* generator) override {
+    void visit_generator(Generator* generator) override {
         if (generator_map.find(generator->name) != generator_map.end()) return;
         // a unique one
         if (!generator->external()) generator_map.emplace(generator->name, generator);
@@ -591,22 +590,22 @@ void remove_fanout_one_wires(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-class RemovePassThroughVisitor: public ASTVisitor {
+class RemovePassThroughVisitor : public ASTVisitor {
 public:
-    void visit_generator(Generator *generator) override {
-        const auto &children = generator->get_child_generators();
+    void visit_generator(Generator* generator) override {
+        const auto& children = generator->get_child_generators();
         std::set<std::shared_ptr<Generator>> child_to_remove;
-        for (auto const &child: children) {
+        for (auto const& child : children) {
             if (is_pass_through(child.get())) {
                 // need to remove it
                 child_to_remove.emplace(child);
             }
         }
 
-        for (auto const &child: child_to_remove) {
+        for (auto const& child : child_to_remove) {
             // we move the src and sinks around
-            const auto &port_names = generator->get_port_names();
-            for (auto const &port_name : port_names) {
+            const auto& port_names = generator->get_port_names();
+            for (auto const& port_name : port_names) {
                 auto port = child->get_port(port_name);
                 if (port->port_direction() == PortDirection::In) {
                     // move the src to whatever it's connected to
@@ -614,7 +613,7 @@ public:
                     // we will let the later downstream passes to remove the extra wiring
                     auto next_port = (*(port->sinks().begin()))->left();
                     auto var_name = generator->get_unique_variable_name(generator->name, port_name);
-                    auto &new_var = generator->var(var_name, port->width, port->is_signed);
+                    auto& new_var = generator->var(var_name, port->width, port->is_signed);
                     Var::move_src_to(port.get(), &new_var, generator, false);
                     // move the sinks over
                     Var::move_sink_to(next_port.get(), &new_var, generator, false);
@@ -626,40 +625,34 @@ public:
     }
 
 private:
-    bool static is_pass_through(Generator *generator) {
+    bool static is_pass_through(Generator* generator) {
         const auto vars = generator->get_vars();
         // has to be empty
-        if (!vars.empty())
-            return false;
+        if (!vars.empty()) return false;
         // has to have exact number of assignments as ports
         // ports has to be an even number, i.e. one in to one out
         // maybe we can relax this restriction later
         auto const port_names = generator->get_port_names();
-        if (port_names.size() % 2)
-            return false;
-        if (generator->stmts_count() != port_names.size() / 2)
-            return false;
+        if (port_names.size() % 2) return false;
+        if (generator->stmts_count() != port_names.size() / 2) return false;
 
-        for (const auto &port_name: port_names) {
+        for (const auto& port_name : port_names) {
             auto const port = generator->get_port(port_name);
             // we may relax this as well
-            if (!port->get_slices().empty())
-                return false;
+            if (!port->get_slices().empty()) return false;
             if (port->port_direction() == PortDirection::In) {
                 auto sinks = port->sinks();
-                if (sinks.size() != 1)
-                    return false;
+                if (sinks.size() != 1) return false;
             } else {
                 auto sources = port->sources();
-                if (sources.size() != 1)
-                    return false;
+                if (sources.size() != 1) return false;
             }
         }
         return true;
     }
 };
 
-void remove_pass_through_modules(Generator *top) {
+void remove_pass_through_modules(Generator* top) {
     RemovePassThroughVisitor visitor;
     visitor.visit_generator_root(top);
 }

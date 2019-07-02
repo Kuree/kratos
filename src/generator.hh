@@ -57,8 +57,8 @@ public:
     // child generator. needed for generator merge
     void add_child_generator(const std::shared_ptr<Generator> &child, bool merge);
     void remove_child_generator(const std::shared_ptr<Generator> &child);
-    std::set<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
-    uint64_t get_child_generator_size() const { return children_.size(); }
+    std::vector<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
+    uint64_t inline get_child_generator_size() const { return children_.size(); }
     bool has_child_generator(const std::shared_ptr<Generator> &child);
     void accept_generator(ASTVisitor *visitor) { visitor->visit_generator(this); }
     bool should_child_inline(Generator *generator) const {
@@ -72,7 +72,7 @@ public:
 
     // AST stuff
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
-    uint64_t child_count() override { return stmts_count(); }
+    uint64_t inline child_count() override { return stmts_count() + get_child_generator_size(); }
     ASTNode *get_child(uint64_t index) override;
 
     std::set<std::string> get_vars();
@@ -102,7 +102,7 @@ private:
 
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
-    std::set<std::shared_ptr<Generator>> children_;
+    std::vector<std::shared_ptr<Generator>> children_;
     std::map<std::shared_ptr<Generator>, bool> should_child_inline_;
 
     Generator *parent_generator_ = nullptr;

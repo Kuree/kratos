@@ -329,3 +329,37 @@ TEST(pass, pass_through_module) {  // NOLINT
 
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 }
+
+TEST(pass, replace) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &in1 = mod1.port(PortDirection::In, "in", 1);
+    auto &out1 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("module2");
+    auto &in2 = mod2.port(PortDirection::In, "in", 1);
+    auto &out2 = mod2.port(PortDirection::Out, "out", 1);
+    mod2.add_stmt(out2.assign(in2).shared_from_this());
+
+    auto &mod3 = c.generator("module3");
+    auto &in3 = mod3.port(PortDirection::In, "in", 2);
+    auto &out3 = mod3.port(PortDirection::Out, "out", 2);
+    mod3.add_stmt(out3.assign(in3).shared_from_this());
+
+    mod1.add_child_generator(mod2.shared_from_this(), false);
+    mod1.add_stmt(in2.assign(in1).shared_from_this());
+    mod1.add_stmt(out1.assign(out2).shared_from_this());
+
+    EXPECT_ANY_THROW(
+        mod1.replace_child_generator(mod2.shared_from_this(), mod3.shared_from_this()));
+    in3.width = 1;
+    out3.width = 1;
+    EXPECT_NO_THROW(mod1.replace_child_generator(mod2.shared_from_this(), mod3.shared_from_this()));
+    EXPECT_EQ(mod1.get_child_generator_size(), 1);
+    fix_assignment_type(&mod1);
+    create_module_instantiation(&mod1);
+    auto mod_src = generate_verilog(&mod1);
+    auto src = mod_src["module1"];
+    EXPECT_TRUE(src.find("module2") == std::string::npos);
+    EXPECT_TRUE(src.find("module3") != std::string::npos);
+}
