@@ -261,9 +261,20 @@ def test_fanout_mod_inst():
             self.add_child_generator("mod1", self.mod_1)
             self.add_child_generator("mod2", self.mod_2)
 
-            self.wire()
+            self.wire(self.in_, self.mod_1.in_)
+            self.wire(self.in_, self.mod_2.in_)
 
+            self.add_code(self.code)
+
+        def code(self):
+            self.out_ = self.mod_1.out_ + self.mod_2.out_
+
+    mod = Mod2()
+    mod_src = verilog(mod, optimize_passthrough=False)
+    assert "mod2" in mod_src
+    src = mod_src["mod2"]
+    assert is_valid_verilog(src)
 
 
 if __name__ == "__main__":
-    test_pass_through()
+    test_fanout_mod_inst()

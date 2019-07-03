@@ -115,15 +115,10 @@ public:
     uint64_t child_count() override { return 0; }
     ASTNode *get_child(uint64_t) override { return nullptr; }
 
-protected:
-    Var()
-        : ASTNode(ASTNodeKind::VarKind),
-          name(),
-          width(),
-          is_signed(false),
-          generator(nullptr),
-          type_(Base) {}
+    Var(const Var& var) = delete;
 
+protected:
+    Var() = delete;
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
     std::unordered_set<std::shared_ptr<AssignStmt>> sources_;
 
@@ -159,6 +154,8 @@ public:
 
     VarSlice(Var *parent, uint32_t high, uint32_t low);
     ASTNode *parent() override;
+
+    void set_parent(Var* parent) { parent_var = parent; }
 
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
 
@@ -202,6 +199,7 @@ struct Expr : public Var {
 
     Expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
     std::string to_string() const override;
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
     // AST
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }

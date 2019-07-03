@@ -32,7 +32,7 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ(&expr1, &expr2);
 
     // test unary
-    auto expr_unary = -var1;
+    auto &expr_unary = -var1;
     EXPECT_EQ(expr_unary.name, "(- a)");
 
     // test raw expr
@@ -48,7 +48,7 @@ TEST(expr, arith) {  // NOLINT
 
     // test slice
     Var &wire = mod.var("d", 4);
-    auto slice_expr = wire[{2, 0}];
+    auto &slice_expr = wire[{2, 0}];
     EXPECT_EQ(slice_expr.parent_var, wire.shared_from_this().get());
     EXPECT_EQ(slice_expr.high, 2);
     EXPECT_EQ(slice_expr.low, 0);
@@ -92,9 +92,9 @@ TEST(expr, assign) {  // NOLINT
 TEST(expr, const_val) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
-    auto c0 = mod.constant(10, 4);
+    auto &c0 = mod.constant(10, 4);
     EXPECT_ANY_THROW(mod.constant(10, 4, true));
-    auto c1 = mod.constant(-4, 4, true);
+    auto &c1 = mod.constant(-4, 4, true);
     EXPECT_EQ(c0.to_string(), "4'hA");
     EXPECT_EQ(c1.to_string(), "-4'h4");
 }

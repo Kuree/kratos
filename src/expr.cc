@@ -180,11 +180,8 @@ std::string VarSlice::to_string() const {
 }
 
 Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
-    : op(op), left(left), right(right) {
+    : Var(left->generator, "", left->width, left->is_signed), op(op), left(left), right(right) {
     if (left == nullptr) throw std::runtime_error("left operand is null");
-    if (right != nullptr && left->generator != right->generator)
-        throw std::runtime_error(
-            ::format("{0} context is different from that of {1}'s", left->name, right->name));
     generator = left->generator;
     if (right != nullptr && left->width != right->width)
         throw std::runtime_error(
@@ -409,14 +406,45 @@ ASTNode *Expr::get_child(uint64_t index) {
         return nullptr;
 }
 
+void change_var_expr(std::shared_ptr<Expr> expr, Var *target, Var *new_var) {
+    if (expr->left->type() == VarType::Expression) {
+        expr = expr->left->as<Expr>();
+        change_var_expr(expr, target, new_var);
+    } else if (expr->right && expr->right->type() == VarType::Expression) {
+        expr = expr->right->as<Expr>();
+        change_var_expr(expr, target, new_var);
+    } else {
+        if (expr->left.get() == target)
+            expr->left = new_var->shared_from_this();
+        if (expr->right && expr->right.get() == target)
+            expr->right = new_var->shared_from_this();
+    }
+}
+
+void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
+    auto right = stmt->right();
+    if (right->type() == VarType::Base || right->type() == VarType::PortIO ||
+        right->type() == VarType::ConstValue) {
+        if (right.get() == target)
+            stmt->set_right(new_var->shared_from_this());
+        else
+            throw ::runtime_error("target not found");
+    } else if (right->type() == VarType::Slice) {
+        auto slice = right->as<VarSlice>();
+        if (slice->parent_var != target)
+            throw ::runtime_error("target not found");
+        slice->set_parent(new_var);
+    } else if (right->type() == VarType::Expression) {
+        change_var_expr(stmt->right()->as<Expr>(), target, new_var);
+    }
+}
+
 void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_connection) {
     // only base and port vars are allowed
     if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
         throw ::runtime_error("Only base or port variables are allowed.");
 
     for (auto &stmt : var->sources_) {
-        if (stmt->left() != var->shared_from_this())
-            throw ::runtime_error("Var assignment is wrong.");
         stmt->set_left(new_var->shared_from_this());
         new_var->sources_.emplace(stmt);
     }
@@ -441,9 +469,7 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
         throw ::runtime_error("Only base or port variables are allowed.");
 
     for (auto &stmt : var->sinks_) {
-        if (stmt->right() != var->shared_from_this())
-            throw ::runtime_error("Var assignment is wrong.");
-        stmt->set_right(new_var->shared_from_this());
+        stmt_set_right(stmt.get(), var, new_var);
         new_var->sinks_.emplace(stmt);
     }
     // now clear the sinks
@@ -459,4 +485,10 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
         auto &stmt = new_var->assign(var->shared_from_this());
         parent->add_stmt(stmt.shared_from_this());
     }
+}
+
+void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    left->add_sink(stmt);
+    if (right)
+        right->add_sink(stmt);
 }

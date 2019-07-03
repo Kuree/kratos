@@ -2,6 +2,7 @@
 #define KRATOS_AST_HH
 
 #include <cstdint>
+#include <vector>
 #include "context.hh"
 
 class ASTVisitor;
@@ -20,6 +21,9 @@ public:
 
     virtual ASTNode *parent() { return nullptr; }
     ASTNodeKind ast_node_kind() { return ast_node_type_; }
+
+    std::vector<std::string> f_name;
+    std::vector<std::string> f_ln;
 
 private:
     ASTNodeKind ast_node_type_;

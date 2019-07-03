@@ -66,9 +66,11 @@ class CombinationalCodeBlock(CodeBlock):
 class Generator:
     __context = _kratos.Context()
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, debug: bool = False):
         self.__generator = self.__context.generator(name)
         self.__child_generator: Dict[str, Generator] = {}
+
+        self.__debug = debug
 
     def __getitem__(self, instance_name: str):
         assert instance_name in self.__child_generator, \
@@ -85,6 +87,10 @@ class Generator:
         self.__child_generator[instance_name] = generator
         self.__generator.add_child_generator(generator.__generator,
                                              False)
+
+    @property
+    def debug(self):
+        return self.__debug
 
     @property
     def name(self):

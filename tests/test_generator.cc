@@ -1,3 +1,4 @@
+#include "../src/codegen.h"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
 #include "../src/pass.hh"
@@ -362,4 +363,35 @@ TEST(pass, replace) {  // NOLINT
     auto src = mod_src["module1"];
     EXPECT_TRUE(src.find("module2") == std::string::npos);
     EXPECT_TRUE(src.find("module3") != std::string::npos);
+}
+
+TEST(pass, decouple_generator_ports) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &in1 = mod1.port(PortDirection::In, "in", 1);
+    auto &out1 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("module2");
+    auto &in2 = mod2.port(PortDirection::In, "in", 1);
+    auto &out2 = mod2.port(PortDirection::Out, "out", 1);
+    mod2.add_stmt(out2.assign(in2, AssignmentType::Blocking).shared_from_this());
+
+    auto &mod3 = c.generator("module3");
+    auto &in3 = mod3.port(PortDirection::In, "in", 1);
+    auto &out3 = mod3.port(PortDirection::Out, "out", 1);
+    mod3.add_stmt(out3.assign(in3, AssignmentType::Blocking).shared_from_this());
+
+    mod1.add_child_generator(mod2.shared_from_this(), false);
+    mod1.add_child_generator(mod3.shared_from_this(), false);
+
+    mod1.add_stmt(in2.assign(in1).shared_from_this());
+    mod1.add_stmt(in3.assign(in1).shared_from_this());
+
+    mod1.add_stmt(out1.assign(out2 + out3).shared_from_this());
+
+    VerilogModule verilog(&mod1);
+    verilog.run_passes(false, false, false);
+    auto src = verilog.verilog_src();
+    EXPECT_EQ(src.size(), 3);
+    EXPECT_TRUE(is_valid_verilog(src.at("module1")));
 }

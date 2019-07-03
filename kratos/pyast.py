@@ -116,7 +116,7 @@ class Scope:
         self.stmt_list.append(if_stmt)
         return if_stmt
 
-    def assign(self, a, b):
+    def assign(self, a, b, f_name="", f_ln=""):
         assert isinstance(a, _kratos.Var)
         if isinstance(b, int):
             # we need to convert b into an integer
@@ -202,3 +202,8 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
             signal_name = signal_name_node.s
             result.append((edge_type_name, signal_name))
         return result
+
+
+def get_fn_ln():
+    frame = inspect.getframeinfo()
+

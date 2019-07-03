@@ -351,10 +351,14 @@ public:
                 // if we're connected to a base variable and no slice, we are good
                 const auto slices = port->get_slices();
                 const auto& sinks = port->sinks();
-                if (slices.empty()) {
-                    if (sinks.size() <= 1) {
-                        // we're good to go since we can re-use the sink variables, or don't even
-                        // bother to connect since no one is using it
+                if (slices.empty() && sinks.empty()) {
+                    continue;
+                }
+                // special case where if the sink is parent's port, this is fine
+                if (sinks.size() == 1) {
+                    auto stmt = *(sinks.begin());
+                    if (stmt->left()->type() == VarType::PortIO &&
+                        stmt->left()->generator == generator->parent() && stmt->right() == port) {
                         continue;
                     }
                 }

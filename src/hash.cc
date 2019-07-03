@@ -1,11 +1,11 @@
 #include "hash.hh"
+#include <fstream>
 #include "ast.hh"
 #include "expr.hh"
 #include "generator.hh"
 #include "graph.hh"
-#include "stmt.hh"
 #include "pass.hh"
-#include <fstream>
+#include "stmt.hh"
 
 /*
  * Once this project is moved to gcc-9, we will use the parallel execution
@@ -222,6 +222,7 @@ public:
             var_hashs_.emplace_back(var_hash);
         }
     }
+
     uint64_t produce_hash() {
         // use generator name as a seed
         uint64_t var_hash = hash_64_fnv1a(root_->name.c_str(), root_->name.size()) << 32u;
@@ -235,12 +236,14 @@ public:
     }
 
     void visit(AssignStmt* stmt) override {
-        auto var = stmt->left()->to_string() + stmt->right()->to_string() + std::to_string(stmt->left()->width);
+        auto var = stmt->left()->to_string() + stmt->right()->to_string() +
+                   std::to_string(stmt->left()->width);
         uint64_t stmt_hash = hash_64_fnv1a(var.c_str(), var.size());
         // based on level
         stmt_hash = shift(stmt_hash, level);
         stmt_hashs_.emplace_back(stmt_hash);
     }
+
     void visit(IfStmt* stmt) override {
         // magic number comes from here https://stackoverflow.com/a/4948967
         // based on the requirements, warped shifting doesn't matter since it keeps
@@ -251,16 +254,19 @@ public:
         uint64_t hash = hash_64_fnv1a(var.c_str(), var.size()) << level;
         stmt_hashs_.emplace_back(if_signature ^ hash);
     }
+
     void visit(SwitchStmt* stmt) override {
         constexpr uint64_t switch_signature = shift_const(0x9e3779b97f4a7c16, 2);
         auto var = stmt->target()->to_string();
         uint64_t hash = hash_64_fnv1a(var.c_str(), var.size()) << level;
         stmt_hashs_.emplace_back(switch_signature ^ hash);
     }
+
     void visit(CombinationalStmtBlock*) override {
         constexpr uint64_t comb_signature = shift_const(0x9e3779b97f4a7c16, 3);
         stmt_hashs_.emplace_back(comb_signature << level);
     }
+
     void visit(SequentialStmtBlock* stmt) override {
         std::string cond;
         auto const& conditions = stmt->get_conditions();
@@ -274,6 +280,7 @@ public:
         constexpr uint64_t seq_signature = shift_const(0x9e3779b97f4a7c16, 3);
         stmt_hashs_.emplace_back(hash ^ seq_signature);
     }
+
     void visit(ModuleInstantiationStmt*) override { throw std::runtime_error("NOT IMPLEMENTED"); }
 
 private:
@@ -299,14 +306,13 @@ void hash_generator_src(Context* context, Generator* generator) {
     std::ifstream fs(filename);
 
     std::string content;
-    content.assign(std::istreambuf_iterator<char>(fs),
-        std::istreambuf_iterator<char>());
+    content.assign(std::istreambuf_iterator<char>(fs), std::istreambuf_iterator<char>());
     uint64_t hash = XXHash64::hash(content.c_str(), content.size(), 0);
     context->add_hash(generator, hash);
 }
 
 void hash_generator_name(Context* context, Generator* generator) {
-    auto const &name = generator->name;
+    auto const& name = generator->name;
     uint64_t hash = hash_64_fnv1a(name.c_str(), name.size());
     context->add_hash(generator, hash);
 }

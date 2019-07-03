@@ -195,7 +195,7 @@ bool Generator::has_child_generator(const std::shared_ptr<Generator> &child) {
 std::set<std::string> Generator::get_vars() {
     std::set<std::string> result;
     for (auto const &[name, ptr] : vars_) {
-        if (ptr->type() != VarType::PortIO) {
+        if (ptr->type() == VarType::Base) {
             result.emplace(name);
         }
     }

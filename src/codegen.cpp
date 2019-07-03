@@ -26,15 +26,21 @@ void VerilogModule::run_passes(bool run_if_to_case_pass, bool remove_passthrough
 
     if (run_fanout_one_pass) remove_fanout_one_wires(generator_);
 
+    decouple_generator_ports(generator_);
+
     // LOG_INFO << "Running pass:  remove_unused_vars";
     remove_unused_vars(generator_);
     verify_assignments(generator_);
     // LOG_INFO << "Running pass: verify_generator_connectivity";
     verify_generator_connectivity(generator_);
+
     check_mixed_assignment(generator_);
     // TODO:
     //  add decouple-wire
     //  add inline pass
+
+    hash_generators(generator_, HashStrategy::SequentialHash);
+
     // LOG_INFO << "Running pass: uniquify_generators";
     uniquify_generators(generator_);
     // LOG_INFO << "Running pass: uniquify_module_instances";

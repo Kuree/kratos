@@ -83,6 +83,11 @@ void init_util(py::module &m) {
 }
 
 template <typename T, typename K>
+void def_trace(T &class_) {
+    class_.def_readwrite("f_name", &K::f_name).def_readwrite("f_ln", &K::f_ln);
+}
+
+template <typename T, typename K>
 void init_common_expr(T &class_) {
     // see how available object overloads here: https://docs.python.org/3/reference/datamodel.html
     class_.def("__repr__", &K::to_string)
@@ -157,23 +162,29 @@ void init_var_derived(py::class_<T, std::shared_ptr<T>, Var> &class_) {
 void init_expr(py::module &m) {
     auto var = py::class_<Var, ::shared_ptr<Var>>(m, "Var");
     init_var_base(var);
+    def_trace<py::class_<Var, ::shared_ptr<Var>>, Var>(var);
 
     auto expr = py::class_<Expr, ::shared_ptr<Expr>, Var>(m, "Expr");
     init_var_derived(expr);
+    def_trace<py::class_<Expr, ::shared_ptr<Expr>, Var>, Expr>(expr);
 
     auto port = py::class_<Port, ::shared_ptr<Port>, Var>(m, "Port");
     init_var_derived(port);
     port.def("port_direction", &Port::port_direction).def("port_type", &Port::port_type);
+    def_trace<py::class_<Port, ::shared_ptr<Port>, Var>, Port>(port);
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
     init_var_derived(const_);
     const_.def("value", &Const::value).def("set_value", &Const::set_value);
+    def_trace<py::class_<Const, ::shared_ptr<Const>, Var>, Const>(const_);
 
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
     init_var_derived(slice);
+    def_trace<py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>, VarSlice>(slice);
 
     auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
     init_var_derived(concat);
+    def_trace<py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>, VarConcat>(concat);
 }
 
 void init_context(py::module &m) {
@@ -234,12 +245,14 @@ void init_generator(py::module &m) {
         .def("context", &Generator::context, py::return_value_policy::reference)
         .def_readwrite("instance_name", &Generator::instance_name)
         .def_readwrite("name", &Generator::name);
+
+    def_trace<py::class_<Generator, ::shared_ptr<Generator>>, Generator>(generator);
 }
 
 void init_stmt(py::module &m) {
-    py::class_<Stmt, ::shared_ptr<Stmt>>(m, "Stmt")
-        .def(py::init<StatementType>())
-        .def("type", &Stmt::type);
+    py::class_<Stmt, ::shared_ptr<Stmt>> stmt_(m, "Stmt");
+    stmt_.def(py::init<StatementType>()).def("type", &Stmt::type);
+    def_trace<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
 
     py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt>(m, "AssignStmt")
         .def("assign_type", &AssignStmt::assign_type)
