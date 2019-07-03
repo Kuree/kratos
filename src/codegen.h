@@ -28,26 +28,17 @@ class Stream : public std::stringstream {
 public:
     explicit Stream(Generator* generator, SystemVerilogCodeGen* codegen);
     Stream& operator<<(AssignStmt* stmt);
+    Stream& operator<<(const std::pair<Port*, std::string> &port);
 
     inline char endl() {
         line_no_++;
         return '\n';
     }
 
-    const inline std::map<AssignStmt*, std::vector<std::pair<std::string, uint32_t>>>&
-    stmt_mapping() const {
-        return stmt_mapping_;
-    }
-    const inline std::map<AssignStmt*, uint32_t>& verilog_mapping() const {
-        return verilog_mapping_;
-    }
-
 private:
     Generator* generator_;
     SystemVerilogCodeGen* codegen_;
     uint64_t line_no_;
-    std::map<AssignStmt*, std::vector<std::pair<std::string, uint32_t>>> stmt_mapping_;
-    std::map<AssignStmt*, uint32_t> verilog_mapping_;
 };
 
 class SystemVerilogCodeGen {
@@ -59,7 +50,8 @@ public:
 
     std::string indent();
 
-    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> stmt_mapping() const;
+    // helper function
+    std::string static get_port_str(Port* port);
 
 private:
     uint32_t indent_ = 0;
@@ -70,7 +62,6 @@ private:
     static std::string get_var_width_str(const Var* var);
     void generate_ports(Generator* generator);
     void generate_variables(Generator* generator);
-    std::string get_port_str(Port* port);
 
     void dispatch_node(ASTNode* node);
 
@@ -89,7 +80,7 @@ private:
     void stmt_code(SwitchStmt* stmt);
 
     template <typename Iter>
-    std::string join(Iter begin, Iter end, const std::string& sep) {
+    std::string static join(Iter begin, Iter end, const std::string& sep) {
         std::stringstream stream;
         for (auto it = begin; it != end; it++) {
             if (it != begin) stream << sep;

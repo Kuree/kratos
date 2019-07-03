@@ -202,8 +202,7 @@ public:
     }
 };
 
-std::pair<std::map<std::string, std::string>, std::map<std::string, DebugInfo>> generate_verilog(
-    Generator* top) {
+std::map<std::string, std::string> generate_verilog(Generator* top) {
     // this pass assumes that all the generators has been uniquified
     std::map<std::string, std::string> result;
     std::map<std::string, DebugInfo> debug_info;
@@ -213,12 +212,8 @@ std::pair<std::map<std::string, std::string>, std::map<std::string, DebugInfo>> 
     for (auto& [module_name, module_gen] : unique_visitor.generator_map) {
         SystemVerilogCodeGen codegen(module_gen);
         result.emplace(module_name, codegen.str());
-        if (module_gen->debug) {
-            auto info = codegen.stmt_mapping();
-            debug_info.emplace(module_name, info);
-        }
     }
-    return std::make_pair(result, debug_info);
+    return result;
 }
 
 void hash_generators(Generator* top, HashStrategy strategy) {
@@ -666,4 +661,52 @@ private:
 void remove_pass_through_modules(Generator* top) {
     RemovePassThroughVisitor visitor;
     visitor.visit_generator_root(top);
+}
+
+// this is only for visiting the vars and assignments in the current generator
+class DebugInfoVisitor : public ASTVisitor {
+public:
+    void visit(Var* var) override {
+        if (!var->fn_name_ln.empty() && var->verilog_ln != 0 &&
+            result.find(var->verilog_ln) == result.end()) {
+            result.emplace(var->verilog_ln, var->fn_name_ln);
+        }
+    }
+
+    void visit(AssignStmt* stmt) override {
+        if (!stmt->fn_name_ln.empty() && stmt->verilog_ln != 0) {
+            result.emplace(stmt->verilog_ln, stmt->fn_name_ln);
+        }
+    }
+
+    void visit(Port* var) override {
+        if (!var->fn_name_ln.empty() && var->verilog_ln != 0 &&
+            result.find(var->verilog_ln) == result.end()) {
+            result.emplace(var->verilog_ln, var->fn_name_ln);
+        }
+    }
+
+    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result;
+};
+
+class GeneratorDebugVisitor : public ASTVisitor {
+public:
+    void visit(Generator* generator) override {
+        if (result.find(generator->name) != result.end()) return;
+        if (!generator->fn_name_ln.empty()) {
+            DebugInfoVisitor visitor;
+            visitor.result.emplace(1, generator->fn_name_ln);
+            visitor.visit_content(generator);
+            result.emplace(generator->name, visitor.result);
+        }
+    }
+
+    std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>> result;
+};
+
+std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
+extract_debug_info(Generator* top) {
+    GeneratorDebugVisitor visitor;
+    visitor.visit_root(top);
+    return visitor.result;
 }

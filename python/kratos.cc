@@ -72,7 +72,8 @@ void init_pass(py::module &m) {
         .def("generate_verilog", &generate_verilog)
         .def("transform_if_to_case", &transform_if_to_case)
         .def("remove_fanout_one_wires", &remove_fanout_one_wires)
-        .def("remove_pass_through_modules", &remove_pass_through_modules);
+        .def("remove_pass_through_modules", &remove_pass_through_modules)
+        .def("extract_debug_info", &extract_debug_info);
 }
 
 // util submodule

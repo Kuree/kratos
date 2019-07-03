@@ -21,6 +21,11 @@ public:
 
     void set_port_type(PortType type);
 
+    // AST stuff
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    uint64_t child_count() override { return 0; }
+    ASTNode *get_child(uint64_t) override { return nullptr; }
+
 private:
     PortDirection direction_;
     PortType type_;

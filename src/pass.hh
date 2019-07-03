@@ -30,9 +30,10 @@ void uniquify_generators(Generator* top);
 
 void uniquify_module_instances(Generator* top);
 
-std::pair<std::map<std::string, std::string>,
-          std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>>
-generate_verilog(Generator* top);
+std::map<std::string, std::string> generate_verilog(Generator* top);
+
+std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
+extract_debug_info(Generator* top);
 
 // TODO: add following passes to improve the code efficiency
 //  1. check module hierarchy

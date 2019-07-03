@@ -17,8 +17,7 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
     const auto& left = stmt->left()->to_string();
     const auto& right = stmt->right()->to_string();
     if (generator_->debug) {
-        verilog_mapping_[stmt] = line_no_;
-        stmt_mapping_[stmt] = stmt->fn_name_ln;
+        stmt->verilog_ln = line_no_;
     }
 
     if (stmt->parent() == generator_) {
@@ -35,6 +34,17 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
         else
             throw ::runtime_error(::format("Undefined assignment for {0} <- {1}", left, right));
     }
+    return *this;
+}
+
+Stream& Stream::operator<<(const std::pair<Port*, std::string> &port) {
+    auto &[p, end] = port;
+    if (generator_->debug) {
+        p->verilog_ln = line_no_;
+    }
+
+    (*this) << codegen_->indent() << SystemVerilogCodeGen::get_port_str(p) << end << endl();
+
     return *this;
 }
 
@@ -75,7 +85,7 @@ void VerilogModule::run_passes(bool run_if_to_case_pass, bool remove_passthrough
     // LOG_INFO << "Running pass: create_module_instantiation";
     create_module_instantiation(generator_);
     // LOG_INFO << "Running pass: generate_verilog";
-    std::tie(verilog_src_, debug_info_) = generate_verilog(generator_);
+    verilog_src_ = generate_verilog(generator_);
 }
 
 SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
@@ -110,10 +120,7 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     for (uint32_t i = 0; i < port_names.size(); i++) {
         auto const& port_name = port_names[i];
         auto port = generator->get_port(port_name);
-        stream_ << indent()
-                << ::format("{0}{1}", get_port_str(port.get()),
-                            (i == port_names.size() - 1) ? "" : ",")
-                << stream_.endl();
+        stream_ << std::make_pair(port.get(), (i == port_names.size() - 1) ? "" : ",");
     }
     indent_--;
 }
@@ -327,16 +334,4 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     strs.emplace_back(port->name);
 
     return join(strs.begin(), strs.end(), " ");
-}
-
-std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>
-SystemVerilogCodeGen::stmt_mapping() const {
-    DebugInfo result;
-    auto stmts = stream_.stmt_mapping();
-    auto fn_lns = stream_.verilog_mapping();
-    for (const auto& [stmt, info] : stmts) {
-        auto const verilog_ln = fn_lns.at(stmt);
-        result.emplace(verilog_ln, info);
-    }
-    return result;
 }

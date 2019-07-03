@@ -24,6 +24,8 @@ public:
 
     std::vector<std::pair<std::string, uint32_t>> fn_name_ln;
 
+    uint32_t verilog_ln = 0;
+
 private:
     ASTNodeKind ast_node_type_;
 };
@@ -33,9 +35,12 @@ public:
     virtual void visit_root(ASTNode *root);
     // visit generators only
     virtual void visit_generator_root(Generator *generator);
+    // visit current scope only
+    virtual void visit_content(Generator *generator);
 
     // visit methods
     virtual inline void visit(Var *) {}
+    virtual inline void visit(Port *) {}
     virtual inline void visit(VarSlice *) {}
     virtual inline void visit(VarConcat *) {}
     virtual inline void visit(Expr *) {}

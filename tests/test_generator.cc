@@ -120,7 +120,7 @@ TEST(pass, verilog_code_gen) {  // NOLINT
     auto &port1 = mod1.port(PortDirection::In, "in", 1);
     auto &port2 = mod1.port(PortDirection::Out, "out", 1);
     mod1.add_stmt(port2.assign(port1, AssignmentType::Blocking).shared_from_this());
-    auto const &result = generate_verilog(&mod1).first;
+    auto const &result = generate_verilog(&mod1);
     EXPECT_EQ(result.size(), 1);
     EXPECT_TRUE(result.find("module1") != result.end());
     auto module_str = result.at("module1");
@@ -229,7 +229,7 @@ TEST(pass, verilog_instance) {  // NOLINT
     // lazy. just use this pass to fix the assignment type
     fix_assignment_type(&mod1);
     create_module_instantiation(&mod1);
-    auto const &result = generate_verilog(&mod1).first;
+    auto const &result = generate_verilog(&mod1);
     EXPECT_EQ(result.size(), 2);
     EXPECT_TRUE(result.find("module1") != result.end());
     auto module_str = result.at("module1") + "\n" + result.at("module2");
@@ -270,7 +270,7 @@ TEST(pass, if_case) {  // NOLINT
     EXPECT_EQ(switch_->body().size(), 2);
 
     fix_assignment_type(&mod);
-    auto result = generate_verilog(&mod).first;
+    auto result = generate_verilog(&mod);
     EXPECT_TRUE(result.find("module1") != result.end());
 }
 
@@ -299,7 +299,7 @@ TEST(pass, fanout) {  // NOLINT
     EXPECT_EQ(mod.get_var("b"), nullptr);
 
     fix_assignment_type(&mod);
-    auto mod_src = generate_verilog(&mod).first;
+    auto mod_src = generate_verilog(&mod);
     auto src = mod_src["module1"];
     EXPECT_TRUE(is_valid_verilog(src));
     EXPECT_TRUE(src.find('b') == std::string::npos);
@@ -359,7 +359,7 @@ TEST(pass, replace) {  // NOLINT
     EXPECT_EQ(mod1.get_child_generator_size(), 1);
     fix_assignment_type(&mod1);
     create_module_instantiation(&mod1);
-    auto mod_src = generate_verilog(&mod1).first;
+    auto mod_src = generate_verilog(&mod1);
     auto src = mod_src["module1"];
     EXPECT_TRUE(src.find("module2") == std::string::npos);
     EXPECT_TRUE(src.find("module3") != std::string::npos);
