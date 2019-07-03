@@ -180,6 +180,9 @@ public:
             if (!generator->should_child_inline(child.get())) {
                 // create instantiation statement
                 auto stmt = std::make_shared<ModuleInstantiationStmt>(child.get(), generator);
+                if (generator->debug) {
+                    stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                }
                 generator->add_stmt(stmt);
             }
         }
@@ -345,6 +348,12 @@ public:
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name = parent->get_unique_variable_name(generator->name, port_name);
                 auto& var = parent->var(new_name, port->width, port->is_signed);
+                if (parent->debug) {
+                    // need to copy over the changes over
+                    var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
+                        port->fn_name_ln.begin(), port->fn_name_ln.end());
+                    var.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                }
                 // replace all the sources
                 Var::move_src_to(port.get(), &var, parent, true);
             } else if (port_direction == PortDirection::Out) {
@@ -371,6 +380,12 @@ public:
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name = parent->get_unique_variable_name(generator->name, port_name);
                 auto& var = parent->var(new_name, port->width, port->is_signed);
+                if (parent->debug) {
+                    // need to copy over the changes over
+                    var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
+                        port->fn_name_ln.begin(), port->fn_name_ln.end());
+                    var.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                }
                 // replace all the sources
                 Var::move_sink_to(port.get(), &var, parent, true);
             } else {
@@ -514,6 +529,9 @@ private:
         // we assume that this is a valid case (see has_target_if)
         auto target = expr->left;
         std::shared_ptr<SwitchStmt> switch_ = std::make_shared<SwitchStmt>(target);
+        if (target->generator->debug) {
+            switch_->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+        }
 
         while (if_stmts.find(stmt) != if_stmts.end()) {
             auto condition = expr->right->as<Const>();
@@ -620,6 +638,12 @@ public:
                     auto next_port = (*(port->sinks().begin()))->left();
                     auto var_name = generator->get_unique_variable_name(generator->name, port_name);
                     auto& new_var = generator->var(var_name, port->width, port->is_signed);
+                    if (generator->debug) {
+                        // need to copy the changes over
+                        new_var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
+                            child->fn_name_ln.begin(), child->fn_name_ln.end());
+                        new_var.fn_name_ln.emplace_back(__FILE__, __LINE__);
+                    }
                     Var::move_src_to(port.get(), &new_var, generator, false);
                     // move the sinks over
                     Var::move_sink_to(next_port.get(), &new_var, generator, false);
@@ -666,27 +690,29 @@ void remove_pass_through_modules(Generator* top) {
 // this is only for visiting the vars and assignments in the current generator
 class DebugInfoVisitor : public ASTVisitor {
 public:
-    void visit(Var* var) override {
-        if (!var->fn_name_ln.empty() && var->verilog_ln != 0 &&
-            result.find(var->verilog_ln) == result.end()) {
-            result.emplace(var->verilog_ln, var->fn_name_ln);
-        }
-    }
+    void visit(Var* var) override { add_info(var); }
 
-    void visit(AssignStmt* stmt) override {
+    void inline visit(AssignStmt* stmt) override { add_info(stmt); }
+
+    void visit(Port* var) override { add_info(var); }
+
+    void visit(SwitchStmt* stmt) override { add_info(stmt); }
+
+    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result;
+
+private:
+    void inline add_info(Stmt* stmt) {
         if (!stmt->fn_name_ln.empty() && stmt->verilog_ln != 0) {
             result.emplace(stmt->verilog_ln, stmt->fn_name_ln);
         }
     }
 
-    void visit(Port* var) override {
+    void inline add_info(Var* var) {
         if (!var->fn_name_ln.empty() && var->verilog_ln != 0 &&
             result.find(var->verilog_ln) == result.end()) {
             result.emplace(var->verilog_ln, var->fn_name_ln);
         }
     }
-
-    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result;
 };
 
 class GeneratorDebugVisitor : public ASTVisitor {

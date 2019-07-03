@@ -419,6 +419,9 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
 
     for (auto &stmt : var->sources_) {
         stmt->set_left(new_var->shared_from_this());
+        if (parent->debug) {
+            stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+        }
         new_var->sources_.emplace(stmt);
     }
     // now clear the sources
@@ -432,6 +435,9 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
     if (keep_connection) {
         // create an assignment and add it to the parent
         auto &stmt = var->assign(new_var->shared_from_this());
+        if (parent->debug) {
+            stmt.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+        }
         parent->add_stmt(stmt.shared_from_this());
     }
 }
@@ -443,6 +449,9 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
 
     for (auto &stmt : var->sinks_) {
         stmt_set_right(stmt.get(), var, new_var);
+        if (parent->debug) {
+            stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+        }
         new_var->sinks_.emplace(stmt);
     }
     // now clear the sinks
@@ -456,6 +465,9 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
     if (keep_connection) {
         // create an assignment and add it to the parent
         auto &stmt = new_var->assign(var->shared_from_this());
+        if (parent->debug) {
+            stmt.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+        }
         parent->add_stmt(stmt.shared_from_this());
     }
 }
