@@ -6,10 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 # turn every warnings on
 set(CMAKE_CXX_FLAGS "-Wall -g -Wextra -Werror -fPIC")
 
-set(SLANG_EXCLUDE_TESTS ON)
 # extern
 add_subdirectory(extern/googletest/)
-add_subdirectory(extern/slang)
+add_subdirectory(extern/slang EXCLUDE_FROM_ALL)
 add_subdirectory(extern/pybind11)
 add_subdirectory(extern/NanoLog)
 

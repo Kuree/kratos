@@ -37,10 +37,12 @@ TEST(stmt, if_stmt) {  // NOLINT
     auto &var3 = mod.var("c", 4);
     auto &var4 = mod.var("d", 4);
     auto if_ = IfStmt(var1.eq(var2));
-    if_.add_then_stmt(var1.assign(var2));
-    if_.add_else_stmt(var3.assign(var4));
-    EXPECT_EQ(if_.then_body().back(), var1.assign(var2).shared_from_this());
-    EXPECT_EQ(if_.else_body().back(), var3.assign(var4).shared_from_this());
+    auto &stmt1 = var1.assign(var2);
+    if_.add_then_stmt(stmt1);
+    auto &stmt2 = var3.assign(var4);
+    if_.add_else_stmt(stmt2);
+    EXPECT_EQ(if_.then_body().back(), stmt1.shared_from_this());
+    EXPECT_EQ(if_.else_body().back(), stmt2.shared_from_this());
 }
 
 TEST(stmt, block) {  // NOLINT
@@ -56,10 +58,11 @@ TEST(stmt, block) {  // NOLINT
     seq_block.add_statement(var1.assign(var2));
     // error checking
     EXPECT_ANY_THROW(seq_block.add_statement(var1.assign(var2, AssignmentType::Blocking)));
-    EXPECT_ANY_THROW(seq_block.add_statement(var3.assign(var4, AssignmentType::Blocking)));
+    auto &stmt = var3.assign(var4, AssignmentType::Blocking);
+    EXPECT_ANY_THROW(seq_block.add_statement(stmt));
     auto comb_block = CombinationalStmtBlock();
     comb_block.add_statement(var3.assign(var4));
-    EXPECT_EQ(var3.assign(var4).assign_type(), AssignmentType::Blocking);
+    EXPECT_EQ(stmt.assign_type(), AssignmentType::Blocking);
     EXPECT_NO_THROW(seq_block.add_condition({BlockEdgeType::Posedge, clk.shared_from_this()}));
     EXPECT_ANY_THROW(seq_block.add_condition({BlockEdgeType::Negedge, var1.shared_from_this()}));
     EXPECT_EQ(seq_block.get_conditions().size(), 1);
@@ -76,11 +79,12 @@ TEST(stmt, switch_) {  // NOLINT
     auto switch_block = SwitchStmt(var1.shared_from_this());
     auto &condition1 = mod.constant(0, 3);
     auto &condition2 = mod.constant(1, 3);
-    switch_block.add_switch_case(condition1.as<Const>(), var1.assign(var2).shared_from_this());
+    auto &stmt = var1.assign(var2);
+    switch_block.add_switch_case(condition1.as<Const>(), stmt.shared_from_this());
     switch_block.add_switch_case(condition2.as<Const>(), var3.assign(var4).shared_from_this());
 
     EXPECT_EQ(switch_block.body().size(), 2);
     EXPECT_EQ(switch_block.target(), var1.shared_from_this());
     EXPECT_ANY_THROW(
-        switch_block.add_switch_case(condition1.as<Const>(), var1.assign(var2).shared_from_this()));
+        switch_block.add_switch_case(condition1.as<Const>(), stmt.shared_from_this()));
 }

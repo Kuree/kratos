@@ -251,10 +251,8 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     return *stmt;
 }
 
-void Var::unassign(const std::shared_ptr<Var> &var) {
-    // FIXME make it more efficient
-    auto stmt = assign(var).shared_from_this()->as<AssignStmt>();
-    var->sinks_.erase(stmt);
+void Var::unassign(const std::shared_ptr<AssignStmt> &stmt) {
+    stmt->right()->sinks_.erase(stmt);
     sources_.erase(stmt);
     // erase from parent if any
     generator->remove_stmt(stmt);

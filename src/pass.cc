@@ -553,18 +553,18 @@ public:
         auto var_names = generator->get_all_var_names();
         for (auto const& var_name : var_names) {
             auto var = generator->get_var(var_name);
-            std::vector<std::shared_ptr<Var>> chain;
+            std::vector<std::pair<std::shared_ptr<Var>, std::shared_ptr<AssignStmt>>> chain;
             compute_assign_chain(var, chain);
             if (chain.size() <= 2) continue;  // nothing to be done
 
             for (uint32_t i = 0; i < chain.size() - 1; i++) {
-                auto pre = chain[i];
-                auto next = chain[i + 1];
+                auto& [pre, stmt] = chain[i];
+                auto next = chain[i + 1].first;
 
-                next->unassign(pre);
+                next->unassign(stmt);
             }
 
-            auto dst = chain.back();
+            auto dst = chain.back().first;
             Var::move_src_to(var.get(), dst.get(), generator, false);
             // if both of them are ports, we need to add a statement
             if (var->type() == VarType::PortIO && dst->type() == VarType::PortIO) {
@@ -574,8 +574,9 @@ public:
         }
     }
 
-    void static compute_assign_chain(const std::shared_ptr<Var>& var,
-                                     std::vector<std::shared_ptr<Var>>& queue) {
+    void static compute_assign_chain(
+        const std::shared_ptr<Var>& var,
+        std::vector<std::pair<std::shared_ptr<Var>, std::shared_ptr<AssignStmt>>>& queue) {
         if (var->sinks().size() == 1) {
             // we don't care about slices for now
             if (!var->get_slices().empty()) return;
@@ -586,11 +587,11 @@ public:
                     // not the same parent
                     return;
                 }
-                queue.emplace_back(var);
+                queue.emplace_back(std::make_pair(var, stmt));
                 compute_assign_chain(sink_var, queue);
             }
         } else {
-            queue.emplace_back(var);
+            queue.emplace_back(std::make_pair(var, nullptr));
         }
     }
 };

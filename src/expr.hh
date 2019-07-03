@@ -86,7 +86,7 @@ public:
     AssignStmt &assign(Var &var);
     virtual AssignStmt &assign(const std::shared_ptr<Var> &var, AssignmentType type);
     AssignStmt &assign(Var &var, AssignmentType type);
-    void unassign(const std::shared_ptr<Var> &var);
+    void unassign(const std::shared_ptr<AssignStmt> &stmt);
 
     Generator *generator;
     ASTNode *parent() override;
@@ -116,9 +116,9 @@ public:
     ASTNode *get_child(uint64_t) override { return nullptr; }
 
     Var(const Var& var) = delete;
+    Var() = delete;
 
 protected:
-    Var() = delete;
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
     std::unordered_set<std::shared_ptr<AssignStmt>> sources_;
 

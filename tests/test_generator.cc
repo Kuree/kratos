@@ -51,7 +51,7 @@ TEST(generator, remove_stmt) {  // NOLINT
     auto stmt = a.assign(b).shared_from_this();
     mod.add_stmt(stmt);
     EXPECT_EQ(mod.get_stmt(0), stmt);
-    mod.remove_stmt(a.assign(b).shared_from_this());
+    mod.remove_stmt(stmt);
     EXPECT_EQ(mod.get_stmt(0), nullptr);
 }
 
