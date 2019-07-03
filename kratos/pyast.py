@@ -3,6 +3,7 @@ import textwrap
 import inspect
 import astor
 import _kratos
+import os
 
 
 class IfNodeVisitor(ast.NodeTransformer):
@@ -138,7 +139,7 @@ class Scope:
         stmt = a.assign(b)
         if self.filename:
             assert f_ln is not None
-            stmt.fn_name_ln.append((self.filename, f_ln + self.ln - 1))
+            stmt.add_fn_ln((self.filename, f_ln + self.ln - 1))
         self.stmt_list.append(stmt)
         return stmt
 
@@ -232,6 +233,7 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
 def get_fn_ln(depth: int = 2):
     frame = inspect.stack()[depth]
     filename = frame.filename
+    filename = os.path.abspath(filename)
     ln = frame.lineno
     return filename, ln
 

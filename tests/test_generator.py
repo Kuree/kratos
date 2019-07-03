@@ -279,11 +279,31 @@ def test_fanout_mod_inst():
 def test_debug():
     class Mod1(Generator):
         def __init__(self):
-            super().__init__("mod1")
+            super().__init__("mod1", True)
             self.in_ = self.port("in", 1, PortDirection.In)
             self.out_ = self.port("out", 2, PortDirection.Out)
             self.wire(self.out_[0], self.in_)
 
+            self.add_code(self.code)
+
+        def code(self):
+            self.out_[1] = self.in_
+
+    mod = Mod1()
+    mod_src, mod_debug = verilog(mod)
+    src_mapping = mod_debug["mod1"]
+    assert len(src_mapping) == 2
+    verilog_lines = mod_src["mod1"].split("\n")
+    verilog_ln = 0
+    for ln, line in enumerate(verilog_lines):
+        if "out[1:1] = in" in line:
+            verilog_ln = ln + 1
+            break
+    fn, ln = src_mapping[verilog_ln][0]
+    with open(fn) as f:
+        python_lns = f.readlines()
+    assert "self.out_[1] = self.in_" in python_lns[ln - 1]
+
 
 if __name__ == "__main__":
-    test_for_loop()
+    test_debug()

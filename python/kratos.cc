@@ -84,7 +84,9 @@ void init_util(py::module &m) {
 
 template <typename T, typename K>
 void def_trace(T &class_) {
-    class_.def_readwrite("fn_name_ln", &K::fn_name_ln);
+    class_.def("add_fn_ln", [](K &var, const std::pair<std::string, uint32_t> &info) {
+        var.fn_name_ln.emplace_back(info);
+    });
 }
 
 template <typename T, typename K>
@@ -153,7 +155,7 @@ template <typename T>
 void init_var_derived(py::class_<T, std::shared_ptr<T>, Var> &class_) {
     init_common_expr<py::class_<T, std::shared_ptr<T>, Var>, T>(class_);
     class_.def("assign",
-               [](const std::shared_ptr<Var> var_to, const std::shared_ptr<T> var_from,
+               [](const std::shared_ptr<T> &var_to, const std::shared_ptr<Var> &var_from,
                   AssignmentType type) -> auto & { return var_to->assign(var_from, type); },
                py::return_value_policy::reference);
 }

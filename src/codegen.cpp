@@ -11,7 +11,7 @@ using fmt::format;
 using std::runtime_error;
 
 Stream::Stream(Generator* generator, SystemVerilogCodeGen* codegen)
-    : generator_(generator), codegen_(codegen), line_no_(0) {}
+    : generator_(generator), codegen_(codegen), line_no_(1) {}
 
 Stream& Stream::operator<<(AssignStmt* stmt) {
     const auto& left = stmt->left()->to_string();

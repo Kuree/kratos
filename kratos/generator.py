@@ -76,8 +76,7 @@ class Generator:
 
         if debug:
             fn, ln = get_fn_ln(Generator.__inspect_frame_depth)
-            self.__generator.f_name.append(fn)
-            self.__generator.f_ln.append(ln)
+            self.__generator.add_fn_ln((fn, ln))
 
     def __getitem__(self, instance_name: str):
         assert instance_name in self.__child_generator, \
@@ -140,7 +139,7 @@ class Generator:
         v = self.__generator.var(name, width, is_signed)
         if self.debug:
             fn, ln = get_fn_ln()
-            v.fn_name_ln.append((fn, ln))
+            v.add_fn_ln((fn, ln))
         return v
 
     def port(self, name: str, width: int, direction: PortDirection,
@@ -150,7 +149,7 @@ class Generator:
                                   port_type.value, is_signed)
         if self.debug:
             fn, ln = get_fn_ln()
-            p.fn_name_ln.append((fn, ln))
+            p.add_fn_ln((fn, ln))
         return p
 
     def get_var(self, name):
@@ -196,8 +195,8 @@ class Generator:
             stmt = self.__assign(var_to, var_from)
 
         if self.debug:
-            fn, ln = get_fn_ln(1)
-            stmt.fn_name_ln.append((fn, ln))
+            fn, ln = get_fn_ln(2)
+            stmt.add_fn_ln((fn, ln))
 
     def add_stmt(self, stmt):
         self.__generator.add_stmt(stmt)
