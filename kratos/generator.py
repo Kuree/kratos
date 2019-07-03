@@ -65,15 +65,17 @@ class CombinationalCodeBlock(CodeBlock):
 
 class Generator:
     __context = _kratos.Context()
+    __inspect_frame_depth: int = 2
 
     def __init__(self, name: str, debug: bool = False,
-                 inspect_frame_depth: int = 2):
+                 ):
         self.__generator = self.__context.generator(name)
         self.__child_generator: Dict[str, Generator] = {}
 
         self.debug = debug
+
         if debug:
-            fn, ln = get_fn_ln(inspect_frame_depth)
+            fn, ln = get_fn_ln(Generator.__inspect_frame_depth)
             self.__generator.f_name.append(fn)
             self.__generator.f_ln.append(ln)
 
@@ -125,13 +127,20 @@ class Generator:
     def external(self, value: bool):
         self.__generator.set_external(value)
 
+    @property
+    def debug(self):
+        return self.__generator.debug
+
+    @debug.setter
+    def debug(self, value):
+        self.__generator.debug = value
+
     def var(self, name: str, width: int,
             is_signed: bool = False) -> _kratos.Var:
         v = self.__generator.var(name, width, is_signed)
         if self.debug:
             fn, ln = get_fn_ln()
-            v.f_name.append(fn)
-            v.f_ln.append(ln)
+            v.fn_name_ln.append((fn, ln))
         return v
 
     def port(self, name: str, width: int, direction: PortDirection,
@@ -141,8 +150,7 @@ class Generator:
                                   port_type.value, is_signed)
         if self.debug:
             fn, ln = get_fn_ln()
-            p.f_name.append(fn)
-            p.f_ln.append(ln)
+            p.fn_name_ln.append((fn, ln))
         return p
 
     def get_var(self, name):
@@ -173,7 +181,9 @@ class Generator:
                 seq.add_stmt(stmt)
 
     def __assign(self, var_from, var_to):
-        self.add_stmt(var_from.assign(var_to, _kratos.AssignmentType.Blocking))
+        stmt = var_from.assign(var_to, _kratos.AssignmentType.Blocking)
+        self.add_stmt(stmt)
+        return stmt
 
     def wire(self, var_to, var_from):
         # this is a top level direct wire assignment
@@ -181,9 +191,13 @@ class Generator:
         # both of them are ports
         if isinstance(var_to, _kratos.Port) and isinstance(var_from,
                                                            _kratos.Port):
-            self.__generator.wire_ports(var_to, var_from)
+            stmt = self.__generator.wire_ports(var_to, var_from)
         else:
-            self.__assign(var_to, var_from)
+            stmt = self.__assign(var_to, var_from)
+
+        if self.debug:
+            fn, ln = get_fn_ln(1)
+            stmt.fn_name_ln.append((fn, ln))
 
     def add_stmt(self, stmt):
         self.__generator.add_stmt(stmt)
@@ -202,7 +216,7 @@ class Generator:
     @staticmethod
     def from_verilog(top_name: str, src_file: str, lib_files: List[str],
                      port_mapping: Dict[str, PortType]):
-        g = Generator("", inspect_frame_depth=3)
+        g = Generator("")
         _port_mapping = {}
         for name, _type in port_mapping.items():
             _port_mapping[name] = _type.value
@@ -242,4 +256,9 @@ def verilog(generator: Generator, optimize_if: bool = True,
             optimize_fanout: bool = True):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     code_gen.run_passes(optimize_if, optimize_passthrough, optimize_fanout)
-    return code_gen.verilog_src()
+    src = code_gen.verilog_src()
+    debug = code_gen.debug_info()
+    if len(debug) > 0:
+        return src, debug
+    else:
+        return src

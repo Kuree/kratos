@@ -276,5 +276,14 @@ def test_fanout_mod_inst():
     assert is_valid_verilog(src)
 
 
+def test_debug():
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1")
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 2, PortDirection.Out)
+            self.wire(self.out_[0], self.in_)
+
+
 if __name__ == "__main__":
-    test_nested_if()
+    test_for_loop()

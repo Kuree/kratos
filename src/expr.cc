@@ -234,42 +234,20 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
         throw ::runtime_error(::format("Cannot assign {0} to an expression", var->name, name));
     auto const &stmt = ::make_shared<AssignStmt>(shared_from_this(), var, type);
     // determine the type
-    AssignmentType self_type = AssignmentType::Undefined;
-    for (auto const &sink : sinks_) {
-        if (sink->assign_type() != AssignmentType::Undefined) {
-            self_type = sink->assign_type();
-            break;
-        }
-    }
-    // this is effectively an SSA implementation here
-    for (auto &exist_stmt : var->sinks_) {
-        if (exist_stmt->equal(stmt)) {
-            // check if the assign statement type match
-            if (exist_stmt->assign_type() == AssignmentType::Undefined &&
-                type == AssignmentType::Blocking)
-                exist_stmt->set_assign_type(type);
-            else if (exist_stmt->assign_type() == AssignmentType::Undefined &&
-                     type == AssignmentType::NonBlocking)
-                exist_stmt->set_assign_type(type);
-            else if (type != AssignmentType::Undefined && exist_stmt->assign_type() != type)
-                throw ::runtime_error("Assignment type mismatch with existing one");
-            return *exist_stmt;
+    if (type != AssignmentType::Undefined) {
+        for (auto const &src : sources_) {
+            auto src_type = src->assign_type();
+            if (src_type != AssignmentType ::Undefined && type != src_type) {
+                throw ::runtime_error(
+                    ::format("{0}'s assignment type ({1}) does not match existing {2}", to_string(),
+                             assign_type_to_str(type), assign_type_to_str(src_type)));
+            }
         }
     }
     // push the stmt into its sources
     var->add_sink(stmt);
     add_source(stmt);
-    if (self_type == AssignmentType::Undefined) self_type = type;
-    // check if the assignment match existing ones. if existing ones are unknown
-    // assign them
-    for (auto const &sink : var->sinks_) {
-        if (sink->assign_type() == AssignmentType::Undefined)
-            sink->set_assign_type(self_type);
-        else if (sink->assign_type() != self_type)
-            throw ::runtime_error(::format(
-                "{0}'s assignment type ({1}) does not match with {2}'s {3}", var->name,
-                assign_type_to_str(sink->assign_type()), name, assign_type_to_str(self_type)));
-    }
+
     return *stmt;
 }
 
@@ -414,10 +392,8 @@ void change_var_expr(std::shared_ptr<Expr> expr, Var *target, Var *new_var) {
         expr = expr->right->as<Expr>();
         change_var_expr(expr, target, new_var);
     } else {
-        if (expr->left.get() == target)
-            expr->left = new_var->shared_from_this();
-        if (expr->right && expr->right.get() == target)
-            expr->right = new_var->shared_from_this();
+        if (expr->left.get() == target) expr->left = new_var->shared_from_this();
+        if (expr->right && expr->right.get() == target) expr->right = new_var->shared_from_this();
     }
 }
 
@@ -431,8 +407,7 @@ void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
             throw ::runtime_error("target not found");
     } else if (right->type() == VarType::Slice) {
         auto slice = right->as<VarSlice>();
-        if (slice->parent_var != target)
-            throw ::runtime_error("target not found");
+        if (slice->parent_var != target) throw ::runtime_error("target not found");
         slice->set_parent(new_var);
     } else if (right->type() == VarType::Expression) {
         change_var_expr(stmt->right()->as<Expr>(), target, new_var);
@@ -489,6 +464,5 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
 
 void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     left->add_sink(stmt);
-    if (right)
-        right->add_sink(stmt);
+    if (right) right->add_sink(stmt);
 }

@@ -22,8 +22,7 @@ public:
     virtual ASTNode *parent() { return nullptr; }
     ASTNodeKind ast_node_kind() { return ast_node_type_; }
 
-    std::vector<std::string> f_name;
-    std::vector<uint32_t> f_ln;
+    std::vector<std::pair<std::string, uint32_t>> fn_name_ln;
 
 private:
     ASTNodeKind ast_node_type_;

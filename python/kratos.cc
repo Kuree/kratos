@@ -84,7 +84,7 @@ void init_util(py::module &m) {
 
 template <typename T, typename K>
 void def_trace(T &class_) {
-    class_.def_readwrite("f_name", &K::f_name).def_readwrite("f_ln", &K::f_ln);
+    class_.def_readwrite("fn_name_ln", &K::fn_name_ln);
 }
 
 template <typename T, typename K>
@@ -244,7 +244,8 @@ void init_generator(py::module &m) {
         .def("get_unique_variable_name", &Generator::get_unique_variable_name)
         .def("context", &Generator::context, py::return_value_policy::reference)
         .def_readwrite("instance_name", &Generator::instance_name)
-        .def_readwrite("name", &Generator::name);
+        .def_readwrite("name", &Generator::name)
+        .def_readwrite("debug", &Generator::debug);
 
     def_trace<py::class_<Generator, ::shared_ptr<Generator>>, Generator>(generator);
 }
@@ -306,7 +307,8 @@ void init_code_gen(py::module &m) {
     py::class_<VerilogModule>(m, "VerilogModule")
         .def(py::init<Generator *>())
         .def("verilog_src", &VerilogModule::verilog_src)
-        .def("run_passes", &VerilogModule::run_passes);
+        .def("run_passes", &VerilogModule::run_passes)
+        .def("debug_info", &VerilogModule::debug_info);
 }
 
 PYBIND11_MODULE(_kratos, m) {

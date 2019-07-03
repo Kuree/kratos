@@ -138,8 +138,7 @@ class Scope:
         stmt = a.assign(b)
         if self.filename:
             assert f_ln is not None
-            stmt.f_name.append(self.filename)
-            stmt.f_ln.append(f_ln + self.ln - 1)
+            stmt.fn_name_ln.append((self.filename, f_ln + self.ln - 1))
         self.stmt_list.append(stmt)
         return stmt
 

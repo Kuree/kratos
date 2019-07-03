@@ -341,30 +341,32 @@ void inline check_direction(const std::shared_ptr<Port> &port1, const std::share
     }
 }
 
-void Generator::wire_ports(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &port2) {
+std::shared_ptr<Stmt> Generator::wire_ports(std::shared_ptr<Port> &port1,
+                                            std::shared_ptr<Port> &port2) {
     auto parent1 = port1->generator;
     auto parent2 = port2->generator;
+    std::shared_ptr<Stmt> stmt;
     if (parent1 == parent2 && parent1 == this) {
         // it's the same module
         check_direction(port1, port2);
         if (port1->port_direction() == PortDirection::In) {
-            add_stmt(port2->assign(port1).shared_from_this());
+            stmt = port2->assign(port1).shared_from_this();
         } else {
-            add_stmt(port1->assign(port2).shared_from_this());
+            stmt = port1->assign(port2).shared_from_this();
         }
     } else {
         if (parent1 == this && has_child_generator(parent2->shared_from_this())) {
             check_direction(port1, port2, true);
             if (port1->port_direction() == PortDirection::In)
-                add_stmt(port2->assign(port1).shared_from_this());
+                stmt = port2->assign(port1).shared_from_this();
             else
-                add_stmt(port1->assign(port2).shared_from_this());
+                stmt = port1->assign(port2).shared_from_this();
         } else if (parent2 == this && has_child_generator(parent1->shared_from_this())) {
             check_direction(port1, port2, true);
             if (port1->port_direction() == PortDirection::In)
-                add_stmt(port1->assign(port2).shared_from_this());
+                stmt = port1->assign(port2).shared_from_this();
             else
-                add_stmt(port2->assign(port1).shared_from_this());
+                stmt = port2->assign(port1).shared_from_this();
         } else {
             throw ::runtime_error(
                 ::format("Cannot wire {0} and {1}. Please make sure they belong to the same module "
@@ -372,4 +374,7 @@ void Generator::wire_ports(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &
                          port1->to_string(), port2->to_string()));
         }
     }
+
+    add_stmt(stmt);
+    return stmt;
 }

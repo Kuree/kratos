@@ -202,17 +202,23 @@ public:
     }
 };
 
-std::map<std::string, std::string> generate_verilog(Generator* top) {
+std::pair<std::map<std::string, std::string>, std::map<std::string, DebugInfo>> generate_verilog(
+    Generator* top) {
     // this pass assumes that all the generators has been uniquified
     std::map<std::string, std::string> result;
+    std::map<std::string, DebugInfo> debug_info;
     // first get all the unique generators
     UniqueGeneratorVisitor unique_visitor;
     unique_visitor.visit_generator_root(top);
     for (auto& [module_name, module_gen] : unique_visitor.generator_map) {
         SystemVerilogCodeGen codegen(module_gen);
         result.emplace(module_name, codegen.str());
+        if (module_gen->debug) {
+            auto info = codegen.stmt_mapping();
+            debug_info.emplace(module_name, info);
+        }
     }
-    return result;
+    return std::make_pair(result, debug_info);
 }
 
 void hash_generators(Generator* top, HashStrategy strategy) {
