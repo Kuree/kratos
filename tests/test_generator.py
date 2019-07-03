@@ -277,4 +277,4 @@ def test_fanout_mod_inst():
 
 
 if __name__ == "__main__":
-    test_fanout_mod_inst()
+    test_nested_if()

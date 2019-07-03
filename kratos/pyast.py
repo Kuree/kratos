@@ -66,28 +66,42 @@ class IfNodeVisitor(ast.NodeTransformer):
 
 
 class AssignNodeVisitor(ast.NodeTransformer):
-    def __init__(self, generator):
+    def __init__(self, generator, debug):
         super().__init__()
         self.generator = generator
+        self.debug = debug
 
     def visit_Assign(self, node):
         if len(node.targets) > 1:
             raise Exception("tuple unpacking not allowed. got " +
                             astor.to_source(node))
-        return ast.Expr(
-            value=ast.Call(func=ast.Attribute(value=ast.Name(id="scope",
-                                                             ctx=ast.Load()),
-                                              attr="assign",
-                                              cts=ast.Load()),
-                           args=node.targets + [node.value],
-                           keywords=[]))
+        if self.debug:
+            return ast.Expr(
+                value=ast.Call(func=ast.Attribute(
+                    value=ast.Name(id="scope",
+                                   ctx=ast.Load()),
+                    attr="assign",
+                    cts=ast.Load()),
+                    args=node.targets + [node.value, ast.Num(n=node.lineno)],
+                    keywords=[]))
+        else:
+            return ast.Expr(
+                value=ast.Call(func=ast.Attribute(
+                    value=ast.Name(id="scope",
+                                   ctx=ast.Load()),
+                    attr="assign",
+                    cts=ast.Load()),
+                    args=node.targets + [node.value],
+                    keywords=[]))
 
 
 class Scope:
-    def __init__(self, generator):
+    def __init__(self, generator, filename, ln):
         self.stmt_list = []
         self.nested_stmts = set()
         self.generator = generator
+        self.filename = filename
+        self.ln = ln
 
     def if_(self, target, *args):
         class IfStatement:
@@ -116,12 +130,16 @@ class Scope:
         self.stmt_list.append(if_stmt)
         return if_stmt
 
-    def assign(self, a, b, f_name="", f_ln=""):
+    def assign(self, a, b, f_ln=None):
         assert isinstance(a, _kratos.Var)
         if isinstance(b, int):
             # we need to convert b into an integer
             b = self.generator.const(b, a.width, a.signed)
         stmt = a.assign(b)
+        if self.filename:
+            assert f_ln is not None
+            stmt.f_name.append(self.filename)
+            stmt.f_ln.append(f_ln + self.ln - 1)
         self.stmt_list.append(stmt)
         return stmt
 
@@ -135,7 +153,7 @@ class Scope:
         return self.stmt_list
 
 
-def transform_stmt_block(generator, fn):
+def transform_stmt_block(generator, fn, debug=False):
     fn_src = inspect.getsource(fn)
     fn_name = fn.__name__
     func_tree = ast.parse(textwrap.dedent(fn_src))
@@ -153,7 +171,7 @@ def transform_stmt_block(generator, fn):
     args.append(ast.arg(arg="scope", annotation=None))
 
     # transform assign
-    assign_visitor = AssignNodeVisitor(generator)
+    assign_visitor = AssignNodeVisitor(generator, debug)
     fn_body = assign_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
 
@@ -174,7 +192,15 @@ def transform_stmt_block(generator, fn):
     src = astor.to_source(func_tree)
     code_obj = compile(src, "<ast>", "exec")
     # transform the statement list
-    scope = Scope(generator)
+    # if in debug mode, we trace the filename
+    if debug:
+        filename, _ = get_fn_ln(3)
+        ln = get_ln(fn)
+    else:
+        filename = ""
+        ln = 0
+    # notice that this ln is an offset
+    scope = Scope(generator, filename, ln)
     exec(code_obj, {"_self": generator, "_scope": scope})
     stmts = scope.statements()
     return sensitivity, stmts
@@ -204,6 +230,13 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         return result
 
 
-def get_fn_ln():
-    frame = inspect.getframeinfo()
+def get_fn_ln(depth: int = 2):
+    frame = inspect.stack()[depth]
+    filename = frame.filename
+    ln = frame.lineno
+    return filename, ln
 
+
+def get_ln(fn):
+    info = inspect.getsourcelines(fn)
+    return info[1]

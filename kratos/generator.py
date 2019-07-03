@@ -1,5 +1,5 @@
 import enum
-from .pyast import transform_stmt_block
+from .pyast import transform_stmt_block, get_fn_ln
 import _kratos
 from typing import List, Dict
 
@@ -66,11 +66,16 @@ class CombinationalCodeBlock(CodeBlock):
 class Generator:
     __context = _kratos.Context()
 
-    def __init__(self, name: str, debug: bool = False):
+    def __init__(self, name: str, debug: bool = False,
+                 inspect_frame_depth: int = 2):
         self.__generator = self.__context.generator(name)
         self.__child_generator: Dict[str, Generator] = {}
 
-        self.__debug = debug
+        self.debug = debug
+        if debug:
+            fn, ln = get_fn_ln(inspect_frame_depth)
+            self.__generator.f_name.append(fn)
+            self.__generator.f_ln.append(ln)
 
     def __getitem__(self, instance_name: str):
         assert instance_name in self.__child_generator, \
@@ -87,10 +92,6 @@ class Generator:
         self.__child_generator[instance_name] = generator
         self.__generator.add_child_generator(generator.__generator,
                                              False)
-
-    @property
-    def debug(self):
-        return self.__debug
 
     @property
     def name(self):
@@ -126,13 +127,23 @@ class Generator:
 
     def var(self, name: str, width: int,
             is_signed: bool = False) -> _kratos.Var:
-        return self.__generator.var(name, width, is_signed)
+        v = self.__generator.var(name, width, is_signed)
+        if self.debug:
+            fn, ln = get_fn_ln()
+            v.f_name.append(fn)
+            v.f_ln.append(ln)
+        return v
 
     def port(self, name: str, width: int, direction: PortDirection,
              port_type: PortType = PortType.Data,
              is_signed: bool = False) -> _kratos.Port:
-        return self.__generator.port(direction.value, name, width,
-                                     port_type.value, is_signed)
+        p = self.__generator.port(direction.value, name, width,
+                                  port_type.value, is_signed)
+        if self.debug:
+            fn, ln = get_fn_ln()
+            p.f_name.append(fn)
+            p.f_ln.append(ln)
+        return p
 
     def get_var(self, name):
         return self.__generator.get_var(name)
@@ -145,7 +156,7 @@ class Generator:
         return self.__generator
 
     def add_code(self, fn):
-        raw_sensitives, stmts = transform_stmt_block(self, fn)
+        raw_sensitives, stmts = transform_stmt_block(self, fn, self.debug)
         if len(raw_sensitives) == 0:
             # it's a combinational block
             comb = CombinationalCodeBlock(self)
@@ -191,7 +202,7 @@ class Generator:
     @staticmethod
     def from_verilog(top_name: str, src_file: str, lib_files: List[str],
                      port_mapping: Dict[str, PortType]):
-        g = Generator("")
+        g = Generator("", inspect_frame_depth=3)
         _port_mapping = {}
         for name, _type in port_mapping.items():
             _port_mapping[name] = _type.value
