@@ -5,18 +5,65 @@ import astor
 import _kratos
 import os
 from .util import print_src
+import copy
 
 
-# illegal syntax checker
-class IllegalSyntaxVisitor(ast.NodeVisitor):
-    def __init__(self, fn_src, if_lineno):
+class ForNodeVisitor(ast.NodeTransformer):
+
+    class NameVisitor(ast.NodeTransformer):
+        def __init__(self, target, value):
+            self.target = target
+            self.value = value
+
+        def visit_Name(self, node):
+            if node.id == self.target.id:
+                if isinstance(self.value, int):
+                    return ast.Num(n=self.value, lineno=node.lineno)
+                else:
+                    return ast.Str(s=self.value, lineno=node.lineno)
+            return node
+
+    def __init__(self, generator, fn_src):
+        super().__init__()
+        self.generator = generator
         self.fn_src = fn_src
-        self.if_lineno = if_lineno
 
     def visit_For(self, node: ast.For):
-        print_src(self.fn_src, [self.if_lineno, node.lineno])
-        raise SyntaxError("Illegal Syntax: you are not allowed to have for loop"
-                          "inside if statement. Please check the source code")
+        # making sure that we don't have for/else case
+        if len(node.orelse) > 0:
+            # this is illegal syntax
+            lines = [n.lineno for n in node.orelse]
+            print_src(self.fn_src, lines)
+            raise SyntaxError("Illegal Syntax: you are not allowed to use "
+                              "for/else in code block")
+        # get the target
+        iter_ = node.iter
+        iter_src = astor.to_source(iter_)
+        try:
+            iter_obj = eval(iter_src, {"self": self.generator})
+            iter_ = list(iter_obj)
+        except RuntimeError:
+            print_src(self.fn_src, node.iter.lineno)
+            raise SyntaxError("Unable to statically evaluate loop iter")
+        for v in iter_:
+            if not isinstance(v, (int, str)):
+                print_src(self.fn_src, node.iter.lineno)
+                raise SyntaxError("Loop iter has to be either integer or "
+                                  "string, got " + str(type(v)))
+        target = node.target
+        if not isinstance(target, ast.Name):
+            print_src(self.fn_src, node.iter.lineno)
+            raise SyntaxError("Unable to parse loop "
+                              "target " + astor.to_source(target))
+        new_node = []
+        for value in iter_:
+            loop_body = copy.deepcopy(node.body)
+            for n in loop_body:
+                # need to replace all the reference to
+                visitor = ForNodeVisitor.NameVisitor(target, value)
+                n = visitor.visit(n)
+                new_node.append(n)
+        return new_node
 
 
 class IfNodeVisitor(ast.NodeTransformer):
@@ -66,10 +113,6 @@ class IfNodeVisitor(ast.NodeTransformer):
                     if_exp = IfNodeVisitor(self.generator, self.fn_src)
                     node.orelse[i] = if_exp.visit(n)
                 return node.orelse
-
-        # check syntax
-        visitor = IllegalSyntaxVisitor(self.fn_src, node.lineno)
-        visitor.generic_visit(node)
 
         expression = node.body
         else_expression = node.orelse
@@ -211,9 +254,13 @@ def transform_stmt_block(generator, fn, debug=False):
     fn_body = assign_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
 
-    # transform if
+    # static eval for loop
+    for_visitor = ForNodeVisitor(generator, fn_src)
+    fn_body = for_visitor.visit(fn_body)
+
+    # transform if and static eval any for loop
     if_visitor = IfNodeVisitor(generator, fn_src)
-    if_visitor.visit(fn_body)
+    fn_body = if_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
 
     # add code to run it

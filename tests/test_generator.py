@@ -305,27 +305,6 @@ def test_debug():
     assert "self.out_[1] = self.in_" in python_lns[ln - 1]
 
 
-def test_illegal_for():
-    class Mod1(Generator):
-        def __init__(self):
-            super().__init__("mod1", True)
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", 4, PortDirection.Out)
-
-            self.add_code(self.code)
-
-        def code(self):
-            if self.in_ == self.const(1, 1):
-                for i in range(4):
-                    self.out_[i] = 1
-
-    try:
-        Mod1()
-        assert False
-    except SyntaxError:
-        assert True
-
-
 def test_illegal_assignment_width():
     class Mod1(Generator):
         def __init__(self):
@@ -377,7 +356,7 @@ def test_illegal_assignment_blocking():
 def test_data_if():
     class Mod1(Generator):
         def __init__(self, bool_flag):
-            super().__init__("mod1", True)
+            super().__init__("mod1")
             self.in_ = self.port("in", 1, PortDirection.In)
             self.out_ = self.port("out", 1, PortDirection.Out)
             self.bool_flag = bool_flag
@@ -410,5 +389,35 @@ def test_data_if():
     assert "in == 1'h0" in src
 
 
+def test_static_eval_for_loop():
+    class Mod1(Generator):
+        def __init__(self, num_loop):
+            super().__init__("mod1", True)
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", num_loop, PortDirection.Out)
+            self.num_loop = num_loop
+            
+            self.add_code(self.code)
+
+        def code(self):
+            if self.in_ == self.const(1, 1):
+                for i in range(self.num_loop):
+                    self.out_[i] = 1
+            else:
+                for i in range(self.num_loop):
+                    self.out_[i] = 0
+
+    loop = 4
+    mod = Mod1(loop)
+    mod_src, mod_debug = verilog(mod, debug=True)
+    src = mod_src["mod1"]
+    mod_mapping = mod_debug["mod1"]
+    lines = list(mod_mapping.keys())
+    lines.sort()
+    for ii in range(len(mod_mapping) - loop, len(mod_mapping) - 1):
+        assert mod_mapping[lines[-1]][-1] == mod_mapping[lines[ii]][-1]
+    assert is_valid_verilog(src)
+
+
 if __name__ == "__main__":
-    test_data_if()
+    test_static_eval_for_loop()
