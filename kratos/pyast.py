@@ -53,7 +53,19 @@ class IfNodeVisitor(ast.NodeTransformer):
         predicate_value = eval(predicate_src, {"self": self.generator})
         # if's a kratos var, we continue
         if not isinstance(predicate_value, _kratos.Var):
-            return node
+            if not isinstance(predicate_value, bool):
+                print_src(self.fn_src, predicate.lineno)
+                raise Exception("Cannot statically evaluate if predicate")
+            if predicate_value:
+                for i, n in enumerate(node.body):
+                    if_exp = IfNodeVisitor(self.generator, self.fn_src)
+                    node.body[i] = if_exp.visit(n)
+                return node.body
+            else:
+                for i, n in enumerate(node.orelse):
+                    if_exp = IfNodeVisitor(self.generator, self.fn_src)
+                    node.orelse[i] = if_exp.visit(n)
+                return node.orelse
 
         # check syntax
         visitor = IllegalSyntaxVisitor(self.fn_src, node.lineno)

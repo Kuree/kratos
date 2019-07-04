@@ -374,5 +374,41 @@ def test_illegal_assignment_blocking():
         assert True
 
 
+def test_data_if():
+    class Mod1(Generator):
+        def __init__(self, bool_flag):
+            super().__init__("mod1", True)
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 1, PortDirection.Out)
+            self.bool_flag = bool_flag
+
+            self.add_code(self.code)
+
+        def code(self):
+            if self.bool_flag:
+                if self.in_ == self.const(1, 1):
+                    self.out_ = 1
+                else:
+                    self.out_ = 0
+            else:
+                if self.in_ == self.const(0, 1):
+                    self.out_ = 0
+                else:
+                    self.out_ = 1
+
+    mod = Mod1(True)
+    mod_src = verilog(mod)
+    src = mod_src["mod1"]
+    assert is_valid_verilog(src)
+    assert "in == 1'h1" in src
+    # need to clear the context, otherwise it will be a different module name
+    Generator.clear_context()
+    mod = Mod1(False)
+    mod_src = verilog(mod)
+    src = mod_src["mod1"]
+    assert is_valid_verilog(src)
+    assert "in == 1'h0" in src
+
+
 if __name__ == "__main__":
-    test_illegal_assignment_blocking()
+    test_data_if()
