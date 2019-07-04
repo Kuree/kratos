@@ -31,6 +31,9 @@ class StatementBlockType(enum.Enum):
 
 
 class CodeBlock:
+    # this is a magic number
+    FRAME_DEPTH = 4
+
     def __init__(self, generator: "Generator", block_type: StatementBlockType):
         self.block_type = block_type
         self._generator = generator
@@ -38,6 +41,10 @@ class CodeBlock:
             self._block = generator.internal_generator.combinational()
         else:
             self._block = generator.internal_generator.sequential()
+
+        if generator.debug:
+            fn, ln = get_fn_ln(CodeBlock.FRAME_DEPTH)
+            self._block.add_fn_ln((fn, ln))
 
     def add_stmt(self, stmt):
         if hasattr(stmt, "stmt"):

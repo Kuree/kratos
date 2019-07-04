@@ -35,6 +35,8 @@ public:
         return '\n';
     }
 
+    inline uint32_t line_no() const { return line_no_; }
+
 private:
     Generator* generator_;
     SystemVerilogCodeGen* codegen_;

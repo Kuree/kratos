@@ -698,6 +698,10 @@ public:
 
     void visit(SwitchStmt* stmt) override { add_info(stmt); }
 
+    void inline visit(SequentialStmtBlock* stmt) override { add_info(stmt); }
+
+    void inline visit(CombinationalStmtBlock* stmt) override { add_info(stmt); }
+
     std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result;
 
 private:

@@ -292,7 +292,7 @@ def test_debug():
     mod = Mod1()
     mod_src, mod_debug = verilog(mod, debug=True)
     src_mapping = mod_debug["mod1"]
-    assert len(src_mapping) == 5
+    assert len(src_mapping) == 6
     verilog_lines = mod_src["mod1"].split("\n")
     verilog_ln = 0
     for ln, line in enumerate(verilog_lines):

@@ -186,6 +186,9 @@ void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
 
 void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
     // produce the sensitive list
+    if (generator_->debug) {
+        stmt->verilog_ln = stream_.line_no();
+    }
     std::vector<std::string> sensitive_list;
     for (const auto& [type, var] : stmt->get_conditions()) {
         std::string edge = (type == BlockEdgeType::Posedge) ? "posedge" : "negedge";
@@ -204,6 +207,9 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
+    if (generator_->debug) {
+        stmt->verilog_ln = stream_.line_no();
+    }
     stream_ << "always_comb begin" << stream_.endl();
     indent_++;
 
@@ -216,6 +222,9 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
+    if (generator_->debug) {
+        stmt->verilog_ln = stream_.line_no();
+    }
     stream_ << indent() << ::format("if ({0}) begin", stmt->predicate()->to_string())
             << stream_.endl();
     indent_++;
