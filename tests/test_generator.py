@@ -1,5 +1,5 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
-    verilog, is_valid_verilog
+    verilog, is_valid_verilog, VarException
 from kratos.passes import uniquify_generators, hash_generators
 import os
 
@@ -305,5 +305,49 @@ def test_debug():
     assert "self.out_[1] = self.in_" in python_lns[ln - 1]
 
 
+def test_illegal_for():
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1", True)
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 4, PortDirection.Out)
+
+            self.add_code(self.code)
+
+        def code(self):
+            if self.in_ == self.const(1, 1):
+                for i in range(4):
+                    self.out_[i] = 1
+
+    try:
+        Mod1()
+        assert False
+    except SyntaxError:
+        assert True
+
+
+def test_illegal_assignment():
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1", True)
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 4, PortDirection.Out)
+
+            self.add_code(self.code)
+
+        def code(self):
+            if self.in_ == self.const(1, 1):
+                self.out_ = self.const(1, 4)
+            else:
+                self.out_ = self.const(1, 1)
+
+    try:
+        Mod1()
+        assert False
+    except VarException as ex:
+        print(ex)
+        assert True
+
+
 if __name__ == "__main__":
-    test_debug()
+    test_illegal_assignment()

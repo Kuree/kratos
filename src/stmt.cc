@@ -3,6 +3,8 @@
 #include "fmt/format.h"
 #include "generator.hh"
 #include "port.hh"
+#include "except.hh"
+
 
 using fmt::format;
 using std::move;
@@ -20,15 +22,15 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
     if (right == nullptr) throw ::runtime_error("right hand side is empty");
     // check for sign
     if (left->is_signed != right->is_signed) {
-        throw ::runtime_error(
+        throw VarException(
             ::format("left ({0})'s sign does not match with right ({1}). {2} <- {3}", left->name,
-                     right->name, left->is_signed, right->is_signed));
+                     right->name, left->is_signed, right->is_signed), {left.get(), right.get()});
     }
     // check for width
     if (left->width != right->width) {
-        throw ::runtime_error(
+        throw VarException(
             ::format("left ({0})'s width does not match with right ({1}). {2} <- {3}", left->name,
-                     right->name, left->width, right->width));
+                     right->name, left->width, right->width), {left.get(), right.get()});
     }
 }
 

@@ -1,6 +1,7 @@
 #include "expr.hh"
 #include <iostream>
 #include <stdexcept>
+#include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
 #include "stmt.hh"
@@ -129,11 +130,11 @@ Expr &Var::operator!=(const Var &var) const {
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     auto const [high, low] = slice;
     if (low > high) {
-        throw ::runtime_error(::format("low ({0}) cannot be larger than ({1})", low, high));
+        throw VarException(::format("low ({0}) cannot be larger than ({1})", low, high), {this});
     }
     if (high >= width) {
-        throw ::runtime_error(
-            ::format("high ({0}) has to be smaller than width ({1})", high, width));
+        throw VarException(::format("high ({0}) has to be smaller than width ({1})", high, width),
+                           {this});
     }
     // if we already has the slice
     if (slices_.find(slice) != slices_.end()) return *slices_.at(slice);
@@ -184,9 +185,10 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
     if (left == nullptr) throw std::runtime_error("left operand is null");
     generator = left->generator;
     if (right != nullptr && left->width != right->width)
-        throw std::runtime_error(
+        throw VarException(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
-                     left->name, left->width, right->name, right->width));
+                     left->name, left->width, right->name, right->width),
+            {left.get(), right.get()});
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op))
         width = 1;
@@ -229,9 +231,11 @@ AssignStmt &Var::assign(Var &var) { return assign(var, AssignmentType::Undefined
 AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     // if it's a constant or expression, it can't be assigned to
     if (type_ == VarType::ConstValue)
-        throw ::runtime_error(::format("Cannot assign {0} to a const {1}", var->name, name));
+        throw VarException(::format("Cannot assign {0} to a const {1}", var->name, name),
+                           {this, var.get()});
     else if (type_ == VarType::Expression)
-        throw ::runtime_error(::format("Cannot assign {0} to an expression", var->name, name));
+        throw VarException(::format("Cannot assign {0} to an expression", var->name, name),
+                           {this, var.get()});
     auto const &stmt = ::make_shared<AssignStmt>(shared_from_this(), var, type);
     // determine the type
     if (type != AssignmentType::Undefined) {
@@ -290,7 +294,7 @@ VarSigned::VarSigned(Var *parent)
     : Var(parent->generator, "", parent->width, true, parent->type()), parent_var_(parent) {}
 
 AssignStmt &VarSigned::assign(const std::shared_ptr<Var> &, AssignmentType) {
-    throw ::runtime_error(::format("{0} is not allowed to be a sink", to_string()));
+    throw VarException(::format("{0} is not allowed to be a sink", to_string()), {this});
 }
 
 std::string VarSigned::to_string() const {

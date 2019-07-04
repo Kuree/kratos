@@ -7,6 +7,7 @@
 #include "../src/pass.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
+#include "../src/except.hh"
 
 namespace py = pybind11;
 using std::shared_ptr;
@@ -74,6 +75,12 @@ void init_pass(py::module &m) {
         .def("remove_fanout_one_wires", &remove_fanout_one_wires)
         .def("remove_pass_through_modules", &remove_pass_through_modules)
         .def("extract_debug_info", &extract_debug_info);
+}
+
+// exception module
+void init_except(py::module &m) {
+    auto except_m = m.def_submodule("exception");
+    py::register_exception<VarException>(except_m, "VarException");
 }
 
 // util submodule
@@ -324,4 +331,5 @@ PYBIND11_MODULE(_kratos, m) {
     init_stmt(m);
     init_code_gen(m);
     init_util(m);
+    init_except(m);
 }

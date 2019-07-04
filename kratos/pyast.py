@@ -4,12 +4,26 @@ import inspect
 import astor
 import _kratos
 import os
+from .util import print_src
+
+
+# illegal syntax checker
+class IllegalSyntaxVisitor(ast.NodeVisitor):
+    def __init__(self, fn_src, if_lineno):
+        self.fn_src = fn_src
+        self.if_lineno = if_lineno
+
+    def visit_For(self, node: ast.For):
+        print_src(self.fn_src, [self.if_lineno, node.lineno])
+        raise SyntaxError("Illegal Syntax: you are not allowed to have for loop"
+                          "inside if statement. Please check the source code")
 
 
 class IfNodeVisitor(ast.NodeTransformer):
-    def __init__(self, generator):
+    def __init__(self, generator, fn_src):
         super().__init__()
         self.generator = generator
+        self.fn_src = fn_src
 
     def __change_if_predicate(self, node):
         if not isinstance(node, ast.Compare):
@@ -41,15 +55,19 @@ class IfNodeVisitor(ast.NodeTransformer):
         if not isinstance(predicate_value, _kratos.Var):
             return node
 
+        # check syntax
+        visitor = IllegalSyntaxVisitor(self.fn_src, node.lineno)
+        visitor.generic_visit(node)
+
         expression = node.body
         else_expression = node.orelse
 
         # recursive call
         for idx, node in enumerate(expression):
-            if_exp = IfNodeVisitor(self.generator)
+            if_exp = IfNodeVisitor(self.generator, self.fn_src)
             expression[idx] = if_exp.visit(node)
         for idx, node in enumerate(else_expression):
-            else_exp = IfNodeVisitor(self.generator)
+            else_exp = IfNodeVisitor(self.generator, self.fn_src)
             else_expression[idx] = else_exp.visit(node)
 
         if_node = ast.Call(func=ast.Attribute(value=ast.Name(id="scope",
@@ -176,7 +194,7 @@ def transform_stmt_block(generator, fn, debug=False):
     ast.fix_missing_locations(fn_body)
 
     # transform if
-    if_visitor = IfNodeVisitor(generator)
+    if_visitor = IfNodeVisitor(generator, fn_src)
     if_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
 
