@@ -396,7 +396,7 @@ def test_static_eval_for_loop():
             self.in_ = self.port("in", 1, PortDirection.In)
             self.out_ = self.port("out", num_loop, PortDirection.Out)
             self.num_loop = num_loop
-            
+
             self.add_code(self.code)
 
         def code(self):

@@ -2,6 +2,7 @@
 #include <fmt/format.h>
 #include "NanoLog.hpp"
 #include "context.hh"
+#include "except.hh"
 #include "expr.hh"
 #include "generator.hh"
 #include "pass.hh"
@@ -37,8 +38,8 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
     return *this;
 }
 
-Stream& Stream::operator<<(const std::pair<Port*, std::string> &port) {
-    auto &[p, end] = port;
+Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
+    auto& [p, end] = port;
     if (generator_->debug) {
         p->verilog_ln = line_no_;
     }
@@ -315,6 +316,21 @@ bool is_port_reg(Port* port) {
             break;
         }
     }
+    // second pass to make sure we don't have mixed assignments
+    if (!is_reg) {
+        for (auto const& stmt : port->sources()) {
+            if (stmt->parent() && stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
+                // we have something wrong here
+                std::vector<Stmt*> stmt_list;
+                stmt_list.reserve(port->sources().size());
+                for (auto const& s : port->sources()) stmt_list.emplace_back(s.get());
+                throw StmtException(
+                    ::format("{0} has wire assignment yet is also used in always block",
+                             port->to_string()),
+                    stmt_list);
+            }
+        }
+    }
     // slices
     if (!is_reg) {
         for (auto const& iter : port->get_slices()) {
@@ -323,6 +339,16 @@ bool is_port_reg(Port* port) {
             for (auto const& stmt : slice->sources()) {
                 if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
                     is_reg = true;
+                    if (!port->sources().empty()) {
+                        std::vector<Stmt*> stmt_list;
+                        stmt_list.reserve(port->sources().size() + 1);
+                        stmt_list.emplace_back(stmt.get());
+                        for (auto const& s : port->sources()) stmt_list.emplace_back(s.get());
+                        throw StmtException(
+                            ::format("{0} has wire assignment yet is also used in always block",
+                                     port->to_string()),
+                            stmt_list);
+                    }
                     break;
                 }
             }
