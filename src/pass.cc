@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include "codegen.h"
+#include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
 #include "util.hh"
@@ -73,13 +74,13 @@ public:
             }
         }
         if (left->width != right->width)
-            throw ::runtime_error(
+            throw StmtException(
                 ::format("assignment width doesn't match. left ({0}): {1} right ({2}): {3}",
-                         left->to_string(), left->width, right->to_string(), right->width));
+                         left->to_string(), left->width, right->to_string(), right->width), {stmt});
         if (left->is_signed != right->is_signed)
-            throw ::runtime_error(
+            throw StmtException(
                 ::format("assignment sign doesn't match. left ({0}): {1} right ({2}): {3}",
-                         left->to_string(), left->is_signed, right->to_string(), right->is_signed));
+                         left->to_string(), left->is_signed, right->to_string(), right->is_signed), {stmt});
     }
 
 private:
@@ -143,6 +144,7 @@ public:
             }
             // check the slices
             std::unordered_set<uint32_t> bits;
+            std::vector<Stmt*> stmt_list;
             auto slices = port->get_slices();
             for (auto const& [slice, slice_ptr] : slices) {
                 if (!slice_ptr->sources().empty()) {
@@ -152,12 +154,17 @@ public:
                     for (uint32_t i = low; i <= high; i++) {
                         bits.emplace(i);
                     }
+                    if (!port->fn_name_ln.empty()) {
+                        for (auto const &stmt: slice_ptr->sources())
+                            stmt_list.emplace_back(stmt.get());
+                    }
                 }
             }
             for (uint32_t i = 0; i < port->width; i++) {
-                if (bits.find(i) == bits.end())
-                    throw ::runtime_error(::format(
-                        "{0}[{1}] is a floating net. Please check your connections", port_name, i));
+                if (bits.find(i) == bits.end()) {
+                    throw StmtException(::format(
+                        "{0}[{1}] is a floating net. Please check your connections", port_name, i), stmt_list);
+                }
             }
         }
 
@@ -320,11 +327,16 @@ public:
                 // source (all bits combined)
                 if (slices.empty()) {
                     if (sources.empty())
-                        throw ::runtime_error(
-                            ::format("{0}.{1} is not connected", generator->name, port_name));
-                    if (sources.size() > 1)
-                        throw ::runtime_error(::format("{0}.{1} is driven by multiple nets",
-                                                       generator->name, port_name));
+                        throw VarException(
+                            ::format("{0}.{1} is not connected", generator->name, port_name), {port.get()});
+                    if (sources.size() > 1) {
+                        std::vector<Stmt*> stmt_list;
+                        stmt_list.reserve(sources.size());
+                        for (auto const &stmt: sources)
+                            stmt_list.emplace_back(stmt.get());
+                        throw StmtException(::format("{0}.{1} is driven by multiple nets",
+                                                       generator->name, port_name), stmt_list);
+                    }
                     // add it to the port mapping and we are good to go
                     auto const& stmt = *sources.begin();
                     // if the source is not a base variable, create one and use it to connect
@@ -336,9 +348,14 @@ public:
                     }
                 } else {
                     // we can't have a port that is driven by slice and variables
-                    if (!sources.empty())
-                        throw ::runtime_error(
-                            ::format("{0}.{1} is over-connected", generator->name, port_name));
+                    if (!sources.empty()) {
+                        std::vector<Stmt*> stmt_list;
+                        stmt_list.reserve(sources.size());
+                        for (auto const &stmt: sources)
+                            stmt_list.emplace_back(stmt.get());
+                        throw StmtException(
+                            ::format("{0}.{1} is over-connected", generator->name, port_name), stmt_list);
+                    }
                 }
                 // create a new variable
                 auto ast_parent = generator->parent();
@@ -461,9 +478,14 @@ public:
         for (auto const& stmt : var->sources()) {
             if (type == Undefined)
                 type = stmt->assign_type();
-            else if (type != stmt->assign_type())
-                throw ::std::runtime_error(::fmt::v5::format(
-                    "Mixed assignment detected for variable {0}.{1}", generator->name, name));
+            else if (type != stmt->assign_type()) {
+                std::vector<Stmt*> stmt_list;
+                stmt_list.reserve(var->sources().size());
+                for (const auto &st: var->sources())
+                    stmt_list.emplace_back(st.get());
+                throw StmtException(::format(
+                    "Mixed assignment detected for variable {0}.{1}", generator->name, name), stmt_list);
+            }
         }
     }
 };

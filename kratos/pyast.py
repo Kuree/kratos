@@ -154,7 +154,13 @@ class Scope:
         if isinstance(b, int):
             # we need to convert b into an integer
             b = self.generator.const(b, a.width, a.signed)
-        stmt = a.assign(b)
+        try:
+            stmt = a.assign(b)
+        except _kratos.exception.VarException as ex:
+            if f_ln is not None:
+                print_src(self.filename, f_ln + self.ln - 1)
+            # re-throw it
+            raise ex
         if self.filename:
             assert f_ln is not None
             stmt.add_fn_ln((self.filename, f_ln + self.ln - 1))

@@ -1,5 +1,5 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
-    verilog, is_valid_verilog, VarException
+    verilog, is_valid_verilog, VarException, StmtException
 from kratos.passes import uniquify_generators, hash_generators
 import os
 
@@ -326,7 +326,7 @@ def test_illegal_for():
         assert True
 
 
-def test_illegal_assignment():
+def test_illegal_assignment_width():
     class Mod1(Generator):
         def __init__(self):
             super().__init__("mod1", True)
@@ -349,5 +349,30 @@ def test_illegal_assignment():
         assert True
 
 
+def test_illegal_assignment_blocking():
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1", True)
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 1, PortDirection.Out)
+            self.clk_ = self.port("clk", 1, PortDirection.In, PortType.Clock)
+
+            self.wire(self.out_, self.in_)
+
+            self.add_code(self.code)
+
+        @always([(BlockEdgeType.Posedge, "clk")])
+        def code(self):
+            self.out_ = 1
+
+    try:
+        mod = Mod1()
+        verilog(mod)
+        assert False
+    except StmtException as ex:
+        print(ex)
+        assert True
+
+
 if __name__ == "__main__":
-    test_illegal_assignment()
+    test_illegal_assignment_blocking()

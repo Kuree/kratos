@@ -81,6 +81,7 @@ void init_pass(py::module &m) {
 void init_except(py::module &m) {
     auto except_m = m.def_submodule("exception");
     py::register_exception<VarException>(except_m, "VarException");
+    py::register_exception<StmtException>(except_m, "StmtException");
 }
 
 // util submodule
