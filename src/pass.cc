@@ -76,15 +76,88 @@ public:
         if (left->width != right->width)
             throw StmtException(
                 ::format("assignment width doesn't match. left ({0}): {1} right ({2}): {3}",
-                         left->to_string(), left->width, right->to_string(), right->width), {stmt});
+                         left->to_string(), left->width, right->to_string(), right->width),
+                {stmt});
         if (left->is_signed != right->is_signed)
             throw StmtException(
                 ::format("assignment sign doesn't match. left ({0}): {1} right ({2}): {3}",
-                         left->to_string(), left->is_signed, right->to_string(), right->is_signed), {stmt});
+                         left->to_string(), left->is_signed, right->to_string(), right->is_signed),
+                {stmt});
+    }
+
+    void visit(Generator* generator) override {
+        auto vars = generator->get_all_var_names();
+        for (auto const& var_name : vars) {
+            auto var = generator->get_var(var_name);
+            check_var(var.get());
+        }
     }
 
 private:
     Generator* generator_;
+
+    void inline static check_var(Var* var) {
+        bool is_top_level = false;
+        auto sources = var->sources();
+        auto slices = var->get_slices();
+        for (auto const& stmt : sources) {
+            if (stmt->parent()->ast_node_kind() == ASTNodeKind::GeneratorKind) {
+                is_top_level = true;
+                break;
+            }
+        }
+        if (!is_top_level) {
+            for (auto const& iter : slices) {
+                auto slice_ptr = iter.second;
+                auto slice_sources = slice_ptr->sources();
+                for (auto const& stmt : slice_sources) {
+                    if (stmt->parent()->ast_node_kind() == ASTNodeKind::GeneratorKind) {
+                        is_top_level = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // second pass the check all the assignments
+        bool has_error = false;
+        if (is_top_level) {
+            for (auto const& stmt : sources) {
+                if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
+                    has_error = true;
+                    break;
+                }
+            }
+            for (auto const& iter : slices) {
+                auto slice_ptr = iter.second;
+                auto slice_sources = slice_ptr->sources();
+                for (auto const& stmt : slice_sources) {
+                    if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
+                        has_error = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (has_error) {
+            std::vector<Stmt*> stmt_list;
+            // prepare the error
+            for (auto const& stmt : sources) {
+                stmt_list.emplace_back(stmt.get());
+            }
+            for (auto const& iter : slices) {
+                auto slice_ptr = iter.second;
+                auto slice_sources = slice_ptr->sources();
+                for (auto const& stmt : slice_sources) {
+                    stmt_list.emplace_back(stmt.get());
+                }
+            }
+            throw StmtException(::format("{0} has wire assignment yet is also used in always block",
+                                         var->to_string()),
+                                stmt_list);
+        }
+    }
 };
 
 void verify_assignments(Generator* top) {
@@ -155,15 +228,17 @@ public:
                         bits.emplace(i);
                     }
                     if (!port->fn_name_ln.empty()) {
-                        for (auto const &stmt: slice_ptr->sources())
+                        for (auto const& stmt : slice_ptr->sources())
                             stmt_list.emplace_back(stmt.get());
                     }
                 }
             }
             for (uint32_t i = 0; i < port->width; i++) {
                 if (bits.find(i) == bits.end()) {
-                    throw StmtException(::format(
-                        "{0}[{1}] is a floating net. Please check your connections", port_name, i), stmt_list);
+                    throw StmtException(
+                        ::format("{0}[{1}] is a floating net. Please check your connections",
+                                 port_name, i),
+                        stmt_list);
                 }
             }
         }
@@ -328,14 +403,15 @@ public:
                 if (slices.empty()) {
                     if (sources.empty())
                         throw VarException(
-                            ::format("{0}.{1} is not connected", generator->name, port_name), {port.get()});
+                            ::format("{0}.{1} is not connected", generator->name, port_name),
+                            {port.get()});
                     if (sources.size() > 1) {
                         std::vector<Stmt*> stmt_list;
                         stmt_list.reserve(sources.size());
-                        for (auto const &stmt: sources)
-                            stmt_list.emplace_back(stmt.get());
+                        for (auto const& stmt : sources) stmt_list.emplace_back(stmt.get());
                         throw StmtException(::format("{0}.{1} is driven by multiple nets",
-                                                       generator->name, port_name), stmt_list);
+                                                     generator->name, port_name),
+                                            stmt_list);
                     }
                     // add it to the port mapping and we are good to go
                     auto const& stmt = *sources.begin();
@@ -351,10 +427,10 @@ public:
                     if (!sources.empty()) {
                         std::vector<Stmt*> stmt_list;
                         stmt_list.reserve(sources.size());
-                        for (auto const &stmt: sources)
-                            stmt_list.emplace_back(stmt.get());
+                        for (auto const& stmt : sources) stmt_list.emplace_back(stmt.get());
                         throw StmtException(
-                            ::format("{0}.{1} is over-connected", generator->name, port_name), stmt_list);
+                            ::format("{0}.{1} is over-connected", generator->name, port_name),
+                            stmt_list);
                     }
                 }
                 // create a new variable
@@ -481,10 +557,10 @@ public:
             else if (type != stmt->assign_type()) {
                 std::vector<Stmt*> stmt_list;
                 stmt_list.reserve(var->sources().size());
-                for (const auto &st: var->sources())
-                    stmt_list.emplace_back(st.get());
-                throw StmtException(::format(
-                    "Mixed assignment detected for variable {0}.{1}", generator->name, name), stmt_list);
+                for (const auto& st : var->sources()) stmt_list.emplace_back(st.get());
+                throw StmtException(::format("Mixed assignment detected for variable {0}.{1}",
+                                             generator->name, name),
+                                    stmt_list);
             }
         }
     }

@@ -281,28 +281,30 @@ def test_debug():
         def __init__(self):
             super().__init__("mod1", True)
             self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", 2, PortDirection.Out)
-            self.wire(self.out_[0], self.in_)
+            self.out_1 = self.port("out1", 1, PortDirection.Out)
+            self.out_2 = self.port("out2", 1, PortDirection.Out)
+
+            self.wire(self.out_1, self.in_)
 
             self.add_code(self.code)
 
         def code(self):
-            self.out_[1] = self.in_
+            self.out_2 = self.in_
 
     mod = Mod1()
     mod_src, mod_debug = verilog(mod, debug=True)
     src_mapping = mod_debug["mod1"]
-    assert len(src_mapping) == 6
+    assert len(src_mapping) == 7
     verilog_lines = mod_src["mod1"].split("\n")
     verilog_ln = 0
     for ln, line in enumerate(verilog_lines):
-        if "out[1:1] = in" in line:
+        if "assign out1 = in;" in line:
             verilog_ln = ln + 1
             break
     fn, ln = src_mapping[verilog_ln][0]
     with open(fn) as f:
         python_lns = f.readlines()
-    assert "self.out_[1] = self.in_" in python_lns[ln - 1]
+    assert "self.wire(self.out_1, self.in_)" in python_lns[ln - 1]
 
 
 def test_illegal_assignment_width():
@@ -420,4 +422,4 @@ def test_static_eval_for_loop():
 
 
 if __name__ == "__main__":
-    test_static_eval_for_loop()
+    test_debug()
