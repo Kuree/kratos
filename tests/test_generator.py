@@ -421,5 +421,39 @@ def test_static_eval_for_loop():
     assert is_valid_verilog(src)
 
 
+def test_clone():
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1", True)
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 1, PortDirection.Out)
+            self.wire(self.out_, self.in_)
+
+    class Mod2(Generator):
+        def __init__(self):
+            super().__init__("mod2", True)
+            self.in_ = self.port("in", 2, PortDirection.In)
+            self.out_ = self.port("out", 2, PortDirection.Out)
+
+            self.child1 = Mod1()
+            self.child2 = self.child1.clone()
+            self.add_child_generator("child1", self.child1)
+            self.add_child_generator("child2", self.child2)
+
+            self.add_code(self.code)
+
+        def code(self):
+            self.child1.in_ = self.in_[0]
+            self.child2.in_ = self.in_[1]
+
+            self.out_[0] = self.child1.out_
+            self.out_[1] = self.child2.out_
+
+    mod = Mod2()
+    mod_src = verilog(mod, False, False, False)
+    src = mod_src["mod2"]
+    assert is_valid_verilog(src)
+
+
 if __name__ == "__main__":
-    test_debug()
+    test_clone()

@@ -141,6 +141,10 @@ class Generator:
     def debug(self, value):
         self.__generator.debug = value
 
+    @property
+    def is_cloned(self):
+        return self.__generator.is_cloned()
+
     def var(self, name: str, width: int,
             is_signed: bool = False) -> _kratos.Var:
         v = self.__generator.var(name, width, is_signed)
@@ -209,6 +213,7 @@ class Generator:
         self.__generator.add_stmt(stmt)
 
     def add_child_generator(self, instance_name: str, generator: "Generator"):
+        generator.instance_name = instance_name
         self[instance_name] = generator
 
     @staticmethod
@@ -239,6 +244,16 @@ class Generator:
             return self.__generator.has_child_generator(generator.__generator)
         else:
             return self.__generator.has_child_generator(generator)
+
+    def clone(self):
+        g = Generator("")
+        g.__generator = self.__generator.clone()
+        # copy all the port attributes over
+        attributes = self.__dict__
+        for name, value in attributes.items():
+            if isinstance(value, _kratos.Port):
+                setattr(g, name, g.__generator.get_port(value.name))
+        return g
 
 
 def always(sensitivity):

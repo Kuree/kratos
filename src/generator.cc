@@ -378,3 +378,25 @@ std::shared_ptr<Stmt> Generator::wire_ports(std::shared_ptr<Port> &port1,
     add_stmt(stmt);
     return stmt;
 }
+
+std::shared_ptr<Generator> Generator::clone() {
+    auto generator = std::make_shared<Generator>(context_, name);
+    auto port_names = get_port_names();
+    for (auto const &port_name : port_names) {
+        auto port = get_port(port_name);
+        generator->port(port->port_direction(), port_name, port->width, port->port_type(),
+                        port->is_signed);
+    }
+    if (!fn_name_ln.empty()) {
+        generator->fn_name_ln.insert(generator->fn_name_ln.end(), fn_name_ln.begin(),
+                                     fn_name_ln.end());
+    }
+    // we won't bother checking stuff
+    generator->set_external(true);
+    return generator;
+}
+
+void Generator::accept(ASTVisitor *visitor) {
+    if (!external())
+        visitor->visit(this);
+}

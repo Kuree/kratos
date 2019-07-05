@@ -256,7 +256,9 @@ void init_generator(py::module &m) {
         .def("context", &Generator::context, py::return_value_policy::reference)
         .def_readwrite("instance_name", &Generator::instance_name)
         .def_readwrite("name", &Generator::name)
-        .def_readwrite("debug", &Generator::debug);
+        .def_readwrite("debug", &Generator::debug)
+        .def("clone", &Generator::clone)
+        .def("is_cloned", &Generator::is_cloned);
 
     def_trace<py::class_<Generator, ::shared_ptr<Generator>>, Generator>(generator);
 }

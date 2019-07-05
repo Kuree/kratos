@@ -71,7 +71,7 @@ public:
                                  const std::shared_ptr<Generator> &new_generator);
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(ASTVisitor *visitor) override;
     uint64_t inline child_count() override { return stmts_count() + get_child_generator_size(); }
     ASTNode *get_child(uint64_t index) override;
 
@@ -97,6 +97,10 @@ public:
 
     bool debug = false;
 
+    const std::unordered_set<std::shared_ptr<Generator>> & get_clones() const { return clones_; }
+    std::shared_ptr<Generator> clone();
+    bool is_cloned() const { return is_cloned_; }
+
 private:
     std::vector<std::string> lib_files_;
     Context *context_;
@@ -115,6 +119,10 @@ private:
 
     bool is_stub_ = false;
     bool is_external_ = false;
+
+    // used for shallow cloning
+    std::unordered_set<std::shared_ptr<Generator>> clones_;
+    bool is_cloned_ = false;
 };
 
 #endif  // KRATOS_MODULE_HH22

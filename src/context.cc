@@ -64,6 +64,10 @@ void Context::change_generator_name(Generator *generator, const std::string &new
     // change it's name and put it to a new list
     generator->name = new_name;
     modules_[new_name].emplace(shared_ptr);
+    // change the cloned names as well
+    for (auto &g : generator->get_clones()) {
+        g->name = new_name;
+    }
 }
 
 bool Context::generator_name_exists(const std::string &name) const {
