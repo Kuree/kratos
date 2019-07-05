@@ -50,37 +50,44 @@ Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
 
 void VerilogModule::run_passes(bool run_if_to_case_pass, bool remove_passthrough,
                                bool run_fanout_one_pass) {
-    // run multiple passes
+    // run multiple passes using pass manager
 
-    if (remove_passthrough) remove_pass_through_modules(generator_);
+    if (remove_passthrough)
+        manager_.add_pass("remove_pass_through_modules", &remove_pass_through_modules);
 
-    if (run_if_to_case_pass) transform_if_to_case(generator_);
+    if (run_if_to_case_pass) manager_.add_pass("transform_if_to_case", &transform_if_to_case);
 
-    fix_assignment_type(generator_);
+    manager_.add_pass("fix_assignment_type", &fix_assignment_type);
 
-    zero_out_stubs(generator_);
+    manager_.add_pass("zero_out_stubs", &zero_out_stubs);
 
-    if (run_fanout_one_pass) remove_fanout_one_wires(generator_);
+    if (run_fanout_one_pass) manager_.add_pass("remove_fanout_one_wires", &remove_fanout_one_wires);
 
-    decouple_generator_ports(generator_);
+    manager_.add_pass("decouple_generator_ports", &decouple_generator_ports);
 
-    remove_unused_vars(generator_);
+    manager_.add_pass("remove_unused_vars", &remove_unused_vars);
 
-    verify_assignments(generator_);
+    manager_.add_pass("verify_assignments", &verify_assignments);
 
-    verify_generator_connectivity(generator_);
+    manager_.add_pass("verify_generator_connectivity", &verify_generator_connectivity);
 
-    check_mixed_assignment(generator_);
+    manager_.add_pass("check_mixed_assignment", &check_mixed_assignment);
+
     // TODO:
     //  add inline pass
 
-    hash_generators(generator_, HashStrategy::SequentialHash);
+    manager_.add_pass("hash_generators", [=](Generator* generator) {
+        hash_generators(generator, HashStrategy::SequentialHash);
+    });
 
-    uniquify_generators(generator_);
+    manager_.add_pass("uniquify_generators", &uniquify_generators);
 
-    uniquify_module_instances(generator_);
+    manager_.add_pass("uniquify_module_instances", &uniquify_module_instances);
 
-    create_module_instantiation(generator_);
+    manager_.add_pass("create_module_instantiation", &create_module_instantiation);
+
+    // tun the passes
+    manager_.run_passes(generator_);
 
     verilog_src_ = generate_verilog(generator_);
 }

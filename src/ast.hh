@@ -13,9 +13,9 @@ struct ASTNode {
 public:
     explicit ASTNode(ASTNodeKind type) : ast_node_type_(type) {}
 
-    virtual void accept(ASTVisitor *) = 0;
-    virtual uint64_t child_count() = 0;
-    virtual ASTNode *get_child(uint64_t) = 0;
+    virtual void accept(ASTVisitor *) {}
+    virtual uint64_t child_count() { return 0; }
+    virtual ASTNode *get_child(uint64_t) { return nullptr; }
 
     ASTNode *ast_node() { return this; }
 

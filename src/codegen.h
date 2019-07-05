@@ -4,6 +4,7 @@
 #include <sstream>
 #include "ast.hh"
 #include "context.hh"
+#include "pass.hh"
 
 class SystemVerilogCodeGen;
 
@@ -17,11 +18,14 @@ public:
 
     const inline std::map<std::string, std::string>& verilog_src() const { return verilog_src_; }
     const inline std::map<std::string, DebugInfo>& debug_info() const { return debug_info_; }
+    inline PassManager &pass_manager() { return manager_; }
 
 private:
     std::map<std::string, std::string> verilog_src_;
     std::map<std::string, DebugInfo> debug_info_;
     Generator* generator_;
+
+    PassManager manager_;
 };
 
 class Stream : public std::stringstream {

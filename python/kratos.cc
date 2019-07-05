@@ -1,13 +1,14 @@
+#include <pybind11/functional.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include "../src/codegen.h"
+#include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
 #include "../src/pass.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
-#include "../src/except.hh"
 
 namespace py = pybind11;
 using std::shared_ptr;
@@ -56,6 +57,12 @@ void init_enum(py::module &m) {
         .value("Posedge", BlockEdgeType::Posedge)
         .value("Negedge", BlockEdgeType::Negedge)
         .export_values();
+
+    py::enum_<ASTNodeKind>(m, "ASTNodeKind")
+        .value("GeneratorKind", ASTNodeKind::GeneratorKind)
+        .value("VarKind", ASTNodeKind::VarKind)
+        .value("StmtKind", ASTNodeKind::StmtKind)
+        .export_values();
 }
 
 // pass submodule
@@ -75,6 +82,51 @@ void init_pass(py::module &m) {
         .def("remove_fanout_one_wires", &remove_fanout_one_wires)
         .def("remove_pass_through_modules", &remove_pass_through_modules)
         .def("extract_debug_info", &extract_debug_info);
+
+    auto manager = py::class_<PassManager>(pass_m, "PassManager");
+    manager.def(py::init<>())
+        .def("add_pass", py::overload_cast<const std::string &, std::function<void(Generator *)>>(
+                             &PassManager::add_pass))
+        .def("run_passes", &PassManager::run_passes)
+        .def("has_pass", &PassManager::has_pass);
+
+    // trampoline class for ast visitor
+    class PyASTVisitor : public ASTVisitor {
+    public:
+        using ASTVisitor::ASTVisitor;
+
+        void visit_root(ASTNode *root) override {
+            PYBIND11_OVERLOAD(void, ASTVisitor, visit_root, root);
+        }
+
+        void visit_generator_root(Generator *generator) override {
+            PYBIND11_OVERLOAD(void, ASTVisitor, visit_generator_root, generator);
+        }
+
+        void visit_content(Generator *generator) override {
+            PYBIND11_OVERLOAD(void, ASTVisitor, visit_content, generator);
+        }
+
+        void visit(AssignStmt *stmt) override {
+            PYBIND11_OVERLOAD(void, ASTVisitor, visit, stmt);
+        }
+
+        void visit(Port *var) override {
+            PYBIND11_OVERLOAD(void, ASTVisitor, visit, var);
+        }
+
+        void visit(Generator *generator) override {
+            PYBIND11_OVERLOAD(void, ASTVisitor, visit, generator);
+        }
+    };
+
+    auto ast_visitor = py::class_<ASTVisitor, PyASTVisitor>(pass_m, "ASTVisitor");
+    ast_visitor.def(py::init<>())
+        .def("visit_generator", py::overload_cast<Generator *>(&ASTVisitor::visit))
+        .def("visit_root", &ASTVisitor::visit_root);
+
+    auto ast = py::class_<ASTNode, std::shared_ptr<ASTNode>>(pass_m, "ASTNode");
+    ast.def(py::init<ASTNodeKind>());
 }
 
 // exception module
@@ -212,7 +264,7 @@ void init_context(py::module &m) {
 }
 
 void init_generator(py::module &m) {
-    auto generator = py::class_<Generator, ::shared_ptr<Generator>>(m, "Generator");
+    auto generator = py::class_<Generator, ::shared_ptr<Generator>, ASTNode>(m, "Generator");
     generator.def("from_verilog", &Generator::from_verilog)
         .def("var", py::overload_cast<const std::string &, uint32_t>(&Generator::var),
              py::return_value_policy::reference)
@@ -260,7 +312,9 @@ void init_generator(py::module &m) {
         .def("clone", &Generator::clone)
         .def("is_cloned", &Generator::is_cloned);
 
-    def_trace<py::class_<Generator, ::shared_ptr<Generator>>, Generator>(generator);
+    generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
+      var.fn_name_ln.emplace_back(info);
+    });
 }
 
 void init_stmt(py::module &m) {
@@ -321,7 +375,8 @@ void init_code_gen(py::module &m) {
         .def(py::init<Generator *>())
         .def("verilog_src", &VerilogModule::verilog_src)
         .def("run_passes", &VerilogModule::run_passes)
-        .def("debug_info", &VerilogModule::debug_info);
+        .def("debug_info", &VerilogModule::debug_info)
+        .def("pass_manager", &VerilogModule::pass_manager, py::return_value_policy::reference);
 }
 
 PYBIND11_MODULE(_kratos, m) {

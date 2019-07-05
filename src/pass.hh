@@ -1,6 +1,7 @@
 #ifndef KRATOS_PASS_HH
 #define KRATOS_PASS_HH
 
+#include <functional>
 #include "ast.hh"
 #include "context.hh"
 #include "hash.hh"
@@ -47,5 +48,25 @@ void transform_if_to_case(Generator* top);
 void remove_fanout_one_wires(Generator* top);
 
 void remove_pass_through_modules(Generator* top);
+
+class PassManager {
+public:
+    PassManager() = default;
+
+    void add_pass(const std::string& name, std::function<void(Generator*)> fn);
+    void add_pass(const std::string &name, void(fn)(Generator*));
+
+    bool inline has_pass(const std::string& name) const {
+        return passes_.find(name) != passes_.end();
+    }
+
+    void run_passes(Generator* generator);
+
+    uint64_t num_passes()  const { return passes_order_.size(); }
+
+private:
+    std::map<std::string, std::function<void(Generator*)>> passes_;
+    std::vector<std::string> passes_order_;
+};
 
 #endif  // KRATOS_PASS_HH

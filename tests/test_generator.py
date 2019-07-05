@@ -1,5 +1,5 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
-    verilog, is_valid_verilog, VarException, StmtException
+    verilog, is_valid_verilog, VarException, StmtException, ASTVisitor
 from kratos.passes import uniquify_generators, hash_generators
 import os
 
@@ -455,5 +455,36 @@ def test_clone():
     assert is_valid_verilog(src)
 
 
+def test_pass():
+    # TODO: alias the type into kratos namespace
+    import _kratos
+    def change_name(generator):
+        class Visitor(ASTVisitor):
+            def __init__(self):
+                ASTVisitor.__init__(self)
+
+            def visit(self, node):
+                if isinstance(node, _kratos.Port):
+                    # rename the output port
+                    if node.name == "out":
+                        node.name = "test"
+
+        visitor = Visitor()
+        visitor.visit_root(generator)
+
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1", True)
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 1, PortDirection.Out)
+            self.wire(self.out_, self.in_)
+
+    mod = Mod1()
+    mod_src = verilog(mod, additional_passes={"name_change": change_name})
+    src = mod_src["mod1"]
+    assert is_valid_verilog(src)
+    assert "output  test" in src
+
+
 if __name__ == "__main__":
-    test_clone()
+    test_pass()

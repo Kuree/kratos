@@ -838,3 +838,29 @@ extract_debug_info(Generator* top) {
     visitor.visit_root(top);
     return visitor.result;
 }
+
+
+void PassManager::add_pass(const std::string& name,
+                           std::function<void(Generator*)> fn) {
+    if (has_pass(name))
+        throw ::runtime_error(::format("{0} already exists in the pass manager", name));
+    passes_.emplace(name, fn);
+    passes_order_.emplace_back(name);
+}
+
+
+void PassManager::add_pass(const std::string& name, void(fn)(Generator*)) {
+
+    if (has_pass(name))
+        throw ::runtime_error(::format("{0} already exists in the pass manager", name));
+    auto func = [=](Generator *generator) { (*fn)(generator); };
+    passes_.emplace(name, func);
+    passes_order_.emplace_back(name);
+}
+
+void PassManager::run_passes(Generator* generator) {
+    for (const auto &fn_name: passes_order_) {
+        auto fn = passes_.at(fn_name);
+        fn(generator);
+    }
+}

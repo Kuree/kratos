@@ -291,8 +291,13 @@ def signed(var):
 def verilog(generator: Generator, optimize_if: bool = True,
             optimize_passthrough: bool = True,
             optimize_fanout: bool = True,
-            debug=False):
+            debug=False,
+            additional_passes=None):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
+    pass_manager = code_gen.pass_manager()
+    if additional_passes is not None:
+        for name, fn in additional_passes.items():
+            pass_manager.add_pass(name, fn)
     code_gen.run_passes(optimize_if, optimize_passthrough, optimize_fanout)
     src = code_gen.verilog_src()
     if debug:
