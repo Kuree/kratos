@@ -4,6 +4,19 @@ import _kratos
 from typing import List, Dict
 
 
+__GLOBAL_DEBUG = False
+
+
+def set_global_debug(value: bool):
+    global __GLOBAL_DEBUG
+    assert isinstance(value, bool)
+    __GLOBAL_DEBUG = value
+
+
+def get_global_debug():
+    return __GLOBAL_DEBUG
+
+
 # this is a wrapper python class to interface with the underlying python
 # binding
 class PortDirection(enum.Enum):
@@ -79,7 +92,10 @@ class Generator:
         self.__generator = self.__context.generator(name)
         self.__child_generator: Dict[str, Generator] = {}
 
-        self.debug = debug
+        if not debug:
+            self.debug = get_global_debug()
+        else:
+            self.debug = debug
 
         if debug:
             fn, ln = get_fn_ln(Generator.__inspect_frame_depth)

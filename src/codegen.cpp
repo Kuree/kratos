@@ -1,6 +1,5 @@
 #include "codegen.h"
 #include <fmt/format.h>
-#include "NanoLog.hpp"
 #include "context.hh"
 #include "except.hh"
 #include "expr.hh"
@@ -57,7 +56,6 @@ void VerilogModule::run_passes(bool run_if_to_case_pass, bool remove_passthrough
 
     if (run_if_to_case_pass) transform_if_to_case(generator_);
 
-    // LOG_INFO << "Running pass: fix_assignment_type";
     fix_assignment_type(generator_);
 
     zero_out_stubs(generator_);
@@ -66,26 +64,24 @@ void VerilogModule::run_passes(bool run_if_to_case_pass, bool remove_passthrough
 
     decouple_generator_ports(generator_);
 
-    // LOG_INFO << "Running pass:  remove_unused_vars";
     remove_unused_vars(generator_);
+
     verify_assignments(generator_);
-    // LOG_INFO << "Running pass: verify_generator_connectivity";
+
     verify_generator_connectivity(generator_);
 
     check_mixed_assignment(generator_);
     // TODO:
-    //  add decouple-wire
     //  add inline pass
 
     hash_generators(generator_, HashStrategy::SequentialHash);
 
-    // LOG_INFO << "Running pass: uniquify_generators";
     uniquify_generators(generator_);
-    // LOG_INFO << "Running pass: uniquify_module_instances";
+
     uniquify_module_instances(generator_);
-    // LOG_INFO << "Running pass: create_module_instantiation";
+
     create_module_instantiation(generator_);
-    // LOG_INFO << "Running pass: generate_verilog";
+
     verilog_src_ = generate_verilog(generator_);
 }
 
@@ -102,7 +98,6 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
 
     for (uint32_t i = 0; i < generator->stmts_count(); i++) {
         dispatch_node(generator->get_stmt(i).get());
-        stream_ << stream_.endl();
     }
 
     stream_ << ::format("endmodule   // {0}", generator->name) << stream_.endl();
@@ -219,7 +214,7 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
     }
 
     indent_--;
-    stream_ << indent() << "end" << stream_.endl() << stream_.endl();
+    stream_ << indent() << "end" << stream_.endl();
 }
 
 void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {

@@ -10,7 +10,6 @@ set(CMAKE_CXX_FLAGS "-Wall -g -Wextra -Werror -fPIC")
 add_subdirectory(extern/googletest/)
 add_subdirectory(extern/slang EXCLUDE_FROM_ALL)
 add_subdirectory(extern/pybind11)
-add_subdirectory(extern/NanoLog)
 
 include(GoogleTest)
 
