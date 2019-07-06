@@ -99,23 +99,10 @@ private:
     void inline static check_var(Var* var) {
         bool is_top_level = false;
         auto sources = var->sources();
-        auto slices = var->get_slices();
         for (auto const& stmt : sources) {
             if (stmt->parent()->ast_node_kind() == ASTNodeKind::GeneratorKind) {
                 is_top_level = true;
                 break;
-            }
-        }
-        if (!is_top_level) {
-            for (auto const& iter : slices) {
-                auto slice_ptr = iter.second;
-                auto slice_sources = slice_ptr->sources();
-                for (auto const& stmt : slice_sources) {
-                    if (stmt->parent()->ast_node_kind() == ASTNodeKind::GeneratorKind) {
-                        is_top_level = true;
-                        break;
-                    }
-                }
             }
         }
 
@@ -128,16 +115,6 @@ private:
                     break;
                 }
             }
-            for (auto const& iter : slices) {
-                auto slice_ptr = iter.second;
-                auto slice_sources = slice_ptr->sources();
-                for (auto const& stmt : slice_sources) {
-                    if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
-                        has_error = true;
-                        break;
-                    }
-                }
-            }
         }
 
         if (has_error) {
@@ -145,13 +122,6 @@ private:
             // prepare the error
             for (auto const& stmt : sources) {
                 stmt_list.emplace_back(stmt.get());
-            }
-            for (auto const& iter : slices) {
-                auto slice_ptr = iter.second;
-                auto slice_sources = slice_ptr->sources();
-                for (auto const& stmt : slice_sources) {
-                    stmt_list.emplace_back(stmt.get());
-                }
             }
             throw StmtException(::format("{0} has wire assignment yet is also used in always block",
                                          var->to_string()),
@@ -211,34 +181,43 @@ public:
                 if (is_top_level_) continue;
             }
 
-            if (!port->sources().empty()) {
-                // it has been assigned
-                continue;
-            }
-            // check the slices
+            bool has_error = true;
             std::unordered_set<uint32_t> bits;
-            std::vector<Stmt*> stmt_list;
-            auto slices = port->get_slices();
-            for (auto const& [slice, slice_ptr] : slices) {
-                if (!slice_ptr->sources().empty()) {
-                    // we have a connection
-                    // fill in the bits
-                    auto [low, high] = slice;
-                    for (uint32_t i = low; i <= high; i++) {
-                        bits.emplace(i);
-                    }
-                    if (!port->fn_name_ln.empty()) {
-                        for (auto const& stmt : slice_ptr->sources())
-                            stmt_list.emplace_back(stmt.get());
+            bits.reserve(port->width);
+            if (!port->sources().empty()) {
+                // it has been assigned. need to compute all the slices
+                auto sources = port->sources();
+                for (auto& stmt : sources) {
+                    auto src = stmt->right();
+                    if (src->type() == VarType::Slice) {
+                        auto ptr = src->as<VarSlice>();
+                        auto low = ptr->low;
+                        auto high = ptr->high;
+                        for (uint32_t i = low; i <= high; i++) {
+                            bits.emplace(i);
+                        }
+                    } else {
+                        has_error = false;
+                        for (uint32_t i = 0; i < port->width; i++)
+                            bits.emplace(i);
+                        break;
                     }
                 }
             }
-            for (uint32_t i = 0; i < port->width; i++) {
-                if (bits.find(i) == bits.end()) {
-                    throw StmtException(
-                        ::format("{0}[{1}] is a floating net. Please check your connections",
-                                 port_name, i),
-                        stmt_list);
+            if (!has_error && bits.size() != port->width) has_error = true;
+
+            if (has_error) {
+                std::vector<Stmt*> stmt_list;
+                for (auto const& stmt : port->sources()) {
+                    stmt_list.emplace_back(stmt.get());
+                }
+                for (uint32_t i = 0; i < port->width; i++) {
+                    if (bits.find(i) == bits.end()) {
+                        throw StmtException(
+                            ::format("{0}[{1}] is a floating net. Please check your connections",
+                                     port_name, i),
+                            stmt_list);
+                    }
                 }
             }
         }
@@ -395,42 +374,19 @@ public:
             auto port = generator->get_port(port_name);
             auto const port_direction = port->port_direction();
             if (port_direction == PortDirection::In) {
-                // if we're connected to a base variable and no slice, we are good
-                const auto slices = port->get_slices();
                 const auto& sources = port->sources();
-                // because an input cannot be an register, it can only has one
-                // source (all bits combined)
-                if (slices.empty()) {
-                    if (sources.empty())
-                        throw VarException(
-                            ::format("{0}.{1} is not connected", generator->name, port_name),
-                            {port.get()});
-                    if (sources.size() > 1) {
-                        std::vector<Stmt*> stmt_list;
-                        stmt_list.reserve(sources.size());
-                        for (auto const& stmt : sources) stmt_list.emplace_back(stmt.get());
-                        throw StmtException(::format("{0}.{1} is driven by multiple nets",
-                                                     generator->name, port_name),
-                                            stmt_list);
-                    }
-                    // add it to the port mapping and we are good to go
-                    auto const& stmt = *sources.begin();
-                    // if the source is not a base variable, create one and use it to connect
-                    // otherwise we're good to go.
-                    auto src = stmt->right();
-                    if (src->type() == VarType::Base ||
-                        (src->type() == VarType::PortIO && src->parent() == generator->parent())) {
-                        continue;
-                    }
-                } else {
-                    // we can't have a port that is driven by slice and variables
-                    if (!sources.empty()) {
-                        std::vector<Stmt*> stmt_list;
-                        stmt_list.reserve(sources.size());
-                        for (auto const& stmt : sources) stmt_list.emplace_back(stmt.get());
-                        throw StmtException(
-                            ::format("{0}.{1} is over-connected", generator->name, port_name),
-                            stmt_list);
+                // unless it's driven by a single var or port, we need to duplicate
+                // the variable
+                if (sources.size() == 1) {
+                    const auto& stmt = *sources.begin();
+                    if (stmt->left() == port) {
+                        // the sink has to be it self
+                        auto src = stmt->right();
+                        if (src->type() == VarType::Base ||
+                            (src->type() == VarType::PortIO &&
+                             src->parent() == generator->parent())) {
+                            continue;
+                        }
                     }
                 }
                 // create a new variable
@@ -451,10 +407,9 @@ public:
                 Var::move_src_to(port.get(), &var, parent, true);
             } else if (port_direction == PortDirection::Out) {
                 // same logic as the port dir in
-                // if we're connected to a base variable and no slice, we are good
-                const auto slices = port->get_slices();
+                // if we're connected to a base variable, we are good
                 const auto& sinks = port->sinks();
-                if (slices.empty() && sinks.empty()) {
+                if (sinks.empty()) {
                     continue;
                 }
                 // special case where if the sink is parent's port, this is fine
@@ -546,7 +501,6 @@ public:
         for (const auto& port_name : ports) {
             checkout_assignment(generator, port_name);
         }
-        // TODO: check slice as well
     }
     void checkout_assignment(Generator* generator, const std::string& name) const {
         auto const& var = generator->get_var(name);
@@ -689,8 +643,6 @@ public:
         const std::shared_ptr<Var>& var,
         std::vector<std::pair<std::shared_ptr<Var>, std::shared_ptr<AssignStmt>>>& queue) {
         if (var->sinks().size() == 1) {
-            // we don't care about slices for now
-            if (!var->get_slices().empty()) return;
             auto const& stmt = *(var->sinks().begin());
             if (stmt->parent()->ast_node_kind() == ASTNodeKind::GeneratorKind) {
                 auto sink_var = stmt->left();
@@ -766,8 +718,6 @@ private:
 
         for (const auto& port_name : port_names) {
             auto const port = generator->get_port(port_name);
-            // we may relax this as well
-            if (!port->get_slices().empty()) return false;
             if (port->port_direction() == PortDirection::In) {
                 auto sinks = port->sinks();
                 if (sinks.size() != 1) return false;
@@ -839,27 +789,23 @@ extract_debug_info(Generator* top) {
     return visitor.result;
 }
 
-
-void PassManager::add_pass(const std::string& name,
-                           std::function<void(Generator*)> fn) {
+void PassManager::add_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));
     passes_.emplace(name, fn);
     passes_order_.emplace_back(name);
 }
 
-
 void PassManager::add_pass(const std::string& name, void(fn)(Generator*)) {
-
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));
-    auto func = [=](Generator *generator) { (*fn)(generator); };
+    auto func = [=](Generator* generator) { (*fn)(generator); };
     passes_.emplace(name, func);
     passes_order_.emplace_back(name);
 }
 
 void PassManager::run_passes(Generator* generator) {
-    for (const auto &fn_name: passes_order_) {
+    for (const auto& fn_name : passes_order_) {
         auto fn = passes_.at(fn_name);
         fn(generator);
     }

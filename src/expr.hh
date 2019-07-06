@@ -155,6 +155,10 @@ public:
     VarSlice(Var *parent, uint32_t high, uint32_t low);
     ASTNode *parent() override;
 
+    // we tie it to the parent
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+
     void set_parent(Var* parent) { parent_var = parent; }
 
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }

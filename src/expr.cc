@@ -480,3 +480,21 @@ void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     left->add_sink(stmt);
     if (right) right->add_sink(stmt);
 }
+
+void VarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    Var* parent = parent_var;
+    while (parent->type() == VarType::Slice) {
+        auto ptr = reinterpret_cast<VarSlice*>(parent);
+        parent = ptr->parent_var;
+    }
+    parent->add_sink(stmt);
+}
+
+void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
+    Var* parent = parent_var;
+    while (parent->type() == VarType::Slice) {
+        auto ptr = reinterpret_cast<VarSlice*>(parent);
+        parent = ptr->parent_var;
+    }
+    parent->add_source(stmt);
+}

@@ -4,6 +4,14 @@ from kratos.passes import uniquify_generators, hash_generators
 import os
 
 
+class PassThroughMod(Generator):
+    def __init__(self):
+        super().__init__("mod1", True)
+        self.in_ = self.port("in", 1, PortDirection.In)
+        self.out_ = self.port("out", 1, PortDirection.Out)
+        self.wire(self.out_, self.in_)
+
+
 def test_generator():
     mods = []
     for i in range(10):
@@ -101,20 +109,13 @@ def test_else_if():
 
 
 def test_mod_instantiation():
-    class Mod1(Generator):
-        def __init__(self):
-            super().__init__("mod1")
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", 1, PortDirection.Out)
-            self.wire(self.out_, self.in_)
-
     class Mod2(Generator):
         def __init__(self):
             super().__init__("mod2")
             self._in = self.port("in", 1, PortDirection.In)
             self._out = self.port("out", 1, PortDirection.Out)
 
-            self.add_child_generator("mod1", Mod1())
+            self.add_child_generator("mod1", PassThroughMod())
 
             self.wire(self["mod1"].in_, self._in)
             self.wire(self._out, self["mod1"].out_)
@@ -125,6 +126,8 @@ def test_mod_instantiation():
     mod_src = verilog(mod, optimize_passthrough=False)
     assert "mod1" in mod_src
     assert "mod2" in mod_src
+    mod2_src = mod_src["mod2"]
+    assert "$" not in mod2_src
     assert is_valid_verilog(mod_src["mod2"])
     assert is_valid_verilog(mod_src["mod1"])
 
@@ -189,20 +192,13 @@ def test_switch():
 
 
 def test_pass_through():
-    class Mod1(Generator):
-        def __init__(self):
-            super().__init__("mod1")
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", 1, PortDirection.Out)
-            self.wire(self.out_, self.in_)
-
     class Mod2(Generator):
         def __init__(self):
             super().__init__("mod2")
             self._in = self.port("in", 1, PortDirection.In)
             self._out = self.port("out", 1, PortDirection.Out)
 
-            mod1 = Mod1()
+            mod1 = PassThroughMod()
             self.add_child_generator("mod1", mod1)
             self.wire(mod1.in_, self._in)
             self.wire(self._out, mod1.out_)
@@ -218,7 +214,7 @@ def test_pass_through():
 
 
 def test_nested_if():
-    class Mod1(Generator):
+    class Mod(Generator):
         def __init__(self):
             super().__init__("mod1")
             self.in_ = self.port("in", 2, PortDirection.In)
@@ -235,28 +231,21 @@ def test_nested_if():
             else:
                 self.out_ = 2
 
-    mod = Mod1()
+    mod = Mod()
     mod_src = verilog(mod)
     src = mod_src["mod1"]
     assert is_valid_verilog(src)
 
 
 def test_fanout_mod_inst():
-    class Mod1(Generator):
-        def __init__(self):
-            super().__init__("mod1")
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", 1, PortDirection.Out)
-            self.wire(self.out_, self.in_)
-
     class Mod2(Generator):
         def __init__(self):
             super().__init__("mod2")
             self.in_ = self.port("in", 1, PortDirection.In)
             self.out_ = self.port("out", 1, PortDirection.Out)
 
-            self.mod_1 = Mod1()
-            self.mod_2 = Mod1()
+            self.mod_1 = PassThroughMod()
+            self.mod_2 = PassThroughMod()
 
             self.add_child_generator("mod1", self.mod_1)
             self.add_child_generator("mod2", self.mod_2)
@@ -277,7 +266,7 @@ def test_fanout_mod_inst():
 
 
 def test_debug():
-    class Mod1(Generator):
+    class Mod(Generator):
         def __init__(self):
             super().__init__("mod1", True)
             self.in_ = self.port("in", 1, PortDirection.In)
@@ -291,7 +280,7 @@ def test_debug():
         def code(self):
             self.out_2 = self.in_
 
-    mod = Mod1()
+    mod = Mod()
     mod_src, mod_debug = verilog(mod, debug=True)
     src_mapping = mod_debug["mod1"]
     assert len(src_mapping) == 7
@@ -308,7 +297,7 @@ def test_debug():
 
 
 def test_illegal_assignment_width():
-    class Mod1(Generator):
+    class Mod(Generator):
         def __init__(self):
             super().__init__("mod1", True)
             self.in_ = self.port("in", 1, PortDirection.In)
@@ -323,7 +312,7 @@ def test_illegal_assignment_width():
                 self.out_ = self.const(1, 1)
 
     try:
-        Mod1()
+        Mod()
         assert False
     except VarException as ex:
         print(ex)
@@ -331,7 +320,7 @@ def test_illegal_assignment_width():
 
 
 def test_illegal_assignment_blocking():
-    class Mod1(Generator):
+    class Mod(Generator):
         def __init__(self):
             super().__init__("mod1", True)
             self.in_ = self.port("in", 1, PortDirection.In)
@@ -347,7 +336,7 @@ def test_illegal_assignment_blocking():
             self.out_ = 1
 
     try:
-        mod = Mod1()
+        mod = Mod()
         verilog(mod)
         assert False
     except StmtException as ex:
@@ -356,7 +345,7 @@ def test_illegal_assignment_blocking():
 
 
 def test_data_if():
-    class Mod1(Generator):
+    class Mod(Generator):
         def __init__(self, bool_flag):
             super().__init__("mod1")
             self.in_ = self.port("in", 1, PortDirection.In)
@@ -377,14 +366,14 @@ def test_data_if():
                 else:
                     self.out_ = 1
 
-    mod = Mod1(True)
+    mod = Mod(True)
     mod_src = verilog(mod)
     src = mod_src["mod1"]
     assert is_valid_verilog(src)
     assert "in == 1'h1" in src
     # need to clear the context, otherwise it will be a different module name
     Generator.clear_context()
-    mod = Mod1(False)
+    mod = Mod(False)
     mod_src = verilog(mod)
     src = mod_src["mod1"]
     assert is_valid_verilog(src)
@@ -392,7 +381,7 @@ def test_data_if():
 
 
 def test_static_eval_for_loop():
-    class Mod1(Generator):
+    class Mod(Generator):
         def __init__(self, num_loop):
             super().__init__("mod1", True)
             self.in_ = self.port("in", 1, PortDirection.In)
@@ -410,7 +399,7 @@ def test_static_eval_for_loop():
                     self.out_[i] = 0
 
     loop = 4
-    mod = Mod1(loop)
+    mod = Mod(loop)
     mod_src, mod_debug = verilog(mod, debug=True)
     src = mod_src["mod1"]
     mod_mapping = mod_debug["mod1"]
@@ -422,20 +411,13 @@ def test_static_eval_for_loop():
 
 
 def test_clone():
-    class Mod1(Generator):
-        def __init__(self):
-            super().__init__("mod1", True)
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", 1, PortDirection.Out)
-            self.wire(self.out_, self.in_)
-
     class Mod2(Generator):
         def __init__(self):
             super().__init__("mod2", True)
             self.in_ = self.port("in", 2, PortDirection.In)
             self.out_ = self.port("out", 2, PortDirection.Out)
 
-            self.child1 = Mod1()
+            self.child1 = PassThroughMod()
             self.child2 = self.child1.clone()
             self.add_child_generator("child1", self.child1)
             self.add_child_generator("child2", self.child2)
@@ -458,6 +440,7 @@ def test_clone():
 def test_pass():
     # TODO: alias the type into kratos namespace
     import _kratos
+
     def change_name(generator):
         class Visitor(ASTVisitor):
             def __init__(self):
