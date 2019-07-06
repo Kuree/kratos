@@ -198,8 +198,7 @@ public:
                         }
                     } else {
                         has_error = false;
-                        for (uint32_t i = 0; i < port->width; i++)
-                            bits.emplace(i);
+                        for (uint32_t i = 0; i < port->width; i++) bits.emplace(i);
                         break;
                     }
                 }
@@ -382,7 +381,7 @@ public:
                     if (stmt->left() == port) {
                         // the sink has to be it self
                         auto src = stmt->right();
-                        if (src->type() == VarType::Base ||
+                        if (src->type() == VarType::Base || src->type() == VarType::ConstValue ||
                             (src->type() == VarType::PortIO &&
                              src->parent() == generator->parent())) {
                             continue;

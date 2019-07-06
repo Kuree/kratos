@@ -469,5 +469,26 @@ def test_pass():
     assert "output  test" in src
 
 
+def test_const_port():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod")
+
+            self.in_ = self.port("in", 1, PortDirection.In)
+            self.out_ = self.port("out", 2, PortDirection.Out)
+
+            self.child = PassThroughMod()
+            self.add_child_generator("child", self.child)
+            self.child.wire(self.child.in_, self.const(0, 1))
+            self.wire(self.out_[0], self.child.out_)
+            self.wire(self.out_[1], self.in_)
+
+    mod = Mod()
+    mod_src = verilog(mod, optimize_passthrough=False)
+    assert "mod" in mod_src
+    src = mod_src["mod"]
+    assert is_valid_verilog(src)
+
+
 if __name__ == "__main__":
-    test_pass()
+    test_const_port()
