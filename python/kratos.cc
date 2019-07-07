@@ -283,7 +283,8 @@ void init_generator(py::module &m) {
         .def("constant", py::overload_cast<int64_t, uint32_t, bool>(&Generator::constant),
              py::return_value_policy::reference)
         .def("parameter",
-             py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter))
+             py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
+             py::return_value_policy::reference)
         .def("get_params", &Generator::get_params)
         .def("get_param", &Generator::get_param)
         .def("get_port", &Generator::get_port, py::return_value_policy::reference)

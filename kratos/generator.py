@@ -3,7 +3,6 @@ from .pyast import transform_stmt_block, get_fn_ln
 import _kratos
 from typing import List, Dict
 
-
 __GLOBAL_DEBUG = False
 
 
@@ -178,6 +177,15 @@ class Generator:
             fn, ln = get_fn_ln()
             p.add_fn_ln((fn, ln))
         return p
+
+    def parameter(self, name: str, width: int,
+                  is_signed: bool = False) -> _kratos.Param:
+        param = self.__generator.parameter(name, width, is_signed)
+
+        if self.debug:
+            fn, ln = get_fn_ln()
+            param.add_fn_ln((fn, ln))
+        return param
 
     def get_var(self, name):
         return self.__generator.get_var(name)
