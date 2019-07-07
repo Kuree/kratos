@@ -27,5 +27,10 @@ after_success:
     - echo username=keyi                               >> ~/.pypirc
     - echo password=$PYPI_PASSWORD                     >> ~/.pypirc
     - docker cp ~/.pypirc manylinux:/home/
-    - docker exec -i manylinux bash -c 'cd kratos/ && twine upload --config-file /home/.pypirc wheelhouse/*'
 
+deploy:
+  - provider: script
+    script: /bin/sh scripts/deploy.sh
+    on:
+      branch: master
+      tags: true
