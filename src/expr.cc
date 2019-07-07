@@ -187,7 +187,7 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
     if (right != nullptr && left->width != right->width)
         throw VarException(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
-                     left->name, left->width, right->name, right->width),
+                     left->to_string(), left->width, right->to_string(), right->width),
             {left.get(), right.get()});
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op))
@@ -196,9 +196,9 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
         width = left->width;
 
     if (right != nullptr)
-        name = ::format("({0} {1} {2})", left->name, ExprOpStr(op), right->name);
+        name = ::format("({0} {1} {2})", left->to_string(), ExprOpStr(op), right->to_string());
     else
-        name = ::format("({0} {1})", ExprOpStr(op), left->name);
+        name = ::format("({0} {1})", ExprOpStr(op), left->to_string());
     if (right != nullptr)
         is_signed = left->is_signed & right->is_signed;
     else
@@ -231,10 +231,10 @@ AssignStmt &Var::assign(Var &var) { return assign(var, AssignmentType::Undefined
 AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     // if it's a constant or expression, it can't be assigned to
     if (type_ == VarType::ConstValue)
-        throw VarException(::format("Cannot assign {0} to a const {1}", var->name, name),
+        throw VarException(::format("Cannot assign {0} to a const {1}", var->to_string(), name),
                            {this, var.get()});
     else if (type_ == VarType::Expression)
-        throw VarException(::format("Cannot assign {0} to an expression", var->name, name),
+        throw VarException(::format("Cannot assign {0} to an expression", var->to_string(), name),
                            {this, var.get()});
     auto const &stmt = ::make_shared<AssignStmt>(shared_from_this(), var, type);
     // determine the type
