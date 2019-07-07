@@ -45,6 +45,7 @@ public:
     virtual inline void visit(VarConcat *) {}
     virtual inline void visit(Expr *) {}
     virtual inline void visit(Const *) {}
+    virtual inline void visit(Parameter *) {}
     virtual inline void visit(AssignStmt *) {}
     virtual inline void visit(IfStmt *) {}
     virtual inline void visit(SwitchStmt *) {}

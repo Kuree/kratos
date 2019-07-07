@@ -55,6 +55,26 @@ TEST(generator, remove_stmt) {  // NOLINT
     EXPECT_EQ(mod.get_stmt(0), nullptr);
 }
 
+
+TEST(generator, param) {    // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &out = mod.port(PortDirection::Out, "out", 1);
+    auto &child = c.generator("child");
+    auto &child_out = child.port(PortDirection::Out, "out", 1);
+    auto &param = child.parameter("parm", 1);
+    param.set_value(1);
+    child.add_stmt(child_out.assign(param).shared_from_this());
+    mod.add_child_generator(child.shared_from_this(), false);
+    mod.add_stmt(out.assign(child_out).shared_from_this());
+
+    fix_assignment_type(&mod);
+    create_module_instantiation(&mod);
+    auto mod_src = generate_verilog(&mod);
+    auto src = mod_src.at("mod");
+    EXPECT_TRUE(is_valid_verilog(src));
+}
+
 TEST(pass, assignment_fix) {  // NOLINT
     Context c;
     auto mod = c.generator("module");

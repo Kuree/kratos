@@ -324,6 +324,17 @@ void Const::set_value(int64_t new_value) {
     }
 }
 
+void Const::add_source(const std::shared_ptr<AssignStmt> &) {
+    throw VarException(::format("const {0} is not allowed to be driven by a net", to_string()),
+                       {this});
+}
+
+Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
+    : Const(m, 0, width, is_signed), parameter_name_(std::move(name)) {
+    // override the type value
+    type_ = VarType::Parameter;
+}
+
 VarConcat::VarConcat(Generator *m, const std::shared_ptr<Var> &first,
                      const std::shared_ptr<Var> &second)
     : Var(m, "", first->width + second->width, first->is_signed && second->is_signed,
@@ -482,18 +493,18 @@ void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
 }
 
 void VarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    Var* parent = parent_var;
+    Var *parent = parent_var;
     while (parent->type() == VarType::Slice) {
-        auto ptr = reinterpret_cast<VarSlice*>(parent);
+        auto ptr = reinterpret_cast<VarSlice *>(parent);
         parent = ptr->parent_var;
     }
     parent->add_sink(stmt);
 }
 
 void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
-    Var* parent = parent_var;
+    Var *parent = parent_var;
     while (parent->type() == VarType::Slice) {
-        auto ptr = reinterpret_cast<VarSlice*>(parent);
+        auto ptr = reinterpret_cast<VarSlice *>(parent);
         parent = ptr->parent_var;
     }
     parent->add_source(stmt);

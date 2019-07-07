@@ -12,6 +12,7 @@ class Generator;
 struct Expr;
 struct Var;
 struct Const;
+struct Parameter;
 struct VarSlice;
 struct VarConcat;
 struct VarSigned;

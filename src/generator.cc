@@ -163,6 +163,18 @@ Const &Generator::constant(int64_t value, uint32_t width, bool is_signed) {
     return *ptr;
 }
 
+Param &Generator::parameter(const std::string &parameter_name, uint32_t width) {
+    return parameter(parameter_name, width, false);
+}
+
+Param &Generator::parameter(const std::string &parameter_name, uint32_t width, bool is_signed) {
+    if (params_.find(parameter_name) != params_.end())
+        throw runtime_error(::format("parameter {0} already exists", parameter_name));
+    auto ptr = std::make_shared<Param>(this, parameter_name, width, is_signed);
+    params_.emplace(parameter_name, ptr);
+    return *ptr;
+}
+
 ASTNode *Generator::get_child(uint64_t index) {
     if (index < stmts_count())
         return stmts_[index].get();
@@ -240,6 +252,12 @@ void Generator::rename_var(const std::string &old_name, const std::string &new_n
     vars_.extract(old_name).key() = new_name;
     // rename the var
     var->name = new_name;
+}
+
+std::shared_ptr<Param> Generator::get_param(const std::string &param_name) const {
+    if (params_.find(param_name) == params_.end())
+        return nullptr;
+    return params_.at(param_name);
 }
 
 void Generator::remove_stmt(const std::shared_ptr<Stmt> &stmt) {
@@ -397,6 +415,5 @@ std::shared_ptr<Generator> Generator::clone() {
 }
 
 void Generator::accept(ASTVisitor *visitor) {
-    if (!external())
-        visitor->visit(this);
+    if (!external()) visitor->visit(this);
 }

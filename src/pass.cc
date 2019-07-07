@@ -382,6 +382,7 @@ public:
                         // the sink has to be it self
                         auto src = stmt->right();
                         if (src->type() == VarType::Base || src->type() == VarType::ConstValue ||
+                            src->type() == VarType::Parameter ||
                             (src->type() == VarType::PortIO &&
                              src->parent() == generator->parent())) {
                             continue;
@@ -561,7 +562,9 @@ private:
         } else {
             if (var != expr->left.get()) return false;
         }
-        if (expr->right->type() != VarType::ConstValue) return false;
+        if ((expr->right->type() != VarType::ConstValue) &&
+            (expr->right->type() != VarType::Parameter))
+            return false;
         if (if_->else_body().size() > 1) return false;
 
         if_stmts.emplace(if_);

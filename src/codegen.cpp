@@ -101,6 +101,7 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
     stream_ << ::format("module {0} (", generator->name) << stream_.endl();
     generate_ports(generator);
     stream_ << ");" << stream_.endl() << stream_.endl();
+    generate_parameters(generator);
     generate_variables(generator);
 
     for (uint32_t i = 0; i < generator->stmts_count(); i++) {
@@ -137,6 +138,13 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
                                 get_var_width_str(var.get()), var->name)
                     << stream_.endl();
         }
+    }
+}
+
+void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
+    auto &params = generator->get_params();
+    for (auto const &[name, param] : params) {
+        stream_ << ::format("parameter {0} = {1};", name, param->value_str()) << stream_.endl();
     }
 }
 
@@ -270,8 +278,21 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
-    stream_ << indent() << stmt->target()->name << " " << stmt->target()->instance_name << " ("
-            << stream_.endl();
+    stream_ << indent() << stmt->target()->name;
+    auto &params = stmt->target()->get_params();
+    if (!params.empty()) {
+        stream_ << " #(" << stream_.endl();
+        indent_++;
+
+        uint32_t count = 0;
+        for (auto const &[name, param]: params) {
+            stream_ << indent() << ::format(".{0}({1}){2}", name, param->value_str(),
+                ++count == params.size()? ")": "," +  std::string(1, stream_.endl()));
+        }
+
+        indent_--;
+    }
+    stream_ << " " << stmt->target()->instance_name << " (" << stream_.endl();
     indent_++;
     uint32_t count = 0;
     for (auto const& [internal, external] : stmt->port_mapping()) {

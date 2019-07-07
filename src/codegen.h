@@ -68,6 +68,7 @@ private:
     static std::string get_var_width_str(const Var* var);
     void generate_ports(Generator* generator);
     void generate_variables(Generator* generator);
+    void generate_parameters(Generator* generator);
 
     void dispatch_node(ASTNode* node);
 

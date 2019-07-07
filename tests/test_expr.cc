@@ -62,7 +62,7 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ(VarSigned(&var1).to_string(), "$signed(a)");
 }
 
-TEST(expr, relational) {    // NOLINT
+TEST(expr, relational) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
 
@@ -99,7 +99,7 @@ TEST(expr, const_val) {  // NOLINT
     EXPECT_EQ(c1.to_string(), "-4'h4");
 }
 
-TEST(expr, concat) {    // NOLINT
+TEST(expr, concat) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
     auto &var1 = mod.var("a", 1);
@@ -116,4 +116,15 @@ TEST(expr, concat) {    // NOLINT
     const auto &var4 = VarConcat(var3);
     // copy constructor won't work
     EXPECT_ANY_THROW(var4.shared_from_this());
+}
+
+TEST(expr, param) {  // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto p = Param(&mod, "a", 2, false);
+    auto value = 2;
+    p.set_value(value);
+    EXPECT_EQ(p.to_string(), "a");
+    EXPECT_EQ(p.value(), value);
+    EXPECT_EQ(p.value_str(), "2'h2");
 }

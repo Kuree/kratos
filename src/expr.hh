@@ -38,7 +38,7 @@ enum ExprOp : uint64_t {
 
 bool is_relational_op(ExprOp op);
 
-enum VarType { Base, Expression, Slice, ConstValue, PortIO };
+enum VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter };
 
 struct Var : public std::enable_shared_from_this<Var>, public ASTNode {
 public:
@@ -187,6 +187,7 @@ public:
 
     int64_t value() { return value_; }
     void set_value(int64_t new_value);
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
     std::string to_string() const override;
 
@@ -194,6 +195,21 @@ public:
 
 private:
     int64_t value_;
+};
+
+struct Param: public Const {
+public:
+    Param(Generator *m, std::string name, uint32_t width, bool is_signed);
+
+    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+
+    std::string inline to_string() const override { return parameter_name_; }
+
+    std::string inline value_str() const { return Const::to_string(); }
+
+private:
+    std::string parameter_name_;
+
 };
 
 struct Expr : public Var {

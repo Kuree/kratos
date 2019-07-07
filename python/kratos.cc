@@ -107,13 +107,9 @@ void init_pass(py::module &m) {
             PYBIND11_OVERLOAD(void, ASTVisitor, visit_content, generator);
         }
 
-        void visit(AssignStmt *stmt) override {
-            PYBIND11_OVERLOAD(void, ASTVisitor, visit, stmt);
-        }
+        void visit(AssignStmt *stmt) override { PYBIND11_OVERLOAD(void, ASTVisitor, visit, stmt); }
 
-        void visit(Port *var) override {
-            PYBIND11_OVERLOAD(void, ASTVisitor, visit, var);
-        }
+        void visit(Port *var) override { PYBIND11_OVERLOAD(void, ASTVisitor, visit, var); }
 
         void visit(Generator *generator) override {
             PYBIND11_OVERLOAD(void, ASTVisitor, visit, generator);
@@ -248,6 +244,11 @@ void init_expr(py::module &m) {
     auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
     init_var_derived(concat);
     def_trace<py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>, VarConcat>(concat);
+
+    auto param = py::class_<Param, ::shared_ptr<Param>, Var>(m, "Param");
+    init_var_derived(param);
+    param.def("value", &Param::value).def("set_value", &Param::set_value);
+    def_trace<py::class_<Param, ::shared_ptr<Param>, Var>, Param>(param);
 }
 
 void init_context(py::module &m) {
@@ -281,6 +282,10 @@ void init_generator(py::module &m) {
              py::return_value_policy::reference)
         .def("constant", py::overload_cast<int64_t, uint32_t, bool>(&Generator::constant),
              py::return_value_policy::reference)
+        .def("parameter",
+             py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter))
+        .def("get_params", &Generator::get_params)
+        .def("get_param", &Generator::get_param)
         .def("get_port", &Generator::get_port, py::return_value_policy::reference)
         .def("get_var", &Generator::get_var, py::return_value_policy::reference)
         .def("get_port_names", &Generator::get_port_names)
@@ -313,7 +318,7 @@ void init_generator(py::module &m) {
         .def("is_cloned", &Generator::is_cloned);
 
     generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
-      var.fn_name_ln.emplace_back(info);
+        var.fn_name_ln.emplace_back(info);
     });
 }
 

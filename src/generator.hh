@@ -30,6 +30,8 @@ public:
                bool is_signed);
     Const &constant(int64_t value, uint32_t width);
     Const &constant(int64_t value, uint32_t width, bool is_signed);
+    Param &parameter(const std::string &parameter_name, uint32_t width);
+    Param &parameter(const std::string &parameter_name, uint32_t width, bool is_signed);
 
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 
@@ -37,11 +39,15 @@ public:
     std::shared_ptr<Port> get_port(const std::string &port_name);
     std::shared_ptr<Var> get_var(const std::string &var_name);
     const std::set<std::string> &get_port_names() const { return ports_; }
-    const std::unordered_map<std::string, std::shared_ptr<Var>> &vars() const { return vars_; }
+    const std::map<std::string, std::shared_ptr<Var>> &vars() const { return vars_; }
     void remove_var(const std::string &var_name) {
         if (vars_.find(var_name) != vars_.end()) vars_.erase(var_name);
     }
     void rename_var(const std::string &old_name, const std::string &new_name);
+    const inline std::map<std::string, std::shared_ptr<Param>> &get_params() const {
+        return params_;
+    }
+    std::shared_ptr<Param> get_param(const std::string &param_name) const;
 
     // statements
     void add_stmt(std::shared_ptr<Stmt> stmt);
@@ -97,7 +103,7 @@ public:
 
     bool debug = false;
 
-    const std::unordered_set<std::shared_ptr<Generator>> & get_clones() const { return clones_; }
+    const std::unordered_set<std::shared_ptr<Generator>> &get_clones() const { return clones_; }
     std::shared_ptr<Generator> clone();
     bool is_cloned() const { return is_cloned_; }
 
@@ -105,8 +111,9 @@ private:
     std::vector<std::string> lib_files_;
     Context *context_;
 
-    std::unordered_map<std::string, std::shared_ptr<Var>> vars_;
+    std::map<std::string, std::shared_ptr<Var>> vars_;
     std::set<std::string> ports_;
+    std::map<std::string, std::shared_ptr<Param>> params_;
 
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
