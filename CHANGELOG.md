@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3] - 2019-07-07
+### Added
+- `PortProxy` to mimic gemstone interface
+- `create()` helper function to create clones efficiently
+
+### Fixed
+- `is_cloned` setting during cloning
+- `VarSlice` string during code gen.
+
 ## [0.0.2] - 2019-07-06
 ### Added
 - Static evaluation on `if` and `for` statements.
