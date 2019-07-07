@@ -82,7 +82,24 @@ class CombinationalCodeBlock(CodeBlock):
         super().__init__(generator, StatementBlockType.Combinational)
 
 
-class Generator:
+class PortProxy:
+    def __init__(self, generator: "Generator"):
+        self.__generator = generator
+
+    def __getitem__(self, key):
+        return self.__generator.internal_generator.get_port(key)
+
+    def __getattr__(self, key):
+        return self.__generator.internal_generator.get_port(key)
+
+
+class GeneratorMeta(type):
+    def __init__(cls, name, bases, attrs):
+        super().__init__(name, bases, attrs)
+        cls._cache = {}
+
+
+class Generator(metaclass=GeneratorMeta):
     __context = _kratos.Context()
     __inspect_frame_depth: int = 2
 
@@ -100,15 +117,20 @@ class Generator:
             fn, ln = get_fn_ln(Generator.__inspect_frame_depth)
             self.__generator.add_fn_ln((fn, ln))
 
+        # gemstone style port interface
+        self.ports = PortProxy(self)
+
     def __getitem__(self, instance_name: str):
         assert instance_name in self.__child_generator, \
-            f"{instance_name} does not exist in {self.instance_name}"
+            "{0} does not exist in {1}".format(instance_name,
+                                               self.instance_name)
         return self.__child_generator[instance_name]
 
     def __setitem__(self, instance_name: str, generator: "Generator"):
         if instance_name in self.__child_generator:
             raise Exception(
-                f"{instance_name} already exists in {self.instance_name}")
+                "{0} already exists in {1}".format(self.instance_name,
+                                                   self.instance_name))
         assert isinstance(generator,
                           Generator), "generator is not a Generator instance"
 
@@ -269,15 +291,30 @@ class Generator:
         else:
             return self.__generator.has_child_generator(generator)
 
-    def clone(self):
+    def clone(self, copy_port_attr: bool = True):
         g = Generator("")
         g.__generator = self.__generator.clone()
-        # copy all the port attributes over
-        attributes = self.__dict__
-        for name, value in attributes.items():
-            if isinstance(value, _kratos.Port):
-                setattr(g, name, g.__generator.get_port(value.name))
+        if copy_port_attr:
+            # copy all the port attributes over
+            attributes = self.__dict__
+            for name, value in attributes.items():
+                if isinstance(value, _kratos.Port):
+                    setattr(g, name, g.__generator.get_port(value.name))
         return g
+
+    @classmethod
+    def create(cls, **kargs):
+        # compute the hash
+        hash_value = 0
+        for key, value in kargs.items():
+            hash_value = hash_value ^ (hash(key) << 16) ^ hash(value)
+        if hash_value not in cls._cache:
+            g = cls(**kargs)
+            cls._cache[hash_value] = g
+            return g
+        else:
+            g = cls._cache[hash_value]
+            return g.clone()
 
 
 def always(sensitivity):

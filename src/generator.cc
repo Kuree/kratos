@@ -405,12 +405,17 @@ std::shared_ptr<Generator> Generator::clone() {
         generator->port(port->port_direction(), port_name, port->width, port->port_type(),
                         port->is_signed);
     }
+    // also parameters
+    for (auto const &[param_name, param]: params_) {
+        generator->parameter(param_name, param->width, param->is_signed);
+    }
     if (!fn_name_ln.empty()) {
         generator->fn_name_ln.insert(generator->fn_name_ln.end(), fn_name_ln.begin(),
                                      fn_name_ln.end());
     }
     // we won't bother checking stuff
     generator->set_external(true);
+    generator->is_cloned_ = true;
     return generator;
 }
 

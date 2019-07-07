@@ -490,5 +490,23 @@ def test_const_port():
     assert is_valid_verilog(src)
 
 
+def test_create():
+    class Mod(Generator):
+        def __init__(self, width):
+            super().__init__(f"mod_{width}")
+
+            self.in_ = self.port("in", width, PortDirection.In)
+            self.out_ = self.port("out", width, PortDirection.Out)
+            self.wire(self.out_, self.in_)
+
+    mod1 = Mod.create(width=1)
+    mod2 = Mod.create(width=2)
+    mod3 = Mod.create(width=1)
+
+    assert not mod1.is_cloned
+    assert not mod2.is_cloned
+    assert mod3.is_cloned
+
+
 if __name__ == "__main__":
-    test_const_port()
+    test_create()

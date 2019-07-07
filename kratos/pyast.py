@@ -244,8 +244,8 @@ def transform_stmt_block(generator, fn, debug=False):
     fn_body.decorator_list = []
     # check the function args. it should only has one self now
     args = fn_body.args.args
-    assert len(args) == 1, f"statement block {fn_name} has " \
-        f"to be defined as def {fn_name}(self)"
+    assert len(args) == 1, "statement block {0} has ".format(fn_name) +\
+        "to be defined as def {0}(self)".format(fn_name)
     # add out scope to the arg list to capture all the statements
     args.append(ast.arg(arg="scope", annotation=None))
 
@@ -294,10 +294,10 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         return []
     else:
         assert len(deco_list) == 1, \
-            f"{fn_name} is not called with @always block"
+            "{0} is not called with @always block".format(fn_name)
         call_obj = deco_list[0]
         assert isinstance(call_obj, ast.Call), \
-            f"{fn_name} is not called with @always block"
+            "{0} is not called with @always block".format(fn_name)
         # making sure it's always
         call_name = call_obj.func.id
         assert call_name == "always"
