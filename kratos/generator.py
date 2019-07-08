@@ -274,6 +274,10 @@ class Generator(metaclass=GeneratorMeta):
     @staticmethod
     def clear_context():
         Generator.__context.clear()
+        # also clean the caches
+        clses = Generator.__subclasses__()
+        for cls in clses:   # type: Generator
+            cls._cache.clear()
 
     @staticmethod
     def get_context():
