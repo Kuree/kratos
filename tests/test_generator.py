@@ -526,5 +526,52 @@ def test_packed_struct():
     assert is_valid_verilog(src)
 
 
+def test_more_debug1():
+    class Top(Generator):
+        def __init__(self):
+            super().__init__("top", True)
+
+            self.port("in", 1, PortDirection.In)
+            self.port("out", 1, PortDirection.Out)
+
+            pass_through = PassThroughMod()
+            self.add_child_generator("pass", pass_through)
+            self.wire(self["pass"].ports["in"], self.ports["in"], )
+
+            self.wire(self.ports.out, self["pass"].ports.out)
+
+    mod = Top()
+    mod_src, debug_info = verilog(mod, debug=True)
+    src = mod_src["top"]
+    debug = debug_info["top"]
+    assert is_valid_verilog(src)
+    assert len(debug) > 3
+
+
+def test_more_debug2():
+    class Top(Generator):
+        def __init__(self):
+            super().__init__("top", True)
+
+            self.port("in", 1, PortDirection.In)
+            self.port("out", 1, PortDirection.Out)
+
+            pass_through = PassThroughMod()
+            self.add_child_generator("pass", pass_through)
+            self.wire(self["pass"].ports["in"], self.ports["in"], )
+
+            self.add_code(self.code_block)
+
+        def code_block(self):
+            self.ports.out = self["pass"].ports.out
+
+    mod = Top()
+    mod_src, debug_info = verilog(mod, debug=True)
+    src = mod_src["top"]
+    debug = debug_info["top"]
+    assert is_valid_verilog(src)
+    assert len(debug) > 3
+
+
 if __name__ == "__main__":
-    test_packed_struct()
+    test_more_debug2()

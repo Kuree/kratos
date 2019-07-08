@@ -128,6 +128,105 @@ end
 endmodule   // PassThrough
 ```
 
+## How to debug
+Because Python is quite slow, By default the debug option is off. You can turn on debugging for
+individual modules. Here is an example on how to turn on debug (see `tests/test_generator.py`
+for more details).
+
+```Python
+class PassThroughMod(Generator):
+    def __init__(self):
+        super().__init__("mod1", True)
+        self.in_ = self.port("in", 1, PortDirection.In)
+        self.out_ = self.port("out", 1, PortDirection.Out)
+        self.wire(self.out_, self.in_)
+
+# ... some other code
+class Top(Generator):
+    def __init__(self):
+        super().__init__("top", True)
+
+        self.port("in", 1, PortDirection.In)
+        self.port("out", 1, PortDirection.Out)
+
+        pass_through = PassThroughMod()
+        self.add_child_generator("pass", pass_through)
+        self.wire(self["pass"].ports["in"], self.ports["in"], )
+
+        self.wire(self.ports.out, self["pass"].ports.out)
+
+mod = Top()
+mod_src, debug_info = verilog(mod, debug=True)
+```
+You can see the generated verilog:
+```Verilog
+module top (
+  input logic  in,
+  output logic  out
+);
+
+assign out = in;
+endmodule   // top
+```
+The `pass` sub-module disappeared due to the compiler optimization. However, if we print out the debug information,
+we can see the full trace of debug info on `assign out = in;`
+```Python
+{
+  1: [('/home/keyi/workspace/kratos/tests/test_generator.py', 532)],
+  2: [('/home/keyi/workspace/kratos/tests/test_generator.py', 534)],
+  3: [('/home/keyi/workspace/kratos/tests/test_generator.py', 535)],
+  6: [('/home/keyi/workspace/kratos/tests/test_generator.py', 539),
+      ('/home/keyi/workspace/kratos/src/expr.cc', 455),
+      ('/home/keyi/workspace/kratos/tests/test_generator.py', 541),
+      ('/home/keyi/workspace/kratos/src/expr.cc', 485),
+      ('/home/keyi/workspace/kratos/src/pass.cc', 653)]
+}
+```
+These `pass.cc` is the pass that removed the pass through module.
+
+If we modified the source code a little bit that change the wire assignment into a combination block, such as
+```Python
+class Top(Generator):
+    def __init__(self):
+        super().__init__("top", True)
+
+        self.port("in", 1, PortDirection.In)
+        self.port("out", 1, PortDirection.Out)
+
+        pass_through = PassThroughMod()
+        self.add_child_generator("pass", pass_through)
+        self.wire(self["pass"].ports["in"], self.ports["in"], )
+
+        self.add_code(self.code_block)
+
+    def code_block(self):
+        self.ports.out = self["pass"].ports.out
+```
+We can see the generated verilog will be a little bit verbose:
+```Verilog
+module top (
+  input logic  in,
+  output logic  out
+);
+
+logic   top$in_0;
+assign top$in_0 = in;
+always_comb begin
+  out = top$in_0;
+end
+endmodule   // top
+```
+And the debug info shows all the information as well:
+```Python
+{
+  1: [('/home/keyi/workspace/kratos/tests/test_generator.py', 554)],
+  2: [('/home/keyi/workspace/kratos/tests/test_generator.py', 556)],
+  3: [('/home/keyi/workspace/kratos/tests/test_generator.py', 557)],
+  7: [('/home/keyi/workspace/kratos/tests/test_generator.py', 561), ('/home/keyi/workspace/kratos/src/expr.cc', 455)],
+  8: [('/home/keyi/workspace/kratos/tests/test_generator.py', 563)],
+  9: [('/home/keyi/workspace/kratos/tests/test_generator.py', 566), ('/home/keyi/workspace/kratos/src/expr.cc', 485)]}
+```
+
 ## Ecosystem
 Similar to [Magma](https://github.com/phanrahan/magma), kratos has its own ecosystem to program
 behavioral verilog in Python. They are named after sons of Titans in Greek mythology.
