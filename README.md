@@ -3,16 +3,17 @@
 [![PyPI - Format](https://img.shields.io/pypi/format/kratos.svg)](https://pypi.org/project/kratos/)
 [![PyPI - Version](https://badge.fury.io/py/kratos.svg)](https://pypi.org/project/kratos/)
 
-Kratos is a hardware design language written in C++/Python. It differentiates itself with the following
+Kratos is a hardware design language written in C++/Python. It differentiates itself from other DSL with the following
 design philosophy:
 - Fully debuggable: users can see a trace of every passes on every verilog statement.
 - Highly efficient: Python frontend powered by Modern C++ binding. Designed with multi-processing in mind.
-- Human-readable verilog: we know how difficult it is to read machine generated verilog. We have it covered.
-- Generator of generators: Every python object is a generator that can be modified at any time,
+- Human-readable verilog: we know how difficult it is to read machine generated verilog.
+  kratos has multiple passes to produce nice-looking verilog.
+- Generator of generators: every python object is a generator that can be modified at any time,
   even after instantiation. This allows complex passes on the generators without ripping old structure apart.
 - Keep the good parts of verilog: The `always` block in behavioral verilog is close to other programming
   languages. Kratos allows you to write python code similar to behavioral verilog
-- Static elaboration: kratos allows user to write parametrized code, even in the `always` block.
+- Static elaboration: kratos allows user to write parametrized code, even in the `always` block, all in Python.
 - Type checking: kratos check the variable types for each assignment to make sure there is no implicit conversion.
 
 ## Install
