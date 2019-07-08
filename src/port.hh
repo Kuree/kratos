@@ -23,6 +23,7 @@ public:
     PortType port_type() const { return type_; }
 
     virtual void set_port_type(PortType type);
+    virtual bool inline is_packed() { return false; }
 
     // AST stuff
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
@@ -59,6 +60,8 @@ public:
         return Var::operator[](slice);
     }
     VarSlice inline &operator[](uint32_t idx) override { return Var::operator[](idx); }
+
+    bool is_packed() override { return true; }
 
 private:
     PackedStruct struct_;

@@ -1,5 +1,6 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
-    verilog, is_valid_verilog, VarException, StmtException, ASTVisitor
+    verilog, is_valid_verilog, VarException, StmtException, ASTVisitor, \
+    PackedStruct, Port
 from kratos.passes import uniquify_generators, hash_generators
 import os
 
@@ -438,16 +439,13 @@ def test_clone():
 
 
 def test_pass():
-    # TODO: alias the type into kratos namespace
-    import _kratos
-
     def change_name(generator):
         class Visitor(ASTVisitor):
             def __init__(self):
                 ASTVisitor.__init__(self)
 
             def visit(self, node):
-                if isinstance(node, _kratos.Port):
+                if isinstance(node, Port):
                     # rename the output port
                     if node.name == "out":
                         node.name = "test"
@@ -466,7 +464,7 @@ def test_pass():
     mod_src = verilog(mod, additional_passes={"name_change": change_name})
     src = mod_src["mod1"]
     assert is_valid_verilog(src)
-    assert "output  test" in src
+    assert "logic  test" in src
 
 
 def test_const_port():
@@ -508,5 +506,25 @@ def test_create():
     assert mod3.is_cloned
 
 
+def test_packed_struct():
+    struct = PackedStruct("config_data", [("read", 16, False),
+                                          ("data", 16, False)])
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            self.port_packed("in", PortDirection.In, struct)
+            self.port_packed("out", PortDirection.Out, struct)
+            self.wire(self.ports["out"], self.ports["in"])
+
+    mod = Mod()
+    mod_src, struct_def = verilog(mod, optimize_passthrough=False,
+                                  extra_struct=True)
+    src = mod_src["mod"]
+    struct_src = struct_def["config_data"]
+    src = struct_src + "\n" + src
+    assert is_valid_verilog(src)
+
+
 if __name__ == "__main__":
-    test_create()
+    test_packed_struct()

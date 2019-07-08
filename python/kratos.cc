@@ -81,7 +81,8 @@ void init_pass(py::module &m) {
         .def("transform_if_to_case", &transform_if_to_case)
         .def("remove_fanout_one_wires", &remove_fanout_one_wires)
         .def("remove_pass_through_modules", &remove_pass_through_modules)
-        .def("extract_debug_info", &extract_debug_info);
+        .def("extract_debug_info", &extract_debug_info)
+        .def("extract_struct_info", &extract_struct_info);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager");
     manager.def(py::init<>())
@@ -306,6 +307,7 @@ void init_generator(py::module &m) {
         .def("parameter",
              py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
              py::return_value_policy::reference)
+        .def("port_packed", &Generator::port_packed, py::return_value_policy::reference)
         .def("get_params", &Generator::get_params)
         .def("get_param", &Generator::get_param)
         .def("get_port", &Generator::get_port, py::return_value_policy::reference)

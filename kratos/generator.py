@@ -200,6 +200,15 @@ class Generator(metaclass=GeneratorMeta):
             p.add_fn_ln((fn, ln))
         return p
 
+    def port_packed(self, name: str, direction: PortDirection,
+                    struct_packed: _kratos.PortPacked):
+        p = self.__generator.port_packed(direction.value, name,
+                                         struct_packed)
+        if self.debug:
+            fn, ln = get_fn_ln()
+            p.add_fn_ln((fn, ln))
+        return p
+
     def parameter(self, name: str, width: int,
                   is_signed: bool = False) -> _kratos.Param:
         param = self.__generator.parameter(name, width, is_signed)
@@ -337,7 +346,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
             optimize_passthrough: bool = True,
             optimize_fanout: bool = True,
             debug=False,
-            additional_passes=None):
+            additional_passes=None,
+            extra_struct=False):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
     if additional_passes is not None:
@@ -345,8 +355,15 @@ def verilog(generator: Generator, optimize_if: bool = True,
             pass_manager.add_pass(name, fn)
     code_gen.run_passes(optimize_if, optimize_passthrough, optimize_fanout)
     src = code_gen.verilog_src()
+
+    result = [src]
     if debug:
         info = _kratos.passes.extract_debug_info(generator.internal_generator)
-        return src, info
-    else:
-        return src
+        result.append(info)
+
+    if extra_struct:
+        strct_info = _kratos.passes.extract_struct_info(
+            generator.internal_generator)
+        result.append(strct_info)
+
+    return result[0] if len(result) == 1 else result

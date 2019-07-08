@@ -328,42 +328,20 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
     stream_ << indent() << "endcase" << stream_.endl();
 }
 
-bool is_port_reg(Port* port) {
-    if (port->port_direction() != PortDirection::Out) return false;
-    bool is_reg = false;
-    for (auto const& stmt : port->sources()) {
-        if (!stmt->parent())  // top level assignments
-            return false;
-        if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
-            is_reg = true;
-            break;
-        }
-    }
-    // slices
-    if (!is_reg) {
-        for (auto const& iter : port->get_slices()) {
-            if (is_reg) break;
-            auto slice = iter.second;
-            for (auto const& stmt : slice->sources()) {
-                if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
-                    is_reg = true;
-                    break;
-                }
-            }
-        }
-    }
-    return is_reg;
-}
-
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     std::vector<std::string> strs;
     strs.reserve(8);
     strs.emplace_back(port_dir_to_str(port->port_direction()));
-    if (port->is_signed) strs.emplace_back("signed");
-    if (is_port_reg(port)) {
-        strs.emplace_back("reg");
+    // we use logic for all inputs and outputs
+    if (!port->is_packed()) {
+        strs.emplace_back("logic");
+    } else {
+        auto ptr = reinterpret_cast<PortPacked*>(port);
+        strs.emplace_back(ptr->packed_struct().struct_name);
     }
-    strs.emplace_back(get_var_width_str(port));
+    if (port->is_signed) strs.emplace_back("signed");
+    if (!port->is_packed())
+        strs.emplace_back(get_var_width_str(port));
     strs.emplace_back(port->name);
 
     return join(strs.begin(), strs.end(), " ");

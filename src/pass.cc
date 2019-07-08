@@ -6,6 +6,7 @@
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
+#include "port.hh"
 #include "util.hh"
 
 using fmt::format;
@@ -789,6 +790,67 @@ extract_debug_info(Generator* top) {
     GeneratorDebugVisitor visitor;
     visitor.visit_root(top);
     return visitor.result;
+}
+
+class PortPackedVisitor : public ASTVisitor {
+public:
+    void visit(Generator* generator) override {
+        auto const port_names = generator->get_port_names();
+        for (auto const& port_name : port_names) {
+            auto port = generator->get_port(port_name);
+            if (port->is_packed()) {
+                auto ptr = port->as<PortPacked>();
+                auto const port_struct = ptr->packed_struct();
+                if (structs.find(port_struct.struct_name) != structs.end()) {
+                    // do some checking
+                    auto struct_ = structs.at(port_struct.struct_name);
+                    if (struct_.attributes.size() != port_struct.attributes.size())
+                        throw VarException(::format("redefinition of different packed struct {0}",
+                                                    port_struct.struct_name),
+                                           {port.get(), struct_ports_.at(port_struct.struct_name)});
+                    for (uint32_t i = 0; i < port_struct.attributes.size(); i++) {
+                        auto const& [name1, width1, signed_1] = struct_.attributes[i];
+                        auto const& [name2, width2, signed_2] = port_struct.attributes[i];
+                        if (name1 != name2 || width1 != width2 || signed_1 != signed_2)
+                            throw VarException(
+                                ::format("redefinition of different packed struct {0}",
+                                         port_struct.struct_name),
+                                {port.get(), struct_ports_.at(port_struct.struct_name)});
+                    }
+                } else {
+                    structs.emplace(port_struct.struct_name, port_struct);
+                    struct_ports_.emplace(port_struct.struct_name, port.get());
+                }
+            }
+        }
+    }
+
+    std::map<std::string, PackedStruct> structs;
+
+private:
+    std::map<std::string, Port*> struct_ports_;
+};
+
+std::map<std::string, std::string> extract_struct_info(Generator* top) {
+    PortPackedVisitor visitor;
+    visitor.visit_generator_root(top);
+
+    // convert the definition into
+    std::map<std::string, std::string> result;
+    for (auto const& [name, struct_] : visitor.structs) {
+        // TODO:
+        //  Use Stream class in the codegen instead to track the debugging info
+        std::string entry;
+        entry.append("typedef struct packed {\n");
+
+        for (auto const& [attribute_name, width, is_signed] : struct_.attributes) {
+            entry.append(::format("    logic [{0}:0] {1} {2};\n", width - 1,
+                                  is_signed ? "signed" : "", attribute_name));
+        }
+        entry.append(::format("}} {0};\n", name));
+        result.emplace(name, entry);
+    }
+    return result;
 }
 
 void PassManager::add_pass(const std::string& name, std::function<void(Generator*)> fn) {

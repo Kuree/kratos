@@ -116,6 +116,7 @@ private:
     std::map<std::string, std::shared_ptr<Var>> vars_;
     std::set<std::string> ports_;
     std::map<std::string, std::shared_ptr<Param>> params_;
+    std::unordered_set<std::shared_ptr<Expr>> exprs_;
 
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
