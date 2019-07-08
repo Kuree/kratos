@@ -151,7 +151,7 @@ class Top(Generator):
 
         pass_through = PassThroughMod()
         self.add_child_generator("pass", pass_through)
-        self.wire(self["pass"].ports["in"], self.ports["in"], )
+        self.wire(self["pass"].ports["in"], self.ports["in"])
 
         self.wire(self.ports.out, self["pass"].ports.out)
 
@@ -195,7 +195,7 @@ class Top(Generator):
 
         pass_through = PassThroughMod()
         self.add_child_generator("pass", pass_through)
-        self.wire(self["pass"].ports["in"], self.ports["in"], )
+        self.wire(self["pass"].ports["in"], self.ports["in"])
 
         self.add_code(self.code_block)
 
