@@ -128,3 +128,18 @@ TEST(expr, param) {  // NOLINT
     EXPECT_EQ(p.value(), value);
     EXPECT_EQ(p.value_str(), "2'h2");
 }
+
+TEST(expr, port_packed) {   // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto struct_ = PackedStruct("data", {{"value1", 1, false}, {"value2", 2, false}});
+    auto port = PortPacked(&mod, PortDirection::In, "in", struct_);
+
+    auto slice1 = PortPackedSlice(&port, "value2");
+    auto &slice2 = port["value2"];
+
+    EXPECT_EQ(slice1.to_string(), "in.value2");
+    EXPECT_EQ(slice1.to_string(), slice2.to_string());
+    EXPECT_EQ(slice2.low, 1);
+    EXPECT_EQ(slice2.high, 2);
+}

@@ -422,3 +422,13 @@ std::shared_ptr<Generator> Generator::clone() {
 void Generator::accept(ASTVisitor *visitor) {
     if (!external()) visitor->visit(this);
 }
+
+PortPacked& Generator::port_packed(PortDirection direction, const std::string &port_name,
+                                   const PackedStruct &packed_struct_) {
+    if (ports_.find(port_name) != ports_.end())
+        throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
+    auto p = std::make_shared<PortPacked>(this, direction, port_name, packed_struct_);
+    vars_.emplace(port_name, p);
+    ports_.emplace(port_name);
+    return *p;
+}

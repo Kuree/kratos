@@ -73,8 +73,8 @@ public:
     Expr &operator!=(const Var &var) const;
     Expr &eq(const Var &var) const;
     // slice
-    VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
-    VarSlice &operator[](uint32_t bit);
+    virtual VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
+    virtual VarSlice &operator[](uint32_t bit);
     // concat
     virtual VarConcat &concat(Var &var);
     void add_concat_var(const std::shared_ptr<VarConcat> &var) { concat_vars_.emplace(var); }

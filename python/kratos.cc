@@ -249,6 +249,27 @@ void init_expr(py::module &m) {
     init_var_derived(param);
     param.def("value", &Param::value).def("set_value", &Param::set_value);
     def_trace<py::class_<Param, ::shared_ptr<Param>, Var>, Param>(param);
+
+    auto port_packed = py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>(m, "PortPacked");
+    init_var_derived(port_packed);
+    port_packed.def("port_direction", &PortPacked::port_direction)
+        .def("port_type", &PortPacked::port_type)
+        .def("__getitem__",
+             [](PortPacked & port, const std::string &name) -> auto & { return port[name]; },
+             py::return_value_policy::reference);
+    def_trace<py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>, PortPacked>(port_packed);
+
+    // struct info for packed
+    auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");
+    struct_.def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t, bool>>>())
+        .def_readonly("struct_name", &PackedStruct::struct_name)
+        .def_readonly("attributes", &PackedStruct::attributes);
+
+    auto port_slice =
+        py::class_<PortPackedSlice, ::shared_ptr<PortPackedSlice>, Var>(m, "PortPackedSlice");
+    init_var_derived(port_slice);
+    def_trace<py::class_<PortPackedSlice, ::shared_ptr<PortPackedSlice>, Var>, VarSlice>(
+        port_slice);
 }
 
 void init_context(py::module &m) {
