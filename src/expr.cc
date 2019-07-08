@@ -195,10 +195,7 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
     else
         width = left->width;
 
-    if (right != nullptr)
-        name = ::format("({0} {1} {2})", left->to_string(), ExprOpStr(op), right->to_string());
-    else
-        name = ::format("({0} {1})", ExprOpStr(op), left->to_string());
+    name = to_string();
     if (right != nullptr)
         is_signed = left->is_signed & right->is_signed;
     else
@@ -380,12 +377,32 @@ AssignStmt &Var::assign(Var &var, AssignmentType type) {
     return assign(var_ptr, type);
 }
 
-std::string Expr::to_string() const {
+std::string inline expr_to_string(const Expr *expr, bool is_top) {
+    auto left = expr->left;
+    auto right = expr->right;
+
+    auto left_str = left->type() == VarType::Expression
+                    ? expr_to_string(left->as<Expr>().get(), false)
+                    : left->to_string();
+
     if (right != nullptr) {
-        return ::format("{0} {1} {2}", left->to_string(), ExprOpStr(op), right->to_string());
+        auto right_str = right->type() == VarType::Expression
+                             ? expr_to_string(right->as<Expr>().get(), false)
+                             : right->to_string();
+        if (is_top)
+            return ::format("{0} {1} {2}", left_str, ExprOpStr(expr->op), right_str);
+        else
+            return ::format("({0} {1} {2})", left_str, ExprOpStr(expr->op), right_str);
     } else {
-        return ::format("{0}{1}", ExprOpStr(op), left->to_string());
+        if (is_top)
+            return ::format("{0}{1}", ExprOpStr(expr->op), left_str);
+        else
+            return ::format("({0}{1})", ExprOpStr(expr->op), left_str);
     }
+}
+
+std::string Expr::to_string() const {
+    return expr_to_string(this, true);
 }
 
 ASTNode *Expr::get_child(uint64_t index) {
