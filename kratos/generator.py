@@ -359,7 +359,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
             pass_manager.add_pass(name, fn)
     code_gen.run_passes(optimize_if, optimize_passthrough, optimize_fanout)
     src = code_gen.verilog_src()
-
     result = [src]
     if debug:
         info = _kratos.passes.extract_debug_info(generator.internal_generator)

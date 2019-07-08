@@ -803,7 +803,7 @@ public:
 std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
 extract_debug_info(Generator* top) {
     GeneratorDebugVisitor visitor;
-    visitor.visit_root(top);
+    visitor.visit_generator_root(top);
     return visitor.result;
 }
 

@@ -23,11 +23,10 @@ void ASTVisitor::visit_generator_root(Generator *generator) {
 void ASTVisitor::visit_content(Generator *generator) {
     generator->accept_generator(this);
     level++;
-    uint64_t child_count = generator->child_count();
-    for (uint64_t i = 0; i < child_count; i++) {
+    uint64_t stmts_count = generator->stmts_count();
+    for (uint64_t i = 0; i < stmts_count; i++) {
         auto child = generator->get_child(i);
-        if (child->ast_node_kind() != ASTNodeKind ::GeneratorKind)
-            visit_root(generator->get_child(i));
+        child->accept(this);
     }
     // visit the vars
     auto var_names = generator->get_all_var_names();
