@@ -625,9 +625,17 @@ public:
             compute_assign_chain(var, chain);
             if (chain.size() <= 2) continue;  // nothing to be done
 
+            std::vector<std::pair<std::string, uint32_t>> debug_info;
+
             for (uint32_t i = 0; i < chain.size() - 1; i++) {
                 auto& [pre, stmt] = chain[i];
                 auto next = chain[i + 1].first;
+
+                // insert debug info
+                if (generator->debug) {
+                    debug_info.insert(debug_info.end(), stmt->fn_name_ln.begin(),
+                                      stmt->fn_name_ln.end());
+                }
 
                 next->unassign(stmt);
             }
@@ -637,7 +645,14 @@ public:
             // if both of them are ports, we need to add a statement
             if (var->type() == VarType::PortIO && dst->type() == VarType::PortIO) {
                 // need to add a top assign statement
-                generator->add_stmt(dst->assign(var, AssignmentType::Blocking).shared_from_this());
+                auto& assign = dst->assign(var, AssignmentType::Blocking);
+                auto stmt = assign.shared_from_this();
+                if (generator->debug) {
+                    // copy every vars definition over
+                    stmt->fn_name_ln = debug_info;
+                    stmt->fn_name_ln.emplace_back(__FILE__, __LINE__);
+                }
+                generator->add_stmt(stmt);
             }
         }
     }
