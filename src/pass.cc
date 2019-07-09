@@ -238,14 +238,12 @@ class ModuleInstantiationVisitor : public ASTVisitor {
 public:
     void visit(Generator* generator) override {
         for (auto& child : generator->get_child_generators()) {
-            if (!generator->should_child_inline(child.get())) {
-                // create instantiation statement
-                auto stmt = std::make_shared<ModuleInstantiationStmt>(child.get(), generator);
-                if (generator->debug) {
-                    stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
-                }
-                generator->add_stmt(stmt);
+            // create instantiation statement
+            auto stmt = std::make_shared<ModuleInstantiationStmt>(child.get(), generator);
+            if (generator->debug) {
+                stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
             }
+            generator->add_stmt(stmt);
         }
     }
 };

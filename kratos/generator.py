@@ -135,8 +135,7 @@ class Generator(metaclass=GeneratorMeta):
                           Generator), "generator is not a Generator instance"
 
         self.__child_generator[instance_name] = generator
-        self.__generator.add_child_generator(generator.__generator,
-                                             False)
+        self.__generator.add_child_generator(generator.__generator)
 
     @property
     def name(self):

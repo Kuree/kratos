@@ -63,18 +63,13 @@ public:
     std::shared_ptr<CombinationalStmtBlock> combinational();
 
     // child generator. needed for generator merge
-    void add_child_generator(const std::shared_ptr<Generator> &child, bool merge);
+    void add_child_generator(const std::shared_ptr<Generator> &child);
     void remove_child_generator(const std::shared_ptr<Generator> &child);
     std::vector<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
     uint64_t inline get_child_generator_size() const { return children_.size(); }
     bool has_child_generator(const std::shared_ptr<Generator> &child);
     void accept_generator(ASTVisitor *visitor) { visitor->visit(this); }
-    bool should_child_inline(Generator *generator) const {
-        return should_child_inline_.at(generator->shared_from_this());
-    }
-    void set_child_inline(Generator *generator, bool value) {
-        should_child_inline_[generator->shared_from_this()] = value;
-    }
+    
     void replace_child_generator(const std::shared_ptr<Generator> &target,
                                  const std::shared_ptr<Generator> &new_generator);
 
@@ -121,7 +116,6 @@ private:
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
     std::vector<std::shared_ptr<Generator>> children_;
-    std::map<std::shared_ptr<Generator>, bool> should_child_inline_;
 
     Generator *parent_generator_ = nullptr;
 

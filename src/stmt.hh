@@ -163,8 +163,6 @@ class ModuleInstantiationStmt : public Stmt {
 public:
     ModuleInstantiationStmt(Generator *target, Generator *parent);
 
-    uint64_t child_count() override { return 1; }
-    ASTNode *get_child(uint64_t index) override { return index == 0 ? this : nullptr; }
     void accept(ASTVisitor *visitor) override { visitor->visit(this); }
 
     const std::map<std::shared_ptr<Var>, std::shared_ptr<Var>> &port_mapping() const {

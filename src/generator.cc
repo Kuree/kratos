@@ -179,11 +179,10 @@ ASTNode *Generator::get_child(uint64_t index) {
         return nullptr;
 }
 
-void Generator::add_child_generator(const std::shared_ptr<Generator> &child, bool merge) {
+void Generator::add_child_generator(const std::shared_ptr<Generator> &child) {
     if (std::find(children_.begin(), children_.end(), child) == children_.end()) {
         children_.emplace_back(child);
         child->parent_generator_ = this;
-        should_child_inline_[child] = merge;
     }
 }
 
@@ -191,7 +190,6 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
     auto pos = std::find(children_.begin(), children_.end(), child);
     if (pos != children_.end()) {
         children_.erase(pos);
-        should_child_inline_.erase(child);
     }
 }
 
@@ -332,9 +330,9 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
             Var::move_sink_to(target_port.get(), new_port.get(), parent_generator, false);
         }
     }
-    bool inline_attribute = parent_generator->should_child_inline(target.get());
+
     if (!parent_generator->has_child_generator(new_generator))
-        parent_generator->add_child_generator(new_generator, inline_attribute);
+        parent_generator->add_child_generator(new_generator);
     parent_generator->remove_child_generator(target);
 }
 
