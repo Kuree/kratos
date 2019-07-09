@@ -45,7 +45,7 @@ TEST(ast, visit_if) {  // NOLINT
 
     VarVisitor visitor;
     visitor.visit_root(if_stmt.ast_node());
-    EXPECT_EQ(visitor.vars.size(), 4);
+    EXPECT_EQ(visitor.vars.size(), 2);
     EXPECT_EQ(visitor.max_level, 2);
     EXPECT_EQ(visitor.current_level(), 0);
 }

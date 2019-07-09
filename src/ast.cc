@@ -7,7 +7,11 @@ void ASTVisitor::visit_root(ASTNode *root) {
     uint64_t child_count = root->child_count();
     level++;
     for (uint64_t i = 0; i < child_count; i++) {
-        visit_root(root->get_child(i));
+        auto child = root->get_child(i);
+        if (visited_.find(child) == visited_.end()) {
+            visited_.emplace(child);
+            visit_root(child);
+        }
     }
     level--;
 }
@@ -26,13 +30,20 @@ void ASTVisitor::visit_content(Generator *generator) {
     uint64_t stmts_count = generator->stmts_count();
     for (uint64_t i = 0; i < stmts_count; i++) {
         auto child = generator->get_child(i);
-        child->accept(this);
+        if (visited_.find(child) == visited_.end()) {
+            visited_.emplace(child);
+            visit_root(child);
+        }
     }
     // visit the vars
     auto var_names = generator->get_all_var_names();
     for (auto const &name: var_names) {
         auto var = generator->get_var(name);
-        visit(var.get());
+        auto ptr = var.get();
+        if (visited_.find(ptr) == visited_.end()) {
+            visited_.emplace(ptr);
+            visit(var.get());
+        }
     }
     level--;
 }

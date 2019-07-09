@@ -58,6 +58,8 @@ public:
 
 protected:
     uint32_t level = 0;
+
+    std::unordered_set<ASTNode*> visited_;
 };
 
 // TODO

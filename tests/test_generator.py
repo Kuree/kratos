@@ -574,4 +574,4 @@ def test_more_debug2():
 
 
 if __name__ == "__main__":
-    test_more_debug2()
+    test_more_debug1()
