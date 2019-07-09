@@ -348,9 +348,10 @@ def signed(var):
 def verilog(generator: Generator, optimize_if: bool = True,
             optimize_passthrough: bool = True,
             optimize_fanout: bool = True,
-            debug=False,
-            additional_passes=None,
-            extra_struct=False):
+            debug: bool = False,
+            additional_passes: Dict = None,
+            extra_struct: bool = False,
+            filename:str = None):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
     if additional_passes is not None:
@@ -362,10 +363,41 @@ def verilog(generator: Generator, optimize_if: bool = True,
     if debug:
         info = _kratos.passes.extract_debug_info(generator.internal_generator)
         result.append(info)
+    else:
+        info = {}
 
     if extra_struct:
-        strct_info = _kratos.passes.extract_struct_info(
+        struct_info = _kratos.passes.extract_struct_info(
             generator.internal_generator)
-        result.append(strct_info)
+        result.append(struct_info)
+    else:
+        struct_info = {}
+
+    if filename is not None:
+        output_verilog(filename, src, info, struct_info)
 
     return result[0] if len(result) == 1 else result
+
+
+def output_verilog(filename, mod_src, info, struct_info):
+    line_no = 1
+    debug_info = {}
+    with open(filename, "w+") as f:
+        for struct_name in struct_info:
+            def_ = struct_info[struct_name]
+            f.write(def_ + "\n")
+
+        for mod_name in mod_src:
+            src = mod_src[mod_name]
+            mod_info = info[mod_name] if mod_name in info else {}
+            lines = src.split("\n")
+            for index, line in enumerate(lines):
+                f.write(line + "\n")
+                if index + 1 in mod_info:
+                    debug_info[line_no] = mod_info[index + 1]
+                line_no += 1
+
+    if len(debug_info) > 0:
+        with open(filename + ".debug", "w+") as f:
+            import json
+            json.dump(debug_info, f)

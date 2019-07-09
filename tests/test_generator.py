@@ -3,6 +3,7 @@ from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
     PackedStruct, Port
 from kratos.passes import uniquify_generators, hash_generators
 import os
+import tempfile
 
 
 class PassThroughMod(Generator):
@@ -11,6 +12,20 @@ class PassThroughMod(Generator):
         self.in_ = self.port("in", 1, PortDirection.In)
         self.out_ = self.port("out", 1, PortDirection.Out)
         self.wire(self.out_, self.in_)
+
+
+class PassThroughTop(Generator):
+    def __init__(self):
+        super().__init__("top", True)
+
+        self.port("in", 1, PortDirection.In)
+        self.port("out", 1, PortDirection.Out)
+
+        pass_through = PassThroughMod()
+        self.add_child_generator("pass", pass_through)
+        self.wire(self["pass"].ports["in"], self.ports["in"], )
+
+        self.wire(self.ports.out, self["pass"].ports.out)
 
 
 def test_generator():
@@ -110,26 +125,15 @@ def test_else_if():
 
 
 def test_mod_instantiation():
-    class Mod2(Generator):
-        def __init__(self):
-            super().__init__("mod2")
-            self._in = self.port("in", 1, PortDirection.In)
-            self._out = self.port("out", 1, PortDirection.Out)
-
-            self.add_child_generator("mod1", PassThroughMod())
-
-            self.wire(self["mod1"].in_, self._in)
-            self.wire(self._out, self["mod1"].out_)
-
-    mod = Mod2()
+    mod = PassThroughTop()
     # turn off pass through module optimization since it will remove
     # mod2 completely
     mod_src = verilog(mod, optimize_passthrough=False)
     assert "mod1" in mod_src
-    assert "mod2" in mod_src
-    mod2_src = mod_src["mod2"]
+    assert "top" in mod_src
+    mod2_src = mod_src["top"]
     assert "$" not in mod2_src
-    assert is_valid_verilog(mod_src["mod2"])
+    assert is_valid_verilog(mod_src["top"])
     assert is_valid_verilog(mod_src["mod1"])
 
 
@@ -193,25 +197,14 @@ def test_switch():
 
 
 def test_pass_through():
-    class Mod2(Generator):
-        def __init__(self):
-            super().__init__("mod2")
-            self._in = self.port("in", 1, PortDirection.In)
-            self._out = self.port("out", 1, PortDirection.Out)
-
-            mod1 = PassThroughMod()
-            self.add_child_generator("mod1", mod1)
-            self.wire(mod1.in_, self._in)
-            self.wire(self._out, mod1.out_)
-
-    mod = Mod2()
+    mod = PassThroughTop()
     # turn off pass through module optimization since it will remove
     # mod2 completely
     mod_src = verilog(mod, optimize_passthrough=True)
-    assert "mod2" in mod_src
+    assert "top" in mod_src
     assert "mod1" not in mod_src
-    assert is_valid_verilog(mod_src["mod2"])
-    assert "mod1" not in mod_src["mod2"]
+    assert is_valid_verilog(mod_src["top"])
+    assert "mod1" not in mod_src["top"]
 
 
 def test_nested_if():
@@ -527,20 +520,7 @@ def test_packed_struct():
 
 
 def test_more_debug1():
-    class Top(Generator):
-        def __init__(self):
-            super().__init__("top", True)
-
-            self.port("in", 1, PortDirection.In)
-            self.port("out", 1, PortDirection.Out)
-
-            pass_through = PassThroughMod()
-            self.add_child_generator("pass", pass_through)
-            self.wire(self["pass"].ports["in"], self.ports["in"], )
-
-            self.wire(self.ports.out, self["pass"].ports.out)
-
-    mod = Top()
+    mod = PassThroughTop()
     mod_src, debug_info = verilog(mod, debug=True)
     src = mod_src["top"]
     debug = debug_info["top"]
@@ -573,5 +553,15 @@ def test_more_debug2():
     assert len(debug) > 3
 
 
+def test_verilog_file():
+    mod = PassThroughTop()
+    with tempfile.TemporaryDirectory() as tempdir:
+        filename = os.path.join(tempdir, "mod.sv")
+        verilog(mod, filename=filename, debug=True, optimize_passthrough=False)
+        with open(filename) as f:
+            src = f.read()
+            assert is_valid_verilog(src)
+
+
 if __name__ == "__main__":
-    test_more_debug1()
+    test_verilog_file()
