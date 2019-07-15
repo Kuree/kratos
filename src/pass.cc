@@ -740,6 +740,10 @@ private:
             } else {
                 auto sources = port->sources();
                 if (sources.size() != 1) return false;
+                // maybe some add stuff
+                auto stmt = *(sources.begin());
+                auto src = stmt->right();
+                if (src->type() != VarType::PortIO) return false;
             }
         }
         return true;
