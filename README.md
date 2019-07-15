@@ -2,6 +2,7 @@
 [![Build Status](https://travis-ci.com/Kuree/kratos.svg?branch=master)](https://travis-ci.com/Kuree/kratos)
 [![PyPI - Format](https://img.shields.io/pypi/format/kratos.svg)](https://pypi.org/project/kratos/)
 [![PyPI - Version](https://badge.fury.io/py/kratos.svg)](https://pypi.org/project/kratos/)
+[![Documentation Status](https://readthedocs.org/projects/kratos-doc/badge/?version=latest)](https://kratos-doc.readthedocs.io/en/latest/?badge=latest)
 
 Kratos is a hardware design language written in C++/Python. It differentiates itself from other DSL with the following
 design philosophy:
@@ -23,8 +24,10 @@ pip install kratos
 
 To build it from scratch, you need a `C++17` compatible compiler, such as `g++-8`.
 
-## Examples
-Here are some examples to showcase the ability of kratos
+## Documentation and Examples
+You can check the documentation at [Read the Docs](https://kratos-doc.readthedocs.io/en/latest/)
+
+Here are some examples to showcase the ability of kratos.
 
 ### Asnyc Reset Register
 Python code that parametrizes based on the `width`. Notice that we specify the
@@ -50,7 +53,7 @@ class AsyncReg(Generator):
     @always([(BlockEdgeType.Posedge, "clk"),
              (BlockEdgeType.Posedge, "rst")])
     def seq_code_block(self):
-        if ~self._rst:
+        if self._rst:
             self._val = 0
         else:
             self._val = self._in
@@ -70,7 +73,7 @@ module register (
 logic  [15:0] val;
 
 always @(posedge clk, posedge rst) begin
-  if (~rst) begin
+  if rst begin
     val <= 16'h0;
   end
   else begin
