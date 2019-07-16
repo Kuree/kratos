@@ -63,6 +63,11 @@ void init_enum(py::module &m) {
         .value("VarKind", ASTNodeKind::VarKind)
         .value("StmtKind", ASTNodeKind::StmtKind)
         .export_values();
+
+    py::enum_<VarCastType>(m, "VarCastType")
+        .value("Signed", VarCastType::Signed)
+        .value("AsyncReset", VarCastType::AsyncReset)
+        .value("Clock", VarCastType::Clock);
 }
 
 // pass submodule
@@ -200,7 +205,7 @@ void init_common_expr(T &class_) {
         .def_readwrite("signed", &K::is_signed)
         .def("sources", &K::sources, py::return_value_policy::reference)
         .def("sinks", &K::sinks, py::return_value_policy::reference)
-        .def("signed_", &K::signed_)
+        .def("cast", &K::cast)
         .def_property_readonly("generator", [](const K &var) { return var.generator; });
 }
 

@@ -15,7 +15,7 @@ struct Const;
 struct Parameter;
 struct VarSlice;
 struct VarConcat;
-struct VarSigned;
+struct VarCasted;
 class Stmt;
 class AssignStmt;
 class IfStmt;

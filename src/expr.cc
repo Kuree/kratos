@@ -287,27 +287,34 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
     value_ = value;
 }
 
-VarSigned::VarSigned(Var *parent)
-    : Var(parent->generator, "", parent->width, true, parent->type()), parent_var_(parent) {}
+VarCasted::VarCasted(Var *parent, VarCastType cast_type)
+    : Var(parent->generator, "", parent->width, true, parent->type()),
+      parent_var_(parent),
+      cast_type_(cast_type) {
+    type_ = VarType::BaseCasted;
+}
 
-AssignStmt &VarSigned::assign(const std::shared_ptr<Var> &, AssignmentType) {
+AssignStmt &VarCasted::assign(const std::shared_ptr<Var> &, AssignmentType) {
     throw VarException(::format("{0} is not allowed to be a sink", to_string()), {this});
 }
 
-std::string VarSigned::to_string() const {
-    return ::format("$signed({0})", parent_var_->to_string());
+std::string VarCasted::to_string() const {
+    if (cast_type_ == VarCastType::Signed)
+        return ::format("$signed({0})", parent_var_->to_string());
+    else
+        return parent_var_->to_string();
 }
 
-void VarSigned::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }
+void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }
 
-std::shared_ptr<Var> Var::signed_() {
-    if (is_signed) {
+std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
+    if (cast_type == VarCastType::Signed && is_signed) {
         return shared_from_this();
-    } else if (signed_self_) {
-        return signed_self_;
+    } else if (casted_.find(cast_type) != casted_.end()) {
+        return casted_.at(cast_type);
     } else {
-        signed_self_ = std::make_shared<VarSigned>(this);
-        return signed_self_;
+        casted_.emplace(cast_type, std::make_shared<VarCasted>(this, cast_type));
+        return casted_.at(cast_type);
     }
 }
 
@@ -382,8 +389,8 @@ std::string inline expr_to_string(const Expr *expr, bool is_top) {
     auto right = expr->right;
 
     auto left_str = left->type() == VarType::Expression
-                    ? expr_to_string(left->as<Expr>().get(), false)
-                    : left->to_string();
+                        ? expr_to_string(left->as<Expr>().get(), false)
+                        : left->to_string();
 
     if (right != nullptr) {
         auto right_str = right->type() == VarType::Expression
@@ -401,9 +408,7 @@ std::string inline expr_to_string(const Expr *expr, bool is_top) {
     }
 }
 
-std::string Expr::to_string() const {
-    return expr_to_string(this, true);
-}
+std::string Expr::to_string() const { return expr_to_string(this, true); }
 
 ASTNode *Expr::get_child(uint64_t index) {
     if (index == 0)

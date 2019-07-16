@@ -42,6 +42,12 @@ class StatementBlockType(enum.Enum):
     Sequential = _kratos.StatementBlockType.Sequential
 
 
+class VarCastType(enum.Enum):
+    Signed = _kratos.VarCastType.Signed
+    Clock = _kratos.VarCastType.Clock
+    AsyncReset = _kratos.VarCastType.AsyncReset
+
+
 class CodeBlock:
     # this is a magic number
     FRAME_DEPTH = 4
@@ -342,7 +348,7 @@ def always(sensitivity):
 
 def signed(var):
     assert isinstance(var, _kratos.Var)
-    return var.signed_()
+    return var.cast(VarCastType.Signed.value)
 
 
 def verilog(generator: Generator, optimize_if: bool = True,

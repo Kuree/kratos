@@ -38,7 +38,9 @@ enum ExprOp : uint64_t {
 
 bool is_relational_op(ExprOp op);
 
-enum VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter };
+enum VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted };
+
+enum VarCastType { Signed, Clock, AsyncReset};
 
 struct Var : public std::enable_shared_from_this<Var>, public ASTNode {
 public:
@@ -78,8 +80,8 @@ public:
     // concat
     virtual VarConcat &concat(Var &var);
     void add_concat_var(const std::shared_ptr<VarConcat> &var) { concat_vars_.emplace(var); }
-    // sign
-    std::shared_ptr<Var> signed_();
+
+    std::shared_ptr<Var> cast(VarCastType cast_type);
 
     // assignment
     AssignStmt &assign(const std::shared_ptr<Var> &var);
@@ -130,12 +132,12 @@ private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
     std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> slices_;
 
-    std::shared_ptr<Var> signed_self_ = nullptr;
+    std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
 };
 
-struct VarSigned : public Var {
+struct VarCasted : public Var {
 public:
-    explicit VarSigned(Var *parent);
+    VarCasted(Var *parent, VarCastType cast_type);
     AssignStmt &assign(const std::shared_ptr<Var> &var, AssignmentType type) override;
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
@@ -144,6 +146,8 @@ public:
 
 private:
     Var *parent_var_ = nullptr;
+
+    VarCastType cast_type_;
 };
 
 struct VarSlice : public Var {
