@@ -63,17 +63,24 @@ To declare a variable, simply call the following function to create one:
 kratos will do type checking for ``width``, ``port_type``, and ``is_signed``
 to avoid any implicit conversion that could be difficult to detect.
 
-Port Proxy
-----------
-For simple modules, it is fine to hold a port as class attributes. However,
-as the generator gets more complicated, it may be difficult to maintain all
-the variable names. kratos ``Generator`` comes with a handy proxy to access
-all the variables you need. You can access a port either through
+Variable Proxies
+----------------
+For simple modules, it is fine to hold a port/variable/parameters as class
+attributes. However, as the generator gets more complicated, it may be
+difficult to maintain all the variable names. kratos ``Generator`` comes
+with handy proxiex to access all the variables you need. You can access a
+port either through
 
 - ``[gen].ports.port_name``
 - ``[gen].ports["port_name"]``
 
-where ``[gen]`` is any generator instance.
+where ``[gen]`` is any generator instance and ``port_name`` is the name you
+want to access. Similarly, you can use
+
+- ``[gen].vars.port_name``
+- ``[gen].vars["port_name]``
+
+and ``[gen].params`` for parameters.
 
 Expressions
 -----------

@@ -99,6 +99,28 @@ class PortProxy:
         return self.__generator.internal_generator.get_port(key)
 
 
+class ParamProxy:
+    def __init__(self, generator: "Generator"):
+        self.__generator = generator
+
+    def __getitem__(self, key):
+        return self.__generator.internal_generator.get_param(key)
+
+    def __getattr__(self, key):
+        return self.__generator.internal_generator.get_param(key)
+
+
+class VarProxy:
+    def __init__(self, generator: "Generator"):
+        self.__generator = generator
+
+    def __getitem__(self, key):
+        return self.__generator.internal_generator.get_var(key)
+
+    def __getattr__(self, key):
+        return self.__generator.internal_generator.get_var(key)
+
+
 class GeneratorMeta(type):
     def __init__(cls, name, bases, attrs):
         super().__init__(name, bases, attrs)
@@ -125,6 +147,8 @@ class Generator(metaclass=GeneratorMeta):
 
         # gemstone style port interface
         self.ports = PortProxy(self)
+        self.params = ParamProxy(self)
+        self.vars = VarProxy(self)
 
     def __getitem__(self, instance_name: str):
         assert instance_name in self.__child_generator, \
