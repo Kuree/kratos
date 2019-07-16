@@ -53,6 +53,7 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ((var1.eq(var3)).to_string(), "a == c");
     EXPECT_EQ(var1.cast(VarCastType::Signed)->to_string(), "$signed(a)");
     EXPECT_EQ(VarCasted(&var1, VarCastType::Signed).to_string(), "$signed(a)");
+    EXPECT_TRUE(var1.cast(VarCastType::Signed)->is_signed);
 }
 
 TEST(expr, relational) {  // NOLINT

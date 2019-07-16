@@ -292,6 +292,8 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
       parent_var_(parent),
       cast_type_(cast_type) {
     type_ = VarType::BaseCasted;
+    if (cast_type_ == Signed)
+        is_signed = true;
 }
 
 AssignStmt &VarCasted::assign(const std::shared_ptr<Var> &, AssignmentType) {
