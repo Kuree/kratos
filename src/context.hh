@@ -36,6 +36,7 @@ public:
     Context() = default;
 
     Generator& generator(const std::string& name);
+    Generator empty_generator();
 
     void remove(Generator* generator);
     void add(Generator* generator);

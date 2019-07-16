@@ -282,6 +282,7 @@ void init_context(py::module &m) {
     auto context = py::class_<Context>(m, "Context");
     context.def(py::init())
         .def("generator", &Context::generator, py::return_value_policy::reference)
+        .def("empty_generator", &Context::empty_generator)
         .def("clear", &Context::clear)
         .def("get_hash", &Context::get_hash)
         .def("get_generators_by_name", &Context::get_generators_by_name)
@@ -342,7 +343,7 @@ void init_generator(py::module &m) {
         .def_readwrite("name", &Generator::name)
         .def_readwrite("debug", &Generator::debug)
         .def("clone", &Generator::clone)
-        .def("is_cloned", &Generator::is_cloned);
+        .def_property("is_cloned", &Generator::is_cloned, &Generator::set_is_cloned);
 
     generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
         var.fn_name_ln.emplace_back(info);

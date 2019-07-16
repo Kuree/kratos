@@ -7,8 +7,8 @@ import tempfile
 
 
 class PassThroughMod(Generator):
-    def __init__(self):
-        super().__init__("mod1", True)
+    def __init__(self, is_clone: bool = False):
+        super().__init__("mod1", True, is_clone)
         self.in_ = self.port("in", 1, PortDirection.In)
         self.out_ = self.port("out", 1, PortDirection.Out)
         self.wire(self.out_, self.in_)
@@ -404,33 +404,6 @@ def test_static_eval_for_loop():
     assert is_valid_verilog(src)
 
 
-def test_clone():
-    class Mod2(Generator):
-        def __init__(self):
-            super().__init__("mod2", True)
-            self.in_ = self.port("in", 2, PortDirection.In)
-            self.out_ = self.port("out", 2, PortDirection.Out)
-
-            self.child1 = PassThroughMod()
-            self.child2 = self.child1.clone()
-            self.add_child_generator("child1", self.child1)
-            self.add_child_generator("child2", self.child2)
-
-            self.add_code(self.code)
-
-        def code(self):
-            self.child1.in_ = self.in_[0]
-            self.child2.in_ = self.in_[1]
-
-            self.out_[0] = self.child1.out_
-            self.out_[1] = self.child2.out_
-
-    mod = Mod2()
-    mod_src = verilog(mod, False, False, False)
-    src = mod_src["mod2"]
-    assert is_valid_verilog(src)
-
-
 def test_pass():
     def change_name(generator):
         class Visitor(ASTVisitor):
@@ -483,8 +456,8 @@ def test_const_port():
 
 def test_create():
     class Mod(Generator):
-        def __init__(self, width):
-            super().__init__(f"mod_{width}")
+        def __init__(self, width, is_clone=False):
+            super().__init__(f"mod_{width}", is_clone=is_clone)
 
             self.in_ = self.port("in", width, PortDirection.In)
             self.out_ = self.port("out", width, PortDirection.Out)
@@ -497,6 +470,18 @@ def test_create():
     assert not mod1.is_cloned
     assert not mod2.is_cloned
     assert mod3.is_cloned
+
+    # modify mod 3
+    mod3.initialize_clone()
+    mod3.in_.width = 3
+    mod3.out_.width = 3
+    assert not mod3.is_cloned
+    mod_src = verilog(mod3)
+
+    # we didn't change the name
+    assert "mod_1" in mod_src
+    assert "2:0" in mod_src["mod_1"]
+    assert is_valid_verilog(mod_src["mod_1"])
 
 
 def test_packed_struct():
@@ -564,4 +549,4 @@ def test_verilog_file():
 
 
 if __name__ == "__main__":
-    test_verilog_file()
+    test_create()

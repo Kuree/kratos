@@ -15,6 +15,10 @@ Generator &Context::generator(const std::string &name) {
     return *p;
 }
 
+Generator Context::empty_generator() {
+    return Generator(this, "");
+}
+
 void Context::add(Generator *generator) {
     modules_[generator->name].emplace(generator->shared_from_this());
 }

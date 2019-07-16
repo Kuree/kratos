@@ -124,16 +124,25 @@ class VarProxy:
 class GeneratorMeta(type):
     def __init__(cls, name, bases, attrs):
         super().__init__(name, bases, attrs)
-        cls._cache = {}
+        cls._cache = set()
 
 
 class Generator(metaclass=GeneratorMeta):
     __context = _kratos.Context()
     __inspect_frame_depth: int = 2
 
-    def __init__(self, name: str, debug: bool = False,
-                 ):
-        self.__generator = self.__context.generator(name)
+    def __init__(self, name: str, debug: bool = False, is_clone: bool = False):
+        # for initialization
+        self.__cached_initialization = []
+
+        if not is_clone:
+            self.__generator = self.__context.generator(name)
+        else:
+            self.__generator = self.__context.empty_generator()
+            self.__generator.is_cloned = True
+            self.__cached_initialization.append((self.__set_generator_name,
+                                                 [name]))
+
         self.__child_generator: Dict[str, Generator] = {}
 
         if not debug:
@@ -209,7 +218,7 @@ class Generator(metaclass=GeneratorMeta):
 
     @property
     def is_cloned(self):
-        return self.__generator.is_cloned()
+        return self.__generator.is_cloned
 
     def var(self, name: str, width: int,
             is_signed: bool = False) -> _kratos.Var:
@@ -258,6 +267,9 @@ class Generator(metaclass=GeneratorMeta):
         return self.__generator
 
     def add_code(self, fn):
+        if self.is_cloned:
+            self.__cached_initialization.append((self.add_code, [fn]))
+            return
         raw_sensitives, stmts = transform_stmt_block(self, fn, self.debug)
         if len(raw_sensitives) == 0:
             # it's a combinational block
@@ -280,6 +292,9 @@ class Generator(metaclass=GeneratorMeta):
         return stmt
 
     def wire(self, var_to, var_from):
+        if self.is_cloned:
+            self.__cached_initialization.append((self.wire, [var_to, var_from]))
+            return
         # this is a top level direct wire assignment
         # notice that we can figure out the direction automatically if
         # both of them are ports
@@ -294,9 +309,15 @@ class Generator(metaclass=GeneratorMeta):
             stmt.add_fn_ln((fn, ln))
 
     def add_stmt(self, stmt):
+        if self.is_cloned:
+            self.__cached_initialization.append((self.add_stmt, [stmt]))
         self.__generator.add_stmt(stmt)
 
     def add_child_generator(self, instance_name: str, generator: "Generator"):
+        if self.is_cloned:
+            self.__cached_initialization.append((self.add_child_generator,
+                                                 (instance_name, generator)))
+            return
         generator.instance_name = instance_name
         self[instance_name] = generator
 
@@ -333,30 +354,34 @@ class Generator(metaclass=GeneratorMeta):
         else:
             return self.__generator.has_child_generator(generator)
 
-    def clone(self, copy_port_attr: bool = True):
-        g = Generator("")
-        g.__generator = self.__generator.clone()
-        if copy_port_attr:
-            # copy all the port attributes over
-            attributes = self.__dict__
-            for name, value in attributes.items():
-                if isinstance(value, _kratos.Port):
-                    setattr(g, name, g.__generator.get_port(value.name))
-        return g
+    def initialize_clone(self):
+        if self.is_cloned:
+            self.__generator.is_cloned = False
+            for fn, args in self.__cached_initialization:
+                fn(*args)
+            self.__cached_initialization.clear()
+
+    def __set_generator_name(self, name):
+        self.__generator.name = name
 
     @classmethod
     def create(cls, **kargs):
+        # if the debug is set to True globally, we don't create any
+        # clones
+        if get_global_debug():
+            return cls(**kargs)
         # compute the hash
         hash_value = 0
         for key, value in kargs.items():
             hash_value = hash_value ^ (hash(key) << 16) ^ hash(value)
         if hash_value not in cls._cache:
             g = cls(**kargs)
-            cls._cache[hash_value] = g
+            cls._cache.add(hash_value)
             return g
         else:
-            g = cls._cache[hash_value]
-            return g.clone()
+            kargs["is_clone"] = True
+            g = cls(**kargs)
+            return g
 
 
 def always(sensitivity):

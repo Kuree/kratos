@@ -103,6 +103,8 @@ public:
     const std::unordered_set<std::shared_ptr<Generator>> &get_clones() const { return clones_; }
     std::shared_ptr<Generator> clone();
     bool is_cloned() const { return is_cloned_; }
+    // this is for internal libraries only. use it only if you know what you're doing
+    void set_is_cloned(bool value) { is_cloned_ = value; }
 
 private:
     std::vector<std::string> lib_files_;
