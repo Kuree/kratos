@@ -1,10 +1,7 @@
 Kratos
 ======
 
-|Build Status|
-|PyPI - Format|
-|PyPI Version|
-|Documentation Status|
+|Build Status| |PyPI - Format| |PyPI - Version| |Documentation Status|
 
 Kratos is a hardware design language written in C++/Python. It
 differentiates itself from other DSL with the following design
@@ -290,11 +287,11 @@ generators, such as mux and decoder. They are designed to be as
 efficient as possible.
 
 
-.. |Build Status| image::  https://travis-ci.com/Kuree/kratos.svg?branch=master
-   ::target: https://travis-ci.com/Kuree/kratos
+.. |Build Status| image:: https://travis-ci.com/Kuree/kratos.svg?branch=master
+   :target: https://travis-ci.com/Kuree/kratos
 .. |PyPI - Format| image:: https://img.shields.io/pypi/format/kratos.svg
-   ::target: https://pypi.org/project/kratos/
-.. |PyPI Version| image:: https://badge.fury.io/py/kratos.svg
-   ::target: https://pypi.org/project/kratos/
+   :target: https://pypi.org/project/kratos/
+.. |PyPI - Version| image:: https://badge.fury.io/py/kratos.svg
+   :target: https://pypi.org/project/kratos/
 .. |Documentation Status| image:: https://readthedocs.org/projects/kratos-doc/badge/?version=latest
-   ::target: https://kratos-doc.readthedocs.io/en/latest/?badge=latest
+   :target: https://kratos-doc.readthedocs.io/en/latest/?badge=latest
