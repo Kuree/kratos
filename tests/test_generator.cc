@@ -65,7 +65,7 @@ TEST(generator, param) {    // NOLINT
     auto &param = child.parameter("parm", 1);
     param.set_value(1);
     child.add_stmt(child_out.assign(param).shared_from_this());
-    mod.add_child_generator(child.shared_from_this(), false);
+    mod.add_child_generator(child.shared_from_this());
     mod.add_stmt(out.assign(child_out).shared_from_this());
 
     fix_assignment_type(&mod);
@@ -121,7 +121,7 @@ TEST(pass, connectivity) {  // NOLINT
     auto &mod2 = c.generator("module2");
     EXPECT_NE(&mod1, &mod2);
 
-    mod1.add_child_generator(mod2.shared_from_this(), false);
+    mod1.add_child_generator(mod2.shared_from_this());
     EXPECT_ANY_THROW(mod1.port(PortDirection::In, "in", 1));
     auto &port3 = mod2.port(PortDirection::In, "in", 1);
     port3.assign(port1);
@@ -187,9 +187,9 @@ TEST(pass, generator_instance) {  // NOLINT
     auto &mod4 = c.generator("module2");
     mod4.instance_name = "new_module";
 
-    mod1.add_child_generator(mod2.shared_from_this(), true);
-    mod1.add_child_generator(mod3.shared_from_this(), true);
-    mod1.add_child_generator(mod4.shared_from_this(), true);
+    mod1.add_child_generator(mod2.shared_from_this());
+    mod1.add_child_generator(mod3.shared_from_this());
+    mod1.add_child_generator(mod4.shared_from_this());
 
     uniquify_module_instances(&mod1);
     EXPECT_EQ(mod2.instance_name, "module2_inst");
@@ -211,8 +211,8 @@ TEST(pass, decouple1) {  // NOLINT
     auto &port3_1 = mod3.port(PortDirection::In, "in", 2);
     // auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
 
-    mod1.add_child_generator(mod2.shared_from_this(), false);
-    mod1.add_child_generator(mod3.shared_from_this(), false);
+    mod1.add_child_generator(mod2.shared_from_this());
+    mod1.add_child_generator(mod3.shared_from_this());
 
     port2_1.assign(port1_2);
     port3_1.assign(port1_1.concat(port2_1));
@@ -245,7 +245,7 @@ TEST(pass, verilog_instance) {  // NOLINT
     stmt = port1_2.assign(port1_1);
     mod1.add_stmt(stmt.shared_from_this());
 
-    mod1.add_child_generator(mod2.shared_from_this(), false);
+    mod1.add_child_generator(mod2.shared_from_this());
     // lazy. just use this pass to fix the assignment type
     fix_assignment_type(&mod1);
     create_module_instantiation(&mod1);
@@ -336,7 +336,7 @@ TEST(pass, pass_through_module) {  // NOLINT
     auto &out2 = mod2.port(PortDirection::Out, "out", 1);
     mod2.add_stmt(out2.assign(in2).shared_from_this());
 
-    mod1.add_child_generator(mod2.shared_from_this(), false);
+    mod1.add_child_generator(mod2.shared_from_this());
     mod1.add_stmt(in2.assign(in1).shared_from_this());
     mod1.add_stmt(out1.assign(out2).shared_from_this());
 
@@ -367,7 +367,7 @@ TEST(pass, replace) {  // NOLINT
     auto &out3 = mod3.port(PortDirection::Out, "out", 2);
     mod3.add_stmt(out3.assign(in3).shared_from_this());
 
-    mod1.add_child_generator(mod2.shared_from_this(), false);
+    mod1.add_child_generator(mod2.shared_from_this());
     mod1.add_stmt(in2.assign(in1).shared_from_this());
     mod1.add_stmt(out1.assign(out2).shared_from_this());
 
@@ -401,8 +401,8 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
     auto &out3 = mod3.port(PortDirection::Out, "out", 1);
     mod3.add_stmt(out3.assign(in3, AssignmentType::Blocking).shared_from_this());
 
-    mod1.add_child_generator(mod2.shared_from_this(), false);
-    mod1.add_child_generator(mod3.shared_from_this(), false);
+    mod1.add_child_generator(mod2.shared_from_this());
+    mod1.add_child_generator(mod3.shared_from_this());
 
     mod1.add_stmt(in2.assign(in1).shared_from_this());
     mod1.add_stmt(in3.assign(in1).shared_from_this());
