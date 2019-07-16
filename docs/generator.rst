@@ -331,7 +331,7 @@ of statements you can construct:
 - ``AssignStmt``
 
 Please refer to Statement to see detailed documentation on how to construct
-them. 
+them.
 
 Examples
 --------
