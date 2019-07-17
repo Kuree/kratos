@@ -51,4 +51,15 @@ generators have to meet the following requirements:
 4. If you want to make edits to the generators, you need to call
    ``initialize_clone`` on that particular instance. This function
    call ensures the full-instantiation of the generator definition,
-   i.e. the "copy" part in CoW.
+   i.e. the "copy" part in CoW. You can do the following before
+   editing the generator:
+
+   .. code-block:: Python
+
+        if mod1.is_cloned:
+            mod1.initialize_clone()
+
+kratos also provides you the pointer reference to the generator that
+a clone is referring to. You can access it through
+``[gen].def_instance``. This is useful if you want to modify the entire
+generator definition along with all the clones.

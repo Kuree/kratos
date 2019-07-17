@@ -124,7 +124,7 @@ class VarProxy:
 class GeneratorMeta(type):
     def __init__(cls, name, bases, attrs):
         super().__init__(name, bases, attrs)
-        cls._cache = set()
+        cls._cache = {}
 
 
 class Generator(metaclass=GeneratorMeta):
@@ -140,8 +140,8 @@ class Generator(metaclass=GeneratorMeta):
         else:
             self.__generator = self.__context.empty_generator()
             self.__generator.is_cloned = True
-            self.__cached_initialization.append((self.__set_generator_name,
-                                                 [name]))
+
+        self.__set_generator_name(name)
 
         self.__child_generator: Dict[str, Generator] = {}
 
@@ -159,6 +159,8 @@ class Generator(metaclass=GeneratorMeta):
         self.params = ParamProxy(self)
         self.vars = VarProxy(self)
 
+        self.__def_instance = self
+
     def __getitem__(self, instance_name: str):
         assert instance_name in self.__child_generator, \
             "{0} does not exist in {1}".format(instance_name,
@@ -175,6 +177,10 @@ class Generator(metaclass=GeneratorMeta):
 
         self.__child_generator[instance_name] = generator
         self.__generator.add_child_generator(generator.__generator)
+
+    @property
+    def def_instance(self):
+        return self.__def_instance
 
     @property
     def name(self):
@@ -376,11 +382,12 @@ class Generator(metaclass=GeneratorMeta):
             hash_value = hash_value ^ (hash(key) << 16) ^ hash(value)
         if hash_value not in cls._cache:
             g = cls(**kargs)
-            cls._cache.add(hash_value)
+            cls._cache[hash_value] = g
             return g
         else:
             kargs["is_clone"] = True
             g = cls(**kargs)
+            g.__def_instance = cls._cache[hash_value]
             return g
 
 

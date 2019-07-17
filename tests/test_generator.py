@@ -470,6 +470,7 @@ def test_create():
     assert not mod1.is_cloned
     assert not mod2.is_cloned
     assert mod3.is_cloned
+    assert mod3.def_instance == mod1
 
     # modify mod 3
     mod3.initialize_clone()
