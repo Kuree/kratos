@@ -1,6 +1,6 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
     verilog, is_valid_verilog, VarException, StmtException, ASTVisitor, \
-    PackedStruct, Port
+    PackedStruct, Port, Attribute
 from kratos.passes import uniquify_generators, hash_generators
 import os
 import tempfile
@@ -549,5 +549,20 @@ def test_verilog_file():
             assert is_valid_verilog(src)
 
 
+def test_attribute():
+    mod = PassThroughTop()
+    stmt = mod.get_stmt_by_index(0)
+
+    class TestAttribute(Attribute):
+        def __init__(self):
+            Attribute.__init__(self)
+            self.value = "42"
+
+    stmt.add_attribute(TestAttribute())
+
+    assert len(mod.get_stmt_by_index(0).get_attributes()) > 0
+    assert mod.get_stmt_by_index(0).get_attributes()[0].value == "42"
+
+
 if __name__ == "__main__":
-    test_create()
+    test_attribute()

@@ -4,7 +4,7 @@ from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
 # directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog
 from _kratos.exception import VarException, StmtException
-from _kratos.passes import ASTVisitor as ASTVisitor
+from _kratos.passes import ASTVisitor as ASTVisitor, Attribute
 from _kratos import SwitchStmt, PackedStruct, Port, Var
 
 __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",

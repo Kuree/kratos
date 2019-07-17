@@ -70,6 +70,12 @@ void init_enum(py::module &m) {
         .value("Clock", VarCastType::Clock);
 }
 
+template <typename T, typename K>
+void def_attributes(T &class_) {
+    class_.def("add_attribute", &K::add_attribute)
+        .def("get_attributes", &K::get_attributes, py::return_value_policy::reference);
+}
+
 // pass submodule
 void init_pass(py::module &m) {
     auto pass_m = m.def_submodule("passes");
@@ -129,6 +135,18 @@ void init_pass(py::module &m) {
 
     auto ast = py::class_<ASTNode, std::shared_ptr<ASTNode>>(pass_m, "ASTNode");
     ast.def(py::init<ASTNodeKind>());
+    def_attributes<py::class_<ASTNode, std::shared_ptr<ASTNode>>, ASTNode>(ast);
+
+    // attributes
+    // type holder due to conversion
+    class PyAttribute : public Attribute {
+    public:
+        using Attribute::Attribute;
+    };
+
+    auto attribute =
+        py::class_<Attribute, PyAttribute, std::shared_ptr<Attribute>>(pass_m, "Attribute");
+    attribute.def(py::init<>()).def_readwrite("value", &PyAttribute::value);
 }
 
 // exception module
@@ -207,6 +225,8 @@ void init_common_expr(T &class_) {
         .def("sinks", &K::sinks, py::return_value_policy::reference)
         .def("cast", &K::cast)
         .def_property_readonly("generator", [](const K &var) { return var.generator; });
+
+    def_attributes<T, K>(class_);
 }
 
 template <typename T>
@@ -322,6 +342,8 @@ void init_generator(py::module &m) {
         .def("vars", &Generator::vars)
         .def("add_stmt", &Generator::add_stmt)
         .def("remove_stmt", &Generator::remove_stmt)
+        .def("stmts_count", &Generator::stmts_count)
+        .def("get_stmt", &Generator::get_stmt)
         .def("sequential", &Generator::sequential, py::return_value_policy::reference)
         .def("combinational", &Generator::combinational, py::return_value_policy::reference)
         .def("add_child_generator", &Generator::add_child_generator,
@@ -355,13 +377,15 @@ void init_stmt(py::module &m) {
     stmt_.def(py::init<StatementType>()).def("type", &Stmt::type);
     def_trace<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
 
-    py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt>(m, "AssignStmt")
-        .def("assign_type", &AssignStmt::assign_type)
+    py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt> assign_(m, "AssignStmt");
+    assign_.def("assign_type", &AssignStmt::assign_type)
         .def("set_assign_type", &AssignStmt::set_assign_type)
         .def("set_left", &AssignStmt::set_left)
         .def("set_right", &AssignStmt::set_right)
         .def_property_readonly("left", [](const AssignStmt &stmt) { return stmt.left(); })
         .def_property_readonly("right", [](const AssignStmt &stmt) { return stmt.right(); });
+
+    def_attributes<py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt>, AssignStmt>(assign_);
 
     py::class_<IfStmt, ::shared_ptr<IfStmt>, Stmt>(m, "IfStmt")
         .def(py::init<::shared_ptr<Var>>())

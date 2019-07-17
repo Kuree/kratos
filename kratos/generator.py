@@ -1,7 +1,7 @@
 import enum
 from .pyast import transform_stmt_block, get_fn_ln
 import _kratos
-from typing import List, Dict
+from typing import List, Dict, Union
 
 __GLOBAL_DEBUG = False
 
@@ -226,6 +226,13 @@ class Generator(metaclass=GeneratorMeta):
     def is_cloned(self):
         return self.__generator.is_cloned
 
+    @property
+    def stmt_count(self):
+        return self.__generator.stmt_count()
+
+    def get_stmt_by_index(self, index):
+        return self.__generator.get_stmt(index)
+
     def var(self, name: str, width: int,
             is_signed: bool = False) -> _kratos.Var:
         v = self.__generator.var(name, width, is_signed)
@@ -297,9 +304,12 @@ class Generator(metaclass=GeneratorMeta):
         self.add_stmt(stmt)
         return stmt
 
-    def wire(self, var_to, var_from):
+    def wire(self, var_to, var_from,
+             attributes: Union[List[_kratos.passes.Attribute],
+                               _kratos.passes.Attribute] = None):
         if self.is_cloned:
-            self.__cached_initialization.append((self.wire, [var_to, var_from]))
+            self.__cached_initialization.append((self.wire, [var_to, var_from,
+                                                             attributes]))
             return
         # this is a top level direct wire assignment
         # notice that we can figure out the direction automatically if
@@ -313,6 +323,12 @@ class Generator(metaclass=GeneratorMeta):
         if self.debug:
             fn, ln = get_fn_ln(2)
             stmt.add_fn_ln((fn, ln))
+
+        if attributes is not None:
+            if not isinstance(attributes, list):
+                attributes = [attributes]
+            for attr in attributes:
+                stmt.add_attribute(attr)
 
     def add_stmt(self, stmt):
         if self.is_cloned:

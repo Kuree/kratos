@@ -9,6 +9,13 @@ class ASTVisitor;
 
 enum ASTNodeKind { GeneratorKind, VarKind, StmtKind };
 
+
+class Attribute {
+public:
+    virtual ~Attribute() = default;
+    std::string value;
+};
+
 struct ASTNode {
 public:
     explicit ASTNode(ASTNodeKind type) : ast_node_type_(type) {}
@@ -26,8 +33,15 @@ public:
 
     uint32_t verilog_ln = 0;
 
+    // attributes for passes
+    const std::vector<std::shared_ptr<Attribute>> &get_attributes() const { return attributes_; }
+    void add_attribute(const std::shared_ptr<Attribute> &attribute) {
+        attributes_.emplace_back(attribute);
+    }
+
 private:
     ASTNodeKind ast_node_type_;
+    std::vector<std::shared_ptr<Attribute>> attributes_;
 };
 
 class ASTVisitor {
@@ -59,11 +73,10 @@ public:
 protected:
     uint32_t level = 0;
 
-    std::unordered_set<ASTNode*> visited_;
+    std::unordered_set<ASTNode *> visited_;
 };
 
 // TODO
 //  implement a proper AST transformer
-
 
 #endif  // KRATOS_AST_HH
