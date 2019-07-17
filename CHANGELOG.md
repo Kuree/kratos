@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4] - 2019-07-16
+### Added
+- Documentation for most of the interfaces (#28)
+- Support for SystemVerilog Packed Struct in port interface (#20)
+- Debug info for fanout pass.
+- Add variable and parameter proxy (#30)
+- Add type cast interface (#31)
+- Helper function to produce the verilog file
+
+### Changed:
+- `clone`/`create` interface has been improved (#32). A lot of work still need to be done.
+- `signed` is now created using the new casting interface.
+
+### Fixed
+- Pass through module removal pass will somethimes remove modules that perform simple arithmetic.
+- Fix a bug where module instantiation will cause infinite loop.
+
 ## [0.0.3] - 2019-07-07
 ### Added
 - `PortProxy` to mimic gemstone interface
