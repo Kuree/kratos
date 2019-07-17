@@ -69,6 +69,11 @@ class CMakeBuild(build_ext):
             cwd=self.build_temp)
 
 
+current_directory = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(current_directory, 'README.rst')) as f:
+    long_description = f.read()
+
+
 setup(
     name='kratos',
     packages=[
@@ -86,4 +91,6 @@ setup(
     install_requires=[
         "astor",
     ],
+    long_description=long_description,
+    long_description_content_type='text/x-rst',
 )
