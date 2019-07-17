@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
-#include "codegen.h"
+#include "codegen.hh"
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"

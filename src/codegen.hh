@@ -1,5 +1,5 @@
-#ifndef KRATOS_CODEGEN_H
-#define KRATOS_CODEGEN_H
+#ifndef KRATOS_CODEGEN_HH
+#define KRATOS_CODEGEN_HH
 
 #include <sstream>
 #include "ast.hh"
@@ -97,4 +97,4 @@ private:
     }
 };
 
-#endif  // KRATOS_CODEGEN_H
+#endif  // KRATOS_CODEGEN_HH

@@ -2,7 +2,7 @@
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "../src/codegen.h"
+#include "../src/codegen.hh"
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
