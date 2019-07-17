@@ -128,3 +128,23 @@ number.
       "3": [["/tmp/kratos/example.py", 5]],
       "6": [["/tmp/kratos/example.py", 6]]}
 
+Put everything together
+-----------------------
+
+Here is an example that prints out the pass through module
+
+.. code-block:: Python
+
+    import kratos
+
+    class PassThroughMod(kratos.Generator):
+        def __init__(self):
+            super().__init__("PassThrough", False)
+            self.in_ = self.port("in", 1, kratos.PortDirection.In)
+            self.out_ = self.port("out", 1, kratos.PortDirection.Out)
+            self.wire(self.out_, self.in_)
+
+
+    mod = PassThroughMod()
+    mod_src = kratos.verilog(mod)
+    print(mod_src["PassThrough"])
