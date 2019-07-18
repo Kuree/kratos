@@ -14,11 +14,12 @@ class VerilogModule {
 public:
     explicit VerilogModule(Generator* generator) : generator_(generator) {}
 
-    void run_passes(bool run_if_to_case_pass, bool remove_passthrough, bool run_fanout_one_pass);
+    void run_passes(bool use_parallel, bool run_if_to_case_pass, bool remove_passthrough,
+                    bool run_fanout_one_pass);
 
     const inline std::map<std::string, std::string>& verilog_src() const { return verilog_src_; }
     const inline std::map<std::string, DebugInfo>& debug_info() const { return debug_info_; }
-    inline PassManager &pass_manager() { return manager_; }
+    inline PassManager& pass_manager() { return manager_; }
 
 private:
     std::map<std::string, std::string> verilog_src_;
@@ -32,7 +33,7 @@ class Stream : public std::stringstream {
 public:
     explicit Stream(Generator* generator, SystemVerilogCodeGen* codegen);
     Stream& operator<<(AssignStmt* stmt);
-    Stream& operator<<(const std::pair<Port*, std::string> &port);
+    Stream& operator<<(const std::pair<Port*, std::string>& port);
 
     inline char endl() {
         line_no_++;

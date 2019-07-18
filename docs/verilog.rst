@@ -18,7 +18,8 @@ you:
                 debug: bool = False,
                 additional_passes: Dict = None,
                 extra_struct: bool = False,
-                filename:str = None):
+                filename: str = None,
+                use_parallel: bool = True)
 
 The required argument ``generator`` has to be the top level circuit
 you want to generate. The function returns a Python dictionary indexed

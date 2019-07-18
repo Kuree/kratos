@@ -48,7 +48,7 @@ Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
     return *this;
 }
 
-void VerilogModule::run_passes(bool run_if_to_case_pass, bool remove_passthrough,
+void VerilogModule::run_passes(bool use_parallel, bool run_if_to_case_pass, bool remove_passthrough,
                                bool run_fanout_one_pass) {
     // run multiple passes using pass manager
 
@@ -76,9 +76,15 @@ void VerilogModule::run_passes(bool run_if_to_case_pass, bool remove_passthrough
     // TODO:
     //  add inline pass
 
-    manager_.add_pass("hash_generators", [=](Generator* generator) {
-        hash_generators(generator, HashStrategy::SequentialHash);
-    });
+    if (use_parallel) {
+        manager_.add_pass("hash_generators", [=](Generator* generator) {
+          hash_generators(generator, HashStrategy::ParallelHash);
+        });
+    } else {
+        manager_.add_pass("hash_generators", [=](Generator* generator) {
+            hash_generators(generator, HashStrategy::SequentialHash);
+        });
+    }
 
     manager_.add_pass("uniquify_generators", &uniquify_generators);
 
@@ -142,8 +148,8 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
 }
 
 void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
-    auto &params = generator->get_params();
-    for (auto const &[name, param] : params) {
+    auto& params = generator->get_params();
+    for (auto const& [name, param] : params) {
         stream_ << ::format("parameter {0} = {1};", name, param->value_str()) << stream_.endl();
     }
 }
@@ -279,15 +285,17 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
 
 void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
     stream_ << indent() << stmt->target()->name;
-    auto &params = stmt->target()->get_params();
+    auto& params = stmt->target()->get_params();
     if (!params.empty()) {
         stream_ << " #(" << stream_.endl();
         indent_++;
 
         uint32_t count = 0;
-        for (auto const &[name, param]: params) {
-            stream_ << indent() << ::format(".{0}({1}){2}", name, param->value_str(),
-                ++count == params.size()? ")": "," +  std::string(1, stream_.endl()));
+        for (auto const& [name, param] : params) {
+            stream_ << indent()
+                    << ::format(
+                           ".{0}({1}){2}", name, param->value_str(),
+                           ++count == params.size() ? ")" : "," + std::string(1, stream_.endl()));
         }
 
         indent_--;
@@ -340,8 +348,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         strs.emplace_back(ptr->packed_struct().struct_name);
     }
     if (port->is_signed) strs.emplace_back("signed");
-    if (!port->is_packed())
-        strs.emplace_back(get_var_width_str(port));
+    if (!port->is_packed()) strs.emplace_back(get_var_width_str(port));
     strs.emplace_back(port->name);
 
     return join(strs.begin(), strs.end(), " ");

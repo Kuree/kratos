@@ -167,7 +167,7 @@ TEST(pass, generator_hash) {  // NOLINT
 
     hash_generators(&mod1, HashStrategy::SequentialHash);
     hash_generators(&mod2, HashStrategy::SequentialHash);
-    hash_generators(&mod3, HashStrategy::SequentialHash);
+    hash_generators(&mod3, HashStrategy::ParallelHash);
 
     EXPECT_EQ(c.get_hash(&mod1), c.get_hash(&mod2));
     EXPECT_NE(c.get_hash(&mod1), c.get_hash(&mod3));

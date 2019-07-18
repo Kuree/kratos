@@ -429,13 +429,15 @@ def verilog(generator: Generator, optimize_if: bool = True,
             debug: bool = False,
             additional_passes: Dict = None,
             extra_struct: bool = False,
-            filename:str = None):
+            filename: str = None,
+            use_parallel: bool = True):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
     if additional_passes is not None:
         for name, fn in additional_passes.items():
             pass_manager.add_pass(name, fn)
-    code_gen.run_passes(optimize_if, optimize_passthrough, optimize_fanout)
+    code_gen.run_passes(use_parallel, optimize_if, optimize_passthrough,
+                        optimize_fanout)
     src = code_gen.verilog_src()
     result = [src]
     if debug:
