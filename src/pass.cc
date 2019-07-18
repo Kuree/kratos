@@ -400,7 +400,8 @@ public:
                     throw ::runtime_error(::format(
                         "{0}'s parent is empty but it's not a top module", generator->name));
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
-                auto new_name = parent->get_unique_variable_name(generator->name, port_name);
+                auto new_name =
+                    parent->get_unique_variable_name(generator->instance_name, port_name);
                 auto& var = parent->var(new_name, port->width, port->is_signed);
                 if (parent->debug) {
                     // need to copy over the changes over
@@ -431,7 +432,8 @@ public:
                     throw ::runtime_error(::format(
                         "{0}'s parent is empty but it's not a top module", generator->name));
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
-                auto new_name = parent->get_unique_variable_name(generator->name, port_name);
+                auto new_name =
+                    parent->get_unique_variable_name(generator->instance_name, port_name);
                 auto& var = parent->var(new_name, port->width, port->is_signed);
                 if (parent->debug) {
                     // need to copy over the changes over
