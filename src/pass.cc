@@ -870,6 +870,73 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
     return result;
 }
 
+class MergeWireAssignmentsVisitor : public ASTVisitor {
+public:
+    void visit(Generator* generator) override {
+        std::set<std::shared_ptr<Stmt>> stmts_to_remove;
+
+        // first filter out sliced assignments
+        std::set<std::shared_ptr<AssignStmt>> sliced_stmts;
+        uint64_t stmt_count = generator->stmts_count();
+        for (uint32_t i = 0; i < stmt_count; i++) {
+            auto stmt = generator->get_stmt(i);
+            if (stmt->type() == StatementType::Assign) {
+                auto assign_stmt = stmt->as<AssignStmt>();
+                if (assign_stmt->left()->type() == VarType::Slice &&
+                    assign_stmt->right()->type() == VarType::Slice) {
+                    sliced_stmts.emplace(assign_stmt);
+                }
+            }
+        }
+
+        // then group the assignments together
+        using AssignPair = std::pair<Var*, Var*>;
+        std::map<AssignPair, std::vector<std::shared_ptr<AssignStmt>>> slice_vars;
+        for (auto const& assign_stmt : sliced_stmts) {
+            auto left_slice = assign_stmt->left()->as<VarSlice>();
+            auto right_slice = assign_stmt->right()->as<VarSlice>();
+            Var* left_parent = left_slice->parent_var;
+            Var* right_parent = right_slice->parent_var;
+            // only deal with 1D for now
+            if (left_parent->type() == VarType::Slice) continue;
+            if (right_parent->type() == VarType::Slice) continue;
+            if (left_parent->width != right_parent->width) continue;
+
+            slice_vars[{left_parent, right_parent}].emplace_back(assign_stmt);
+        }
+
+        // merge the assignments
+        for (auto const& [vars, stmts] : slice_vars) {
+            auto& [left, right] = vars;
+
+            // NOTE:
+            // we assume that at this stage we've passed the connectivity check
+            if (stmts.size() != left->width) continue;
+
+            // remove left's sources and right's sink
+            // also add it to the statements to remove
+            for (auto const& stmt : stmts) {
+                left->remove_source(stmt);
+                right->remove_sink(stmt);
+                stmts_to_remove.emplace(stmt);
+            }
+            // make new assignment
+            generator->add_stmt(left->assign(right->shared_from_this(), AssignmentType::Blocking)
+                                    .shared_from_this());
+        }
+
+        for (auto const& stmt : stmts_to_remove) {
+            generator->remove_stmt(stmt);
+        }
+    }
+};
+
+void merge_wire_assignments(Generator* top) {
+    // for now we only merge generator-level assignments
+    MergeWireAssignmentsVisitor visitor;
+    visitor.visit_generator_root(top);
+}
+
 void PassManager::add_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));

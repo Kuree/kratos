@@ -51,6 +51,8 @@ void remove_fanout_one_wires(Generator* top);
 
 void remove_pass_through_modules(Generator* top);
 
+void merge_wire_assignments(Generator* top);
+
 class PassManager {
 public:
     PassManager() = default;

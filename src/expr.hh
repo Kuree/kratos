@@ -95,7 +95,9 @@ public:
 
     VarType type() const { return type_; }
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const { return sinks_; };
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) { sinks_.erase(stmt); }
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const { return sources_; };
+    void remove_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.erase(stmt); }
     std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> &get_slices() {
         return slices_;
     }

@@ -330,8 +330,12 @@ of statements you can construct:
 - ``IfStmt``
 - ``AssignStmt``
 
-Please refer to Statement to see detailed documentation on how to construct
-them.
+
+.. note::
+    kratos provides a helper function called `wire(var1, var2)` that wires
+    things together in the top level. In most cases the ordering does matter:
+    it's the same as ``assign var1 = var2;``. The only exception is when one
+    of them is a port (not port slice though).
 
 Examples
 --------

@@ -410,7 +410,7 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
     mod1.add_stmt(out1.assign(out2 + out3).shared_from_this());
 
     VerilogModule verilog(&mod1);
-    verilog.run_passes(false, false, false);
+    verilog.run_passes(true, false, false, false);
     auto src = verilog.verilog_src();
     EXPECT_EQ(src.size(), 3);
     EXPECT_TRUE(is_valid_verilog(src.at("module1")));

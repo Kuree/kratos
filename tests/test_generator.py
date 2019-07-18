@@ -564,5 +564,22 @@ def test_attribute():
     assert mod.get_stmt_by_index(0).get_attributes()[0].value == "42"
 
 
+def test_wire_merge():
+    class TestModule(Generator):
+        def __init__(self, width):
+            super().__init__("Test")
+            self.port("in", width, PortDirection.In)
+            self.port("out", width, PortDirection.Out)
+
+            for i in range(width):
+                self.wire(self.ports["out"][i], self.ports["in"][i])
+
+    mod = TestModule(4)
+    mod_src = verilog(mod)
+    src = mod_src["Test"]
+    assert "assign out = in" in src
+    assert is_valid_verilog(src)
+
+
 if __name__ == "__main__":
-    test_attribute()
+    test_wire_merge()

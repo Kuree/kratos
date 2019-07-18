@@ -73,6 +73,8 @@ void VerilogModule::run_passes(bool use_parallel, bool run_if_to_case_pass, bool
 
     manager_.add_pass("check_mixed_assignment", &check_mixed_assignment);
 
+    manager_.add_pass("merge_wire_assignments", &merge_wire_assignments);
+
     // TODO:
     //  add inline pass
 

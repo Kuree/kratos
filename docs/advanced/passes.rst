@@ -69,6 +69,8 @@ readable and your life easier:
 - ``remove_pass_through_modules``: this pass will remove any pass-through
   modules created by user. It is not necessary for the physical design,
   but extremely helpful to reduce the simulation size.
+- ``merge_wire_assignments``: this pass merges top level wire slices into
+  a single wire assignment.
 
 Write your own Pass
 ===================

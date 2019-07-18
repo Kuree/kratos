@@ -93,7 +93,8 @@ void init_pass(py::module &m) {
         .def("remove_fanout_one_wires", &remove_fanout_one_wires)
         .def("remove_pass_through_modules", &remove_pass_through_modules)
         .def("extract_debug_info", &extract_debug_info)
-        .def("extract_struct_info", &extract_struct_info);
+        .def("extract_struct_info", &extract_struct_info)
+        .def("merge_wire_assignments", merge_wire_assignments);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager");
     manager.def(py::init<>())
