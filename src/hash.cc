@@ -6,6 +6,7 @@
 #include "graph.hh"
 #include "pass.hh"
 #include "stmt.hh"
+#include "cxxpool.h"
 
 /*
  * Once this project is moved to gcc-9, we will use the parallel execution
@@ -293,12 +294,11 @@ private:
     }
 };
 
-void hash_generator(Context* context, Generator* generator) {
+uint64_t hash_generator(Generator* generator) {
     // we use a visitor to compute all the hashes
     HashVisitor hash_visitor(generator);
     hash_visitor.visit_root(generator);
-    uint64_t hash_value = hash_visitor.produce_hash();
-    context->add_hash(generator, hash_value);
+    return hash_visitor.produce_hash();
 }
 
 void hash_generator_src(Context* context, Generator* generator) {
@@ -322,28 +322,57 @@ void hash_generators_context(Context* context, Generator* root, HashStrategy str
     GeneratorGraph g(root);
     // if it's sequential, do topological sort
     // if it's parallel, do level sort
-    // TODO: a potential way to optimize further is to filter out generators with
-    //  unique names, see #3 issue on Github
-    if (strategy == HashStrategy::SequentialHash) {
-        auto const& sequence = g.get_sorted_generators();
-        for (auto& node : sequence) {
-            // different cases
-            if (node->external()) {
-                if (node->external_filename().empty()) {
-                    // user marked external file, skip it
-                    continue;
-                } else {
-                    hash_generator_src(context, node);
-                }
-            } else if (context->get_generators_by_name(node->name).size() == 1) {
-                // just need to hash the name
-                hash_generator_name(context, node);
+    auto const& sequence = g.get_sorted_generators();
+    std::vector<Generator *> list;
+    // reserve for list
+    list.reserve(sequence.size());
+
+    for (auto& node : sequence) {
+        // different cases
+        if (node->external()) {
+            if (node->external_filename().empty()) {
+                // user marked external file, skip it
+                continue;
             } else {
-                hash_generator(context, node);
+                hash_generator_src(context, node);
             }
+        } else if (context->get_generators_by_name(node->name).size() == 1) {
+            // just need to hash the name
+            hash_generator_name(context, node);
+        } else {
+            // only the one being used
+            if (node->parent() == nullptr && node != root)
+                continue;
+            list.emplace_back(node);
+        }
+    }
+
+    std::vector<uint64_t> hash_values;
+    hash_values.reserve(list.size());
+
+    if (strategy == HashStrategy::SequentialHash) {
+        for (auto& node : list) {
+            uint64_t hash = hash_generator(node);
+            hash_values.emplace_back(hash);
         }
     } else if (strategy == HashStrategy::ParallelHash) {
-        g.get_leveled_generators();
-        throw std::runtime_error("not implemented");
+        uint32_t num_cpus = std::thread::hardware_concurrency();
+        num_cpus = std::max(1u, num_cpus / 2);
+        cxxpool::thread_pool pool{num_cpus};
+
+        std::vector<std::future<uint64_t>> thread_tasks;
+        thread_tasks.reserve(list.size());
+
+        for (auto const &node: list) {
+            auto task = pool.push(hash_generator, node);
+            thread_tasks.emplace_back(std::move(task));
+        }
+
+        cxxpool::get(thread_tasks.begin(), thread_tasks.end(), hash_values);
+    }
+    for (uint32_t i = 0; i < list.size(); i++) {
+        auto const &node = list[i];
+        auto const hash = hash_values[i];
+        context->add_hash(node, hash);
     }
 }
