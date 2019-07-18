@@ -48,6 +48,17 @@ Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
     return *this;
 }
 
+Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
+    if (generator_->debug) {
+        var->verilog_ln = line_no_;
+    }
+
+    (*this) << ::format("logic {0} {1} {2};", var->is_signed ? "signed" : "",
+                        SystemVerilogCodeGen::get_var_width_str(var.get()), var->name)
+            << endl();
+    return *this;
+}
+
 void VerilogModule::run_passes(bool use_parallel, bool run_if_to_case_pass, bool remove_passthrough,
                                bool run_fanout_one_pass) {
     // run multiple passes using pass manager
@@ -142,9 +153,7 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
     for (auto const& var_name : vars) {
         auto const& var = generator->get_var(var_name);
         if (var->type() == VarType::Base) {
-            stream_ << ::format("logic {0} {1} {2};", var->is_signed ? "signed" : "",
-                                get_var_width_str(var.get()), var->name)
-                    << stream_.endl();
+            stream_ << var;
         }
     }
 }
@@ -286,8 +295,10 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
+    stmt->verilog_ln = stream_.line_no();
     stream_ << indent() << stmt->target()->name;
     auto& params = stmt->target()->get_params();
+    auto debug_info = stmt->port_debug();
     if (!params.empty()) {
         stream_ << " #(" << stream_.endl();
         indent_++;
@@ -306,6 +317,9 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
     indent_++;
     uint32_t count = 0;
     for (auto const& [internal, external] : stmt->port_mapping()) {
+        if (generator_->debug && debug_info.find(internal) != debug_info.end()) {
+            debug_info.at(internal)->verilog_ln = stream_.line_no();
+        }
         const auto& end = count++ < stmt->port_mapping().size() - 1 ? ")," : ")";
         stream_ << indent() << "." << internal->to_string() << "(" << external->to_string() << end
                 << stream_.endl();

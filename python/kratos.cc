@@ -347,8 +347,12 @@ void init_generator(py::module &m) {
         .def("get_stmt", &Generator::get_stmt)
         .def("sequential", &Generator::sequential, py::return_value_policy::reference)
         .def("combinational", &Generator::combinational, py::return_value_policy::reference)
-        .def("add_child_generator", &Generator::add_child_generator,
-             py::return_value_policy::reference)
+        .def("add_child_generator",
+             py::overload_cast<const std::shared_ptr<Generator> &>(&Generator::add_child_generator))
+        .def("add_child_generator",
+             py::overload_cast<const std::shared_ptr<Generator> &,
+                               const std::pair<std::string, uint32_t> &>(
+                 &Generator::add_child_generator))
         .def("remove_child_generator", &Generator::remove_child_generator)
         .def("get_child_generators", &Generator::get_child_generators)
         .def("has_child_generator", &Generator::has_child_generator)

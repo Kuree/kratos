@@ -169,11 +169,17 @@ public:
         return port_mapping_;
     }
 
+    const std::map<std::shared_ptr<Var>, std::shared_ptr<Stmt>> port_debug() const {
+        return port_debug_;
+    }
+
     const Generator *target() { return target_; }
 
 private:
     Generator *target_;
     Generator *parent_;
     std::map<std::shared_ptr<Var>, std::shared_ptr<Var>> port_mapping_;
+
+    std::map<std::shared_ptr<Var>, std::shared_ptr<Stmt>> port_debug_;
 };
 #endif  // KRATOS_STMT_HH

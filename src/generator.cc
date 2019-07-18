@@ -186,6 +186,14 @@ void Generator::add_child_generator(const std::shared_ptr<Generator> &child) {
     }
 }
 
+void Generator::add_child_generator(const std::shared_ptr<Generator> &child,
+                                    const std::pair<std::string, uint32_t> &debug_info) {
+    if (debug) {
+        children_debug_.emplace(child, debug_info);
+    }
+    add_child_generator(child);
+}
+
 void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) {
     auto pos = std::find(children_.begin(), children_.end(), child);
     if (pos != children_.end()) {

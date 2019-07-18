@@ -241,6 +241,12 @@ public:
             // create instantiation statement
             auto stmt = std::make_shared<ModuleInstantiationStmt>(child.get(), generator);
             if (generator->debug) {
+                // get the debug info from the add_generator, if possible
+                auto debug_info = generator->children_debug();
+                if (debug_info.find(child) != debug_info.end()) {
+                    auto info = debug_info.at(child);
+                    stmt->fn_name_ln.emplace_back(info);
+                }
                 stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
             }
             generator->add_stmt(stmt);
@@ -770,6 +776,8 @@ public:
 
     void inline visit(CombinationalStmtBlock* stmt) override { add_info(stmt); }
 
+    void inline visit(ModuleInstantiationStmt* stmt) override { add_info(stmt); }
+
     std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result;
 
 private:
@@ -921,8 +929,17 @@ public:
                 stmts_to_remove.emplace(stmt);
             }
             // make new assignment
-            generator->add_stmt(left->assign(right->shared_from_this(), AssignmentType::Blocking)
-                                    .shared_from_this());
+            auto new_stmt = left->assign(right->shared_from_this(), AssignmentType::Blocking)
+                                .shared_from_this();
+            generator->add_stmt(new_stmt);
+            if (generator->debug) {
+                // merge all the statements
+                for (auto const& stmt : stmts) {
+                    new_stmt->fn_name_ln.insert(new_stmt->fn_name_ln.end(),
+                                                stmt->fn_name_ln.begin(), stmt->fn_name_ln.end());
+                }
+                new_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+            }
         }
 
         for (auto const& stmt : stmts_to_remove) {

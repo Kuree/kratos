@@ -218,6 +218,9 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                 // add it to the port mapping and we are good to go
                 auto const &stmt = *sources.begin();
                 port_mapping_.emplace(port, stmt->right());
+                if (parent->debug) {
+                    port_debug_.emplace(port, stmt);
+                }
                 continue;
             } else {
                 // you need to run a de-slice pass on the module references first
@@ -231,7 +234,11 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
             const auto &sinks = filter_assignments_with_target(port->sinks(), parent, true);
             if (slices.empty()) {
                 if (!sinks.empty() && sinks.size() == 1) {
-                    port_mapping_.emplace(port, (*sinks.begin())->left());
+                    auto stmt = *sinks.begin();
+                    port_mapping_.emplace(port, stmt->left());
+                    if (parent->debug) {
+                        port_debug_.emplace(port, stmt);
+                    }
                 } else if (!sinks.empty() && sinks.size() > 1) {
                     throw ::runtime_error(
                         "Output slices not supported in the statement. "

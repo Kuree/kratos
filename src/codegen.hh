@@ -34,6 +34,7 @@ public:
     explicit Stream(Generator* generator, SystemVerilogCodeGen* codegen);
     Stream& operator<<(AssignStmt* stmt);
     Stream& operator<<(const std::pair<Port*, std::string>& port);
+    Stream& operator<<(const std::shared_ptr<Var>& var);
 
     inline char endl() {
         line_no_++;
@@ -59,6 +60,7 @@ public:
 
     // helper function
     std::string static get_port_str(Port* port);
+    static std::string get_var_width_str(const Var* var);
 
 private:
     uint32_t indent_ = 0;
@@ -66,7 +68,6 @@ private:
     Generator* generator_;
     bool skip_indent_ = false;
 
-    static std::string get_var_width_str(const Var* var);
     void generate_ports(Generator* generator);
     void generate_variables(Generator* generator);
     void generate_parameters(Generator* generator);

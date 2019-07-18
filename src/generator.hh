@@ -64,12 +64,14 @@ public:
 
     // child generator. needed for generator merge
     void add_child_generator(const std::shared_ptr<Generator> &child);
+    void add_child_generator(const std::shared_ptr<Generator> &child,
+                             const std::pair<std::string, uint32_t> &debug_info);
     void remove_child_generator(const std::shared_ptr<Generator> &child);
     std::vector<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
     uint64_t inline get_child_generator_size() const { return children_.size(); }
     bool has_child_generator(const std::shared_ptr<Generator> &child);
     void accept_generator(ASTVisitor *visitor) { visitor->visit(this); }
-    
+
     void replace_child_generator(const std::shared_ptr<Generator> &target,
                                  const std::shared_ptr<Generator> &new_generator);
 
@@ -106,6 +108,12 @@ public:
     // this is for internal libraries only. use it only if you know what you're doing
     void set_is_cloned(bool value) { is_cloned_ = value; }
 
+    // debug info
+    const std::unordered_map<std::shared_ptr<Generator>, std::pair<std::string, uint32_t>>
+        &children_debug() const {
+        return children_debug_;
+    }
+
 private:
     std::vector<std::string> lib_files_;
     Context *context_;
@@ -118,6 +126,8 @@ private:
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
     std::vector<std::shared_ptr<Generator>> children_;
+    std::unordered_map<std::shared_ptr<Generator>, std::pair<std::string, uint32_t>>
+        children_debug_;
 
     Generator *parent_generator_ = nullptr;
 

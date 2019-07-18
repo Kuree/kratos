@@ -167,17 +167,6 @@ class Generator(metaclass=GeneratorMeta):
                                                self.instance_name)
         return self.__child_generator[instance_name]
 
-    def __setitem__(self, instance_name: str, generator: "Generator"):
-        if instance_name in self.__child_generator:
-            raise Exception(
-                "{0} already exists in {1}".format(self.instance_name,
-                                                   self.instance_name))
-        assert isinstance(generator,
-                          Generator), "generator is not a Generator instance"
-
-        self.__child_generator[instance_name] = generator
-        self.__generator.add_child_generator(generator.__generator)
-
     @property
     def def_instance(self):
         return self.__def_instance
@@ -341,14 +330,27 @@ class Generator(metaclass=GeneratorMeta):
                                                  (instance_name, generator)))
             return
         generator.instance_name = instance_name
-        self[instance_name] = generator
+        if instance_name in self.__child_generator:
+            raise Exception(
+                "{0} already exists in {1}".format(self.instance_name,
+                                                   self.instance_name))
+        assert isinstance(generator,
+                          Generator), "generator is not a Generator instance"
+
+        self.__child_generator[instance_name] = generator
+        if self.debug:
+            fn, ln = get_fn_ln()
+            self.__generator.add_child_generator(generator.__generator,
+                                                 (fn, ln))
+        else:
+            self.__generator.add_child_generator(generator.__generator)
 
     @staticmethod
     def clear_context():
         Generator.__context.clear()
         # also clean the caches
         clses = Generator.__subclasses__()
-        for cls in clses:   # type: Generator
+        for cls in clses:  # type: Generator
             cls._cache.clear()
 
     @staticmethod
