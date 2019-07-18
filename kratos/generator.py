@@ -135,7 +135,7 @@ class Generator(metaclass=GeneratorMeta):
         # for initialization
         self.__cached_initialization = []
 
-        if not is_clone:
+        if not is_clone and len(name) > 0:
             self.__generator = self.__context.generator(name)
         else:
             self.__generator = self.__context.empty_generator()
@@ -387,23 +387,41 @@ class Generator(metaclass=GeneratorMeta):
         self.__generator.name = name
 
     @classmethod
-    def create(cls, **kargs):
-        # if the debug is set to True globally, we don't create any
-        # clones
-        if get_global_debug():
-            return cls(**kargs)
-        # compute the hash
+    def __cached_py_generator(cls, **kargs):
         hash_value = 0
         for key, value in kargs.items():
             hash_value = hash_value ^ (hash(key) << 16) ^ hash(value)
         if hash_value not in cls._cache:
             g = cls(**kargs)
             cls._cache[hash_value] = g
+            return g, False
+        else:
+            return cls._cache[hash_value], True
+
+    @classmethod
+    def clone(cls, **kargs):
+        gen, cached = cls.__cached_py_generator(**kargs)
+        if not cached:
+            return gen
+        else:
+            g = Generator("")
+            g.__generator = gen.__generator.clone()
+            g.__def_instance = gen
             return g
+
+    @classmethod
+    def create(cls, **kargs):
+        # if the debug is set to True globally, we don't create any
+        # clones
+        if get_global_debug():
+            return cls(**kargs)
+        gen, cached = cls.__cached_py_generator(**kargs)
+        if not cached:
+            return gen
         else:
             kargs["is_clone"] = True
             g = cls(**kargs)
-            g.__def_instance = cls._cache[hash_value]
+            g.__def_instance = gen
             return g
 
 

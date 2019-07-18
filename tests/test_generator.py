@@ -485,6 +485,35 @@ def test_create():
     assert is_valid_verilog(mod_src["mod_1"])
 
 
+def test_clone():
+    class Mod2(Generator):
+        def __init__(self):
+            super().__init__("mod2")
+            self.in_ = self.port("in", 2, PortDirection.In)
+            self.out_ = self.port("out", 2, PortDirection.Out)
+
+            self.child1 = PassThroughMod.clone()
+            self.child2 = PassThroughMod.clone()
+            self.add_child_generator("child1", self.child1)
+            self.add_child_generator("child2", self.child2)
+
+            self.add_code(self.code)
+
+        def code(self):
+            self.child1.ports["in"] = self.in_[0]
+            self.child2.ports["in"] = self.in_[1]
+
+            self.out_[0] = self.child1.ports.out
+            self.out_[1] = self.child2.ports.out
+
+    mod = Mod2()
+    assert not mod.child1.is_cloned
+    assert mod.child2.is_cloned
+    mod_src = verilog(mod, False, False, False)
+    src = mod_src["mod2"]
+    assert is_valid_verilog(src)
+
+
 def test_packed_struct():
     struct = PackedStruct("config_data", [("read", 16, False),
                                           ("data", 16, False)])
@@ -582,4 +611,4 @@ def test_wire_merge():
 
 
 if __name__ == "__main__":
-    test_wire_merge()
+    test_clone()

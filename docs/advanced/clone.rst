@@ -19,8 +19,8 @@ change.
     cloned generators. This requires the circuit definition to be initialized
     prior to the editing, hence the "copy" part.
 
-How to implement Generator Clones
-=================================
+Implement Generator Clones with ``create``
+==========================================
 To avoid excessive computation in kratos' CoW mechanism, your
 generators have to meet the following requirements:
 
@@ -63,3 +63,33 @@ kratos also provides you the pointer reference to the generator that
 a clone is referring to. You can access it through
 ``[gen].def_instance``. This is useful if you want to modify the entire
 generator definition along with all the clones.
+
+A more efficient yet shallow clone using ``clone``
+==================================================
+
+If you don't care about the Python variable initialization but care much
+about performance, kratos provides a mechanism that copies the IO and
+parameter definitions over, using ``clone(**kargs)`` function calls.
+The invocation is the same as ``create(**kargs)``, and doesn't require
+you to have ``is_clone`` in ``__init__``. However, you are not able to
+modify or initialize the cloned instance. In addition, the type of the
+cloned instance will be the generic ``Generator``. You can still access
+the original instance though ``def_instance`` though. Here is a table
+of summary of the differences between ``create`` and ``clone``.
+
+==================================================  ===========  ===========
+Properties                                          ``create``   ``clone``
+==================================================  ===========  ===========
+Correct ``type()``                                  |checkmark|  |crossmark|
+Most efficient                                      |crossmark|  |checkmark|
+Able to initialize and edit                         |checkmark|  |crossmark|
+Has ``def_instance`` reference                      |checkmark|  |checkmark|
+Need to have ``is_clone`` argument in ``__init__``  |checkmark|  |crossmark|
+==================================================  ===========  ===========
+
+A general rule is that if you're building some basic building blocks that
+will be used very often yet doesn't care about the embedded information,
+you should use ``clone``, otherwise ``create`` is recommended.
+
+.. |checkmark| unicode:: U+2713
+.. |crossmark| unicode:: U+2717
