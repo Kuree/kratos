@@ -584,7 +584,7 @@ def test_attribute():
 
     class TestAttribute(Attribute):
         def __init__(self):
-            Attribute.__init__(self, self)
+            Attribute.__init__(self)
             self.value = 42
 
     stmt.add_attribute(TestAttribute())

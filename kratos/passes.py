@@ -17,3 +17,8 @@ def uniquify_generators(generator: Generator):
 def hash_generators(generator: Generator,
                     strategy: HashStrategy = HashStrategy.SequentialHash):
     _hash_generators(generator.internal_generator, strategy.value)
+
+
+class Attribute(_kratos.passes.Attribute):
+    def __init__(self):
+        _kratos.passes.Attribute.__init__(self, self)
