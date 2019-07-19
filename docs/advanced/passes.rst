@@ -31,7 +31,7 @@ This is very close to the passes in LLVM. Depending on whether
 the pass mutates the IR, a pass is categorized as either a
 analysis passes or a transformation pass. For instance, a pass
 to extract all the debug information is an analysis pass since it
-doesn't mutate any IR node. An module instantiation pass is a
+doesn't mutate any IR node. A module instantiation pass is a
 transformation pass since it mutate the generate node to create
 module instantiation statement.
 
