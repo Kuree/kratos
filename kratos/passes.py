@@ -22,3 +22,11 @@ def hash_generators(generator: Generator,
 class Attribute(_kratos.passes.Attribute):
     def __init__(self):
         _kratos.passes.Attribute.__init__(self, self)
+
+    @property
+    def value_str(self):
+        return self._value_str
+
+    @value_str.setter
+    def value_str(self, value_str):
+        self._value_str = value_str

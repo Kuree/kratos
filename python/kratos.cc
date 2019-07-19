@@ -142,9 +142,10 @@ void init_pass(py::module &m) {
     // type holder due to conversion
     class PyAttribute : public Attribute {
     private:
-        explicit PyAttribute(py::object target): Attribute(), target_(std::move(target)) {
+        explicit PyAttribute(py::object target) : Attribute(), target_(std::move(target)) {
             type_str = "python";
         }
+
     public:
         using Attribute::Attribute;
 
@@ -160,7 +161,8 @@ void init_pass(py::module &m) {
         py::class_<Attribute, PyAttribute, std::shared_ptr<Attribute>>(pass_m, "Attribute");
     attribute.def(py::init(&PyAttribute::create))
         .def_readwrite("type_str", &PyAttribute::type_str)
-        .def("get", [=](PyAttribute &attr) { return attr.get_py_obj(); });
+        .def("get", [=](PyAttribute &attr) { return attr.get_py_obj(); })
+        .def_readwrite("_value_str", &PyAttribute::value_str);
     py::implicitly_convertible<Attribute, PyAttribute>();
 }
 

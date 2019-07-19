@@ -8,6 +8,9 @@ nodes. Here is an example how to create an ``Attribute`` and
 then annotate the structural wire assignment.
 
 
+Attributes in Python
+====================
+
 Generator definition:
 
 .. code-block:: Python
@@ -28,21 +31,46 @@ Annotation class and testing:
 
     class TestAttribute(Attribute):
         def __init__(self):
-            Attribute.__init__(self)
-            self.value = "42"
+            super().__init__()
+            self.value = 42
 
     stmt.add_attribute(TestAttribute())
 
     assert len(mod.get_stmt_by_index(0).get_attributes()) > 0
-    assert mod.get_stmt_by_index(0).get_attributes()[0].value == "42"
+    attr = mod.get_stmt_by_index(0).get_attributes()[0].get()
+    assert attr.value == 42
 
-You will also have access to the ``value`` and ``get_attributes()`` in
-custom passes.
+Notice that ``get()`` call is necessary to obtain the Python object.
+
+Attributes in C++
+=================
+
+The C++ ``Attribute`` object has a generic pointer you can use to
+retrieve your custom data. You're responsible for the life-cycle of
+that custom data. To help you facilitate the type casting, you
+can set the type string in ``type_str`` and use that to indicate
+what custom type it's holding. If the attribute comes from Python,
+``type_str`` will be ``"python"``.
 
 .. note::
 
-    - Due to the limitation of ``pybind`` and Python, you are required
-      to use ``Base().__init__(self, *args, **kargs)`` to initialize
-      the Attribute class.
-    - You can only pass information to ``value`` as a string to the
-      backend. It is because the up casting doesn't work well in Python.
+    Due to the language different between C++ and Python, there are
+    some limitation on how they should be used.
+
+    1. All attributes are written in C++: you're safe as long as
+       you follow the usage of C++ attributes.
+    2. All attributes are written in Python: you're safe as long
+       as you follow the usage of Python attributes.
+    3. Attributes written in Python and consumed in C++ or verse
+       versa: because Python and C++'s objects have different memory
+       layout, it is very dangerous to communicate. To work around this,
+       all the Attribute object have ``value_str`` attribute as string,
+       you can use that to communicate between Python and C++. For
+       instance. You can have
+
+        .. code-block:: Python
+
+            class TestAttribute(Attribute):
+                def __init__(self):
+                    super().__init__()
+                    self.value_str = "42"

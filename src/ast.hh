@@ -14,7 +14,7 @@ class Attribute {
 public:
     virtual ~Attribute() = default;
     std::string type_str;
-    std::string value;
+    std::string value_str;
 
     void *get() { return target_; }
     void set(void *target) { target_ = target; }
