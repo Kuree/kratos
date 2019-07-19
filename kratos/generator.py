@@ -1,7 +1,7 @@
 import enum
 from .pyast import transform_stmt_block, get_fn_ln
 import _kratos
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Tuple
 
 __GLOBAL_DEBUG = False
 
@@ -230,6 +230,12 @@ class Generator(metaclass=GeneratorMeta):
             v.add_fn_ln((fn, ln))
         return v
 
+    def combinational(self):
+        return CombinationalCodeBlock(self)
+
+    def sequential(self, sensitivity_list: List[Tuple[BlockEdgeType, str]]):
+        return SequentialCodeBlock(self, sensitivity_list)
+
     def port(self, name: str, width: int, direction: PortDirection,
              port_type: PortType = PortType.Data,
              is_signed: bool = False) -> _kratos.Port:
@@ -322,7 +328,10 @@ class Generator(metaclass=GeneratorMeta):
     def add_stmt(self, stmt):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_stmt, [stmt]))
-        self.__generator.add_stmt(stmt)
+        if isinstance(stmt, CodeBlock):
+            self.__generator.add_stmt(stmt.stmt())
+        else:
+            self.__generator.add_stmt(stmt)
 
     def add_child_generator(self, instance_name: str, generator: "Generator"):
         if self.is_cloned:
