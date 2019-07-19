@@ -316,7 +316,7 @@ Here is the generated verilog
 Procedural code generation
 ==========================
 
-Sometimes it is very difficult to generated desired circuit definition through
+Sometimes it is very difficult to generate a desired circuit definition through
 limited free-style code block. If that is the case, you can use the procedural
 code generation.
 
