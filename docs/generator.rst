@@ -68,7 +68,7 @@ Variable Proxies
 For simple modules, it is fine to hold a port/variable/parameters as class
 attributes. However, as the generator gets more complicated, it may be
 difficult to maintain all the variable names. kratos ``Generator`` comes
-with handy proxiex to access all the variables you need. You can access a
+with handy proxies to access all the variables you need. You can access a
 port either through
 
 - ``[gen].ports.port_name``
