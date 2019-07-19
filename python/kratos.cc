@@ -141,13 +141,27 @@ void init_pass(py::module &m) {
     // attributes
     // type holder due to conversion
     class PyAttribute : public Attribute {
+    private:
+        explicit PyAttribute(py::object target): Attribute(), target_(std::move(target)) {
+            type_str = "python";
+        }
     public:
         using Attribute::Attribute;
+
+        py::object get_py_obj() { return target_; }
+
+        static PyAttribute create(const py::object &target) { return PyAttribute(target); }
+
+    private:
+        py::object target_ = py::none();
     };
 
     auto attribute =
         py::class_<Attribute, PyAttribute, std::shared_ptr<Attribute>>(pass_m, "Attribute");
-    attribute.def(py::init<>()).def_readwrite("value", &PyAttribute::value);
+    attribute.def(py::init(&PyAttribute::create))
+        .def_readwrite("type_str", &PyAttribute::type_str)
+        .def("get", [=](PyAttribute &attr) { return attr.get_py_obj(); });
+    py::implicitly_convertible<Attribute, PyAttribute>();
 }
 
 // exception module
@@ -349,10 +363,9 @@ void init_generator(py::module &m) {
         .def("combinational", &Generator::combinational, py::return_value_policy::reference)
         .def("add_child_generator",
              py::overload_cast<const std::shared_ptr<Generator> &>(&Generator::add_child_generator))
-        .def("add_child_generator",
-             py::overload_cast<const std::shared_ptr<Generator> &,
-                               const std::pair<std::string, uint32_t> &>(
-                 &Generator::add_child_generator))
+        .def("add_child_generator", py::overload_cast<const std::shared_ptr<Generator> &,
+                                                      const std::pair<std::string, uint32_t> &>(
+                                        &Generator::add_child_generator))
         .def("remove_child_generator", &Generator::remove_child_generator)
         .def("get_child_generators", &Generator::get_child_generators)
         .def("has_child_generator", &Generator::has_child_generator)

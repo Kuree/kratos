@@ -584,13 +584,14 @@ def test_attribute():
 
     class TestAttribute(Attribute):
         def __init__(self):
-            Attribute.__init__(self)
-            self.value = "42"
+            Attribute.__init__(self, self)
+            self.value = 42
 
     stmt.add_attribute(TestAttribute())
 
     assert len(mod.get_stmt_by_index(0).get_attributes()) > 0
-    assert mod.get_stmt_by_index(0).get_attributes()[0].value == "42"
+    attr = mod.get_stmt_by_index(0).get_attributes()[0].get()
+    assert attr.value == 42
 
 
 def test_wire_merge():
@@ -611,4 +612,4 @@ def test_wire_merge():
 
 
 if __name__ == "__main__":
-    test_clone()
+    test_attribute()

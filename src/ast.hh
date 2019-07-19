@@ -13,7 +13,14 @@ enum ASTNodeKind { GeneratorKind, VarKind, StmtKind };
 class Attribute {
 public:
     virtual ~Attribute() = default;
+    std::string type_str;
     std::string value;
+
+    void *get() { return target_; }
+    void set(void *target) { target_ = target; }
+
+private:
+    void* target_ = nullptr;
 };
 
 struct ASTNode {
