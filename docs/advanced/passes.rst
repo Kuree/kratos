@@ -81,7 +81,7 @@ are two ways to write a pass:
 - Python
 
 The procedure to add a pass is very similar. The function has to take
-a top level ``Generator`` class the perform some analysis or transformation
+a top level ``Generator`` class then perform some analysis or transformation
 on it. All the passes in kratos rely on the ``ASTVisitor`` class, which
 recursively visit each symbols in the IR. For ``C++`` users you need to
 check how the passes is done in `src/pass.cc`_, where all the passes listed
