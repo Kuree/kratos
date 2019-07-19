@@ -85,7 +85,7 @@ and ``[gen].params`` for parameters.
 Expressions
 -----------
 
-Whenever we perform some arithmetic ot logic operator on port/variables, we
+Whenever we perform some arithmetic or logic operator on port/variables, we
 implicitly create an expression. An expression can be assigned to a port or
 a variable. It can also be composed together to form more complex expressions.
 
