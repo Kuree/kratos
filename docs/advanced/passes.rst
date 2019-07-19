@@ -65,7 +65,7 @@ readable and your life easier:
   if it determines appropriate. It is because Python doesn't have
   switch statement, the AST produce a chained if-else statement. This
   pass will handle that.
-- ``remove_fanout_one_wires``: this pass remove unnecessary wires
+- ``remove_fanout_one_wires``: this pass removes unnecessary wires
 - ``remove_pass_through_modules``: this pass will remove any pass-through
   modules created by user. It is not necessary for the physical design,
   but extremely helpful to reduce the simulation size.
