@@ -7,7 +7,7 @@ from .passes import Attribute
 from _kratos.util import is_valid_verilog
 from _kratos.exception import VarException, StmtException
 from _kratos.passes import ASTVisitor as ASTVisitor
-from _kratos import SwitchStmt, PackedStruct, Port, Var
+from _kratos import SwitchStmt, PackedStruct, Port, Var, IfStmt, AssignmentType
 
 __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
            "verilog", "signed", "is_valid_verilog", "VarException",
@@ -15,4 +15,4 @@ __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
 
 # code blocks
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
-            "PackedStruct", "Port", "Var"]
+            "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType"]
