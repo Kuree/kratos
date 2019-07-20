@@ -1,5 +1,5 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
-    verilog, is_valid_verilog, VarException, StmtException, ASTVisitor, \
+    verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
     PackedStruct, Port, Attribute
 from kratos.passes import uniquify_generators, hash_generators
 import os
@@ -406,9 +406,9 @@ def test_static_eval_for_loop():
 
 def test_pass():
     def change_name(generator):
-        class Visitor(ASTVisitor):
+        class Visitor(IRVisitor):
             def __init__(self):
-                ASTVisitor.__init__(self)
+                IRVisitor.__init__(self)
 
             def visit(self, node):
                 if isinstance(node, Port):

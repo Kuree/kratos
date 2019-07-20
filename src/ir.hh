@@ -1,13 +1,13 @@
-#ifndef KRATOS_AST_HH
-#define KRATOS_AST_HH
+#ifndef KRATOS_IR_HH
+#define KRATOS_IR_HH
 
 #include <cstdint>
 #include <vector>
 #include "context.hh"
 
-class ASTVisitor;
+class IRVisitor;
 
-enum ASTNodeKind { GeneratorKind, VarKind, StmtKind };
+enum IRNodeKind { GeneratorKind, VarKind, StmtKind };
 
 
 class Attribute {
@@ -23,18 +23,18 @@ private:
     void* target_ = nullptr;
 };
 
-struct ASTNode {
+struct IRNode {
 public:
-    explicit ASTNode(ASTNodeKind type) : ast_node_type_(type) {}
+    explicit IRNode(IRNodeKind type) : ast_node_type_(type) {}
 
-    virtual void accept(ASTVisitor *) {}
+    virtual void accept(IRVisitor *) {}
     virtual uint64_t child_count() { return 0; }
-    virtual ASTNode *get_child(uint64_t) { return nullptr; }
+    virtual IRNode *get_child(uint64_t) { return nullptr; }
 
-    ASTNode *ast_node() { return this; }
+    IRNode *ast_node() { return this; }
 
-    virtual ASTNode *parent() { return nullptr; }
-    ASTNodeKind ast_node_kind() { return ast_node_type_; }
+    virtual IRNode *parent() { return nullptr; }
+    IRNodeKind ast_node_kind() { return ast_node_type_; }
 
     std::vector<std::pair<std::string, uint32_t>> fn_name_ln;
 
@@ -47,13 +47,13 @@ public:
     }
 
 private:
-    ASTNodeKind ast_node_type_;
+    IRNodeKind ast_node_type_;
     std::vector<std::shared_ptr<Attribute>> attributes_;
 };
 
-class ASTVisitor {
+class IRVisitor {
 public:
-    virtual void visit_root(ASTNode *root);
+    virtual void visit_root(IRNode *root);
     // visit generators only
     virtual void visit_generator_root(Generator *generator);
     // visit current scope only
@@ -80,10 +80,10 @@ public:
 protected:
     uint32_t level = 0;
 
-    std::unordered_set<ASTNode *> visited_;
+    std::unordered_set<IRNode *> visited_;
 };
 
 // TODO
-//  implement a proper AST transformer
+//  implement a proper IR transformer
 
-#endif  // KRATOS_AST_HH
+#endif  // KRATOS_IR_HH

@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include "ast.hh"
+#include "ir.hh"
 #include "context.hh"
 
 enum ExprOp : uint64_t {
@@ -42,7 +42,7 @@ enum VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCaste
 
 enum VarCastType { Signed, Clock, AsyncReset};
 
-struct Var : public std::enable_shared_from_this<Var>, public ASTNode {
+struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
     Var(Generator *m, const std::string &name, uint32_t width, bool is_signed);
     Var(Generator *m, const std::string &name, uint32_t width, bool is_signed, VarType type);
@@ -91,7 +91,7 @@ public:
     void unassign(const std::shared_ptr<AssignStmt> &stmt);
 
     Generator *generator;
-    ASTNode *parent() override;
+    IRNode *parent() override;
 
     VarType type() const { return type_; }
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const { return sinks_; };
@@ -115,9 +115,9 @@ public:
     virtual std::string to_string() const;
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 0; }
-    ASTNode *get_child(uint64_t) override { return nullptr; }
+    IRNode *get_child(uint64_t) override { return nullptr; }
 
     Var(const Var& var) = delete;
     Var() = delete;
@@ -159,7 +159,7 @@ public:
     uint32_t high = 0;
 
     VarSlice(Var *parent, uint32_t high, uint32_t low);
-    ASTNode *parent() override;
+    IRNode *parent() override;
 
     // we tie it to the parent
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
@@ -167,7 +167,7 @@ public:
 
     void set_parent(Var* parent) { parent_var = parent; }
 
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     static std::string get_slice_name(const std::string &parent_name, uint32_t high, uint32_t low);
 
@@ -181,7 +181,7 @@ public:
     VarConcat(const VarConcat &var);
 
     VarConcat &concat(Var &var) override;
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     std::string to_string() const override;
 };
@@ -197,7 +197,7 @@ public:
 
     std::string to_string() const override;
 
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
     int64_t value_;
@@ -207,7 +207,7 @@ struct Param: public Const {
 public:
     Param(Generator *m, std::string name, uint32_t width, bool is_signed);
 
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     std::string inline to_string() const override { return parameter_name_; }
 
@@ -228,9 +228,9 @@ struct Expr : public Var {
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
     // AST
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return right ? 2 : 1; }
-    ASTNode *get_child(uint64_t index) override;
+    IRNode *get_child(uint64_t index) override;
 };
 
 #endif  // KRATOS_EXPR_HH

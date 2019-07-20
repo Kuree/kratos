@@ -2,7 +2,7 @@
 #define KRATOS_CODEGEN_HH
 
 #include <sstream>
-#include "ast.hh"
+#include "ir.hh"
 #include "context.hh"
 #include "pass.hh"
 
@@ -72,7 +72,7 @@ private:
     void generate_variables(Generator* generator);
     void generate_parameters(Generator* generator);
 
-    void dispatch_node(ASTNode* node);
+    void dispatch_node(IRNode* node);
 
     void stmt_code(AssignStmt* stmt);
 

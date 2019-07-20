@@ -58,10 +58,10 @@ void init_enum(py::module &m) {
         .value("Negedge", BlockEdgeType::Negedge)
         .export_values();
 
-    py::enum_<ASTNodeKind>(m, "ASTNodeKind")
-        .value("GeneratorKind", ASTNodeKind::GeneratorKind)
-        .value("VarKind", ASTNodeKind::VarKind)
-        .value("StmtKind", ASTNodeKind::StmtKind)
+    py::enum_<IRNodeKind>(m, "IRNodeKind")
+        .value("GeneratorKind", IRNodeKind::GeneratorKind)
+        .value("VarKind", IRNodeKind::VarKind)
+        .value("StmtKind", IRNodeKind::StmtKind)
         .export_values();
 
     py::enum_<VarCastType>(m, "VarCastType")
@@ -104,39 +104,39 @@ void init_pass(py::module &m) {
         .def("has_pass", &PassManager::has_pass);
 
     // trampoline class for ast visitor
-    class PyASTVisitor : public ASTVisitor {
+    class PyIRVisitor : public IRVisitor {
     public:
-        using ASTVisitor::ASTVisitor;
+        using IRVisitor::IRVisitor;
 
-        void visit_root(ASTNode *root) override {
-            PYBIND11_OVERLOAD(void, ASTVisitor, visit_root, root);
+        void visit_root(IRNode *root) override {
+            PYBIND11_OVERLOAD(void, IRVisitor, visit_root, root);
         }
 
         void visit_generator_root(Generator *generator) override {
-            PYBIND11_OVERLOAD(void, ASTVisitor, visit_generator_root, generator);
+            PYBIND11_OVERLOAD(void, IRVisitor, visit_generator_root, generator);
         }
 
         void visit_content(Generator *generator) override {
-            PYBIND11_OVERLOAD(void, ASTVisitor, visit_content, generator);
+            PYBIND11_OVERLOAD(void, IRVisitor, visit_content, generator);
         }
 
-        void visit(AssignStmt *stmt) override { PYBIND11_OVERLOAD(void, ASTVisitor, visit, stmt); }
+        void visit(AssignStmt *stmt) override { PYBIND11_OVERLOAD(void, IRVisitor, visit, stmt); }
 
-        void visit(Port *var) override { PYBIND11_OVERLOAD(void, ASTVisitor, visit, var); }
+        void visit(Port *var) override { PYBIND11_OVERLOAD(void, IRVisitor, visit, var); }
 
         void visit(Generator *generator) override {
-            PYBIND11_OVERLOAD(void, ASTVisitor, visit, generator);
+            PYBIND11_OVERLOAD(void, IRVisitor, visit, generator);
         }
     };
 
-    auto ast_visitor = py::class_<ASTVisitor, PyASTVisitor>(pass_m, "ASTVisitor");
+    auto ast_visitor = py::class_<IRVisitor, PyIRVisitor>(pass_m, "IRVisitor");
     ast_visitor.def(py::init<>())
-        .def("visit_generator", py::overload_cast<Generator *>(&ASTVisitor::visit))
-        .def("visit_root", &ASTVisitor::visit_root);
+        .def("visit_generator", py::overload_cast<Generator *>(&IRVisitor::visit))
+        .def("visit_root", &IRVisitor::visit_root);
 
-    auto ast = py::class_<ASTNode, std::shared_ptr<ASTNode>>(pass_m, "ASTNode");
-    ast.def(py::init<ASTNodeKind>());
-    def_attributes<py::class_<ASTNode, std::shared_ptr<ASTNode>>, ASTNode>(ast);
+    auto ast = py::class_<IRNode, std::shared_ptr<IRNode>>(pass_m, "IRNode");
+    ast.def(py::init<IRNodeKind>());
+    def_attributes<py::class_<IRNode, std::shared_ptr<IRNode>>, IRNode>(ast);
 
     // attributes
     // type holder due to conversion
@@ -330,7 +330,7 @@ void init_context(py::module &m) {
 }
 
 void init_generator(py::module &m) {
-    auto generator = py::class_<Generator, ::shared_ptr<Generator>, ASTNode>(m, "Generator");
+    auto generator = py::class_<Generator, ::shared_ptr<Generator>, IRNode>(m, "Generator");
     generator.def("from_verilog", &Generator::from_verilog)
         .def("var", py::overload_cast<const std::string &, uint32_t>(&Generator::var),
              py::return_value_policy::reference)

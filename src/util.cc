@@ -65,10 +65,10 @@ std::string var_type_to_string(VarType type) {
         return "Slice";
 }
 
-std::string ast_type_to_string(ASTNodeKind kind) {
-    if (kind == ASTNodeKind::StmtKind)
+std::string ast_type_to_string(IRNodeKind kind) {
+    if (kind == IRNodeKind::StmtKind)
         return "Statement";
-    else if (kind == ASTNodeKind::VarKind)
+    else if (kind == IRNodeKind::VarKind)
         return "Variable";
     else
         return "Generator";

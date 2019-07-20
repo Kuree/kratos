@@ -10,7 +10,7 @@ using fmt::format;
 using std::move;
 using std::runtime_error;
 
-ASTNode *Stmt::parent() { return parent_; }
+IRNode *Stmt::parent() { return parent_; }
 
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
     : AssignStmt(left, right, AssignmentType::Undefined) {}
@@ -42,7 +42,7 @@ bool AssignStmt::operator==(const AssignStmt &stmt) const {
     return left_ == stmt.left_ && right_ == stmt.right_;
 }
 
-ASTNode *AssignStmt::get_child(uint64_t index) {
+IRNode *AssignStmt::get_child(uint64_t index) {
     if (index == 0)
         return left_.get();
     else if (index == 1)
@@ -68,7 +68,7 @@ void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
     else_body_.emplace_back(stmt);
 }
 
-ASTNode *IfStmt::get_child(uint64_t index) {
+IRNode *IfStmt::get_child(uint64_t index) {
     if (index == 0)
         return predicate_.get();
     else if (index < then_body_.size() + 1)
@@ -156,7 +156,7 @@ uint64_t SwitchStmt::child_count() {
     return i;
 }
 
-ASTNode *SwitchStmt::get_child(uint64_t index) {
+IRNode *SwitchStmt::get_child(uint64_t index) {
     if (index == 0) {
         return target_.get();
     } else {

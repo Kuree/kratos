@@ -26,9 +26,9 @@ public:
     virtual bool inline is_packed() { return false; }
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 0; }
-    ASTNode *get_child(uint64_t) override { return nullptr; }
+    IRNode *get_child(uint64_t) override { return nullptr; }
 
 private:
     PortDirection direction_;

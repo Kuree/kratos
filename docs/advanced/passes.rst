@@ -82,7 +82,7 @@ are two ways to write a pass:
 
 The procedure to add a pass is very similar. The function has to take
 a top level ``Generator`` class then perform some analysis or transformation
-on it. All the passes in kratos rely on the ``ASTVisitor`` class, which
+on it. All the passes in kratos rely on the ``IRVisitor`` class, which
 recursively visit each symbols in the IR. For ``C++`` users you need to
 check how the passes is done in `src/pass.cc`_, where all the passes listed
 above are implemented there.
@@ -94,9 +94,9 @@ port into ``test``
 .. code-block:: Python
 
     def change_name(generator):
-        class Visitor(ASTVisitor):
+        class Visitor(IRVisitor):
             def __init__(self):
-                ASTVisitor.__init__(self)
+                IRVisitor.__init__(self)
 
             def visit(self, node):
                 if isinstance(node, Port):

@@ -1,7 +1,7 @@
-#include "ast.hh"
+#include "ir.hh"
 #include "generator.hh"
 
-void ASTVisitor::visit_root(ASTNode *root) {
+void IRVisitor::visit_root(IRNode *root) {
     // recursively call visits
     root->accept(this);
     uint64_t child_count = root->child_count();
@@ -16,7 +16,7 @@ void ASTVisitor::visit_root(ASTNode *root) {
     level--;
 }
 
-void ASTVisitor::visit_generator_root(Generator *generator) {
+void IRVisitor::visit_generator_root(Generator *generator) {
     auto &children = generator->get_child_generators();
     generator->accept_generator(this);
     level++;
@@ -24,7 +24,7 @@ void ASTVisitor::visit_generator_root(Generator *generator) {
     level--;
 }
 
-void ASTVisitor::visit_content(Generator *generator) {
+void IRVisitor::visit_content(Generator *generator) {
     generator->accept_generator(this);
     level++;
     uint64_t stmts_count = generator->stmts_count();

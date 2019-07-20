@@ -10,7 +10,7 @@
 #include "context.hh"
 #include "port.hh"
 
-class Generator : public std::enable_shared_from_this<Generator>, public ASTNode {
+class Generator : public std::enable_shared_from_this<Generator>, public IRNode {
 public:
     std::string name;
     std::string instance_name;
@@ -21,7 +21,7 @@ public:
                                   const std::map<std::string, PortType> &port_types);
 
     Generator(Context *context, const std::string &name)
-        : ASTNode(ASTNodeKind::GeneratorKind), name(name), instance_name(name), context_(context) {}
+        : IRNode(IRNodeKind::GeneratorKind), name(name), instance_name(name), context_(context) {}
 
     Var &var(const std::string &var_name, uint32_t width);
     Var &var(const std::string &var_name, uint32_t width, bool is_signed);
@@ -70,15 +70,15 @@ public:
     std::vector<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
     uint64_t inline get_child_generator_size() const { return children_.size(); }
     bool has_child_generator(const std::shared_ptr<Generator> &child);
-    void accept_generator(ASTVisitor *visitor) { visitor->visit(this); }
+    void accept_generator(IRVisitor *visitor) { visitor->visit(this); }
 
     void replace_child_generator(const std::shared_ptr<Generator> &target,
                                  const std::shared_ptr<Generator> &new_generator);
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override;
+    void accept(IRVisitor *visitor) override;
     uint64_t inline child_count() override { return stmts_count() + get_child_generator_size(); }
-    ASTNode *get_child(uint64_t index) override;
+    IRNode *get_child(uint64_t index) override;
 
     std::set<std::string> get_vars();
 
@@ -88,7 +88,7 @@ public:
 
     Context *context() const { return context_; }
 
-    ASTNode *parent() override { return parent_generator_; }
+    IRNode *parent() override { return parent_generator_; }
 
     bool is_stub() const { return is_stub_; }
     void set_is_stub(bool value) { is_stub_ = value; }

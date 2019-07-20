@@ -170,7 +170,7 @@ Param &Generator::parameter(const std::string &parameter_name, uint32_t width, b
     return *ptr;
 }
 
-ASTNode *Generator::get_child(uint64_t index) {
+IRNode *Generator::get_child(uint64_t index) {
     if (index < stmts_count())
         return stmts_[index].get();
     else if (index < stmts_count() + get_child_generator_size())
@@ -283,7 +283,7 @@ std::shared_ptr<CombinationalStmtBlock> Generator::combinational() {
 void Generator::replace_child_generator(const std::shared_ptr<Generator> &target,
                                         const std::shared_ptr<Generator> &new_generator) {
     auto parent = target->parent();
-    if (parent->ast_node_kind() != ASTNodeKind::GeneratorKind)
+    if (parent->ast_node_kind() != IRNodeKind::GeneratorKind)
         throw ::runtime_error(::format("{0} is a top level module and thus cannot be replaced",
                                        target->instance_name));
     auto parent_generator = reinterpret_cast<Generator *>(parent);
@@ -420,7 +420,7 @@ std::shared_ptr<Generator> Generator::clone() {
     return generator;
 }
 
-void Generator::accept(ASTVisitor *visitor) {
+void Generator::accept(IRVisitor *visitor) {
     if (!external()) visitor->visit(this);
 }
 

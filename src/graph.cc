@@ -1,12 +1,12 @@
 #include "graph.hh"
 #include <unordered_set>
-#include "ast.hh"
 #include "fmt/format.h"
 #include "generator.hh"
+#include "ir.hh"
 
 using fmt::format;
 
-class GeneratorVisitor : public ASTVisitor {
+class GeneratorVisitor : public IRVisitor {
 public:
     explicit GeneratorVisitor(GeneratorGraph *g) : g_(g) {}
     void visit(Generator *generator) override { g_->add_node(generator); }
@@ -15,7 +15,7 @@ private:
     GeneratorGraph *g_;
 };
 
-class GeneratorGraphVisitor : public ASTVisitor {
+class GeneratorGraphVisitor : public IRVisitor {
 public:
     explicit GeneratorGraphVisitor(GeneratorGraph *g) : g_(g) {}
     void visit(Generator *generator) override {

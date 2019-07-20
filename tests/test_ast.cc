@@ -5,10 +5,10 @@
 #include "gtest/gtest.h"
 
 
-class VarVisitor: public ASTVisitor {
+class VarVisitor: public IRVisitor {
 public:
     uint32_t max_level = 0;
-    VarVisitor(): ASTVisitor(), vars() {}
+    VarVisitor(): IRVisitor(), vars() {}
     void visit(Var* var) override {
         if (max_level < level)
             max_level = level;

@@ -12,10 +12,10 @@
 using fmt::format;
 using std::runtime_error;
 
-class AssignmentTypeVisitor : public ASTVisitor {
+class AssignmentTypeVisitor : public IRVisitor {
 public:
     explicit AssignmentTypeVisitor(AssignmentType type, bool check_type = true)
-        : ASTVisitor(), type_(type), check_type_(check_type) {}
+        : IRVisitor(), type_(type), check_type_(check_type) {}
     void visit(AssignStmt* stmt) override {
         if (stmt->assign_type() == AssignmentType::Undefined) {
             stmt->set_assign_type(type_);
@@ -31,7 +31,7 @@ private:
     bool check_type_;
 };
 
-class AssignmentTypeBlockVisitor : public ASTVisitor {
+class AssignmentTypeBlockVisitor : public IRVisitor {
     void visit(CombinationalStmtBlock* block) override {
         AssignmentTypeVisitor visitor(AssignmentType::Blocking, true);
         visitor.visit_root(block->ast_node());
@@ -53,7 +53,7 @@ void fix_assignment_type(Generator* top) {
     final_visitor.visit_root(top->ast_node());
 }
 
-class VerifyAssignmentVisitor : public ASTVisitor {
+class VerifyAssignmentVisitor : public IRVisitor {
 public:
     explicit VerifyAssignmentVisitor(Generator* generator) : generator_(generator) {}
 
@@ -101,7 +101,7 @@ private:
         bool is_top_level = false;
         auto sources = var->sources();
         for (auto const& stmt : sources) {
-            if (stmt->parent()->ast_node_kind() == ASTNodeKind::GeneratorKind) {
+            if (stmt->parent()->ast_node_kind() == IRNodeKind::GeneratorKind) {
                 is_top_level = true;
                 break;
             }
@@ -111,7 +111,7 @@ private:
         bool has_error = false;
         if (is_top_level) {
             for (auto const& stmt : sources) {
-                if (stmt->parent()->ast_node_kind() != ASTNodeKind::GeneratorKind) {
+                if (stmt->parent()->ast_node_kind() != IRNodeKind::GeneratorKind) {
                     has_error = true;
                     break;
                 }
@@ -137,9 +137,9 @@ void verify_assignments(Generator* top) {
     visitor.visit_root(top);
 }
 
-class VarAccumulationVisitor : public ASTVisitor {
+class VarAccumulationVisitor : public IRVisitor {
 public:
-    VarAccumulationVisitor() : ASTVisitor(), vars() {}
+    VarAccumulationVisitor() : IRVisitor(), vars() {}
     void visit(Var* var) override {
         if (var->type() == VarType ::Base) vars.emplace(var->name);
     }
@@ -165,7 +165,7 @@ void remove_unused_vars(Generator* top) {
     }
 }
 
-class GeneratorConnectivityVisitor : public ASTVisitor {
+class GeneratorConnectivityVisitor : public IRVisitor {
 public:
     GeneratorConnectivityVisitor() : is_top_level_(true) {}
     void visit(Generator* generator) override {
@@ -234,7 +234,7 @@ void verify_generator_connectivity(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-class ModuleInstantiationVisitor : public ASTVisitor {
+class ModuleInstantiationVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         for (auto& child : generator->get_child_generators()) {
@@ -259,7 +259,7 @@ void create_module_instantiation(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-class UniqueGeneratorVisitor : public ASTVisitor {
+class UniqueGeneratorVisitor : public IRVisitor {
 public:
     std::map<std::string, Generator*> generator_map;
 
@@ -327,7 +327,7 @@ void uniquify_generators(Generator* top) {
     }
 }
 
-class ModuleInstanceVisitor : public ASTVisitor {
+class ModuleInstanceVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         std::unordered_set<std::string> names;
@@ -365,7 +365,7 @@ void uniquify_module_instances(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-class GeneratorPortVisitor : public ASTVisitor {
+class GeneratorPortVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         if (!generator->parent()) {
@@ -455,7 +455,7 @@ void decouple_generator_ports(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-class StubGeneratorVisitor : public ASTVisitor {
+class StubGeneratorVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         if (!generator->is_stub()) return;
@@ -497,7 +497,7 @@ void zero_out_stubs(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-class MixedAssignmentVisitor : public ASTVisitor {
+class MixedAssignmentVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         auto const vars = generator->get_vars();
@@ -532,7 +532,7 @@ void check_mixed_assignment(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-class TransformIfCase : public ASTVisitor {
+class TransformIfCase : public IRVisitor {
 public:
     void visit(CombinationalStmtBlock* stmts) override {
         for (uint32_t i = 0; i < stmts->child_count(); i++) {
@@ -621,7 +621,7 @@ void transform_if_to_case(Generator* top) {
     visitor.visit_root(top);
 }
 
-class VarFanOutVisitor : public ASTVisitor {
+class VarFanOutVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         auto var_names = generator->get_all_var_names();
@@ -668,7 +668,7 @@ public:
         std::vector<std::pair<std::shared_ptr<Var>, std::shared_ptr<AssignStmt>>>& queue) {
         if (var->sinks().size() == 1) {
             auto const& stmt = *(var->sinks().begin());
-            if (stmt->parent()->ast_node_kind() == ASTNodeKind::GeneratorKind) {
+            if (stmt->parent()->ast_node_kind() == IRNodeKind::GeneratorKind) {
                 auto sink_var = stmt->left();
                 if (sink_var->parent() != var->parent()) {
                     // not the same parent
@@ -688,7 +688,7 @@ void remove_fanout_one_wires(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-class RemovePassThroughVisitor : public ASTVisitor {
+class RemovePassThroughVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         const auto& children = generator->get_child_generators();
@@ -764,7 +764,7 @@ void remove_pass_through_modules(Generator* top) {
 }
 
 // this is only for visiting the vars and assignments in the current generator
-class DebugInfoVisitor : public ASTVisitor {
+class DebugInfoVisitor : public IRVisitor {
 public:
     void visit(Var* var) override { add_info(var); }
 
@@ -797,7 +797,7 @@ private:
     }
 };
 
-class GeneratorDebugVisitor : public ASTVisitor {
+class GeneratorDebugVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         if (result.find(generator->name) != result.end()) return;
@@ -819,7 +819,7 @@ extract_debug_info(Generator* top) {
     return visitor.result;
 }
 
-class PortPackedVisitor : public ASTVisitor {
+class PortPackedVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         auto const port_names = generator->get_port_names();
@@ -880,7 +880,7 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
     return result;
 }
 
-class MergeWireAssignmentsVisitor : public ASTVisitor {
+class MergeWireAssignmentsVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         std::set<std::shared_ptr<Stmt>> stmts_to_remove;

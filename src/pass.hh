@@ -2,7 +2,7 @@
 #define KRATOS_PASS_HH
 
 #include <functional>
-#include "ast.hh"
+#include "ir.hh"
 #include "context.hh"
 #include "hash.hh"
 #include "stmt.hh"

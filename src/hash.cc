@@ -1,10 +1,10 @@
 #include "hash.hh"
 #include <fstream>
-#include "ast.hh"
 #include "cxxpool.h"
 #include "expr.hh"
 #include "generator.hh"
 #include "graph.hh"
+#include "ir.hh"
 #include "pass.hh"
 #include "stmt.hh"
 
@@ -212,7 +212,7 @@ constexpr uint64_t shift_const(uint64_t value, uint8_t amount) {
     return (value << amount) | (value >> (64u - amount));
 }
 
-class HashVisitor : public ASTVisitor {
+class HashVisitor : public IRVisitor {
 public:
     explicit HashVisitor(Generator* root) : root_(root) {
         context_ = root->context();

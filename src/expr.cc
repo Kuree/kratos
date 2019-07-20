@@ -207,7 +207,7 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_sig
     : Var(module, name, width, is_signed, VarType::Base) {}
 
 Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_signed, VarType type)
-    : ASTNode(ASTNodeKind::VarKind),
+    : IRNode(IRNodeKind::VarKind),
       name(name),
       width(width),
       is_signed(is_signed),
@@ -216,8 +216,8 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_sig
     if (module == nullptr) throw ::runtime_error(::format("module is null for {0}", name));
 }
 
-ASTNode *Var::parent() { return generator; }
-ASTNode *VarSlice::parent() { return parent_var; }
+IRNode *Var::parent() { return generator; }
+IRNode *VarSlice::parent() { return parent_var; }
 
 AssignStmt &Var::assign(const std::shared_ptr<Var> &var) {
     return assign(var, AssignmentType::Undefined);
@@ -412,7 +412,7 @@ std::string inline expr_to_string(const Expr *expr, bool is_top) {
 
 std::string Expr::to_string() const { return expr_to_string(this, true); }
 
-ASTNode *Expr::get_child(uint64_t index) {
+IRNode *Expr::get_child(uint64_t index) {
     if (index == 0)
         return left.get();
     else if (index == 1)

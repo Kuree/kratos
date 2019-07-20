@@ -11,25 +11,25 @@ enum BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
 
-class Stmt : public std::enable_shared_from_this<Stmt>, public ASTNode {
+class Stmt : public std::enable_shared_from_this<Stmt>, public IRNode {
 public:
-    explicit Stmt(StatementType type) : ASTNode(ASTNodeKind::StmtKind), type_(type) {}
+    explicit Stmt(StatementType type) : IRNode(IRNodeKind::StmtKind), type_(type) {}
     StatementType type() { return type_; }
     template <typename T>
     std::shared_ptr<T> as() {
         return std::static_pointer_cast<T>(shared_from_this());
     }
 
-    ASTNode *parent() override;
-    virtual void set_parent(ASTNode *parent) { parent_ = parent; }
+    IRNode *parent() override;
+    virtual void set_parent(IRNode *parent) { parent_ = parent; }
 
-    void accept(ASTVisitor *) override {}
+    void accept(IRVisitor *) override {}
     uint64_t child_count() override { return 0; }
-    ASTNode *get_child(uint64_t) override { return nullptr; };
+    IRNode *get_child(uint64_t) override { return nullptr; };
 
 protected:
     StatementType type_;
-    ASTNode *parent_ = nullptr;
+    IRNode *parent_ = nullptr;
 };
 
 class AssignStmt : public Stmt {
@@ -51,9 +51,9 @@ public:
     bool operator==(const AssignStmt &stmt) const;
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 2; }
-    ASTNode *get_child(uint64_t index) override;
+    IRNode *get_child(uint64_t index) override;
 
 private:
     std::shared_ptr<Var> left_ = nullptr;
@@ -76,9 +76,9 @@ public:
     void add_else_stmt(Stmt &stmt) { add_else_stmt(stmt.shared_from_this()); }
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 1 + then_body_.size() + else_body_.size(); }
-    ASTNode *get_child(uint64_t index) override;
+    IRNode *get_child(uint64_t index) override;
 
 private:
     std::shared_ptr<Var> predicate_;
@@ -103,9 +103,9 @@ public:
     }
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override;
-    ASTNode *get_child(uint64_t index) override;
+    IRNode *get_child(uint64_t index) override;
 
 private:
     std::shared_ptr<Var> target_;
@@ -121,7 +121,7 @@ public:
     void add_statement(Stmt &stmt) { add_statement(stmt.shared_from_this()); }
 
     uint64_t child_count() override { return stmts_.size(); }
-    ASTNode *get_child(uint64_t index) override {
+    IRNode *get_child(uint64_t index) override {
         return index < stmts_.size() ? stmts_[index].get() : nullptr;
     }
 
@@ -140,7 +140,7 @@ public:
     CombinationalStmtBlock() : StmtBlock(StatementBlockType::Combinational) {}
 
     // AST stuff
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 };
 
 class SequentialStmtBlock : public StmtBlock {
@@ -153,7 +153,7 @@ public:
 
     void add_condition(const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition);
 
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
     std::set<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
@@ -163,7 +163,7 @@ class ModuleInstantiationStmt : public Stmt {
 public:
     ModuleInstantiationStmt(Generator *target, Generator *parent);
 
-    void accept(ASTVisitor *visitor) override { visitor->visit(this); }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     const std::map<std::shared_ptr<Var>, std::shared_ptr<Var>> &port_mapping() const {
         return port_mapping_;

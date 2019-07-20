@@ -177,8 +177,8 @@ std::string SystemVerilogCodeGen::indent() {
     return result;
 }
 
-void SystemVerilogCodeGen::dispatch_node(ASTNode* node) {
-    if (node->ast_node_kind() != ASTNodeKind::StmtKind)
+void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
+    if (node->ast_node_kind() != IRNodeKind::StmtKind)
         throw ::runtime_error(::format("Cannot codegen non-statement node. Got {0}",
                                        ast_type_to_string(node->ast_node_kind())));
     auto stmt_ptr = reinterpret_cast<Stmt*>(node);
