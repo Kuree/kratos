@@ -19,3 +19,4 @@ Kratos: a hardware design language written in C++/Python
    advanced/parameter
    advanced/struct
    advanced/attributes
+   advanced/statements.rst

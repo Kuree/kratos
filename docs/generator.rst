@@ -68,7 +68,7 @@ Variable Proxies
 For simple modules, it is fine to hold a port/variable/parameters as class
 attributes. However, as the generator gets more complicated, it may be
 difficult to maintain all the variable names. kratos ``Generator`` comes
-with handy proxiex to access all the variables you need. You can access a
+with handy proxies to access all the variables you need. You can access a
 port either through
 
 - ``[gen].ports.port_name``
@@ -107,6 +107,20 @@ are not directly implemented as operator overloads in Python:
 
 1. ``eq()`` for logical comparison
 2. ``ashr()`` for signed arithmetic shift right.
+
+Constants
+---------
+
+Due to type checking, in most cases you're required to call ``const`` function
+to specify the constant value. The exception is when you are doing free-style
+code blocks, the python front-end will try to convert Python ``int`` into
+constants in a safe way. The rule of thumb is to use explicit constant
+as much as possible. Here is the ``const`` function definition
+
+.. code-block:: Python
+
+  def const(self, value: int, width: int, signed: bool = False)
+
 
 Child generators
 ================
