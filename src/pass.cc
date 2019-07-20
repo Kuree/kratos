@@ -301,29 +301,36 @@ void uniquify_generators(Generator* top) {
         if (module_instances.size() == 1)
             // only one module. we are good
             continue;
-        // there is almost little change that the hash value will be 0
-        // but still, there is a tiny chance...
-        uint64_t hash = 0;
+        std::unordered_map<uint64_t, Generator*> name_map;
+        std::unordered_set<std::string> new_names;
         for (auto& instance : module_instances) {
             auto ptr = instance.get();
             if (context->has_hash(ptr)) {
-                if (hash == 0) {
-                    hash = context->get_hash(ptr);
-                } else if (context->get_hash(ptr) != hash) {
-                    // we need to uniquify it
-                    // this is a naive way
-                    uint32_t count = 0;
-                    while (true) {
-                        const std::string new_name = ::format("{0}_unq{1}", name, count++);
-                        if (!context->generator_name_exists(new_name)) {
-                            context->change_generator_name(ptr, new_name);
-                            break;
+                uint64_t hash = context->get_hash(ptr);
+                if (name_map.find(hash) == name_map.end()) {
+                    // need to uniquify it
+                    name_map.emplace(hash, ptr);
+                    if (new_names.empty()) {
+                        // use the original name
+                        new_names.emplace(ptr->name);
+                    } else {
+                        // find a new one
+                        uint32_t count = new_names.size() - 1;
+                        while (true) {
+                            const std::string new_name = ::format("{0}_unq{1}", name, count++);
+                            if (!context->generator_name_exists(new_name)) {
+                                context->change_generator_name(ptr, new_name);
+                                break;
+                            }
                         }
+                        new_names.emplace(ptr->name);
                     }
+                } else {
+                    // re-use the old name
+                    auto old_name = name_map.at(hash)->name;
+                    context->change_generator_name(ptr, old_name);
                 }
-            } else {
-                throw ::runtime_error(
-                    ::format("{0} ({1}) doesn't have hash", ptr->instance_name, ptr->name));
+
             }
         }
     }

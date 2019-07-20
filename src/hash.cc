@@ -233,10 +233,8 @@ public:
         // use var_hash as a seed
         // FIXME: do we really need to hash in chunks? or can we use xor to ignore the ordering
         //  of the blocks?
-        uint64_t stmt_hash =
+        uint64_t result =
             XXHash64::hash(stmt_hashes_.data(), stmt_hashes_.size() * sizeof(uint64_t), var_hash);
-        // hash the root name
-        uint64_t result = XXHash64::hash(root_->name.c_str(), root_->name.size(), stmt_hash);
         return result;
     }
 

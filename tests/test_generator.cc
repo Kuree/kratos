@@ -167,17 +167,32 @@ TEST(pass, generator_hash) {  // NOLINT
         port3_2.assign(port3_1 + mod3.constant(1, 1), AssignmentType::Blocking).shared_from_this());
 
     hash_generators(&mod1, HashStrategy::SequentialHash);
+    auto mod1_hash = c.get_hash(&mod1);
     hash_generators(&mod2, HashStrategy::SequentialHash);
+    auto mod2_hash = c.get_hash(&mod2);
     hash_generators(&mod3, HashStrategy::ParallelHash);
+    auto mod3_hash = c.get_hash(&mod3);
 
-    EXPECT_EQ(c.get_hash(&mod1), c.get_hash(&mod2));
-    EXPECT_NE(c.get_hash(&mod1), c.get_hash(&mod3));
+    EXPECT_EQ(mod1_hash, mod2_hash);
+    EXPECT_NE(mod1_hash, mod3_hash);
 
     // use mod1 as top. this is fine since we manually force other modules to be hashed
+    mod1.add_child_generator(mod2.shared_from_this());
+    mod1.add_child_generator(mod3.shared_from_this());
+
+    // this should be the same as mod2
+    auto &mod4 = c.generator("module1");
+    auto &port4_1 = mod4.port(PortDirection::In, "in", 1);
+    auto &port4_2 = mod4.port(PortDirection::Out, "out", 1);
+    mod4.add_stmt(port4_2.assign(port4_1, AssignmentType::Blocking).shared_from_this());
+    mod1.add_child_generator(mod4.shared_from_this());
+
+    hash_generators(&mod1, HashStrategy::SequentialHash);
     uniquify_generators(&mod1);
     EXPECT_EQ(mod1.name, "module1");
-    EXPECT_EQ(mod2.name, "module1");
-    EXPECT_EQ(mod3.name, "module1_unq0");
+    EXPECT_EQ(mod2.name, "module1_unq0");
+    EXPECT_EQ(mod3.name, "module1_unq1");
+    EXPECT_EQ(mod4.name, mod2.name);
 }
 
 TEST(pass, generator_instance) {  // NOLINT
