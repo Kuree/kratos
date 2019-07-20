@@ -68,9 +68,9 @@ what custom type it's holding. If the attribute comes from Python,
        you can use that to communicate between Python and C++. For
        instance. You can have
 
-        .. code-block:: Python
+       .. code-block:: Python
 
-            class TestAttribute(Attribute):
-                def __init__(self):
-                    super().__init__()
-                    self.value_str = "42"
+           class TestAttribute(Attribute):
+               def __init__(self):
+                   super().__init__()
+                   self.value_str = "42"
