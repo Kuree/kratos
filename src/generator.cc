@@ -200,6 +200,24 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
     auto pos = std::find(children_.begin(), children_.end(), child);
     if (pos != children_.end()) {
         children_.erase(pos);
+        // need to remove every connected ports
+        auto port_names = child->get_port_names();
+        for (auto const &port_name: port_names) {
+            auto port = child->get_port(port_name);
+            if (port->port_direction() == PortDirection::In) {
+                // do a copy
+                auto srcs = std::unordered_set(port->sources().begin(), port->sources().end());
+                for (auto const &stmt: srcs) {
+                    auto sink = stmt->right();
+                    sink->unassign(stmt);
+                }
+            } else {
+                auto sinks = std::unordered_set(port->sinks().begin(), port->sinks().end());
+                for (auto const &stmt: sinks) {
+                    port->unassign(stmt);
+                }
+            }
+        }
     }
 }
 

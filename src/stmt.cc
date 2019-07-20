@@ -70,6 +70,18 @@ void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
     else_body_.emplace_back(stmt);
 }
 
+void IfStmt::remove_then_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
+    auto pos = std::find(then_body_.begin(), then_body_.end(), stmt);
+    if (pos != then_body_.end())
+        then_body_.erase(pos);
+}
+
+void IfStmt::remove_else_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
+    auto pos = std::find(else_body_.begin(), else_body_.end(), stmt);
+    if (pos != else_body_.end())
+        else_body_.erase(pos);
+}
+
 IRNode *IfStmt::get_child(uint64_t index) {
     if (index == 0)
         return predicate_.get();
@@ -110,6 +122,12 @@ void StmtBlock::add_statement(const std::shared_ptr<Stmt> &stmt) {
     stmts_.emplace_back(stmt);
 }
 
+void StmtBlock::remove_statement(const std::shared_ptr<kratos::Stmt> &stmt) {
+    auto pos = std::find(stmts_.begin(), stmts_.end(), stmt);
+    if (pos != stmts_.end())
+        stmts_.erase(pos);
+}
+
 void StmtBlock::set_child(uint64_t index, const std::shared_ptr<Stmt> &stmt) {
     if (index < stmts_.size()) stmts_[index] = stmt;
 }
@@ -148,6 +166,22 @@ void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
 void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                                  const std::vector<std::shared_ptr<Stmt>> &stmts) {
     for (auto &stmt : stmts) add_switch_case(switch_case, stmt);
+}
+
+void SwitchStmt::remove_switch_case(const std::shared_ptr<kratos::Const> &switch_case) {
+    if (body_.find(switch_case) != body_.end()) {
+        body_.erase(switch_case);
+    }
+}
+
+void SwitchStmt::remove_switch_case(const std::shared_ptr<kratos::Const> &switch_case,
+                                    const std::shared_ptr<kratos::Stmt> &stmt) {
+    if (body_.find(switch_case) != body_.end()) {
+        auto &stmts = body_.at(switch_case);
+        auto pos = std::find(stmts.begin(), stmts.end(), stmt);
+        if (pos != stmts.end())
+            stmts.erase(pos);
+    }
 }
 
 uint64_t SwitchStmt::child_count() {

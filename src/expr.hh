@@ -81,7 +81,6 @@ public:
     virtual VarSlice &operator[](uint32_t bit);
     // concat
     virtual VarConcat &concat(Var &var);
-    void add_concat_var(const std::shared_ptr<VarConcat> &var) { concat_vars_.emplace(var); }
 
     std::shared_ptr<Var> cast(VarCastType cast_type);
 
@@ -178,14 +177,20 @@ public:
 
 struct VarConcat : public Var {
 public:
-    std::vector<std::shared_ptr<Var>> vars;
     VarConcat(Generator *m, const std::shared_ptr<Var> &first, const std::shared_ptr<Var> &second);
-    VarConcat(const VarConcat &var);
 
-    VarConcat &concat(Var &var) override;
+    // we tie it to the parent
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+
+    std::vector<std::shared_ptr<Var>> &vars() { return vars_; }
+
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     std::string to_string() const override;
+private:
+
+    std::vector<std::shared_ptr<Var>> vars_;
 };
 
 struct Const : public Var {

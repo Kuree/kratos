@@ -414,8 +414,11 @@ void init_stmt(py::module &m) {
         .def("then_body", &IfStmt::then_body)
         .def("else_body", &IfStmt::else_body)
         .def("add_then_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::add_then_stmt))
-        .def("add_else_stmt",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::add_else_stmt));
+        .def("add_else_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::add_else_stmt))
+        .def("remove_then_stmt",
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::remove_then_stmt))
+        .def("remove_else_stmt",
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::remove_else_stmt));
 
     py::class_<SwitchStmt, ::shared_ptr<SwitchStmt>, Stmt>(m, "SwitchStmt")
         .def(py::init<const ::shared_ptr<Var> &>())
@@ -426,14 +429,20 @@ void init_stmt(py::module &m) {
                                                   const std::vector<std::shared_ptr<Stmt>> &>(
                                     &SwitchStmt::add_switch_case))
         .def("target", &SwitchStmt::target, py::return_value_policy::reference)
-        .def("body", &SwitchStmt::body);
+        .def("body", &SwitchStmt::body)
+        .def("remove_switch_case", py::overload_cast<const std::shared_ptr<kratos::Const> &>(
+                                       &SwitchStmt::remove_switch_case))
+        .def("remove_switch_case",
+             py::overload_cast<const std::shared_ptr<Const> &, const std::shared_ptr<Stmt> &>(
+                 &SwitchStmt::remove_switch_case));
 
     py::class_<CombinationalStmtBlock, ::shared_ptr<CombinationalStmtBlock>, Stmt>(
         m, "CombinationalStmtBlock")
         .def(py::init<>())
         .def("block_type", &CombinationalStmtBlock::block_type)
         .def("add_statement",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&CombinationalStmtBlock::add_statement));
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&CombinationalStmtBlock::add_statement))
+        .def("remove_statement", &CombinationalStmtBlock::remove_statement);
 
     py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, Stmt>(m,
                                                                              "SequentialStmtBlock")
@@ -441,7 +450,8 @@ void init_stmt(py::module &m) {
         .def("get_conditions", &SequentialStmtBlock::get_conditions)
         .def("add_condition", &SequentialStmtBlock::add_condition)
         .def("add_statement",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&SequentialStmtBlock::add_statement));
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&SequentialStmtBlock::add_statement))
+        .def("remove_statement", &SequentialStmtBlock::remove_statement);
 
     py::class_<ModuleInstantiationStmt, ::shared_ptr<ModuleInstantiationStmt>, Stmt>(
         m, "ModuleInstantiationStmt")

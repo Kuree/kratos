@@ -155,7 +155,7 @@ VarConcat &Var::concat(Var &var) {
     // vars
     for (auto const &exist_var : concat_vars_) {
         // reuse the existing variables
-        if (exist_var->vars.size() == 2 && exist_var->vars.back() == ptr) {
+        if (exist_var->vars().size() == 2 && exist_var->vars().back() == ptr) {
             return *exist_var;
         }
     }
@@ -255,6 +255,7 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
 }
 
 void Var::unassign(const std::shared_ptr<AssignStmt> &stmt) {
+    // we need to take care of the slices
     stmt->right()->sinks_.erase(stmt);
     sources_.erase(stmt);
     // erase from parent if any
@@ -346,31 +347,27 @@ VarConcat::VarConcat(Generator *m, const std::shared_ptr<Var> &first,
                      const std::shared_ptr<Var> &second)
     : Var(m, "", first->width + second->width, first->is_signed && second->is_signed,
           VarType::Expression) {
-    vars.emplace_back(first);
-    vars.emplace_back(second);
+    vars_.emplace_back(first);
+    vars_.emplace_back(second);
 }
 
-VarConcat &VarConcat::concat(Var &var) {
-    std::shared_ptr<VarConcat> new_var = std::make_shared<VarConcat>(*this);
-    new_var->vars.emplace_back(var.shared_from_this());
-    new_var->width += var.width;
-    // update the upstream vars about linking
-    for (auto &var_ptr : new_var->vars) {
-        var_ptr->add_concat_var(new_var);
+void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
+    for (auto &var: vars_) {
+        var->add_source(stmt);
     }
-    return *new_var;
+}
+
+void VarConcat::add_sink(const std::shared_ptr<kratos::AssignStmt> &stmt) {
+    for (auto &var: vars_) {
+        var->add_sink(stmt);
+    }
 }
 
 std::string VarConcat::to_string() const {
     std::vector<std::string> var_names;
-    for (const auto &ptr : vars) var_names.emplace_back(ptr->to_string());
+    for (const auto &ptr : vars_) var_names.emplace_back(ptr->to_string());
     auto content = fmt::join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
-}
-
-VarConcat::VarConcat(const VarConcat &var)
-    : Var(var.generator, var.name, var.width, var.is_signed) {
-    vars = std::vector<std::shared_ptr<Var>>(var.vars.begin(), var.vars.end());
 }
 
 std::string Const::to_string() const {

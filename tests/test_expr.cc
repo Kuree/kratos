@@ -102,16 +102,11 @@ TEST(expr, concat) {  // NOLINT
     auto &var2 = mod.var("b", 1);
     auto &var3 = var1.concat(var2);
     auto &var3_ = var3.concat(var2);
-    EXPECT_EQ(var3_.to_string(), "{a, b, b}");
+    EXPECT_EQ(var3_.to_string(), "{{a, b}, b}");
 
     // test raw constructor
     const auto &concat = VarConcat(&mod, var1.shared_from_this(), var2.shared_from_this());
     EXPECT_EQ(concat.to_string(), var3.to_string());
-
-    // test copy constructor
-    const auto &var4 = VarConcat(var3);
-    // copy constructor won't work
-    EXPECT_ANY_THROW(var4.shared_from_this());
 }
 
 TEST(expr, param) {  // NOLINT
