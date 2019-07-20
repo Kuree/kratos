@@ -30,7 +30,7 @@ enum HashStrategy : int;
 class Context {
 private:
     std::unordered_map<std::string, std::set<std::shared_ptr<Generator>>> modules_;
-    std::unordered_map<Generator*, uint64_t> generator_hash_;
+    std::unordered_map<const Generator*, uint64_t> generator_hash_;
 
 public:
     Context() = default;
@@ -41,9 +41,10 @@ public:
     void remove(Generator* generator);
     void add(Generator* generator);
 
-    void add_hash(Generator* generator, uint64_t hash);
-    bool has_hash(Generator* generator);
-    uint64_t get_hash(Generator* generator);
+    void add_hash(const Generator* generator, uint64_t hash);
+    bool has_hash(const Generator* generator) const;
+    uint64_t get_hash(const Generator* generator) const;
+    void inline clear_hash() { generator_hash_.clear(); }
 
     // for debugging
     uint64_t hash_table_size() const { return generator_hash_.size(); }

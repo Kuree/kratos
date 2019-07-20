@@ -415,3 +415,28 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
     EXPECT_EQ(src.size(), 3);
     EXPECT_TRUE(is_valid_verilog(src.at("module1")));
 }
+
+TEST(pass, module_hash) {   // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &in1 = mod1.port(PortDirection::In, "in", 1);
+    auto &out1 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("module2");
+    auto &in2 = mod2.port(PortDirection::In, "in", 1);
+    auto &out2 = mod2.port(PortDirection::Out, "out", 1);
+    mod2.add_stmt(out2.assign(in2, AssignmentType::Blocking).shared_from_this());
+
+    auto &mod3 = c.generator("module1");
+    mod1.add_child_generator(mod3.shared_from_this());
+
+    mod1.add_child_generator(mod2.shared_from_this());
+    mod1.add_stmt(in2.assign(in1).shared_from_this());
+    mod1.add_stmt(out1.assign(out2).shared_from_this());
+
+    fix_assignment_type(&mod1);
+    create_module_instantiation(&mod1);
+
+    hash_generators(&mod1, HashStrategy::SequentialHash);
+    hash_generators(&mod1, HashStrategy::ParallelHash);
+}

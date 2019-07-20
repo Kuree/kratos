@@ -34,17 +34,17 @@ void Context::remove(Generator *generator) {
     if (module_set.find(shared_ptr) != module_set.end()) module_set.erase(shared_ptr);
 }
 
-void Context::add_hash(Generator *generator, uint64_t hash) {
+void Context::add_hash(const Generator *generator, uint64_t hash) {
     if (generator_hash_.find(generator) != generator_hash_.end())
         throw ::runtime_error(::format("{0}'s hash has already been computed", generator->name));
     generator_hash_[generator] = hash;
 }
 
-bool Context::has_hash(Generator *generator) {
+bool Context::has_hash(const Generator *generator) const {
     return generator_hash_.find(generator) != generator_hash_.end();
 }
 
-uint64_t Context::get_hash(Generator *generator) {
+uint64_t Context::get_hash(const Generator *generator) const {
     if (!has_hash(generator))
         throw ::runtime_error(::format("{0}'s hash has not been computed", generator->name));
     return generator_hash_.at(generator);
@@ -94,5 +94,5 @@ std::unordered_set<std::string> Context::get_generator_names() const {
 
 void Context::clear() {
     modules_.clear();
-    generator_hash_.clear();
+    clear_hash();
 }

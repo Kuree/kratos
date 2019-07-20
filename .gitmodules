@@ -12,4 +12,4 @@
 	url = https://github.com/pybind/pybind11
 [submodule "extern/cxxpool"]
 	path = extern/cxxpool
-	url = https://github.com/bloomen/cxxpool
+	url = https://github.com/Kuree/cxxpool

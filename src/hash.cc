@@ -1,12 +1,12 @@
 #include "hash.hh"
 #include <fstream>
 #include "ast.hh"
+#include "cxxpool.h"
 #include "expr.hh"
 #include "generator.hh"
 #include "graph.hh"
 #include "pass.hh"
 #include "stmt.hh"
-#include "cxxpool.h"
 
 /*
  * Once this project is moved to gcc-9, we will use the parallel execution
@@ -215,22 +215,25 @@ constexpr uint64_t shift_const(uint64_t value, uint8_t amount) {
 class HashVisitor : public ASTVisitor {
 public:
     explicit HashVisitor(Generator* root) : root_(root) {
+        context_ = root->context();
         // compute the hash for all vars
         auto vars = root->get_vars();
-        var_hashs_.reserve(vars.size());
+        var_hashes_.reserve(vars.size());
         for (const auto& var : vars) {
             uint64_t var_hash = hash_64_fnv1a(var.c_str(), var.size());
-            var_hashs_.emplace_back(var_hash);
+            var_hashes_.emplace_back(var_hash);
         }
     }
 
     uint64_t produce_hash() {
         // use generator name as a seed
         uint64_t var_hash = hash_64_fnv1a(root_->name.c_str(), root_->name.size()) << 32u;
-        for (const uint64_t var : var_hashs_) var_hash = var_hash ^ var;
+        for (const uint64_t var : var_hashes_) var_hash = var_hash ^ var;
         // use var_hash as a seed
+        // FIXME: do we really need to hash in chunks? or can we use xor to ignore the ordering
+        //  of the blocks?
         uint64_t stmt_hash =
-            XXHash64::hash(stmt_hashs_.data(), stmt_hashs_.size() * sizeof(uint64_t), var_hash);
+            XXHash64::hash(stmt_hashes_.data(), stmt_hashes_.size() * sizeof(uint64_t), var_hash);
         // hash the root name
         uint64_t result = XXHash64::hash(root_->name.c_str(), root_->name.size(), stmt_hash);
         return result;
@@ -242,7 +245,7 @@ public:
         uint64_t stmt_hash = hash_64_fnv1a(var.c_str(), var.size());
         // based on level
         stmt_hash = shift(stmt_hash, level);
-        stmt_hashs_.emplace_back(stmt_hash);
+        stmt_hashes_.emplace_back(stmt_hash);
     }
 
     void visit(IfStmt* stmt) override {
@@ -253,19 +256,19 @@ public:
         constexpr uint64_t if_signature = shift_const(0x9e3779b97f4a7c16, 1);
         auto var = stmt->predicate()->to_string();
         uint64_t hash = hash_64_fnv1a(var.c_str(), var.size()) << level;
-        stmt_hashs_.emplace_back(if_signature ^ hash);
+        stmt_hashes_.emplace_back(if_signature ^ hash);
     }
 
     void visit(SwitchStmt* stmt) override {
         constexpr uint64_t switch_signature = shift_const(0x9e3779b97f4a7c16, 2);
         auto var = stmt->target()->to_string();
         uint64_t hash = hash_64_fnv1a(var.c_str(), var.size()) << level;
-        stmt_hashs_.emplace_back(switch_signature ^ hash);
+        stmt_hashes_.emplace_back(switch_signature ^ hash);
     }
 
     void visit(CombinationalStmtBlock*) override {
         constexpr uint64_t comb_signature = shift_const(0x9e3779b97f4a7c16, 3);
-        stmt_hashs_.emplace_back(comb_signature << level);
+        stmt_hashes_.emplace_back(comb_signature << level);
     }
 
     void visit(SequentialStmtBlock* stmt) override {
@@ -279,15 +282,29 @@ public:
         }
         uint64_t hash = hash_64_fnv1a(cond.c_str(), cond.size()) << level;
         constexpr uint64_t seq_signature = shift_const(0x9e3779b97f4a7c16, 3);
-        stmt_hashs_.emplace_back(hash ^ seq_signature);
+        stmt_hashes_.emplace_back(hash ^ seq_signature);
     }
 
-    void visit(ModuleInstantiationStmt*) override { throw std::runtime_error("NOT IMPLEMENTED"); }
+    void visit(ModuleInstantiationStmt* stmt) override {
+        // notice that we don't use any mechanism to lock the context's get hash or set hash
+        // it is the caller's responsibility to do prepare the calling sequence so that there
+        // won't be any race condition.
+        // by requiring this, we can have a lock-free implementation ready to scale
+        auto target = stmt->target();
+        if (!context_->has_hash(target)) {
+            throw std::runtime_error("Internal error: " + target->name + " doesn't have a hash");
+        }
+        uint64_t target_hash = context_->get_hash(target);
+        constexpr uint64_t mod_signature = shift_const(0x9e3779b97f4a7c16, 4);
+        // we have assign stmts already computed the connections
+        stmt_hashes_.emplace_back(target_hash ^ mod_signature);
+    }
 
 private:
-    std::vector<uint64_t> var_hashs_;
-    std::vector<uint64_t> stmt_hashs_;
+    std::vector<uint64_t> var_hashes_;
+    std::vector<uint64_t> stmt_hashes_;
     Generator* root_;
+    Context* context_;
 
     inline static uint64_t shift(uint64_t value, uint8_t amount) {
         return (value << amount) | (value >> (64u - amount));
@@ -318,61 +335,66 @@ void hash_generator_name(Context* context, Generator* generator) {
 }
 
 void hash_generators_context(Context* context, Generator* root, HashStrategy strategy) {
+    // clear the hash first
+    context->clear_hash();
+
     // compute the generator graph
     GeneratorGraph g(root);
     // if it's sequential, do topological sort
     // if it's parallel, do level sort
-    auto const& sequence = g.get_sorted_generators();
-    std::vector<Generator *> list;
-    // reserve for list
-    list.reserve(sequence.size());
-
-    for (auto& node : sequence) {
-        // different cases
-        if (node->external()) {
-            if (node->external_filename().empty()) {
-                // user marked external file, skip it
-                continue;
-            } else {
-                hash_generator_src(context, node);
-            }
-        } else if (context->get_generators_by_name(node->name).size() == 1) {
-            // just need to hash the name
-            hash_generator_name(context, node);
-        } else {
-            // only the one being used
-            if (node->parent() == nullptr && node != root)
-                continue;
-            list.emplace_back(node);
-        }
-    }
-
-    std::vector<uint64_t> hash_values;
-    hash_values.reserve(list.size());
 
     if (strategy == HashStrategy::SequentialHash) {
-        for (auto& node : list) {
+        auto const& sequence = g.get_sorted_generators();
+        std::vector<Generator*> list;
+        // reserve for list
+        list.reserve(sequence.size());
+
+        for (auto& node : sequence) {
+            // different cases
+            if (node->external()) {
+                if (node->external_filename().empty()) {
+                    // user marked external file, skip it
+                    continue;
+                } else {
+                    hash_generator_src(context, node);
+                }
+            } else if (context->get_generators_by_name(node->name).size() == 1) {
+                // just need to hash the name
+                hash_generator_name(context, node);
+            } else {
+                // only the one being used
+                if (node->parent() == nullptr && node != root) continue;
+                list.emplace_back(node);
+            }
+        }
+        for (auto const& node : list) {
             uint64_t hash = hash_generator(node);
-            hash_values.emplace_back(hash);
+            context->add_hash(node, hash);
         }
     } else if (strategy == HashStrategy::ParallelHash) {
         uint32_t num_cpus = std::thread::hardware_concurrency();
         num_cpus = std::max(1u, num_cpus / 2);
         cxxpool::thread_pool pool{num_cpus};
 
-        std::vector<std::future<uint64_t>> thread_tasks;
-        thread_tasks.reserve(list.size());
+        auto levels = g.get_leveled_generators();
+        // we proceed in a reversed order
+        for (int i = static_cast<int>(levels.size() - 1); i >= 0; i--) {
+            auto list = levels[i];
+            std::vector<uint64_t> hash_values;
+            std::vector<std::future<uint64_t>> thread_tasks;
+            thread_tasks.reserve(list.size());
 
-        for (auto const &node: list) {
-            auto task = pool.push(hash_generator, node);
-            thread_tasks.emplace_back(std::move(task));
+            for (auto const& node : list) {
+                auto task = pool.push(hash_generator, node);
+                thread_tasks.emplace_back(std::move(task));
+            }
+
+            cxxpool::get(thread_tasks.begin(), thread_tasks.end(), hash_values);
+            for (uint32_t j = 0; j < list.size(); j++) {
+                auto const& node = list[j];
+                auto const hash = hash_values[j];
+                context->add_hash(node, hash);
+            }
         }
-
-        cxxpool::get(thread_tasks.begin(), thread_tasks.end(), hash_values);
-    }
-    for (uint32_t i = 0; i < list.size(); i++) {
-        auto const &node = list[i];
-        auto const hash = hash_values[i];
-        context->add_hash(node, hash);
     }
 }

@@ -103,7 +103,7 @@ std::vector<Generator *> GeneratorGraph::get_sorted_generators() {
     return result;
 }
 
-std::vector<std::unordered_set<Generator *>> GeneratorGraph::get_leveled_generators() {
+std::vector<std::vector<Generator *>> GeneratorGraph::get_leveled_generators() {
     // this is a modified breath-first search
     std::queue<std::pair<Generator *, uint32_t>> queue;
     std::unordered_map<GeneratorNode *, uint32_t> level_index;
@@ -128,11 +128,11 @@ std::vector<std::unordered_set<Generator *>> GeneratorGraph::get_leveled_generat
     }
 
     // construct the result
-    std::vector<std::unordered_set<Generator *>> result;
+    std::vector<std::vector<Generator *>> result;
     // notice that max is exclusive
     result.resize(max_level + 1);
     for (auto const &[generator_node, level]: level_index) {
-        result[level].emplace(generator_node->generator);
+        result[level].emplace_back(generator_node->generator);
     }
     return result;
 }
