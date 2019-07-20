@@ -8,6 +8,8 @@
 
 #include "expr.hh"
 
+namespace kratos {
+
 enum class PortDirection { In, Out, InOut };
 
 enum class PortType { Data, Clock, AsyncReset, Reset, ClockEnable };
@@ -78,5 +80,7 @@ public:
 private:
     std::string member_name_;
 };
+
+}  // namespace kratos
 
 #endif  // KRATOS_PORT_HH

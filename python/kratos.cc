@@ -12,6 +12,7 @@
 
 namespace py = pybind11;
 using std::shared_ptr;
+using namespace kratos;
 
 // bind all the enums
 void init_enum(py::module &m) {

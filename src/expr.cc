@@ -14,6 +14,8 @@ using std::shared_ptr;
 using std::string;
 using std::vector;
 
+namespace kratos {
+
 bool is_relational_op(ExprOp op) {
     static std::unordered_set<ExprOp> ops = {ExprOp::LessThan, ExprOp::GreaterThan,
                                              ExprOp::LessEqThan, ExprOp::GreaterEqThan, ExprOp::Eq};
@@ -292,8 +294,7 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
       parent_var_(parent),
       cast_type_(cast_type) {
     type_ = VarType::BaseCasted;
-    if (cast_type_ == Signed)
-        is_signed = true;
+    if (cast_type_ == Signed) is_signed = true;
 }
 
 AssignStmt &VarCasted::assign(const std::shared_ptr<Var> &, AssignmentType) {
@@ -532,4 +533,6 @@ void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
         parent = ptr->parent_var;
     }
     parent->add_source(stmt);
+}
+
 }

@@ -12,6 +12,8 @@
 using fmt::format;
 using std::runtime_error;
 
+namespace kratos {
+
 class AssignmentTypeVisitor : public IRVisitor {
 public:
     explicit AssignmentTypeVisitor(AssignmentType type, bool check_type = true)
@@ -976,4 +978,6 @@ void PassManager::run_passes(Generator* generator) {
         auto fn = passes_.at(fn_name);
         fn(generator);
     }
+}
+
 }

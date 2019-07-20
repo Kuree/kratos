@@ -8,6 +8,7 @@
 #include "pass.hh"
 #include "stmt.hh"
 
+namespace kratos {
 /*
  * Once this project is moved to gcc-9, we will use the parallel execution
  * #include <numeric>
@@ -397,4 +398,6 @@ void hash_generators_context(Context* context, Generator* root, HashStrategy str
             }
         }
     }
+}
+
 }

@@ -1,18 +1,21 @@
 #ifndef KRATOS_EXCEPT_HH
 #define KRATOS_EXCEPT_HH
 
-#include "context.hh"
 #include <vector>
+#include "context.hh"
 
-class VarException: public std::runtime_error {
+namespace kratos {
+
+class VarException : public std::runtime_error {
 public:
-    VarException(const std::string &message, const std::vector<Var*> &vars) noexcept;
+    VarException(const std::string &message, const std::vector<Var *> &vars) noexcept;
 };
 
-class StmtException: public std::runtime_error {
+class StmtException : public std::runtime_error {
 public:
-    StmtException(const std::string &message, const std::vector<Stmt*> &stmts) noexcept;
+    StmtException(const std::string &message, const std::vector<Stmt *> &stmts) noexcept;
 };
 
+}  // namespace kratos
 
-#endif //KRATOS_EXCEPT_HH
+#endif  // KRATOS_EXCEPT_HH

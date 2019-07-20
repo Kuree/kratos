@@ -7,6 +7,8 @@
 #include "slang/syntax/SyntaxTree.h"
 #include "slang/text/SourceManager.h"
 
+namespace kratos {
+
 std::string ExprOpStr(ExprOp op) {
     switch (op) {
         case UInvert:
@@ -117,4 +119,6 @@ std::string port_type_to_str(PortType type) {
         default:
             throw std::runtime_error("unknown port type");
     }
+}
+
 }

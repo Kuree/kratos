@@ -9,15 +9,15 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
+namespace kratos {
+
 Generator &Context::generator(const std::string &name) {
     auto const &p = std::make_shared<Generator>(this, name);
     modules_[name].emplace(p);
     return *p;
 }
 
-Generator Context::empty_generator() {
-    return Generator(this, "");
-}
+Generator Context::empty_generator() { return Generator(this, ""); }
 
 void Context::add(Generator *generator) {
     modules_[generator->name].emplace(generator->shared_from_this());
@@ -86,7 +86,7 @@ std::set<std::shared_ptr<Generator>> Context::get_generators_by_name(
 
 std::unordered_set<std::string> Context::get_generator_names() const {
     std::unordered_set<std::string> result;
-    for (auto const &iter: modules_) {
+    for (auto const &iter : modules_) {
         result.emplace(iter.first);
     }
     return result;
@@ -95,4 +95,6 @@ std::unordered_set<std::string> Context::get_generator_names() const {
 void Context::clear() {
     modules_.clear();
     clear_hash();
+}
+
 }

@@ -6,6 +6,8 @@
 
 using fmt::format;
 
+namespace kratos {
+
 class GeneratorVisitor : public IRVisitor {
 public:
     explicit GeneratorVisitor(GeneratorGraph *g) : g_(g) {}
@@ -123,16 +125,17 @@ std::vector<std::vector<Generator *>> GeneratorGraph::get_leveled_generators() {
         for (const auto &child_generator : generator->get_child_generators()) {
             queue.push({child_generator.get(), current_level + 1});
         }
-        if (current_level > max_level)
-            max_level = current_level;
+        if (current_level > max_level) max_level = current_level;
     }
 
     // construct the result
     std::vector<std::vector<Generator *>> result;
     // notice that max is exclusive
     result.resize(max_level + 1);
-    for (auto const &[generator_node, level]: level_index) {
+    for (auto const &[generator_node, level] : level_index) {
         result[level].emplace_back(generator_node->generator);
     }
     return result;
+}
+
 }

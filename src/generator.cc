@@ -20,6 +20,8 @@ using std::string;
 using std::vector;
 namespace fs = std::filesystem;
 
+namespace kratos {
+
 std::map<::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *module,
                                                                 const ::string &filename,
                                                                 const ::string &module_name) {
@@ -256,8 +258,7 @@ void Generator::rename_var(const std::string &old_name, const std::string &new_n
 }
 
 std::shared_ptr<Param> Generator::get_param(const std::string &param_name) const {
-    if (params_.find(param_name) == params_.end())
-        return nullptr;
+    if (params_.find(param_name) == params_.end()) return nullptr;
     return params_.at(param_name);
 }
 
@@ -407,7 +408,7 @@ std::shared_ptr<Generator> Generator::clone() {
                         port->is_signed);
     }
     // also parameters
-    for (auto const &[param_name, param]: params_) {
+    for (auto const &[param_name, param] : params_) {
         generator->parameter(param_name, param->width, param->is_signed);
     }
     if (!fn_name_ln.empty()) {
@@ -424,7 +425,7 @@ void Generator::accept(IRVisitor *visitor) {
     if (!external()) visitor->visit(this);
 }
 
-PortPacked& Generator::port_packed(PortDirection direction, const std::string &port_name,
+PortPacked &Generator::port_packed(PortDirection direction, const std::string &port_name,
                                    const PackedStruct &packed_struct_) {
     if (ports_.find(port_name) != ports_.end())
         throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
@@ -432,4 +433,6 @@ PortPacked& Generator::port_packed(PortDirection direction, const std::string &p
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
     return *p;
+}
+
 }

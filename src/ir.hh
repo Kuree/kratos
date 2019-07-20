@@ -5,10 +5,11 @@
 #include <vector>
 #include "context.hh"
 
+namespace kratos {
+
 class IRVisitor;
 
 enum IRNodeKind { GeneratorKind, VarKind, StmtKind };
-
 
 class Attribute {
 public:
@@ -20,7 +21,7 @@ public:
     void set(void *target) { target_ = target; }
 
 private:
-    void* target_ = nullptr;
+    void *target_ = nullptr;
 };
 
 struct IRNode {
@@ -86,4 +87,5 @@ protected:
 // TODO
 //  implement a proper IR transformer
 
+}  // namespace kratos
 #endif  // KRATOS_IR_HH

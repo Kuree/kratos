@@ -1,10 +1,10 @@
 #include "except.hh"
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include "expr.hh"
 #include "stmt.hh"
-#include <cstring>
 
 constexpr char RED[] = "\033[91m";
 constexpr char GREEN[] = "\033[92m";
@@ -15,12 +15,13 @@ constexpr uint32_t LINE_WIDTH = 80;
 
 namespace fs = std::filesystem;
 
+namespace kratos {
+
 std::string inline blue_line() {
     std::string result;
     result.append(BLUE);
 
-    for (uint32_t i = 0; i < LINE_WIDTH; i++)
-        result.append("-");
+    for (uint32_t i = 0; i < LINE_WIDTH; i++) result.append("-");
 
     result.append(ENDC);
     return result;
@@ -61,9 +62,11 @@ VarException::VarException(const std::string& message, const std::vector<Var*>& 
     }
 }
 
-StmtException::StmtException(const std::string& message, const std::vector<Stmt*> &stmts) noexcept
+StmtException::StmtException(const std::string& message, const std::vector<Stmt*>& stmts) noexcept
     : std::runtime_error(message) {
     for (auto const& stmt : stmts) {
         print_ast_node(stmt);
     }
+}
+
 }

@@ -2,9 +2,11 @@
 #define KRATOS_CODEGEN_HH
 
 #include <sstream>
-#include "ir.hh"
 #include "context.hh"
+#include "ir.hh"
 #include "pass.hh"
+
+namespace kratos {
 
 class SystemVerilogCodeGen;
 
@@ -99,4 +101,5 @@ private:
     }
 };
 
+}  // namespace kratos
 #endif  // KRATOS_CODEGEN_HH

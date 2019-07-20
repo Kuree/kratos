@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+namespace kratos {
+
 struct Port;
 class Generator;
 struct Expr;
@@ -57,4 +59,5 @@ public:
     void clear();
 };
 
+}  // namespace kratos
 #endif  // KRATOS_CONTEXT_HH

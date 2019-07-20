@@ -4,6 +4,8 @@
 #include "context.hh"
 #include "expr.hh"
 
+namespace kratos {
+
 enum StatementType { If, Switch, Assign, Block, ModuleInstantiation };
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
 enum StatementBlockType { Combinational, Sequential };
@@ -182,4 +184,7 @@ private:
 
     std::map<std::shared_ptr<Var>, std::shared_ptr<Stmt>> port_debug_;
 };
+
+}  // namespace kratos
+
 #endif  // KRATOS_STMT_HH

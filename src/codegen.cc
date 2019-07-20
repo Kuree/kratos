@@ -10,6 +10,8 @@
 using fmt::format;
 using std::runtime_error;
 
+namespace kratos {
+
 Stream::Stream(Generator* generator, SystemVerilogCodeGen* codegen)
     : generator_(generator), codegen_(codegen), line_no_(1) {}
 
@@ -91,7 +93,7 @@ void VerilogModule::run_passes(bool use_parallel, bool run_if_to_case_pass, bool
 
     if (use_parallel) {
         manager_.add_pass("hash_generators", [=](Generator* generator) {
-          hash_generators(generator, HashStrategy::ParallelHash);
+            hash_generators(generator, HashStrategy::ParallelHash);
         });
     } else {
         manager_.add_pass("hash_generators", [=](Generator* generator) {
@@ -368,4 +370,6 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     strs.emplace_back(port->name);
 
     return join(strs.begin(), strs.end(), " ");
+}
+
 }

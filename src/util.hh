@@ -4,6 +4,9 @@
 #include "expr.hh"
 #include "stmt.hh"
 
+namespace kratos {
+
+
 std::string ExprOpStr(ExprOp op);
 
 // may need to look at this https://stackoverflow.com/q/28828957
@@ -18,5 +21,7 @@ std::string port_dir_to_str(PortDirection direction);
 std::string port_type_to_str(PortType type);
 
 bool is_valid_verilog(const std::string &src);
+
+}
 
 #endif  // KRATOS_UTIL_HH

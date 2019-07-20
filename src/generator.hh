@@ -10,6 +10,8 @@
 #include "context.hh"
 #include "port.hh"
 
+namespace kratos {
+
 class Generator : public std::enable_shared_from_this<Generator>, public IRNode {
 public:
     std::string name;
@@ -140,5 +142,7 @@ private:
     std::unordered_set<std::shared_ptr<Generator>> clones_;
     bool is_cloned_ = false;
 };
+
+}  // namespace kratos
 
 #endif  // KRATOS_MODULE_HH22

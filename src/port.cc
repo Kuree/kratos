@@ -7,6 +7,8 @@ using fmt::format;
 using std::runtime_error;
 using std::string;
 
+namespace kratos {
+
 Port::Port(Generator* module, PortDirection direction, const ::string& name, uint32_t width,
            PortType type, bool is_signed)
     : Var(module, name, width, is_signed, VarType::PortIO), direction_(direction), type_(type) {
@@ -73,4 +75,6 @@ PortPackedSlice::PortPackedSlice(PortPacked* parent, const std::string& member_n
 
 std::string PortPackedSlice::to_string() const {
     return ::format("{0}.{1}", parent_var->to_string(), member_name_);
+}
+
 }

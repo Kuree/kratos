@@ -3,6 +3,8 @@
 #include "../src/stmt.hh"
 #include "gtest/gtest.h"
 
+using namespace kratos;
+
 TEST(stmt, assign) {  // NOLINT
     Context c;
     auto &mod = c.generator("test");
@@ -85,6 +87,5 @@ TEST(stmt, switch_) {  // NOLINT
 
     EXPECT_EQ(switch_block.body().size(), 2);
     EXPECT_EQ(switch_block.target(), var1.shared_from_this());
-    EXPECT_ANY_THROW(
-        switch_block.add_switch_case(condition1.as<Const>(), stmt.shared_from_this()));
+    EXPECT_ANY_THROW(switch_block.add_switch_case(condition1.as<Const>(), stmt.shared_from_this()));
 }

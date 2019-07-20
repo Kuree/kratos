@@ -3,6 +3,8 @@
 #include "../src/stmt.hh"
 #include "gtest/gtest.h"
 
+using namespace kratos;
+
 TEST(expr, arith) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
@@ -123,7 +125,7 @@ TEST(expr, param) {  // NOLINT
     EXPECT_EQ(p.value_str(), "2'h2");
 }
 
-TEST(expr, port_packed) {   // NOLINT
+TEST(expr, port_packed) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
     auto struct_ = PackedStruct("data", {{"value1", 1, false}, {"value2", 2, false}});

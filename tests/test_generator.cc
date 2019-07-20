@@ -7,6 +7,8 @@
 #include "../src/util.hh"
 #include "gtest/gtest.h"
 
+using namespace kratos;
+
 TEST(generator, load) {  // NOLINT
     Context c;
     auto mod = Generator::from_verilog(&c, "module1.sv", "module1", {}, {});
@@ -55,8 +57,7 @@ TEST(generator, remove_stmt) {  // NOLINT
     EXPECT_EQ(mod.get_stmt(0), nullptr);
 }
 
-
-TEST(generator, param) {    // NOLINT
+TEST(generator, param) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &out = mod.port(PortDirection::Out, "out", 1);
@@ -416,7 +417,7 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
     EXPECT_TRUE(is_valid_verilog(src.at("module1")));
 }
 
-TEST(pass, module_hash) {   // NOLINT
+TEST(pass, module_hash) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("module1");
     auto &in1 = mod1.port(PortDirection::In, "in", 1);

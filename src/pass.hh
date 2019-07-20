@@ -2,10 +2,12 @@
 #define KRATOS_PASS_HH
 
 #include <functional>
-#include "ir.hh"
 #include "context.hh"
 #include "hash.hh"
+#include "ir.hh"
 #include "stmt.hh"
+
+namespace kratos {
 
 enum HashStrategy : int { SequentialHash, ParallelHash };
 
@@ -58,7 +60,7 @@ public:
     PassManager() = default;
 
     void add_pass(const std::string& name, std::function<void(Generator*)> fn);
-    void add_pass(const std::string &name, void(fn)(Generator*));
+    void add_pass(const std::string& name, void(fn)(Generator*));
 
     bool inline has_pass(const std::string& name) const {
         return passes_.find(name) != passes_.end();
@@ -66,11 +68,13 @@ public:
 
     void run_passes(Generator* generator);
 
-    uint64_t num_passes()  const { return passes_order_.size(); }
+    uint64_t num_passes() const { return passes_order_.size(); }
 
 private:
     std::map<std::string, std::function<void(Generator*)>> passes_;
     std::vector<std::string> passes_order_;
 };
+
+}  // namespace kratos
 
 #endif  // KRATOS_PASS_HH

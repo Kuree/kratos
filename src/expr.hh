@@ -5,8 +5,10 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include "ir.hh"
 #include "context.hh"
+#include "ir.hh"
+
+namespace kratos {
 
 enum ExprOp : uint64_t {
     // unary
@@ -40,7 +42,7 @@ bool is_relational_op(ExprOp op);
 
 enum VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted };
 
-enum VarCastType { Signed, Clock, AsyncReset};
+enum VarCastType { Signed, Clock, AsyncReset };
 
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
@@ -119,7 +121,7 @@ public:
     uint64_t child_count() override { return 0; }
     IRNode *get_child(uint64_t) override { return nullptr; }
 
-    Var(const Var& var) = delete;
+    Var(const Var &var) = delete;
     Var() = delete;
 
 protected:
@@ -165,7 +167,7 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
-    void set_parent(Var* parent) { parent_var = parent; }
+    void set_parent(Var *parent) { parent_var = parent; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
@@ -203,7 +205,7 @@ private:
     int64_t value_;
 };
 
-struct Param: public Const {
+struct Param : public Const {
 public:
     Param(Generator *m, std::string name, uint32_t width, bool is_signed);
 
@@ -215,7 +217,6 @@ public:
 
 private:
     std::string parameter_name_;
-
 };
 
 struct Expr : public Var {
@@ -233,4 +234,5 @@ struct Expr : public Var {
     IRNode *get_child(uint64_t index) override;
 };
 
+}  // namespace kratos
 #endif  // KRATOS_EXPR_HH

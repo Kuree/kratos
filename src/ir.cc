@@ -1,6 +1,7 @@
 #include "ir.hh"
 #include "generator.hh"
 
+namespace kratos {
 void IRVisitor::visit_root(IRNode *root) {
     // recursively call visits
     root->accept(this);
@@ -37,7 +38,7 @@ void IRVisitor::visit_content(Generator *generator) {
     }
     // visit the vars
     auto var_names = generator->get_all_var_names();
-    for (auto const &name: var_names) {
+    for (auto const &name : var_names) {
         auto var = generator->get_var(name);
         auto ptr = var.get();
         if (visited_.find(ptr) == visited_.end()) {
@@ -46,4 +47,5 @@ void IRVisitor::visit_content(Generator *generator) {
         }
     }
     level--;
+}
 }

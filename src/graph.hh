@@ -6,6 +6,8 @@
 #include <vector>
 #include "context.hh"
 
+namespace kratos {
+
 struct GeneratorNode {
     GeneratorNode *parent = nullptr;
     Generator *generator;
@@ -27,4 +29,5 @@ private:
     Generator *root_;
 };
 
+}  // namespace kratos
 #endif  // KRATOS_GRAPH_HH

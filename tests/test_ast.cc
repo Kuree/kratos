@@ -1,20 +1,20 @@
 #include "../src/context.hh"
-#include "../src/generator.hh"
 #include "../src/expr.hh"
+#include "../src/generator.hh"
 #include "../src/stmt.hh"
 #include "gtest/gtest.h"
 
+using namespace kratos;
 
-class VarVisitor: public IRVisitor {
+class VarVisitor : public IRVisitor {
 public:
     uint32_t max_level = 0;
-    VarVisitor(): IRVisitor(), vars() {}
-    void visit(Var* var) override {
-        if (max_level < level)
-            max_level = level;
+    VarVisitor() : IRVisitor(), vars() {}
+    void visit(Var *var) override {
+        if (max_level < level) max_level = level;
         vars.emplace_back(var);
     }
-    std::vector<Var*> vars;
+    std::vector<Var *> vars;
     uint32_t current_level() { return level; }
 };
 
