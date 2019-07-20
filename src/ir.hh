@@ -17,11 +17,11 @@ public:
     std::string type_str;
     std::string value_str;
 
-    void *get() { return target_; }
-    void set(void *target) { target_ = target; }
+    void *get() { return target_.get(); }
+    void set(const std::shared_ptr<void> &target) { target_ = target; }
 
 private:
-    void *target_ = nullptr;
+    std::shared_ptr<void> target_ = nullptr;
 };
 
 struct IRNode {

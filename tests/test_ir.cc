@@ -18,7 +18,7 @@ public:
     uint32_t current_level() { return level; }
 };
 
-TEST(ast, visit_var) {  // NOLINT
+TEST(ir, visit_var) {  // NOLINT
     Context c;
     auto &mod = c.generator("test");
     auto &var1 = mod.var("a", 2);
@@ -33,7 +33,7 @@ TEST(ast, visit_var) {  // NOLINT
     EXPECT_EQ(visitor.vars[1], &var2);
 }
 
-TEST(ast, visit_if) {  // NOLINT
+TEST(ir, visit_if) {  // NOLINT
     Context c;
     auto &mod = c.generator("test");
     auto &var1 = mod.var("a", 2);
@@ -48,4 +48,24 @@ TEST(ast, visit_if) {  // NOLINT
     EXPECT_EQ(visitor.vars.size(), 2);
     EXPECT_EQ(visitor.max_level, 2);
     EXPECT_EQ(visitor.current_level(), 0);
+}
+
+TEST(ir, attribute) {  // NOLINT
+    class TestAttribute {
+    public:
+        explicit TestAttribute(int value) : value_(value) {}
+        int value() { return value_; }
+
+    private:
+        int value_;
+    };
+
+    Context c;
+    auto &mod = c.generator("test");
+    auto &var1 = mod.var("a", 2);
+    auto attr = std::make_shared<Attribute>();
+    attr->set(std::make_shared<TestAttribute>(42));
+    var1.add_attribute(attr);
+    EXPECT_EQ(var1.get_attributes().size(), 1);
+    EXPECT_EQ(reinterpret_cast<TestAttribute*>(var1.get_attributes()[0]->get())->value(), 42);
 }

@@ -46,8 +46,7 @@ Attributes in C++
 =================
 
 The C++ ``Attribute`` object has a generic pointer you can use to
-retrieve your custom data. You're responsible for the life-cycle of
-that custom data. To help you facilitate the type casting, you
+retrieve your custom data. To help you facilitate the type casting, you
 can set the type string in ``type_str`` and use that to indicate
 what custom type it's holding. If the attribute comes from Python,
 ``type_str`` will be ``"python"``.
