@@ -85,7 +85,7 @@ and ``[gen].params`` for parameters.
 Expressions
 -----------
 
-Whenever we perform some arithmetic ot logic operator on port/variables, we
+Whenever we perform some arithmetic or logic operator on port/variables, we
 implicitly create an expression. An expression can be assigned to a port or
 a variable. It can also be composed together to form more complex expressions.
 
@@ -330,7 +330,7 @@ Here is the generated verilog
 Procedural code generation
 ==========================
 
-Sometimes it is very difficult to generated desired circuit definition through
+Sometimes it is very difficult to generate a desired circuit definition through
 limited free-style code block. If that is the case, you can use the procedural
 code generation.
 

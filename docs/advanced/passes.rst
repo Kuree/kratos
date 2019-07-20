@@ -30,10 +30,10 @@ the AST we can modify the IR as well as checking for errors.
 This is very close to the passes in LLVM. Depending on whether
 the pass mutates the IR, a pass is categorized as either a
 analysis passes or a transformation pass. For instance, a pass
-to extract all the debug information is a analysis pass since it
-doesn't mutate any IR node. An module instantiation pass is a
-transformation pass since it mutate the generate node to create
-module instantiation statement.
+to extract all the debug information is an analysis pass since it
+doesn't mutate any IR node. A module instantiation pass is a
+transformation pass since it mutates the generate node to create
+a module instantiation statement.
 
 Built-in Passes
 ===============
@@ -65,7 +65,7 @@ readable and your life easier:
   if it determines appropriate. It is because Python doesn't have
   switch statement, the AST produce a chained if-else statement. This
   pass will handle that.
-- ``remove_fanout_one_wires``: this pass remove unnecessary wires
+- ``remove_fanout_one_wires``: this pass removes unnecessary wires
 - ``remove_pass_through_modules``: this pass will remove any pass-through
   modules created by user. It is not necessary for the physical design,
   but extremely helpful to reduce the simulation size.
@@ -81,7 +81,7 @@ are two ways to write a pass:
 - Python
 
 The procedure to add a pass is very similar. The function has to take
-a top level ``Generator`` class the perform some analysis or transformation
+a top level ``Generator`` class then perform some analysis or transformation
 on it. All the passes in kratos rely on the ``ASTVisitor`` class, which
 recursively visit each symbols in the IR. For ``C++`` users you need to
 check how the passes is done in `src/pass.cc`_, where all the passes listed
