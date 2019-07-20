@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] - 2019-07-19
+### Added
+- More comprehensive documentation that covers the statements.
+- Add visual debugger through `kratos-debug`.
+- Add full support for attributes on IR node (#33).
+- Parallel hash implementation (#27).
+- Merge wire pass (#38).
+- More debugging info related to module instantiation.
+- Add helper function to create combinational/sequential blocks.
+
+### Changed:
+- Adjusted `clone`/`create` interface (#36)
+
+### Fixed:
+- Decouple port wires pass naming.
+
 ## [0.0.4] - 2019-07-16
 ### Added
 - Documentation for most of the interfaces (#28)
@@ -20,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `signed` is now created using the new casting interface.
 
 ### Fixed
-- Pass through module removal pass will somethimes remove modules that perform simple arithmetic.
+- Pass through module removal pass will sometimes remove modules that perform simple arithmetic.
 - Fix a bug where module instantiation will cause infinite loop.
 
 ## [0.0.3] - 2019-07-07
