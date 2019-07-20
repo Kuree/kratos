@@ -49,10 +49,8 @@ class VarCastType(enum.Enum):
 
 
 class CodeBlock:
-    # this is a magic number
-    FRAME_DEPTH = 4
-
-    def __init__(self, generator: "Generator", block_type: StatementBlockType):
+    def __init__(self, generator: "Generator", block_type: StatementBlockType,
+                 debug_frame_depth):
         self.block_type = block_type
         self._generator = generator
         if block_type == StatementBlockType.Combinational:
@@ -61,7 +59,7 @@ class CodeBlock:
             self._block = generator.internal_generator.sequential()
 
         if generator.debug:
-            fn, ln = get_fn_ln(CodeBlock.FRAME_DEPTH)
+            fn, ln = get_fn_ln(debug_frame_depth)
             self._block.add_fn_ln((fn, ln))
 
     def add_stmt(self, stmt):
@@ -75,8 +73,10 @@ class CodeBlock:
 
 
 class SequentialCodeBlock(CodeBlock):
-    def __init__(self, generator: "Generator", sensitivity_list):
-        super().__init__(generator, StatementBlockType.Sequential)
+    def __init__(self, generator: "Generator", sensitivity_list,
+                 debug_frame_depth: int = 4):
+        super().__init__(generator, StatementBlockType.Sequential,
+                         debug_frame_depth)
         for cond, var in sensitivity_list:
             assert isinstance(cond, BlockEdgeType)
             assert isinstance(var, _kratos.Var)
@@ -84,8 +84,10 @@ class SequentialCodeBlock(CodeBlock):
 
 
 class CombinationalCodeBlock(CodeBlock):
-    def __init__(self, generator: "Generator"):
-        super().__init__(generator, StatementBlockType.Combinational)
+    def __init__(self, generator: "Generator",
+                 debug_frame_depth: int = 4):
+        super().__init__(generator, StatementBlockType.Combinational,
+                         debug_frame_depth)
 
 
 class PortProxy:
@@ -231,10 +233,18 @@ class Generator(metaclass=GeneratorMeta):
         return v
 
     def combinational(self):
-        return CombinationalCodeBlock(self)
+        if self.debug:
+            self.__cached_initialization.append((self.combinational, []))
+            return
+        return CombinationalCodeBlock(self, 3)
 
-    def sequential(self, sensitivity_list: List[Tuple[BlockEdgeType, str]]):
-        return SequentialCodeBlock(self, sensitivity_list)
+    def sequential(self, sensitivity_list: List[Tuple[BlockEdgeType,
+                                                      _kratos.Var]]):
+        if self.debug:
+            self.__cached_initialization.append((self.sequential,
+                                                 [sensitivity_list]))
+            return
+        return SequentialCodeBlock(self, sensitivity_list, 3)
 
     def port(self, name: str, width: int, direction: PortDirection,
              port_type: PortType = PortType.Data,
@@ -328,10 +338,7 @@ class Generator(metaclass=GeneratorMeta):
     def add_stmt(self, stmt):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_stmt, [stmt]))
-        if isinstance(stmt, CodeBlock):
-            self.__generator.add_stmt(stmt.stmt())
-        else:
-            self.__generator.add_stmt(stmt)
+        self.__generator.add_stmt(stmt)
 
     def add_child_generator(self, instance_name: str, generator: "Generator"):
         if self.is_cloned:
