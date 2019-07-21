@@ -4,10 +4,10 @@ matrix:
           services:
             - docker
           language: minimal
-          #- name: "macOS"
-          #os: osx
-          #language: shell
-          #compiler: gcc
+        - name: "macOS"
+          os: osx
+          language: shell
+          osx_image: xcode11
           #- name: "Windows"
           #os: windows
           #language: shell

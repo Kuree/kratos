@@ -8,7 +8,6 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/garnet-flow bash
 
     docker cp ../kratos manylinux:/
-    docker exec -i manylinux bash -c "pip install conan"
     docker exec -i manylinux bash -c 'cd kratos && python setup.py bdist_wheel'
     docker exec -i manylinux bash -c 'cd kratos && auditwheel show dist/*'
     docker exec -i manylinux bash -c 'cd kratos && auditwheel repair dist/*'
@@ -26,18 +25,13 @@ elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     source /Users/travis/.pyenv/versions/${PYTHON}/envs/venv37/bin/activate
     python --version
 
-    python -m pip install cmake twine wheel pytest conan
-    export CXX=`which g++`
-    echo $CXX
-    $CXX --version
+    python -m pip install cmake twine wheel pytest
     python setup.py bdist_wheel
     pip install dist/*.whl
     pytest tests/
 else
     python --version
-    pip install conan wheel pytest
-    export CXX=`which g++`
-    export CC=`which gcc`
+    pip install wheel pytest
     python setup.py bdist_wheel
     pip install dist/*.whl
     pytest tests/
