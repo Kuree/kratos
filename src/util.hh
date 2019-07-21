@@ -22,6 +22,8 @@ std::string port_type_to_str(PortType type);
 
 bool is_valid_verilog(const std::string &src);
 
+void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt);
+
 }
 
 #endif  // KRATOS_UTIL_HH

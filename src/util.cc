@@ -2,6 +2,8 @@
 #include "fmt/format.h"
 #include "port.hh"
 #include "stmt.hh"
+#include "generator.hh"
+#include "except.hh"
 
 #include "slang/compilation/Compilation.h"
 #include "slang/syntax/SyntaxTree.h"
@@ -118,6 +120,34 @@ std::string port_type_to_str(PortType type) {
             return "async_reset";
         default:
             throw std::runtime_error("unknown port type");
+    }
+}
+
+void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt) {
+    auto parent = stmt->parent();
+    if (!parent)
+        return;
+    if (parent->ir_node_kind() == IRNodeKind::GeneratorKind) {
+        auto p = dynamic_cast<Generator*>(parent);
+        p->remove_stmt(stmt);
+    } else {
+        if (parent->ir_node_kind() != IRNodeKind::StmtKind) {
+            throw StmtException("Internal error", {stmt.get()});
+        }
+        auto p_stmt = dynamic_cast<Stmt*>(parent);
+        if (p_stmt->type() == StatementType::Switch) {
+            auto p = dynamic_cast<SwitchStmt*>(p_stmt);
+            p->remove_stmt(stmt);
+        } else if (p_stmt->type() == StatementType::If) {
+            auto  p = dynamic_cast<IfStmt*>(p_stmt);
+            p->remove_stmt(stmt);
+        } else {
+            if (p_stmt->type() != StatementType::Block) {
+                throw StmtException("Internal error", {stmt.get()});
+            }
+            auto p = dynamic_cast<StmtBlock*>(p_stmt);
+            p->remove_stmt(stmt);
+        }
     }
 }
 

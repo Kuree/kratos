@@ -78,6 +78,7 @@ public:
     void add_else_stmt(Stmt &stmt) { add_else_stmt(stmt.shared_from_this()); }
     void remove_then_stmt(const std::shared_ptr<Stmt> &stmt);
     void remove_else_stmt(const std::shared_ptr<Stmt> &stmt);
+    void remove_stmt(const std::shared_ptr<Stmt> &stmt);
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
@@ -103,6 +104,7 @@ public:
     void remove_switch_case(const std::shared_ptr<Const> &switch_case);
     void remove_switch_case(const std::shared_ptr<Const> &switch_case,
                             const std::shared_ptr<Stmt> &stmt);
+    void remove_stmt(const std::shared_ptr<Stmt> &stmt);
 
     const std::shared_ptr<Var> target() const { return target_; }
 
@@ -127,7 +129,7 @@ public:
     StatementBlockType block_type() const { return block_type_; }
     void add_statement(const std::shared_ptr<Stmt> &stmt);
     void add_statement(Stmt &stmt) { add_statement(stmt.shared_from_this()); }
-    void remove_statement(const std::shared_ptr<Stmt> &stmt);
+    void remove_stmt(const std::shared_ptr<Stmt> &stmt);
 
     uint64_t child_count() override { return stmts_.size(); }
     IRNode *get_child(uint64_t index) override {

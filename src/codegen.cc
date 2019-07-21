@@ -180,9 +180,9 @@ std::string SystemVerilogCodeGen::indent() {
 }
 
 void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
-    if (node->ast_node_kind() != IRNodeKind::StmtKind)
+    if (node->ir_node_kind() != IRNodeKind::StmtKind)
         throw ::runtime_error(::format("Cannot codegen non-statement node. Got {0}",
-                                       ast_type_to_string(node->ast_node_kind())));
+                                       ast_type_to_string(node->ir_node_kind())));
     auto stmt_ptr = reinterpret_cast<Stmt*>(node);
     if (stmt_ptr->type() == StatementType::Assign) {
         stmt_code(reinterpret_cast<AssignStmt*>(node));

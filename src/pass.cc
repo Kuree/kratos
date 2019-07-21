@@ -103,7 +103,7 @@ private:
         bool is_top_level = false;
         auto sources = var->sources();
         for (auto const& stmt : sources) {
-            if (stmt->parent()->ast_node_kind() == IRNodeKind::GeneratorKind) {
+            if (stmt->parent()->ir_node_kind() == IRNodeKind::GeneratorKind) {
                 is_top_level = true;
                 break;
             }
@@ -113,7 +113,7 @@ private:
         bool has_error = false;
         if (is_top_level) {
             for (auto const& stmt : sources) {
-                if (stmt->parent()->ast_node_kind() != IRNodeKind::GeneratorKind) {
+                if (stmt->parent()->ir_node_kind() != IRNodeKind::GeneratorKind) {
                     has_error = true;
                     break;
                 }
@@ -677,7 +677,7 @@ public:
         std::vector<std::pair<std::shared_ptr<Var>, std::shared_ptr<AssignStmt>>>& queue) {
         if (var->sinks().size() == 1) {
             auto const& stmt = *(var->sinks().begin());
-            if (stmt->parent()->ast_node_kind() == IRNodeKind::GeneratorKind) {
+            if (stmt->parent()->ir_node_kind() == IRNodeKind::GeneratorKind) {
                 auto sink_var = stmt->left();
                 if (sink_var->parent() != var->parent()) {
                     // not the same parent

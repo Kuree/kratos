@@ -82,6 +82,21 @@ void IfStmt::remove_else_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
         else_body_.erase(pos);
 }
 
+void IfStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
+    for (auto const &s : then_body_) {
+        if (s == stmt) {
+            remove_then_stmt(stmt);
+            return;
+        }
+    }
+    for (auto const &s: else_body_) {
+        if (s == stmt) {
+            remove_else_stmt(stmt);
+            return;
+        }
+    }
+}
+
 IRNode *IfStmt::get_child(uint64_t index) {
     if (index == 0)
         return predicate_.get();
@@ -122,7 +137,7 @@ void StmtBlock::add_statement(const std::shared_ptr<Stmt> &stmt) {
     stmts_.emplace_back(stmt);
 }
 
-void StmtBlock::remove_statement(const std::shared_ptr<kratos::Stmt> &stmt) {
+void StmtBlock::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
     auto pos = std::find(stmts_.begin(), stmts_.end(), stmt);
     if (pos != stmts_.end())
         stmts_.erase(pos);
@@ -181,6 +196,17 @@ void SwitchStmt::remove_switch_case(const std::shared_ptr<kratos::Const> &switch
         auto pos = std::find(stmts.begin(), stmts.end(), stmt);
         if (pos != stmts.end())
             stmts.erase(pos);
+    }
+}
+
+void SwitchStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
+    for (auto &[c, stmts]: body_) {
+        for (auto const &s: stmts) {
+            if (s == stmt) {
+                remove_switch_case(c, stmt);
+                break;
+            }
+        }
     }
 }
 

@@ -35,7 +35,7 @@ public:
     IRNode *ast_node() { return this; }
 
     virtual IRNode *parent() { return nullptr; }
-    IRNodeKind ast_node_kind() { return ast_node_type_; }
+    IRNodeKind ir_node_kind() { return ast_node_type_; }
 
     std::vector<std::pair<std::string, uint32_t>> fn_name_ln;
 

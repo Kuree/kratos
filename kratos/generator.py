@@ -68,6 +68,12 @@ class CodeBlock:
         else:
             self._block.add_statement(stmt)
 
+    def remove_stmt(self, stmt):
+        if hasattr(stmt, "stmt"):
+            self._block.remove_stmt(stmt.stmt())
+        else:
+            self._block.remove_stmt(stmt)
+
     def stmt(self):
         return self._block
 
@@ -183,7 +189,7 @@ class Generator(metaclass=GeneratorMeta):
 
     @property
     def instance_name(self):
-        return self.__generator.name
+        return self.__generator.instance_name
 
     @instance_name.setter
     def instance_name(self, name: str):
@@ -218,8 +224,8 @@ class Generator(metaclass=GeneratorMeta):
         return self.__generator.is_cloned
 
     @property
-    def stmt_count(self):
-        return self.__generator.stmt_count()
+    def stmts_count(self):
+        return self.__generator.stmts_count()
 
     def get_stmt_by_index(self, index):
         return self.__generator.get_stmt(index)
@@ -338,14 +344,21 @@ class Generator(metaclass=GeneratorMeta):
     def add_stmt(self, stmt):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_stmt, [stmt]))
+            return
         self.__generator.add_stmt(stmt)
+
+    def remove_stmt(self, stmt):
+        if self.is_cloned:
+            self.__cached_initialization.append((self.remove_stmt, [stmt]))
+            return
+        self.__generator.remove_stmt(stmt)
 
     def add_child_generator(self, instance_name: str, generator: "Generator"):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_child_generator,
                                                  (instance_name, generator)))
             return
-        generator.instance_name = instance_name
+        generator.__generator.instance_name = instance_name
         if instance_name in self.__child_generator:
             raise Exception(
                 "{0} already exists in {1}".format(self.instance_name,
@@ -360,6 +373,17 @@ class Generator(metaclass=GeneratorMeta):
                                                  (fn, ln))
         else:
             self.__generator.add_child_generator(generator.__generator)
+
+    def remove_child_generator(self, generator):
+        if self.is_cloned:
+            self.__cached_initialization.append((self.remove_child_generator,
+                                                 [generator]))
+            return
+        if generator.instance_name not in self.__child_generator:
+            raise Exception("{0} doesn't exist in {1}".format(generator.name,
+                                                              self.name))
+        self.__child_generator.pop(generator.instance_name)
+        self.__generator.remove_child_generator(generator.__generator)
 
     @staticmethod
     def clear_context():
@@ -390,9 +414,9 @@ class Generator(metaclass=GeneratorMeta):
         if not isinstance(generator, (Generator, _kratos.Generator)):
             return False
         elif isinstance(generator, Generator):
-            return self.__generator.has_child_generator(generator.__generator)
+            return generator.__generator in self.__generator
         else:
-            return self.__generator.has_child_generator(generator)
+            return generator in self.__generator
 
     def initialize_clone(self):
         if self.is_cloned:

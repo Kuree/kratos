@@ -210,11 +210,13 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
                 for (auto const &stmt: srcs) {
                     auto sink = stmt->right();
                     sink->unassign(stmt);
+                    remove_stmt_from_parent(stmt);
                 }
             } else {
                 auto sinks = std::unordered_set(port->sinks().begin(), port->sinks().end());
                 for (auto const &stmt: sinks) {
                     port->unassign(stmt);
+                    remove_stmt_from_parent(stmt);
                 }
             }
         }
@@ -302,7 +304,7 @@ std::shared_ptr<CombinationalStmtBlock> Generator::combinational() {
 void Generator::replace_child_generator(const std::shared_ptr<Generator> &target,
                                         const std::shared_ptr<Generator> &new_generator) {
     auto parent = target->parent();
-    if (parent->ast_node_kind() != IRNodeKind::GeneratorKind)
+    if (parent->ir_node_kind() != IRNodeKind::GeneratorKind)
         throw ::runtime_error(::format("{0} is a top level module and thus cannot be replaced",
                                        target->instance_name));
     auto parent_generator = reinterpret_cast<Generator *>(parent);

@@ -371,7 +371,6 @@ void init_generator(py::module &m) {
                                         &Generator::add_child_generator))
         .def("remove_child_generator", &Generator::remove_child_generator)
         .def("get_child_generators", &Generator::get_child_generators)
-        .def("has_child_generator", &Generator::has_child_generator)
         .def("get_child_generator_size", &Generator::get_child_generator_size)
         .def("replace_child_generator", &Generator::replace_child_generator)
         .def("external", &Generator::external)
@@ -386,7 +385,8 @@ void init_generator(py::module &m) {
         .def_readwrite("name", &Generator::name)
         .def_readwrite("debug", &Generator::debug)
         .def("clone", &Generator::clone)
-        .def_property("is_cloned", &Generator::is_cloned, &Generator::set_is_cloned);
+        .def_property("is_cloned", &Generator::is_cloned, &Generator::set_is_cloned)
+        .def("__contains__", &Generator::has_child_generator);
 
     generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
         var.fn_name_ln.emplace_back(info);
@@ -442,7 +442,7 @@ void init_stmt(py::module &m) {
         .def("block_type", &CombinationalStmtBlock::block_type)
         .def("add_statement",
              py::overload_cast<const ::shared_ptr<Stmt> &>(&CombinationalStmtBlock::add_statement))
-        .def("remove_statement", &CombinationalStmtBlock::remove_statement);
+        .def("remove_stmt", &CombinationalStmtBlock::remove_stmt);
 
     py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, Stmt>(m,
                                                                              "SequentialStmtBlock")
@@ -451,7 +451,7 @@ void init_stmt(py::module &m) {
         .def("add_condition", &SequentialStmtBlock::add_condition)
         .def("add_statement",
              py::overload_cast<const ::shared_ptr<Stmt> &>(&SequentialStmtBlock::add_statement))
-        .def("remove_statement", &SequentialStmtBlock::remove_statement);
+        .def("remove_stmt", &SequentialStmtBlock::remove_stmt);
 
     py::class_<ModuleInstantiationStmt, ::shared_ptr<ModuleInstantiationStmt>, Stmt>(
         m, "ModuleInstantiationStmt")

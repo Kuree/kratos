@@ -614,5 +614,14 @@ def test_wire_merge():
     assert is_valid_verilog(src)
 
 
+def test_remove_child():
+    top = PassThroughTop()
+    child = top["pass"]
+    assert child in top
+    top.remove_child_generator(child)
+    assert child not in top
+    # top should be empty now
+    assert top.stmts_count == 0
+
 if __name__ == "__main__":
-    test_attribute()
+    test_remove_child()
