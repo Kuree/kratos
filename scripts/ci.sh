@@ -15,6 +15,7 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     docker exec -i manylinux-test bash -c 'cd kratos && pip install pytest dist/* && pytest -v tests/'
 
 elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    set -xe
     export PYTHON=3.7.0
     brew install gcc
     brew install pyenv-virtualenv
@@ -28,6 +29,7 @@ elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     python -m pip install cmake twine wheel pytest conan
     export CXX=`which g++`
     echo $CXX
+    $CXX --version
     python setup.py bdist_wheel
     pip install dist/*.whl
     pytest tests/
@@ -35,7 +37,7 @@ else
     python --version
     pip install conan wheel pytest
     export CXX=`which g++`
-    echo $CXX
+    export CC=`which gcc`
     python setup.py bdist_wheel
     pip install dist/*.whl
     pytest tests/

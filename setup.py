@@ -48,7 +48,18 @@ class CMakeBuild(build_ext):
                                                                 extdir)]
             if sys.maxsize > 2 ** 32:
                 cmake_args += ['-A', 'x64']
+            if "CXX" in os.environ:
+                print("Using CXX", os.environ["CXX"])
+                cmake_args += ["-DCMAKE_CXX_COMPILER=" + os.environ["CXX"]]
+            if "CC" in os.environ:
+                print("Using CC", os.environ["CC"])
+                cmake_args += ["-DCMAKE_CC_COMPILER=" + os.environ["CC"]]
+
             build_args += ['--', '/m']
+        elif platform.system() == "Darwin":
+            if "CXX" in os.environ:
+                print("Using CXX", os.environ["CXX"])
+                cmake_args += ["-DCMAKE_CXX_COMPILER=" + os.environ["CXX"]]
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
             build_args += ['--', '-j2']

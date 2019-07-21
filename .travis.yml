@@ -7,9 +7,11 @@ matrix:
         - name: "macOS"
           os: osx
           language: shell
+          compiler: gcc
         - name: "Windows"
           os: windows
           language: shell
+          compiler: gcc
           before_install:
             - choco install python
             - choco install mingw
