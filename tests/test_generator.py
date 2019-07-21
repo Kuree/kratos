@@ -133,8 +133,7 @@ def test_mod_instantiation():
     assert "top" in mod_src
     mod2_src = mod_src["top"]
     assert "$" not in mod2_src
-    assert is_valid_verilog(mod_src["top"])
-    assert is_valid_verilog(mod_src["mod1"])
+    assert is_valid_verilog(mod_src)
 
 
 def test_external_module():
@@ -256,7 +255,7 @@ def test_fanout_mod_inst():
     mod_src = verilog(mod, optimize_passthrough=False)
     assert "mod2" in mod_src
     src = mod_src["mod2"]
-    assert is_valid_verilog(src)
+    assert is_valid_verilog(mod_src)
 
 
 def test_debug():
@@ -443,15 +442,15 @@ def test_const_port():
 
             self.child = PassThroughMod()
             self.add_child_generator("child", self.child)
-            self.child.wire(self.child.in_, self.const(0, 1))
+            self.wire(self.child.in_, self.const(0, 1))
             self.wire(self.out_[0], self.child.out_)
             self.wire(self.out_[1], self.in_)
 
     mod = Mod()
-    mod_src = verilog(mod, optimize_passthrough=False)
+    mod_src = verilog(mod, optimize_passthrough=False, filename="test.sv")
     assert "mod" in mod_src
-    src = mod_src["mod"]
-    assert is_valid_verilog(src)
+
+    assert is_valid_verilog(mod_src)
 
 
 def test_create():
@@ -482,7 +481,7 @@ def test_create():
     # we didn't change the name
     assert "mod_1" in mod_src
     assert "2:0" in mod_src["mod_1"]
-    assert is_valid_verilog(mod_src["mod_1"])
+    assert is_valid_verilog(mod_src)
 
 
 def test_clone():
@@ -511,7 +510,7 @@ def test_clone():
     assert mod.child2.is_cloned
     mod_src = verilog(mod, False, False, False)
     src = mod_src["mod2"]
-    assert is_valid_verilog(src)
+    assert is_valid_verilog(mod_src)
 
 
 def test_packed_struct():
