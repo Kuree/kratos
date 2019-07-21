@@ -4,4 +4,8 @@ add_library(kratos port.cc port.hh generator.cc generator.hh
         ir.cc ir.hh graph.cc graph.hh hash.cc hash.hh util.cc util.hh except.cc except.hh)
 
 target_include_directories(kratos PUBLIC ../extern/fmt/include ../extern/cxxpool/src)
-target_link_libraries(kratos fmt)
+if (MSYS)
+   target_link_libraries(kratos fmt)
+else()
+    target_link_libraries(kratos fmt stdc++fs)
+endif()
