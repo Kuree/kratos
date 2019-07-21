@@ -160,14 +160,16 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
             auto port = child->get_port(port_name);
             if (port->port_direction() == PortDirection::In) {
                 // do a copy
-                auto srcs = std::unordered_set(port->sources().begin(), port->sources().end());
+                auto srcs = std::unordered_set<std::shared_ptr<AssignStmt>>(port->sources().begin(),
+                                                                            port->sources().end());
                 for (auto const &stmt : srcs) {
                     auto sink = stmt->right();
                     sink->unassign(stmt);
                     remove_stmt_from_parent(stmt);
                 }
             } else {
-                auto sinks = std::unordered_set(port->sinks().begin(), port->sinks().end());
+                auto sinks = std::unordered_set<std::shared_ptr<AssignStmt>>(port->sinks().begin(),
+                                                                             port->sinks().end());
                 for (auto const &stmt : sinks) {
                     port->unassign(stmt);
                     remove_stmt_from_parent(stmt);

@@ -123,6 +123,8 @@ public:
     Var(const Var &var) = delete;
     Var() = delete;
 
+    virtual ~Var() = default;
+
 protected:
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
     std::unordered_set<std::shared_ptr<AssignStmt>> sources_;

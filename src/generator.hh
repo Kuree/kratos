@@ -116,6 +116,8 @@ public:
         return children_debug_;
     }
 
+    virtual ~Generator() = default;
+
 private:
     std::vector<std::string> lib_files_;
     Context *context_;

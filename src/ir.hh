@@ -47,6 +47,8 @@ public:
         attributes_.emplace_back(attribute);
     }
 
+    virtual ~IRNode() = default;
+
 private:
     IRNodeKind ast_node_type_;
     std::vector<std::shared_ptr<Attribute>> attributes_;
@@ -77,6 +79,8 @@ public:
 
     // generator specific traversal
     virtual void visit(Generator *) {}
+
+    virtual ~IRVisitor() = default;
 
 protected:
     uint32_t level = 0;

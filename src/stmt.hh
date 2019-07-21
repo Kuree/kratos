@@ -29,6 +29,8 @@ public:
     uint64_t child_count() override { return 0; }
     IRNode *get_child(uint64_t) override { return nullptr; };
 
+    virtual ~Stmt() = default;
+
 protected:
     StatementType type_;
     IRNode *parent_ = nullptr;
@@ -185,6 +187,7 @@ public:
     }
 
     const Generator *target() { return target_; }
+    const Generator *module_parent() { return parent_; }
 
 private:
     Generator *target_;
