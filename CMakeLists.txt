@@ -8,7 +8,7 @@ set(CMAKE_CXX_FLAGS "-Wall -g -Wextra -Werror -fPIC")
 
 # extern
 add_subdirectory(extern/googletest/)
-add_subdirectory(extern/slang EXCLUDE_FROM_ALL)
+add_subdirectory(extern/fmt)
 add_subdirectory(extern/pybind11)
 
 include(GoogleTest)

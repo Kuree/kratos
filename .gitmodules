@@ -1,9 +1,6 @@
 [submodule "extern/googletest"]
 	path = extern/googletest
 	url = https://github.com/google/googletest
-[submodule "extern/slang"]
-	path = extern/slang
-	url = https://github.com/MikePopoloski/slang
 [submodule "extern/fmt"]
 	path = extern/fmt
 	url = https://github.com/fmtlib/fmt
