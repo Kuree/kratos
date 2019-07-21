@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2019-07-20
+### Added
+- Stmt remove APIs (#41).
+- API doc generation.
+- `kratos` namespace in C++ source files (#37)
+
+### Changed:
+- IR attributes share the memory pointer
+- Rename AST to IR.
+
+### Fixed
+- `instance_name` in the python `Generator` class
+- Parallel hashing needs to use leveled generators.
+- Generator unique names logic was wrong.
+- Typos in documentation (#40).
+
 ## [0.0.5] - 2019-07-19
 ### Added
 - More comprehensive documentation that covers the statements.
