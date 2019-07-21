@@ -1,10 +1,10 @@
 #include "except.hh"
 #include <cstring>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include "expr.hh"
 #include "stmt.hh"
+#include "util.hh"
 
 constexpr char RED[] = "\033[91m";
 constexpr char GREEN[] = "\033[92m";
@@ -12,8 +12,6 @@ constexpr char BLUE[] = "\033[94m";
 constexpr char ENDC[] = "\033[0m";
 constexpr uint32_t CODE_RANGE = 2;
 constexpr uint32_t LINE_WIDTH = 80;
-
-namespace fs = std::filesystem;
 
 namespace kratos {
 

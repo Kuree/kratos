@@ -1,5 +1,4 @@
 #include "generator.hh"
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <streambuf>
@@ -12,7 +11,6 @@ using fmt::format;
 using std::runtime_error;
 using std::string;
 using std::vector;
-namespace fs = std::filesystem;
 
 namespace kratos {
 

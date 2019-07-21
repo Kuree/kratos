@@ -71,8 +71,7 @@ TEST(generator, param) {  // NOLINT
     fix_assignment_type(&mod);
     create_module_instantiation(&mod);
     auto mod_src = generate_verilog(&mod);
-    auto src = mod_src.at("mod");
-    EXPECT_TRUE(is_valid_verilog(src));
+    EXPECT_TRUE(is_valid_verilog(mod_src));
 }
 
 TEST(pass, assignment_fix) {  // NOLINT
@@ -267,8 +266,7 @@ TEST(pass, verilog_instance) {  // NOLINT
     auto const &result = generate_verilog(&mod1);
     EXPECT_EQ(result.size(), 2);
     EXPECT_TRUE(result.find("module1") != result.end());
-    auto module_str = result.at("module1") + "\n" + result.at("module2");
-    EXPECT_TRUE(is_valid_verilog(module_str));
+    EXPECT_TRUE(is_valid_verilog(result));
 }
 
 TEST(pass, verilog_stub) {  // NOLINT
@@ -428,7 +426,7 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
     verilog.run_passes(true, false, false, false);
     auto src = verilog.verilog_src();
     EXPECT_EQ(src.size(), 3);
-    EXPECT_TRUE(is_valid_verilog(src.at("module1")));
+    EXPECT_TRUE(is_valid_verilog(src));
 }
 
 TEST(pass, module_hash) {  // NOLINT

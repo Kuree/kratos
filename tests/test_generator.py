@@ -537,9 +537,8 @@ def test_packed_struct():
 def test_more_debug1():
     mod = PassThroughTop()
     mod_src, debug_info = verilog(mod, debug=True)
-    src = mod_src["top"]
     debug = debug_info["top"]
-    assert is_valid_verilog(src)
+    assert is_valid_verilog(mod_src)
     assert len(debug) > 3
 
 
@@ -564,7 +563,7 @@ def test_more_debug2():
     mod_src, debug_info = verilog(mod, debug=True)
     src = mod_src["top"]
     debug = debug_info["top"]
-    assert is_valid_verilog(src)
+    assert is_valid_verilog(mod_src)
     assert len(debug) > 3
 
 
@@ -611,7 +610,7 @@ def test_wire_merge():
     mod_src = verilog(mod)
     src = mod_src["Test"]
     assert "assign out = in" in src
-    assert is_valid_verilog(src)
+    assert is_valid_verilog(mod_src)
 
 
 def test_remove_child():
@@ -622,6 +621,7 @@ def test_remove_child():
     assert child not in top
     # top should be empty now
     assert top.stmts_count == 0
+
 
 if __name__ == "__main__":
     test_remove_child()

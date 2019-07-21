@@ -1,3 +1,7 @@
+#include "util.hh"
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <regex>
 #include "except.hh"
 #include "expr.hh"
@@ -5,10 +9,6 @@
 #include "generator.hh"
 #include "port.hh"
 #include "stmt.hh"
-
-#include "slang/compilation/Compilation.h"
-#include "slang/syntax/SyntaxTree.h"
-#include "slang/text/SourceManager.h"
 
 using fmt::format;
 
@@ -101,12 +101,52 @@ std::string port_dir_to_str(PortDirection direction) {
 }
 
 bool is_valid_verilog(const std::string &src) {
-    slang::SourceManager source_manager;
-    slang::Compilation compilation;
-    auto tree = slang::SyntaxTree::fromText(src, source_manager);
-    compilation.addSyntaxTree(tree);
-    auto &diagnostics = compilation.getParseDiagnostics();
-    return diagnostics.empty();
+    // we first output to a temp src
+    std::string pathname = fs::temp_directory_path();
+    std::string filename = fs::join(pathname, "src.sv");
+    if (filename.empty()) throw std::runtime_error("unable to create temp file");
+    std::ofstream f(filename);
+    f << src;
+    f.close();
+
+    int status;
+
+    // choose which parser to use
+    // we use verilator first
+    std::string verilator = fs::which("verilator");
+    if (!verilator.empty()) {
+        std::string output_log_file = fs::join(pathname, "out");
+        status = std::system(
+            ::format("{0} {1} --lint-only -Wno-fatal &> {2}", verilator, filename, output_log_file)
+                .c_str());
+        fs::remove(filename);
+        fs::remove(output_log_file);
+        return status == 0;
+    }
+
+    std::string iverilog = fs::which("iverilog");
+    if (!iverilog.empty()) {
+        std::string output_filename = fs::join(pathname, "out.a");
+        std::string output_log_file = fs::join(pathname, "out");
+        status = std::system(
+            ::format("{0} {1} -o {2} &> {3}", iverilog, filename, output_filename, output_log_file)
+                .c_str());
+        fs::remove(filename);
+        fs::remove(output_filename);
+        return status == 0;
+    }
+
+    fs::remove(filename);
+    throw std::runtime_error("iverilog and verilator not found in the system");
+}
+
+bool is_valid_verilog(const std::map<std::string, std::string> &src) {
+    std::string final_src;
+    for (auto const iter : src) {
+        final_src.append(iter.second);
+        final_src.append("\n");
+    }
+    return is_valid_verilog(final_src);
 }
 
 std::string port_type_to_str(PortType type) {
@@ -179,7 +219,7 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *ge
     std::unordered_set<std::string> ignore_list = {"logic", "reg", "wire"};
     std::regex re("(input|output)\\s?([\\w,\\s_$\\[\\]:])+", std::regex::ECMAScript);  // NOLINT
     std::smatch match;
-    ::string::const_iterator iter = mod_def.cbegin();
+    std::string::const_iterator iter = mod_def.cbegin();
     while (std::regex_search(iter, mod_def.end(), match, re)) {
         if (match.size() > 1) {
             std::string port_declaration = std::string(match[0].first, match[0].second);
@@ -259,4 +299,57 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *ge
     return get_port_from_mod_def(generator, module_def);
 }
 
+namespace fs {
+std::string which(const std::string &name) {
+    std::string env_path = std::getenv("PATH");
+    // tokenize it base on either : or ;
+    auto tokens = get_tokens(env_path, ";:");
+    for (auto const &dir : tokens) {
+        auto new_path = fs::join(dir, name);
+        if (exists(new_path)) {
+            return new_path;
+        }
+    }
+    return "";
+}
+
+bool exists(const std::string &filename) {
+#if defined(_WIN32) || defined(_WIN64)
+    namespace fs = std::experimental::filesystem::v1;
+#else
+    namespace fs = std::filesystem;
+#endif
+    return fs::exists(filename);
+}
+
+std::string join(const std::string &path1, const std::string &path2) {
+#if defined(_WIN32) || defined(_WIN64)
+    namespace fs = std::experimental::filesystem::v1;
+#else
+    namespace fs = std::filesystem;
+#endif
+    fs::path p1 = path1;
+    fs::path p2 = path2;
+    return p1 / p2;
+}
+
+bool remove(const std::string &filename) {
+#if defined(_WIN32) || defined(_WIN64)
+    namespace fs = std::experimental::filesystem::v1;
+#else
+    namespace fs = std::filesystem;
+#endif
+    return fs::remove(filename);
+}
+
+std::string temp_directory_path() {
+#if defined(_WIN32) || defined(_WIN64)
+    namespace fs = std::experimental::filesystem::v1;
+#else
+    namespace fs = std::filesystem;
+#endif
+    return fs::temp_directory_path();
+}
+
+}  // namespace fs
 }

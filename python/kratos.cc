@@ -97,8 +97,7 @@ void init_pass(py::module &m) {
         .def("extract_struct_info", &extract_struct_info)
         .def("merge_wire_assignments", merge_wire_assignments);
 
-    auto manager =
-        py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
+    auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
 This class gives you the fined control over which pass to run and in which order.
 Most passes doesn't return anything, thus it's safe to put it in the pass manager and
 let is run. However, if you want to code gen verilog, you have to call generate_verilog()
@@ -183,7 +182,9 @@ void init_except(py::module &m) {
 void init_util(py::module &m) {
     auto util_m = m.def_submodule("util");
 
-    util_m.def("is_valid_verilog", &is_valid_verilog);
+    util_m.def("is_valid_verilog", py::overload_cast<const std::string &>(&is_valid_verilog))
+        .def("is_valid_verilog",
+             py::overload_cast<const std::map<std::string, std::string> &>(&is_valid_verilog));
 }
 
 template <typename T, typename K>
