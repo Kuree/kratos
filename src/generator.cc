@@ -1,16 +1,10 @@
-#include <utility>
-
+#include "generator.hh"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <regex>
+#include <streambuf>
 #include <unordered_set>
 #include "fmt/format.h"
-#include "generator.hh"
-#include "slang/compilation/Compilation.h"
-#include "slang/syntax/SyntaxTree.h"
-#include "slang/text/SourceManager.h"
-#include "slang/util/Bag.h"
 #include "stmt.hh"
 #include "util.hh"
 
@@ -22,53 +16,6 @@ namespace fs = std::filesystem;
 
 namespace kratos {
 
-std::map<::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *module,
-                                                                const ::string &filename,
-                                                                const ::string &module_name) {
-    slang::SourceManager source_manager;
-    slang::Compilation compilation;
-    std::map<::string, std::shared_ptr<Port>> ports;
-    auto buffer = source_manager.readSource(filename);
-    slang::Bag options;
-    auto ast_tree = slang::SyntaxTree::fromBuffer(buffer, source_manager, options);
-    compilation.addSyntaxTree(ast_tree);
-    const auto &def = compilation.getDefinition(module_name);
-    if (!def) {
-        throw ::runtime_error(::format("unable to find {0} from {1}", module_name, filename));
-    }
-    const auto &port_map = def->getPortMap();
-    for (auto const &[name, symbol] : port_map) {
-        if (symbol->kind == slang::SymbolKind::Port) {
-            const auto &p = symbol->as<slang::PortSymbol>();
-            // get port direction
-            PortDirection direction;
-            switch (p.direction) {
-                case slang::PortDirection::In:
-                    direction = PortDirection::In;
-                    break;
-                case slang::PortDirection::Out:
-                    direction = PortDirection::Out;
-                    break;
-                case slang::PortDirection::InOut:
-                    direction = PortDirection::InOut;
-                    break;
-                default:
-                    throw ::runtime_error("Unknown port direction");
-            }
-            // get name
-            const ::string name = ::string(p.name);
-            // get width
-            const auto &type = p.getType();
-            const auto width = type.getBitWidth();
-            const auto is_signed = type.isSigned();
-            ports.emplace(name, std::make_shared<Port>(module, direction, name, width,
-                                                       PortType::Data, is_signed));
-        }
-    }
-
-    return ports;
-}
-
 Generator Generator::from_verilog(Context *context, const std::string &src_file,
                                   const std::string &top_name,
                                   const std::vector<std::string> &lib_files,
@@ -79,9 +26,18 @@ Generator Generator::from_verilog(Context *context, const std::string &src_file,
     // the src file will be treated a a lib file as well
     mod.lib_files_.reserve(1 + lib_files.size());
     mod.lib_files_.emplace_back(src_file);
+
+    std::ifstream f(src_file);
+    ::string src;
+    // pre-allocate the size
+    f.seekg(0, std::ios::end);
+    src.reserve(f.tellg());
+    f.seekg(0, std::ios::beg);
+    src.assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+
     mod.lib_files_.insert(mod.lib_files_.end(), lib_files.begin(), lib_files.end());
     // const auto &ports = ;
-    const auto ports = get_port_from_verilog(&mod, src_file, top_name);
+    const auto ports = get_port_from_verilog(&mod, src, top_name);
     for (auto const &[port_name, port] : ports) {
         mod.ports_.emplace(port_name);
         mod.vars_.emplace(port_name, port);
@@ -202,19 +158,19 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
         children_.erase(pos);
         // need to remove every connected ports
         auto port_names = child->get_port_names();
-        for (auto const &port_name: port_names) {
+        for (auto const &port_name : port_names) {
             auto port = child->get_port(port_name);
             if (port->port_direction() == PortDirection::In) {
                 // do a copy
                 auto srcs = std::unordered_set(port->sources().begin(), port->sources().end());
-                for (auto const &stmt: srcs) {
+                for (auto const &stmt : srcs) {
                     auto sink = stmt->right();
                     sink->unassign(stmt);
                     remove_stmt_from_parent(stmt);
                 }
             } else {
                 auto sinks = std::unordered_set(port->sinks().begin(), port->sinks().end());
-                for (auto const &stmt: sinks) {
+                for (auto const &stmt : sinks) {
                     port->unassign(stmt);
                     remove_stmt_from_parent(stmt);
                 }
