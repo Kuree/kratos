@@ -140,6 +140,13 @@ class Generator(metaclass=GeneratorMeta):
     __inspect_frame_depth: int = 2
 
     def __init__(self, name: str, debug: bool = False, is_clone: bool = False):
+        """
+        Base class for all generators
+        :param name: generator name
+        :param debug: set to ``True`` if you want to collect debug information
+        on this particular generator
+        :param is_clone: mark whether the generator is a clone or not.
+        """
         # for initialization
         self.__cached_initialization = []
 
@@ -170,6 +177,11 @@ class Generator(metaclass=GeneratorMeta):
         self.__def_instance = self
 
     def __getitem__(self, instance_name: str):
+        """
+        Get child instance through instance name
+        :param instance_name: instance name of the child generator
+        :return: Child generator
+        """
         assert instance_name in self.__child_generator, \
             "{0} does not exist in {1}".format(instance_name,
                                                self.instance_name)
@@ -177,10 +189,20 @@ class Generator(metaclass=GeneratorMeta):
 
     @property
     def def_instance(self):
+        """
+        The definition instance of this generator. It can be itself or
+        the clone reference
+        :return: definition instance
+        """
         return self.__def_instance
 
     @property
     def name(self):
+        """
+        Generator name usually corresponds to the name of the module. However,
+        if unification happens, its verilog name will change.
+        :return: The name of the generator
+        """
         return self.__generator.name
 
     @name.setter
@@ -189,6 +211,11 @@ class Generator(metaclass=GeneratorMeta):
 
     @property
     def instance_name(self):
+        """
+        Instance name of a generator. It has to be unique within a parent
+        generator.
+        :return: the instance name of the generator
+        """
         return self.__generator.instance_name
 
     @instance_name.setter
@@ -197,6 +224,12 @@ class Generator(metaclass=GeneratorMeta):
 
     @property
     def is_stub(self):
+        """
+        If a generator is mark as a stub, most of the passes won't touch it
+        and it's the user's responsibility to keep track of it. Kratos will
+        attempt to zero out the stub outputs.
+        :return: ``True`` if it's a stub
+        """
         return self.__generator.is_stub()
 
     @is_stub.setter
@@ -205,6 +238,12 @@ class Generator(metaclass=GeneratorMeta):
 
     @property
     def external(self):
+        """
+        External module typically is used when importing external verilog files.
+        If set from user, all the passes and code gen will skip this generator
+        definition.
+        :return: ``True`` if it's an external generator
+        """
         return self.__generator.external()
 
     @external.setter

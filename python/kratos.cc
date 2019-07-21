@@ -97,7 +97,12 @@ void init_pass(py::module &m) {
         .def("extract_struct_info", &extract_struct_info)
         .def("merge_wire_assignments", merge_wire_assignments);
 
-    auto manager = py::class_<PassManager>(pass_m, "PassManager");
+    auto manager =
+        py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
+This class gives you the fined control over which pass to run and in which order.
+Most passes doesn't return anything, thus it's safe to put it in the pass manager and
+let is run. However, if you want to code gen verilog, you have to call generate_verilog()
+by yourself to obtain the verilog code.)pbdoc");
     manager.def(py::init<>())
         .def("add_pass", py::overload_cast<const std::string &, std::function<void(Generator *)>>(
                              &PassManager::add_pass))
@@ -398,11 +403,10 @@ void init_stmt(py::module &m) {
     stmt_.def(py::init<StatementType>()).def("type", &Stmt::type);
     def_trace<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
 
-    py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt> assign_(m, "AssignStmt");
+    py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt> assign_(
+        m, "AssignStmt", R"pbdoc(Assignment statement)pbdoc");
     assign_.def("assign_type", &AssignStmt::assign_type)
         .def("set_assign_type", &AssignStmt::set_assign_type)
-        .def("set_left", &AssignStmt::set_left)
-        .def("set_right", &AssignStmt::set_right)
         .def_property_readonly("left", [](const AssignStmt &stmt) { return stmt.left(); })
         .def_property_readonly("right", [](const AssignStmt &stmt) { return stmt.right(); });
 
@@ -468,7 +472,10 @@ void init_code_gen(py::module &m) {
 }
 
 PYBIND11_MODULE(_kratos, m) {
-    m.doc() = "C++ Python binding for kratos";
+    m.doc() = R"pbdoc(
+        .. currentmodule:: _kratos
+    )pbdoc";
+
     init_enum(m);
     init_pass(m);
     init_expr(m);
