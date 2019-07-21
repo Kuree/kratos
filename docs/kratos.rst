@@ -6,5 +6,3 @@ Kratos API Reference
    :inherited-members:
    :undoc-members:
 
-.. automodule:: _kratos
-
