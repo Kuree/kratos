@@ -4,25 +4,31 @@ image: Visual Studio 2015
 build: off
 # copied some commands from https://framagit.org/simgrid/simgrid/blob/master/.appveyor.yml
 build_script:
-- cmd: ls
 - cmd: git submodule init
 - cmd: git submodule update
 - cmd: SET PATH=C:\Python37-x64;%PATH% # We need python3
 - cmd: python --version
-- cmd: python -m pip install wheel
+- cmd: python -m pip install wheel twine pytest
 # Use the mingw-w64 provided by Appveyor
 - cmd: SET PATH=C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\;%PATH%
-
 # not using sh.exe otherwise mingw will die
 - rename "C:\Program Files\Git\usr\bin\sh.exe" "sh-ignored.exe"
 - cmd: python setup.py bdist_wheel
+- cmd: python -m pip uninstall -y kratos
+- cmd: python -m pip install --ignore-installed --find-links=dist\ kratos
+# - cmd: SET PATH=C:\msys64\usr\bin;%PATH%
+# update packman
+# - cmd: pacman --noconfirm -Syu
+# - cmd: pacman --noconfirm -S mingw-w64-x86_64-verilator
+# - cmd: SET PATH=C:\msys64\mingw64\bin;%PATH%
 
 test: off
-
-artifacts:
-    - path: dist/*.whl
+#test_script:
+#- cd tests && python -c "from kratos import *"
+#- python -m pytest tests/
 
 deploy_script:
+  - cmd: python setup.py bdist_wheel
   - echo "Starting Artifact Deployment"
   # populate pypirc file for twine
   - echo [distutils]                                  > %USERPROFILE%\\.pypirc
@@ -31,4 +37,4 @@ deploy_script:
   - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
   - echo username=keyi                               >> %USERPROFILE%\\.pypirc
   - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc
-  - cmd: python -m twine upload dist/*whl
+    #- cmd: python -m twine upload dist/*whl
