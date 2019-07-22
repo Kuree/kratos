@@ -1,19 +1,18 @@
 version: '{build}'
-image: Visual Studio 2019
+image: Visual Studio 2015
 
 build: off
 # copied some commands from https://framagit.org/simgrid/simgrid/blob/master/.appveyor.yml
 build_script:
-- cmd: pip install cmake
 - cmd: git submodule init
 - cmd: git submodule update
 - cmd: SET PATH=C:\Python37-x64;%PATH% # We need python3
 - cmd: python --version
 - cmd: python -m pip install wheel twine pytest
 # Use the mingw-w64 provided by Appveyor
-#- cmd: SET PATH=C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\;%PATH%
+- cmd: SET PATH=C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\;%PATH%
 # not using sh.exe otherwise mingw will die
-#- rename "C:\Program Files\Git\usr\bin\sh.exe" "sh-ignored.exe"
+- rename "C:\Program Files\Git\usr\bin\sh.exe" "sh-ignored.exe"
 - cmd: python setup.py bdist_wheel
 - cmd: python -m pip uninstall -y kratos
 - cmd: python -m pip install --ignore-installed --find-links=dist\ kratos
