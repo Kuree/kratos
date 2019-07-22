@@ -35,6 +35,7 @@ Install
 
    pip install kratos
 
+Pre-built wheels supports all Python 3.5+ on Linux and Python 3.7 on OSX.
 To build it from scratch, you need a ``C++17`` compatible compiler, such
 as ``g++-8``.
 
