@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7] - 2019-07-21
+### Added
+- Port Assignment check in SV codegen.
+- Macos build on travis
+
+### Changed
+- remove slang dependency (#44).
+- Code adjustment to make the code base cross-platform.
+
+### Fixed
+- Port const test
+
 ## [0.0.6] - 2019-07-20
 ### Added
 - Stmt remove APIs (#41).

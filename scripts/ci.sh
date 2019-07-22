@@ -30,7 +30,7 @@ elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     pytest tests/
 else
     python --version
-    pip install wheel pytest
+    pip install wheel pytest twine
     python setup.py bdist_wheel
     pip install dist/*.whl
 fi
@@ -43,3 +43,10 @@ echo [pypi]                                      >> ~/.pypirc
 echo repository=https://upload.pypi.org/legacy/  >> ~/.pypirc
 echo username=keyi                               >> ~/.pypirc
 echo password=$PYPI_PASSWORD                     >> ~/.pypirc
+
+if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    set -x
+    if [ -n "$TRAVIS_TAG" ]; then
+        twine upload dist/*.whl
+    fi
+fi
