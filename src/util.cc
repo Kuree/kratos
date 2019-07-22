@@ -310,57 +310,46 @@ std::string which(const std::string &name) {
 }
 
 bool exists(const std::string &filename) {
-#if defined(_WIN32)
-    namespace fs = std::experimental::filesystem::v1;
-#else
-    namespace fs = std::filesystem;
-#endif
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
     std::ifstream in(filename);
     return in.good();
 #else
+    namespace fs = std::filesystem;
     return fs::exists(filename);
 #endif
 }
 
 std::string join(const std::string &path1, const std::string &path2) {
-#if defined(_WIN32)
-    namespace fs = std::experimental::filesystem::v1;
-#else
-    namespace fs = std::filesystem;
-#endif
 #if defined(__APPLE__)
     return path1 + "/" + path2;
-#else
+#elif defined(__linux__)
+    namespace fs = std::filesystem;
     fs::path p1 = path1;
     fs::path p2 = path2;
     return p1 / p2;
+#else
+    return path1 + "\\" + path2;
 #endif
 }
 
 bool remove(const std::string &filename) {
-#if defined(_WIN32)
-    namespace fs = std::experimental::filesystem::v1;
-#else
-    namespace fs = std::filesystem;
-#endif
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
     return std::remove(filename.c_str());
 #else
+    namespace fs = std::filesystem;
     return fs::remove(filename);
 #endif
 }
 
 std::string temp_directory_path() {
-#if defined(_WIN32)
-    namespace fs = std::experimental::filesystem::v1;
-#else
-    namespace fs = std::filesystem;
-#endif
 #if defined(__APPLE__)
     return "/tmp";
-#else
+#elif defined(__linux__)
+    namespace fs = std::filesystem;
     return fs::temp_directory_path();
+#else
+    // use current directory
+    return ".";
 #endif
 }
 
