@@ -1,0 +1,18 @@
+version: '{build}'
+image: Visual Studio 2017
+configuration: Release
+platform: x64
+environment:
+  CXX: C:\Program Files\LLVM\bin\clang
+
+build_script:
+- sh: >-
+    git submodule init
+    git submodule update
+    pip install twine wheel pytest
+    python setup.py bdist_wheel
+
+test: off
+
+artifacts:
+    - path: dist/*.whl
