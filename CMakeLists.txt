@@ -32,8 +32,3 @@ add_subdirectory(python)
 
 enable_testing()
 add_subdirectory(tests)
-
-# force to remove wextra for vs
-if (MSVC)
-    set(CMAKE_CXX_FLAGS "" "" FORCE)
-endif()
