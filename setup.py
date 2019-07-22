@@ -46,7 +46,7 @@ class CMakeBuild(build_ext):
             cmake_args += [
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(),
                                                                 extdir)]
-            cmake_args += ["-G", "MinGW Makefiles"]
+            cmake_args += ["-G", "Visual Studio 16"]
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
             build_args += ['--', '-j2']
