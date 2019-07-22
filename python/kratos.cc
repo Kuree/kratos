@@ -182,9 +182,14 @@ void init_except(py::module &m) {
 void init_util(py::module &m) {
     auto util_m = m.def_submodule("util");
 
-    util_m.def("is_valid_verilog", py::overload_cast<const std::string &>(&is_valid_verilog))
+    util_m
+        .def("is_valid_verilog", py::overload_cast<const std::string &>(&is_valid_verilog),
+             "Check if the verilog doesn't have any syntax errors. Notice that you "
+             "have to have either verilator or iverilog in your $PATH to use this function")
         .def("is_valid_verilog",
-             py::overload_cast<const std::map<std::string, std::string> &>(&is_valid_verilog));
+             py::overload_cast<const std::map<std::string, std::string> &>(&is_valid_verilog),
+             "Check if the verilog doesn't have any syntax errors. Notice that you "
+             "have to have either verilator or iverilog in your $PATH to use this function");
 }
 
 template <typename T, typename K>
