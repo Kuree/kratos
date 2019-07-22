@@ -14,7 +14,6 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     docker exec -i manylinux-test bash -c 'cd kratos && pip install pytest dist/* && pytest -v tests/'
 
 elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    set -xe
     export PYTHON=3.7.0
     brew install verilator
     brew install pyenv-virtualenv
@@ -34,7 +33,6 @@ else
     pip install wheel pytest
     python setup.py bdist_wheel
     pip install dist/*.whl
-    pytest tests/
 fi
 
 echo [distutils]                                  > ~/.pypirc

@@ -8,14 +8,13 @@ matrix:
           os: osx
           language: shell
           osx_image: xcode11
-          #- name: "Windows"
-          #os: windows
-          #language: shell
-          #compiler: gcc
-          #before_install:
-          #  - choco install python
-          #  - choco install mingw
-          #env: PATH=/c/MinGW/bin:/c/Python37:/c/Python37/Scripts:$PATH
+        - name: "Windows"
+          os: windows
+          language: shell
+          compiler: gcc
+          before_install:
+            - choco install python
+          env: PATH=/c/MinGW/bin:/c/Python37:/c/Python37/Scripts:$PATH
 
 script:
     - ./scripts/ci.sh
