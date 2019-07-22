@@ -9,3 +9,8 @@ if (MSYS OR APPLE)
 else()
     target_link_libraries(kratos fmt stdc++fs)
 endif()
+
+if (APPLE)
+    set_target_properties(kratos PROPERTIES CXX_VISIBILITY_PRESET hidden)
+    set_target_properties(fmt PROPERTIES CXX_VISIBILITY_PRESET hidden)
+endif()

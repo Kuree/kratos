@@ -16,7 +16,7 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
 elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     set -xe
     export PYTHON=3.7.0
-    brew install gcc
+    brew install verilator
     brew install pyenv-virtualenv
     pyenv install ${PYTHON}
     export PYENV_VERSION=$PYTHON
