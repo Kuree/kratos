@@ -1,6 +1,8 @@
 #include "util.hh"
 #include <cstdlib>
+#ifdef __linux__
 #include <filesystem>
+#endif
 #include <fstream>
 #include <regex>
 #include "except.hh"
