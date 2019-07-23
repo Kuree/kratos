@@ -245,6 +245,7 @@ TEST(pass, decouple1) {  // NOLINT
 TEST(pass, verilog_instance) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("module1");
+    mod1.debug = true;
     auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
     auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
 

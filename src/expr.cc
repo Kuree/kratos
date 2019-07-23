@@ -464,11 +464,6 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
     // now clear the sources
     var->sources_.clear();
 
-    // need to deal with slices as well
-    for (auto &[slice, slice_var] : var->slices_) {
-        auto &new_var_slice = (*new_var)[slice];
-        move_src_to(slice_var.get(), &new_var_slice, parent, keep_connection);
-    }
     if (keep_connection) {
         // create an assignment and add it to the parent
         auto stmt = var->assign(new_var->shared_from_this());
@@ -494,11 +489,6 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
     // now clear the sinks
     var->sinks_.clear();
 
-    // need to deal with slices as well
-    for (auto &[slice, slice_var] : var->slices_) {
-        auto &new_var_slice = (*new_var)[slice];
-        move_sink_to(slice_var.get(), &new_var_slice, parent, keep_connection);
-    }
     if (keep_connection) {
         // create an assignment and add it to the parent
         auto stmt = new_var->assign(var->shared_from_this());
