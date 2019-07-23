@@ -51,6 +51,8 @@ public:
     void set_left(const std::shared_ptr<Var> &left) { left_ = left; }
     void set_right(const std::shared_ptr<Var> &right) { right_ = right; }
 
+    void set_parent(IRNode *parent) override;
+
     bool equal(const std::shared_ptr<AssignStmt> &stmt) const;
     bool operator==(const AssignStmt &stmt) const;
 

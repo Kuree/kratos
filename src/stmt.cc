@@ -53,6 +53,13 @@ IRNode *AssignStmt::get_child(uint64_t index) {
         return nullptr;
 }
 
+void AssignStmt::set_parent(kratos::IRNode *parent) {
+    Stmt::set_parent(parent);
+    // push the stmt into its sources
+    right_->add_sink(as<AssignStmt>());
+    left_->add_source(as<AssignStmt>());
+}
+
 IfStmt::IfStmt(std::shared_ptr<Var> predicate)
     : Stmt(StatementType::If), predicate_(::move(predicate)) {}
 

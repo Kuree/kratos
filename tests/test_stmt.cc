@@ -22,10 +22,6 @@ TEST(stmt, assign) {  // NOLINT
 
     // try slice assign
     EXPECT_NO_THROW(var1.assign(var3[{1, 0}]));
-
-    // duplicated yet wrong assignment
-    var3.assign(var4, AssignmentType::Blocking);
-    EXPECT_ANY_THROW(var3.assign(var4, AssignmentType::NonBlocking));
 }
 
 TEST(stmt, if_stmt) {  // NOLINT

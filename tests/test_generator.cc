@@ -113,7 +113,7 @@ TEST(pass, connectivity) {  // NOLINT
     auto &port2 = mod1.port(PortDirection::Out, "out", 1);
 
     EXPECT_ANY_THROW(verify_generator_connectivity(&mod1));
-    port2.assign(port1);
+    mod1.add_stmt(port2.assign(port1));
 
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 
@@ -123,12 +123,12 @@ TEST(pass, connectivity) {  // NOLINT
     mod1.add_child_generator(mod2.shared_from_this());
     EXPECT_ANY_THROW(mod1.port(PortDirection::In, "in", 1));
     auto &port3 = mod2.port(PortDirection::In, "in", 1);
-    port3.assign(port1);
+    mod1.add_stmt(port3.assign(port1));
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 
     auto &port4 = mod2.port(PortDirection::Out, "out", 1);
     EXPECT_ANY_THROW(verify_generator_connectivity(&mod1));
-    port4.assign(port3);
+    mod2.add_stmt(port4.assign(port3));
 
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 }
@@ -228,12 +228,12 @@ TEST(pass, decouple1) {  // NOLINT
     mod1.add_child_generator(mod2.shared_from_this());
     mod1.add_child_generator(mod3.shared_from_this());
 
-    port2_1.assign(port1_2);
-    port3_1.assign(port1_1.concat(port2_1));
+    mod1.add_stmt(port2_1.assign(port1_2));
+    mod1.add_stmt(port3_1.assign(port1_1.concat(port2_1)));
 
-    EXPECT_EQ(mod1.stmts_count(), 0);
+    EXPECT_EQ(mod1.stmts_count(), 2);
     decouple_generator_ports(&mod1);
-    EXPECT_EQ(mod1.stmts_count(), 1);
+    EXPECT_EQ(mod1.stmts_count(), 2);
     auto new_var = mod1.get_var("module3$in_0");
     EXPECT_TRUE(new_var != nullptr);
 

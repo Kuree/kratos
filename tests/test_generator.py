@@ -508,8 +508,7 @@ def test_clone():
     mod = Mod2()
     assert not mod.child1.is_cloned
     assert mod.child2.is_cloned
-    mod_src = verilog(mod, False, False, False)
-    src = mod_src["mod2"]
+    mod_src = verilog(mod, False, False, False, filename="test.sv")
     assert is_valid_verilog(mod_src)
 
 
@@ -623,4 +622,4 @@ def test_remove_child():
 
 
 if __name__ == "__main__":
-    test_remove_child()
+    test_clone()

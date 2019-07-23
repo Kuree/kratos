@@ -398,6 +398,8 @@ public:
                             src->type() == VarType::Parameter ||
                             (src->type() == VarType::PortIO &&
                              src->parent() == generator->parent())) {
+                            // remove it from the parent generator
+                            src->generator->remove_stmt(stmt);
                             continue;
                         }
                     }
@@ -429,8 +431,11 @@ public:
                 // special case where if the sink is parent's port, this is fine
                 if (sinks.size() == 1) {
                     auto stmt = *(sinks.begin());
-                    if (stmt->left()->type() == VarType::PortIO &&
-                        stmt->left()->generator == generator->parent() && stmt->right() == port) {
+                    auto src = stmt->left();
+                    if (src->type() == VarType::PortIO && src->generator == generator->parent() &&
+                        stmt->right() == port) {
+                        // remove it from the parent generator
+                        src->generator->remove_stmt(stmt);
                         continue;
                     }
                 }

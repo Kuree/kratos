@@ -79,6 +79,8 @@ TEST(expr, assign) {  // NOLINT
     auto assign_stmt = var3.assign(var4);
     EXPECT_EQ(assign_stmt->right(), var4.shared_from_this());
     EXPECT_EQ(assign_stmt->left(), var3.shared_from_this());
+    // commit the assignment
+    mod.add_stmt(assign_stmt);
     EXPECT_TRUE(var3.sources().find(assign_stmt) != var3.sources().end());
     auto raw_stmt = AssignStmt(var3.shared_from_this(), var4.shared_from_this());
     EXPECT_EQ(raw_stmt.left(), assign_stmt->left());

@@ -238,20 +238,6 @@ std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var, Assignm
         throw VarException(::format("Cannot assign {0} to an expression", var->to_string(), name),
                            {this, var.get()});
     auto const &stmt = ::make_shared<AssignStmt>(shared_from_this(), var, type);
-    // determine the type
-    if (type != AssignmentType::Undefined) {
-        for (auto const &src : sources_) {
-            auto src_type = src->assign_type();
-            if (src_type != AssignmentType ::Undefined && type != src_type) {
-                throw ::runtime_error(
-                    ::format("{0}'s assignment type ({1}) does not match existing {2}", to_string(),
-                             assign_type_to_str(type), assign_type_to_str(src_type)));
-            }
-        }
-    }
-    // push the stmt into its sources
-    var->add_sink(stmt);
-    add_source(stmt);
 
     return stmt;
 }
