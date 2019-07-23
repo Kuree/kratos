@@ -22,6 +22,17 @@ On Linux you can simply do
 
 This will download the pre-compiled binary wheel.
 
+macOS
+-----
+
+If you have Python 3.7 installed, you can also do
+
+.. code:: bash
+
+  pip install kratos
+
+Otherwise please refer to the next section.
+
 Other OS/ Compiling from source
 -------------------------------
 You need a C++-17 compatible compiler with ``<filesystem>`` enabled. g++-8
@@ -29,11 +40,13 @@ or clang++-8 should be sufficient. Also making sure that you have met the
 following dependencies:
 
   - CMake
-  - `conan <https://conan.io/>`_
 
-Both of them can be installed through
+If your system doesn't come with a recent ``cmake``, you can install cmake
+through your ``pip``:
+
 .. code-block:: bash
-pip install cmake conan
+
+    pip install cmake
 
 Then you should be able to install using the following command
 
