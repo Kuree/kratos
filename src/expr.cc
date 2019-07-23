@@ -225,7 +225,9 @@ std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var) {
     return assign(var, AssignmentType::Undefined);
 }
 
-std::shared_ptr<AssignStmt> Var::assign(Var &var) { return assign(var.shared_from_this(), AssignmentType::Undefined); }
+std::shared_ptr<AssignStmt> Var::assign(Var &var) {
+    return assign(var.shared_from_this(), AssignmentType::Undefined);
+}
 
 std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     // if it's a constant or expression, it can't be assigned to
@@ -352,13 +354,13 @@ VarConcat::VarConcat(Generator *m, const std::shared_ptr<Var> &first,
 }
 
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
-    for (auto &var: vars_) {
+    for (auto &var : vars_) {
         var->add_source(stmt);
     }
 }
 
 void VarConcat::add_sink(const std::shared_ptr<kratos::AssignStmt> &stmt) {
-    for (auto &var: vars_) {
+    for (auto &var : vars_) {
         var->add_sink(stmt);
     }
 }

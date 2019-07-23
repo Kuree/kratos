@@ -87,7 +87,8 @@ public:
     // assignment
     std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var);
     std::shared_ptr<AssignStmt> assign(Var &var);
-    virtual std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var, AssignmentType type);
+    virtual std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
+                                               AssignmentType type);
     std::shared_ptr<AssignStmt> assign(Var &var, AssignmentType type);
     void unassign(const std::shared_ptr<AssignStmt> &stmt);
 
@@ -123,7 +124,7 @@ public:
     Var(const Var &var) = delete;
     Var() = delete;
 
-    virtual ~Var() = default;
+    ~Var() override = default;
 
 protected:
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
@@ -143,7 +144,8 @@ private:
 struct VarCasted : public Var {
 public:
     VarCasted(Var *parent, VarCastType cast_type);
-    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var, AssignmentType type) override;
+    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
+                                       AssignmentType type) override;
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
@@ -190,8 +192,8 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     std::string to_string() const override;
-private:
 
+private:
     std::vector<std::shared_ptr<Var>> vars_;
 };
 

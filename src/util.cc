@@ -117,9 +117,8 @@ bool is_valid_verilog(const std::string &src) {
     // we use verilator first
     std::string verilator = fs::which("verilator");
     if (!verilator.empty()) {
-        status = std::system(
-            ::format("{0} {1} --lint-only -Wno-fatal", verilator, filename)
-                .c_str());
+        status =
+            std::system(::format("{0} {1} --lint-only -Wno-fatal", verilator, filename).c_str());
         fs::remove(filename);
         return status == 0;
     }
@@ -127,9 +126,8 @@ bool is_valid_verilog(const std::string &src) {
     std::string iverilog = fs::which("iverilog");
     if (!iverilog.empty()) {
         std::string output_filename = fs::join(pathname, "out.a");
-        status = std::system(
-            ::format("{0} {1} -o {2}", iverilog, filename, output_filename)
-                .c_str());
+        status =
+            std::system(::format("{0} {1} -o {2}", iverilog, filename, output_filename).c_str());
         fs::remove(filename);
         return status == 0;
     }
