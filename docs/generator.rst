@@ -125,7 +125,7 @@ as much as possible. Here is the ``const`` function definition
 Child generators
 ================
 
-You can use `add_child_generator(inst_name, child)` to add a child
+You can use ``add_child_generator(inst_name, child)`` to add a child
 generator. The ``inst_name`` is the instance name for that child
 generator and has to be unique within the parent scope. After adding
 the child generator to the parent scope, you can access the child
