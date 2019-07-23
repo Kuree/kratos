@@ -140,7 +140,7 @@ bool is_valid_verilog(const std::string &src) {
 
 bool is_valid_verilog(const std::map<std::string, std::string> &src) {
     std::string final_src;
-    for (auto const iter : src) {
+    for (auto const &iter : src) {
         final_src.append(iter.second);
         final_src.append("\n");
     }

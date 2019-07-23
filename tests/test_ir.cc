@@ -24,10 +24,10 @@ TEST(ir, visit_var) {  // NOLINT
     auto &var1 = mod.var("a", 2);
     auto &var2 = mod.var("b", 2);
 
-    auto &expr = var1.assign(var2);
+    auto expr = var1.assign(var2);
 
     VarVisitor visitor;
-    visitor.visit_root(expr.ast_node());
+    visitor.visit_root(expr->ast_node());
     EXPECT_EQ(visitor.vars.size(), 2);
     EXPECT_EQ(visitor.vars[0], &var1);
     EXPECT_EQ(visitor.vars[1], &var2);

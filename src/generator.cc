@@ -346,23 +346,23 @@ std::shared_ptr<Stmt> Generator::wire_ports(std::shared_ptr<Port> &port1,
         // it's the same module
         check_direction(port1, port2);
         if (port1->port_direction() == PortDirection::In) {
-            stmt = port2->assign(port1).shared_from_this();
+            stmt = port2->assign(port1);
         } else {
-            stmt = port1->assign(port2).shared_from_this();
+            stmt = port1->assign(port2);
         }
     } else {
         if (parent1 == this && has_child_generator(parent2->shared_from_this())) {
             check_direction(port1, port2, true);
             if (port1->port_direction() == PortDirection::In)
-                stmt = port2->assign(port1).shared_from_this();
+                stmt = port2->assign(port1);
             else
-                stmt = port1->assign(port2).shared_from_this();
+                stmt = port1->assign(port2);
         } else if (parent2 == this && has_child_generator(parent1->shared_from_this())) {
             check_direction(port1, port2, true);
             if (port1->port_direction() == PortDirection::In)
-                stmt = port1->assign(port2).shared_from_this();
+                stmt = port1->assign(port2);
             else
-                stmt = port2->assign(port1).shared_from_this();
+                stmt = port2->assign(port1);
         } else {
             throw ::runtime_error(
                 ::format("Cannot wire {0} and {1}. Please make sure they belong to the same module "

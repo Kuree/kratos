@@ -221,13 +221,13 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_sig
 IRNode *Var::parent() { return generator; }
 IRNode *VarSlice::parent() { return parent_var; }
 
-AssignStmt &Var::assign(const std::shared_ptr<Var> &var) {
+std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var) {
     return assign(var, AssignmentType::Undefined);
 }
 
-AssignStmt &Var::assign(Var &var) { return assign(var, AssignmentType::Undefined); }
+std::shared_ptr<AssignStmt> Var::assign(Var &var) { return assign(var.shared_from_this(), AssignmentType::Undefined); }
 
-AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
+std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     // if it's a constant or expression, it can't be assigned to
     if (type_ == VarType::ConstValue)
         throw VarException(::format("Cannot assign {0} to a const {1}", var->to_string(), name),
@@ -251,7 +251,7 @@ AssignStmt &Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
     var->add_sink(stmt);
     add_source(stmt);
 
-    return *stmt;
+    return stmt;
 }
 
 void Var::unassign(const std::shared_ptr<AssignStmt> &stmt) {
@@ -298,7 +298,7 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     if (cast_type_ == Signed) is_signed = true;
 }
 
-AssignStmt &VarCasted::assign(const std::shared_ptr<Var> &, AssignmentType) {
+std::shared_ptr<AssignStmt> VarCasted::assign(const std::shared_ptr<Var> &, AssignmentType) {
     throw VarException(::format("{0} is not allowed to be a sink", to_string()), {this});
 }
 
@@ -378,7 +378,7 @@ std::string Const::to_string() const {
     }
 }
 
-AssignStmt &Var::assign(Var &var, AssignmentType type) {
+std::shared_ptr<AssignStmt> Var::assign(Var &var, AssignmentType type) {
     // need to find the pointer
     auto var_ptr = var.shared_from_this();
     return assign(var_ptr, type);
@@ -471,11 +471,11 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
     }
     if (keep_connection) {
         // create an assignment and add it to the parent
-        auto &stmt = var->assign(new_var->shared_from_this());
+        auto stmt = var->assign(new_var->shared_from_this());
         if (parent->debug) {
-            stmt.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+            stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
-        parent->add_stmt(stmt.shared_from_this());
+        parent->add_stmt(stmt);
     }
 }
 
@@ -501,11 +501,11 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
     }
     if (keep_connection) {
         // create an assignment and add it to the parent
-        auto &stmt = new_var->assign(var->shared_from_this());
+        auto stmt = new_var->assign(var->shared_from_this());
         if (parent->debug) {
-            stmt.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+            stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
-        parent->add_stmt(stmt.shared_from_this());
+        parent->add_stmt(stmt);
     }
 }
 

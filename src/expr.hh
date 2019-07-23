@@ -85,10 +85,10 @@ public:
     std::shared_ptr<Var> cast(VarCastType cast_type);
 
     // assignment
-    AssignStmt &assign(const std::shared_ptr<Var> &var);
-    AssignStmt &assign(Var &var);
-    virtual AssignStmt &assign(const std::shared_ptr<Var> &var, AssignmentType type);
-    AssignStmt &assign(Var &var, AssignmentType type);
+    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var);
+    std::shared_ptr<AssignStmt> assign(Var &var);
+    virtual std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var, AssignmentType type);
+    std::shared_ptr<AssignStmt> assign(Var &var, AssignmentType type);
     void unassign(const std::shared_ptr<AssignStmt> &stmt);
 
     Generator *generator;
@@ -143,7 +143,7 @@ private:
 struct VarCasted : public Var {
 public:
     VarCasted(Var *parent, VarCastType cast_type);
-    AssignStmt &assign(const std::shared_ptr<Var> &var, AssignmentType type) override;
+    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var, AssignmentType type) override;
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 

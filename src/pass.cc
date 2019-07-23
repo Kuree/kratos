@@ -330,7 +330,6 @@ void uniquify_generators(Generator* top) {
                     auto old_name = name_map.at(hash)->name;
                     context->change_generator_name(ptr, old_name);
                 }
-
             }
         }
     }
@@ -494,8 +493,7 @@ public:
                     throw ::runtime_error(
                         fmt::format("{0}.{1} is driven by a net, but {0} is declared as a stub",
                                     generator->name, port_name));
-                generator->add_stmt(
-                    port->assign(generator->constant(0, port->width)).shared_from_this());
+                generator->add_stmt(port->assign(generator->constant(0, port->width)));
             }
         }
     }
@@ -660,8 +658,7 @@ public:
             // if both of them are ports, we need to add a statement
             if (var->type() == VarType::PortIO && dst->type() == VarType::PortIO) {
                 // need to add a top assign statement
-                auto& assign = dst->assign(var, AssignmentType::Blocking);
-                auto stmt = assign.shared_from_this();
+                auto stmt = dst->assign(var, AssignmentType::Blocking);
                 if (generator->debug) {
                     // copy every vars definition over
                     stmt->fn_name_ln = debug_info;
@@ -940,8 +937,7 @@ public:
                 stmts_to_remove.emplace(stmt);
             }
             // make new assignment
-            auto new_stmt = left->assign(right->shared_from_this(), AssignmentType::Blocking)
-                                .shared_from_this();
+            auto new_stmt = left->assign(right->shared_from_this(), AssignmentType::Blocking);
             generator->add_stmt(new_stmt);
             if (generator->debug) {
                 // merge all the statements

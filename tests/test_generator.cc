@@ -36,12 +36,12 @@ TEST(generator, rename_var) {  // NOLINT
     auto &a = mod.var("a", 2);
     auto &b = mod.var("b", 2);
     auto &d = mod.var("d", 1);
-    auto &stmt1 = a.assign(b);
-    auto &stmt2 = d.assign(a[{0, 0}]);
+    auto stmt1 = a.assign(b);
+    auto stmt2 = d.assign(a[{0, 0}]);
     mod.rename_var("a", "c");
     EXPECT_EQ(a.name, "c");
-    EXPECT_EQ(stmt1.left()->to_string(), "c");
-    EXPECT_EQ(stmt2.right()->to_string(), "c[0:0]");
+    EXPECT_EQ(stmt1->left()->to_string(), "c");
+    EXPECT_EQ(stmt2->right()->to_string(), "c[0:0]");
 }
 
 TEST(generator, remove_stmt) {  // NOLINT
@@ -49,7 +49,7 @@ TEST(generator, remove_stmt) {  // NOLINT
     auto mod = c.generator("module");
     auto &a = mod.var("a", 2);
     auto &b = mod.var("b", 2);
-    auto stmt = a.assign(b).shared_from_this();
+    auto stmt = a.assign(b);
     mod.add_stmt(stmt);
     EXPECT_EQ(mod.get_stmt(0), stmt);
     mod.remove_stmt(stmt);
@@ -64,9 +64,9 @@ TEST(generator, param) {  // NOLINT
     auto &child_out = child.port(PortDirection::Out, "out", 1);
     auto &param = child.parameter("parm", 1);
     param.set_value(1);
-    child.add_stmt(child_out.assign(param).shared_from_this());
+    child.add_stmt(child_out.assign(param));
     mod.add_child_generator(child.shared_from_this());
-    mod.add_stmt(out.assign(child_out).shared_from_this());
+    mod.add_stmt(out.assign(child_out));
 
     fix_assignment_type(&mod);
     create_module_instantiation(&mod);
@@ -80,10 +80,10 @@ TEST(pass, assignment_fix) {  // NOLINT
     auto &port1 = mod.port(PortDirection::In, "in", 1);
     auto &port2 = mod.port(PortDirection::Out, "out", 1);
 
-    auto &expr = port2.assign(port1);
-    mod.add_stmt(expr.shared_from_this());
+    auto expr = port2.assign(port1);
+    mod.add_stmt(expr);
     fix_assignment_type(&mod);
-    EXPECT_EQ(expr.assign_type(), AssignmentType::Blocking);
+    EXPECT_EQ(expr->assign_type(), AssignmentType::Blocking);
 }
 
 TEST(pass, unused_var) {  // NOLINT
@@ -93,8 +93,8 @@ TEST(pass, unused_var) {  // NOLINT
     auto &port2 = mod.port(PortDirection::Out, "out", 1);
     auto &var1 = mod.var("c", 1);
     auto &var2 = mod.var("d", 1);
-    mod.add_stmt(var1.assign(port1).shared_from_this());
-    mod.add_stmt(port2.assign(var1).shared_from_this());
+    mod.add_stmt(var1.assign(port1));
+    mod.add_stmt(port2.assign(var1));
     // var2 is unused
     (void)var2;
 
@@ -138,7 +138,7 @@ TEST(pass, verilog_code_gen) {  // NOLINT
     auto &mod1 = c.generator("module1");
     auto &port1 = mod1.port(PortDirection::In, "in", 1);
     auto &port2 = mod1.port(PortDirection::Out, "out", 1);
-    mod1.add_stmt(port2.assign(port1, AssignmentType::Blocking).shared_from_this());
+    mod1.add_stmt(port2.assign(port1, AssignmentType::Blocking));
     auto const &result = generate_verilog(&mod1);
     EXPECT_EQ(result.size(), 1);
     EXPECT_TRUE(result.find("module1") != result.end());
@@ -151,18 +151,18 @@ TEST(pass, generator_hash) {  // NOLINT
     auto &mod1 = c.generator("module1");
     auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
     auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
-    mod1.add_stmt(port1_2.assign(port1_1, AssignmentType::Blocking).shared_from_this());
+    mod1.add_stmt(port1_2.assign(port1_1, AssignmentType::Blocking));
 
     auto &mod2 = c.generator("module1");
     auto &port2_1 = mod2.port(PortDirection::In, "in", 1);
     auto &port2_2 = mod2.port(PortDirection::Out, "out", 1);
-    mod2.add_stmt(port2_2.assign(port2_1, AssignmentType::Blocking).shared_from_this());
+    mod2.add_stmt(port2_2.assign(port2_1, AssignmentType::Blocking));
 
     auto &mod3 = c.generator("module1");
     auto &port3_1 = mod3.port(PortDirection::In, "in", 1);
     auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
     mod3.add_stmt(
-        port3_2.assign(port3_1 + mod3.constant(1, 1), AssignmentType::Blocking).shared_from_this());
+        port3_2.assign(port3_1 + mod3.constant(1, 1), AssignmentType::Blocking));
 
     hash_generators(&mod1, HashStrategy::SequentialHash);
     auto mod1_hash = c.get_hash(&mod1);
@@ -182,7 +182,7 @@ TEST(pass, generator_hash) {  // NOLINT
     auto &mod4 = c.generator("module1");
     auto &port4_1 = mod4.port(PortDirection::In, "in", 1);
     auto &port4_2 = mod4.port(PortDirection::Out, "out", 1);
-    mod4.add_stmt(port4_2.assign(port4_1, AssignmentType::Blocking).shared_from_this());
+    mod4.add_stmt(port4_2.assign(port4_1, AssignmentType::Blocking));
     mod1.add_child_generator(mod4.shared_from_this());
 
     hash_generators(&mod1, HashStrategy::SequentialHash);
@@ -252,15 +252,16 @@ TEST(pass, verilog_instance) {  // NOLINT
     auto &port2_1 = mod2.port(PortDirection::In, "in", 2);
     auto &port2_2 = mod2.port(PortDirection::Out, "out", 2);
 
-    auto &stmt = port2_2.assign(port2_1);
-    mod2.add_stmt(stmt.shared_from_this());
+    auto stmt = port2_2.assign(port2_1);
+    mod2.add_stmt(stmt);
     stmt = port2_1.assign(port1_1.concat(port1_1));
-    mod2.add_stmt(stmt.shared_from_this());
-    stmt = port1_2.assign(port1_1);
-    mod1.add_stmt(stmt.shared_from_this());
+    mod1.add_stmt(stmt);
+    stmt = port1_2.assign(port2_2[0]);
+    mod1.add_stmt(stmt);
 
     mod1.add_child_generator(mod2.shared_from_this());
     // lazy. just use this pass to fix the assignment type
+    decouple_generator_ports(&mod1);
     fix_assignment_type(&mod1);
     create_module_instantiation(&mod1);
     auto const &result = generate_verilog(&mod1);
@@ -315,9 +316,9 @@ TEST(pass, fanout) {  // NOLINT
     auto &var1 = mod.var("a", 3);
     auto &var2 = mod.var("b", 3);
 
-    mod.add_stmt(var1.assign(in).shared_from_this());
-    mod.add_stmt(var2.assign(var1).shared_from_this());
-    mod.add_stmt(out.assign(var2).shared_from_this());
+    mod.add_stmt(var1.assign(in));
+    mod.add_stmt(var2.assign(var1));
+    mod.add_stmt(out.assign(var2));
 
     remove_fanout_one_wires(&mod);
 
@@ -347,11 +348,11 @@ TEST(pass, pass_through_module) {  // NOLINT
     auto &mod2 = c.generator("module2");
     auto &in2 = mod2.port(PortDirection::In, "in", 1);
     auto &out2 = mod2.port(PortDirection::Out, "out", 1);
-    mod2.add_stmt(out2.assign(in2).shared_from_this());
+    mod2.add_stmt(out2.assign(in2));
 
     mod1.add_child_generator(mod2.shared_from_this());
-    mod1.add_stmt(in2.assign(in1).shared_from_this());
-    mod1.add_stmt(out1.assign(out2).shared_from_this());
+    mod1.add_stmt(in2.assign(in1));
+    mod1.add_stmt(out1.assign(out2));
 
     remove_pass_through_modules(&mod1);
 
@@ -373,16 +374,16 @@ TEST(pass, replace) {  // NOLINT
     auto &mod2 = c.generator("module2");
     auto &in2 = mod2.port(PortDirection::In, "in", 1);
     auto &out2 = mod2.port(PortDirection::Out, "out", 1);
-    mod2.add_stmt(out2.assign(in2).shared_from_this());
+    mod2.add_stmt(out2.assign(in2));
 
     auto &mod3 = c.generator("module3");
     auto &in3 = mod3.port(PortDirection::In, "in", 2);
     auto &out3 = mod3.port(PortDirection::Out, "out", 2);
-    mod3.add_stmt(out3.assign(in3).shared_from_this());
+    mod3.add_stmt(out3.assign(in3));
 
     mod1.add_child_generator(mod2.shared_from_this());
-    mod1.add_stmt(in2.assign(in1).shared_from_this());
-    mod1.add_stmt(out1.assign(out2).shared_from_this());
+    mod1.add_stmt(in2.assign(in1));
+    mod1.add_stmt(out1.assign(out2));
 
     EXPECT_ANY_THROW(
         mod1.replace_child_generator(mod2.shared_from_this(), mod3.shared_from_this()));
@@ -407,20 +408,20 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
     auto &mod2 = c.generator("module2");
     auto &in2 = mod2.port(PortDirection::In, "in", 1);
     auto &out2 = mod2.port(PortDirection::Out, "out", 1);
-    mod2.add_stmt(out2.assign(in2, AssignmentType::Blocking).shared_from_this());
+    mod2.add_stmt(out2.assign(in2, AssignmentType::Blocking));
 
     auto &mod3 = c.generator("module3");
     auto &in3 = mod3.port(PortDirection::In, "in", 1);
     auto &out3 = mod3.port(PortDirection::Out, "out", 1);
-    mod3.add_stmt(out3.assign(in3, AssignmentType::Blocking).shared_from_this());
+    mod3.add_stmt(out3.assign(in3, AssignmentType::Blocking));
 
     mod1.add_child_generator(mod2.shared_from_this());
     mod1.add_child_generator(mod3.shared_from_this());
 
-    mod1.add_stmt(in2.assign(in1).shared_from_this());
-    mod1.add_stmt(in3.assign(in1).shared_from_this());
+    mod1.add_stmt(in2.assign(in1));
+    mod1.add_stmt(in3.assign(in1));
 
-    mod1.add_stmt(out1.assign(out2 + out3).shared_from_this());
+    mod1.add_stmt(out1.assign(out2 + out3));
 
     VerilogModule verilog(&mod1);
     verilog.run_passes(true, false, false, false);
@@ -438,14 +439,14 @@ TEST(pass, module_hash) {  // NOLINT
     auto &mod2 = c.generator("module2");
     auto &in2 = mod2.port(PortDirection::In, "in", 1);
     auto &out2 = mod2.port(PortDirection::Out, "out", 1);
-    mod2.add_stmt(out2.assign(in2, AssignmentType::Blocking).shared_from_this());
+    mod2.add_stmt(out2.assign(in2, AssignmentType::Blocking));
 
     auto &mod3 = c.generator("module1");
     mod1.add_child_generator(mod3.shared_from_this());
 
     mod1.add_child_generator(mod2.shared_from_this());
-    mod1.add_stmt(in2.assign(in1).shared_from_this());
-    mod1.add_stmt(out1.assign(out2).shared_from_this());
+    mod1.add_stmt(in2.assign(in1));
+    mod1.add_stmt(out1.assign(out2));
 
     fix_assignment_type(&mod1);
     create_module_instantiation(&mod1);
