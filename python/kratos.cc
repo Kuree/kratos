@@ -464,8 +464,8 @@ void init_stmt(py::module &m) {
         m, "CombinationalStmtBlock")
         .def(py::init<>())
         .def("block_type", &CombinationalStmtBlock::block_type)
-        .def("add_statement",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&CombinationalStmtBlock::add_statement))
+        .def("add_stmt",
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&CombinationalStmtBlock::add_stmt))
         .def("remove_stmt", &CombinationalStmtBlock::remove_stmt);
 
     py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, Stmt>(m,
@@ -473,8 +473,8 @@ void init_stmt(py::module &m) {
         .def(py::init<>())
         .def("get_conditions", &SequentialStmtBlock::get_conditions)
         .def("add_condition", &SequentialStmtBlock::add_condition)
-        .def("add_statement",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&SequentialStmtBlock::add_statement))
+        .def("add_stmt",
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&SequentialStmtBlock::add_stmt))
         .def("remove_stmt", &SequentialStmtBlock::remove_stmt);
 
     py::class_<ModuleInstantiationStmt, ::shared_ptr<ModuleInstantiationStmt>, Stmt>(

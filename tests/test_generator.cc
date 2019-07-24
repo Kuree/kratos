@@ -277,7 +277,7 @@ TEST(pass, if_case) {  // NOLINT
     if_stmt2->add_then_stmt(out.assign(mod.constant(1, 3)));
     if_stmt->add_else_stmt(if_stmt2);
     auto stmt_list = std::make_shared<CombinationalStmtBlock>();
-    stmt_list->add_statement(if_stmt);
+    stmt_list->add_stmt(if_stmt);
     mod.add_stmt(stmt_list);
 
     transform_if_to_case(&mod);

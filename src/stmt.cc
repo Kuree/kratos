@@ -73,14 +73,14 @@ void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
         throw ::runtime_error("cannot add statement block to the if statement body");
     stmt->set_parent(this);
-    then_body_->add_statement(stmt);
+    then_body_->add_stmt(stmt);
 }
 
 void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
         throw ::runtime_error("cannot add statement block to the if statement body");
     stmt->set_parent(this);
-    else_body_->add_statement(stmt);
+    else_body_->add_stmt(stmt);
 }
 
 void IfStmt::remove_then_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
@@ -119,7 +119,7 @@ IRNode *IfStmt::get_child(uint64_t index) {
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 
-void StmtBlock::add_statement(const std::shared_ptr<Stmt> &stmt) {
+void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
     // it cannot add another block stmt
     if (stmt->type() == StatementType::Block) {
         throw ::runtime_error("cannot add statement block to another statement block");
@@ -185,10 +185,10 @@ void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
         // merge the block
         auto blk = stmt->as<StmtBlock>();
         for (auto const &s: *blk) {
-            body_[switch_case]->add_statement(s);
+            body_[switch_case]->add_stmt(s);
         }
     } else {
-        body_[switch_case]->add_statement(stmt);
+        body_[switch_case]->add_stmt(stmt);
     }
 }
 

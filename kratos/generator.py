@@ -64,9 +64,9 @@ class CodeBlock:
 
     def add_stmt(self, stmt):
         if hasattr(stmt, "stmt"):
-            self._block.add_statement(stmt.stmt())
+            self._block.add_stmt(stmt.stmt())
         else:
-            self._block.add_statement(stmt)
+            self._block.add_stmt(stmt)
 
     def remove_stmt(self, stmt):
         if hasattr(stmt, "stmt"):

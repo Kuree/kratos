@@ -132,8 +132,8 @@ private:
 class StmtBlock : public Stmt {
 public:
     StatementBlockType block_type() const { return block_type_; }
-    void add_statement(const std::shared_ptr<Stmt> &stmt);
-    void add_statement(Stmt &stmt) { add_statement(stmt.shared_from_this()); }
+    void add_stmt(const std::shared_ptr<Stmt> &stmt);
+    void add_stmt(Stmt &stmt) { add_stmt(stmt.shared_from_this()); }
     void remove_stmt(const std::shared_ptr<Stmt> &stmt);
 
     uint64_t child_count() override { return stmts_.size(); }

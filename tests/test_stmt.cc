@@ -50,13 +50,13 @@ TEST(stmt, block) {  // NOLINT
     auto &clk = mod.port(PortDirection::In, "clk", 1, PortType::Clock, false);
     //
     auto seq_block = SequentialStmtBlock();
-    seq_block.add_statement(var1.assign(var2));
+    seq_block.add_stmt(var1.assign(var2));
     // error checking
-    EXPECT_ANY_THROW(seq_block.add_statement(var1.assign(var2, AssignmentType::Blocking)));
+    EXPECT_ANY_THROW(seq_block.add_stmt(var1.assign(var2, AssignmentType::Blocking)));
     auto stmt = var3.assign(var4, AssignmentType::Blocking);
-    EXPECT_ANY_THROW(seq_block.add_statement(stmt));
+    EXPECT_ANY_THROW(seq_block.add_stmt(stmt));
     auto comb_block = CombinationalStmtBlock();
-    comb_block.add_statement(var3.assign(var4));
+    comb_block.add_stmt(var3.assign(var4));
     EXPECT_EQ(stmt->assign_type(), AssignmentType::Blocking);
     EXPECT_NO_THROW(seq_block.add_condition({BlockEdgeType::Posedge, clk.shared_from_this()}));
     EXPECT_ANY_THROW(seq_block.add_condition({BlockEdgeType::Negedge, var1.shared_from_this()}));
