@@ -134,9 +134,10 @@ protected:
 
     std::unordered_set<std::shared_ptr<VarConcat>> concat_vars_;
 
+    std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> slices_;
+
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
-    std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> slices_;
 
     std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
 };
@@ -195,6 +196,26 @@ public:
 
 private:
     std::vector<std::shared_ptr<Var>> vars_;
+};
+
+struct Array: public Var {
+public:
+    Array(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed);
+
+    uint32_t size() { return size_; }
+
+    // slice
+    VarSlice &operator[](std::pair<uint32_t, uint32_t> slice) override;
+    VarSlice &operator[](uint32_t index) override;
+
+private:
+    uint32_t size_;
+};
+
+struct ArraySlice: public VarSlice {
+public:
+    ArraySlice(Array *parent, uint32_t high, uint32_t low): VarSlice(parent, high, low) {}
+    std::string to_string() const override;
 };
 
 struct Const : public Var {

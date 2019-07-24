@@ -32,6 +32,8 @@ public:
                bool is_signed);
     PortPacked &port_packed(PortDirection direction, const std::string &port_name,
                             const PackedStruct &packed_struct_);
+    Array &array(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed);
+    Array &array(const std::string &var_name, uint32_t width, uint32_t size);
     Const &constant(int64_t value, uint32_t width);
     Const &constant(int64_t value, uint32_t width, bool is_signed);
     Param &parameter(const std::string &parameter_name, uint32_t width);
@@ -116,7 +118,7 @@ public:
         return children_debug_;
     }
 
-    virtual ~Generator() = default;
+    ~Generator() override = default;
 
 private:
     std::vector<std::string> lib_files_;

@@ -58,7 +58,7 @@ void inline print_ast_node(const IRNode* node) {
 #endif
 }
 
-VarException::VarException(const std::string& message, const std::vector<Var*>& vars) noexcept
+VarException::VarException(const std::string& message, const std::vector<const Var*>& vars) noexcept
     : std::runtime_error(message) {
     for (auto const& var : vars) {
         print_ast_node(var);

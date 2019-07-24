@@ -8,7 +8,7 @@ namespace kratos {
 
 class VarException : public std::runtime_error {
 public:
-    VarException(const std::string &message, const std::vector<Var *> &vars) noexcept;
+    VarException(const std::string &message, const std::vector<const Var *> &vars) noexcept;
 };
 
 class StmtException : public std::runtime_error {

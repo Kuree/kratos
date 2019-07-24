@@ -270,8 +270,11 @@ class Generator(metaclass=GeneratorMeta):
         return self.__generator.get_stmt(index)
 
     def var(self, name: str, width: int,
-            is_signed: bool = False) -> _kratos.Var:
-        v = self.__generator.var(name, width, is_signed)
+            is_signed: bool = False, size: int = 1) -> _kratos.Var:
+        if size > 1:
+            v = self.__generator.array(name, width, size, is_signed)
+        else:
+            v = self.__generator.var(name, width, is_signed)
         if self.debug:
             fn, ln = get_fn_ln()
             v.add_fn_ln((fn, ln))

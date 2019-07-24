@@ -325,6 +325,11 @@ void init_expr(py::module &m) {
     init_var_derived(port_slice);
     def_trace<py::class_<PortPackedSlice, ::shared_ptr<PortPackedSlice>, Var>, VarSlice>(
         port_slice);
+
+    auto array = py::class_<Array, ::shared_ptr<Array>, Var>(m, "Array");
+    init_var_derived(array);
+    def_trace<py::class_<Array, ::shared_ptr<Array>, Var>, Var>(array);
+    array.def("size", &Array::size);
 }
 
 void init_context(py::module &m) {
@@ -354,6 +359,11 @@ void init_generator(py::module &m) {
         .def("port",
              py::overload_cast<PortDirection, const std::string &, uint32_t, PortType, bool>(
                  &Generator::port),
+             py::return_value_policy::reference)
+        .def("array",
+             py::overload_cast<const std::string &, uint32_t, uint32_t, bool>(&Generator::array),
+             py::return_value_policy::reference)
+        .def("array", py::overload_cast<const std::string &, uint32_t, uint32_t>(&Generator::array),
              py::return_value_policy::reference)
         .def("constant", py::overload_cast<int64_t, uint32_t>(&Generator::constant),
              py::return_value_policy::reference)

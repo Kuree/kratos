@@ -122,6 +122,18 @@ as much as possible. Here is the ``const`` function definition
   def const(self, value: int, width: int, signed: bool = False)
 
 
+Arrays
+------
+
+2D Array is supported in kratos. You can create an array though the ``var()``
+function call and set the ``size`` to the array size that's greater than
+``1``:
+
+.. code-block:: Python
+
+      def var(self, name: str, width: int,
+             is_signed: bool = False, size: int = 1)
+
 Child generators
 ================
 

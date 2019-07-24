@@ -411,4 +411,17 @@ PortPacked &Generator::port_packed(PortDirection direction, const std::string &p
     return *p;
 }
 
+Array &Generator::array(const std::string &var_name, uint32_t width, uint32_t size,
+                        bool is_signed) {
+    if (vars_.find(var_name) != vars_.end())
+        throw ::runtime_error(::format("{0} already exists in {1}", var_name, name));
+    auto a = std::make_shared<Array>(this, var_name, width, size, is_signed);
+    vars_.emplace(var_name, a);
+    return *a;
+}
+
+Array &Generator::array(const std::string &var_name, uint32_t width, uint32_t size) {
+    return array(var_name, width, size, false);
+}
+
 }

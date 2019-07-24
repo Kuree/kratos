@@ -135,3 +135,11 @@ TEST(expr, port_packed) {  // NOLINT
     EXPECT_EQ(slice2.low, 1);
     EXPECT_EQ(slice2.high, 2);
 }
+
+TEST(expr, array_slice) {   // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto &array0 = mod.array("t", 4, 3, false);
+    auto &slice0 = array0[2];
+    EXPECT_EQ(slice0.to_string(), "t[2]");
+}
