@@ -71,6 +71,7 @@ public:
     virtual inline void visit(Const *) {}
     virtual inline void visit(Parameter *) {}
     virtual inline void visit(AssignStmt *) {}
+    virtual inline void visit(ScopedStmtBlock *) {}
     virtual inline void visit(IfStmt *) {}
     virtual inline void visit(SwitchStmt *) {}
     virtual inline void visit(CombinationalStmtBlock *) {}

@@ -247,6 +247,7 @@ void Var::unassign(const std::shared_ptr<AssignStmt> &stmt) {
     stmt->right()->sinks_.erase(stmt);
     sources_.erase(stmt);
     // erase from parent if any
+    // TODO: fix this will proper parent
     generator->remove_stmt(stmt);
 }
 

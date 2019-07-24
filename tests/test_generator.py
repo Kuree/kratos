@@ -447,7 +447,7 @@ def test_const_port():
             self.wire(self.out_[1], self.in_)
 
     mod = Mod()
-    mod_src = verilog(mod, optimize_passthrough=False, filename="test.sv")
+    mod_src = verilog(mod, optimize_passthrough=False)
     assert "mod" in mod_src
 
     assert is_valid_verilog(mod_src)
@@ -508,7 +508,7 @@ def test_clone():
     mod = Mod2()
     assert not mod.child1.is_cloned
     assert mod.child2.is_cloned
-    mod_src = verilog(mod, False, False, False, filename="test.sv")
+    mod_src = verilog(mod, False, False, False)
     assert is_valid_verilog(mod_src)
 
 
@@ -622,4 +622,4 @@ def test_remove_child():
 
 
 if __name__ == "__main__":
-    test_clone()
+    test_static_eval_for_loop()

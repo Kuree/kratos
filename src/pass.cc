@@ -546,15 +546,15 @@ private:
         if ((expr->right->type() != VarType::ConstValue) &&
             (expr->right->type() != VarType::Parameter))
             return false;
-        if (if_->else_body().size() > 1) return false;
+        if (if_->else_body()->size() > 1) return false;
 
         if_stmts.emplace(if_);
-        if (if_->else_body().empty()) {
+        if (if_->else_body()->empty()) {
             return true;
-        } else if (if_->then_body().size() > 1) {
+        } else if (if_->then_body()->size() > 1) {
             return if_stmts.size() > 1;
         } else {
-            return has_target_if(if_->else_body()[0].get(), var, if_stmts);
+            return has_target_if((*if_->else_body())[0].get(), var, if_stmts);
         }
     }
 
@@ -571,15 +571,15 @@ private:
         while (if_stmts.find(stmt) != if_stmts.end()) {
             auto condition = expr->right->as<Const>();
             switch_->add_switch_case(condition, stmt->then_body());
-            if (!stmt->else_body().empty() &&
-                if_stmts.find(stmt->else_body()[0]) == if_stmts.end()) {
+            if (!stmt->else_body()->empty() &&
+                if_stmts.find((*stmt->else_body())[0]) == if_stmts.end()) {
                 // we have reached the end
                 // add default statement
                 switch_->add_switch_case(nullptr, stmt->else_body());
                 break;
-            } else if (!stmt->else_body().empty()) {
+            } else if (!stmt->else_body()->empty()) {
                 // switch to the else case
-                stmt = stmt->else_body()[0]->as<IfStmt>();
+                stmt = (*stmt->else_body())[0]->as<IfStmt>();
                 expr = stmt->predicate()->as<Expr>();
             } else {
                 break;

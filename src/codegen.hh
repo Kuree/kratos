@@ -84,6 +84,8 @@ private:
 
     void stmt_code(CombinationalStmtBlock* stmt);
 
+    void stmt_code(ScopedStmtBlock* stmt);
+
     void stmt_code(IfStmt* stmt);
 
     void stmt_code(ModuleInstantiationStmt* stmt);

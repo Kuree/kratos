@@ -61,42 +61,44 @@ void AssignStmt::set_parent(kratos::IRNode *parent) {
 }
 
 IfStmt::IfStmt(std::shared_ptr<Var> predicate)
-    : Stmt(StatementType::If), predicate_(::move(predicate)) {}
+    : Stmt(StatementType::If), predicate_(::move(predicate)) {
+    then_body_ = std::make_shared<ScopedStmtBlock>();
+    else_body_ = std::make_shared<ScopedStmtBlock>();
+
+    then_body_->set_parent(this);
+    else_body_->set_parent(this);
+}
 
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
         throw ::runtime_error("cannot add statement block to the if statement body");
     stmt->set_parent(this);
-    then_body_.emplace_back(stmt);
+    then_body_->add_statement(stmt);
 }
 
 void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
         throw ::runtime_error("cannot add statement block to the if statement body");
     stmt->set_parent(this);
-    else_body_.emplace_back(stmt);
+    else_body_->add_statement(stmt);
 }
 
 void IfStmt::remove_then_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
-    auto pos = std::find(then_body_.begin(), then_body_.end(), stmt);
-    if (pos != then_body_.end())
-        then_body_.erase(pos);
+    then_body_->remove_stmt(stmt);
 }
 
 void IfStmt::remove_else_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
-    auto pos = std::find(else_body_.begin(), else_body_.end(), stmt);
-    if (pos != else_body_.end())
-        else_body_.erase(pos);
+    else_body_->remove_stmt(stmt);
 }
 
 void IfStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
-    for (auto const &s : then_body_) {
+    for (auto const &s : *then_body_) {
         if (s == stmt) {
             remove_then_stmt(stmt);
             return;
         }
     }
-    for (auto const &s: else_body_) {
+    for (auto const &s: *else_body_) {
         if (s == stmt) {
             remove_else_stmt(stmt);
             return;
@@ -107,10 +109,10 @@ void IfStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
 IRNode *IfStmt::get_child(uint64_t index) {
     if (index == 0)
         return predicate_.get();
-    else if (index < then_body_.size() + 1)
-        return then_body_[index - 1].get();
-    else if (index < then_body_.size() + else_body_.size() + 1)
-        return else_body_[index - then_body_.size() - 1].get();
+    else if (index == 1)
+        return then_body_.get();
+    else if (index == 2)
+        return else_body_.get();
     else
         return nullptr;
 }
@@ -129,9 +131,7 @@ void StmtBlock::add_statement(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Assign) {
         auto assign_stmt = stmt->as<AssignStmt>();
         if (assign_stmt->assign_type() == AssignmentType::Undefined) {
-            assign_stmt->set_assign_type(block_type() == StatementBlockType::Combinational
-                                             ? AssignmentType::Blocking
-                                             : AssignmentType::NonBlocking);
+            // let the passes to figure this out
         } else if (assign_stmt->assign_type() == AssignmentType::NonBlocking &&
                    block_type_ == StatementBlockType::Combinational) {
             throw ::runtime_error("cannot add blocking assignment to a sequential block");

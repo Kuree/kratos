@@ -24,6 +24,7 @@ class AssignStmt;
 class IfStmt;
 class SwitchStmt;
 class StmtBlock;
+class ScopedStmtBlock;
 class CombinationalStmtBlock;
 class SequentialStmtBlock;
 class ModuleInstantiationStmt;

@@ -8,10 +8,11 @@ namespace kratos {
 
 enum StatementType { If, Switch, Assign, Block, ModuleInstantiation };
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
-enum StatementBlockType { Combinational, Sequential };
+enum StatementBlockType { Combinational, Sequential, Scope};
 enum BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
+class ScopedStmtBlock;
 
 class Stmt : public std::enable_shared_from_this<Stmt>, public IRNode {
 public:
@@ -29,7 +30,7 @@ public:
     uint64_t child_count() override { return 0; }
     IRNode *get_child(uint64_t) override { return nullptr; };
 
-    virtual ~Stmt() = default;
+    ~Stmt() override = default;
 
 protected:
     StatementType type_;
@@ -74,8 +75,8 @@ public:
     explicit IfStmt(Var &var) : IfStmt(var.shared_from_this()) {}
 
     const std::shared_ptr<Var> predicate() const { return predicate_; }
-    const std::vector<std::shared_ptr<Stmt>> then_body() const { return then_body_; }
-    const std::vector<std::shared_ptr<Stmt>> else_body() const { return else_body_; }
+    const std::shared_ptr<ScopedStmtBlock> &then_body() const { return then_body_; }
+    const std::shared_ptr<ScopedStmtBlock> &else_body() const { return else_body_; }
     void add_then_stmt(const std::shared_ptr<Stmt> &stmt);
     void add_then_stmt(Stmt &stmt) { add_then_stmt(stmt.shared_from_this()); }
     void add_else_stmt(const std::shared_ptr<Stmt> &stmt);
@@ -86,13 +87,13 @@ public:
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
-    uint64_t child_count() override { return 1 + then_body_.size() + else_body_.size(); }
+    uint64_t child_count() override { return 3; }
     IRNode *get_child(uint64_t index) override;
 
 private:
     std::shared_ptr<Var> predicate_;
-    std::vector<std::shared_ptr<Stmt>> then_body_;
-    std::vector<std::shared_ptr<Stmt>> else_body_;
+    std::shared_ptr<ScopedStmtBlock> then_body_;
+    std::shared_ptr<ScopedStmtBlock> else_body_;
 };
 
 class SwitchStmt : public Stmt {
@@ -142,12 +143,25 @@ public:
 
     void set_child(uint64_t index, const std::shared_ptr<Stmt> &stmt);
 
+    std::vector<std::shared_ptr<Stmt>>::iterator begin() { return stmts_.begin(); }
+    std::vector<std::shared_ptr<Stmt>>::iterator end() { return stmts_.end(); }
+    bool empty() const { return stmts_.empty(); }
+    uint64_t size() const { return stmts_.size(); }
+    std::shared_ptr<Stmt> operator[] (uint32_t index) { return stmts_[index]; }
+
 protected:
     explicit StmtBlock(StatementBlockType type);
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
 private:
     StatementBlockType block_type_;
+};
+
+class ScopedStmtBlock: public StmtBlock {
+public:
+    ScopedStmtBlock(): StmtBlock(StatementBlockType::Scope) {}
+    void accept(IRVisitor *visitor) override {
+        visitor->visit(this); }
 };
 
 class CombinationalStmtBlock : public StmtBlock {

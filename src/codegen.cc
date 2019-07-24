@@ -212,10 +212,21 @@ void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
-    if (stmt->block_type() == StatementBlockType::Sequential)
-        return stmt_code(reinterpret_cast<SequentialStmtBlock*>(stmt));
-    else
-        return stmt_code(reinterpret_cast<CombinationalStmtBlock*>(stmt));
+    switch (stmt->block_type()) {
+        case StatementBlockType::Sequential: {
+            stmt_code(reinterpret_cast<SequentialStmtBlock*>(stmt));
+            break;
+        }
+        case StatementBlockType::Combinational: {
+            stmt_code(reinterpret_cast<CombinationalStmtBlock*>(stmt));
+            break;
+        }
+        case StatementBlockType::Scope: {
+            stmt_code(reinterpret_cast<ScopedStmtBlock*>(stmt));
+            break;
+        }
+
+    }
 }
 
 void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
@@ -255,47 +266,43 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
     stream_ << indent() << "end" << stream_.endl();
 }
 
-void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
+void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
     }
-    stream_ << indent() << ::format("if ({0}) begin", stmt->predicate()->to_string())
-            << stream_.endl();
+
+    stream_ << "begin" << stream_.endl();
     indent_++;
 
-    auto const& then_body = stmt->then_body();
-    for (auto const& child : then_body) {
-        dispatch_node(child.get());
+    for (uint32_t i = 0; i < stmt->child_count(); i++) {
+        dispatch_node(stmt->get_child(i));
     }
 
     indent_--;
     stream_ << indent() << "end" << stream_.endl();
 
+}
+
+void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
+    if (generator_->debug) {
+        stmt->verilog_ln = stream_.line_no();
+    }
+    stream_ << indent() << ::format("if ({0}) ", stmt->predicate()->to_string());
+    auto const& then_body = stmt->then_body();
+    dispatch_node(then_body.get());
+
     auto const& else_body = stmt->else_body();
-    if (!else_body.empty()) {
+    if (!else_body->empty()) {
         // special case where there is another (and only) if statement nested inside the else body
         // i.e. the else if case
-        bool skip = false;
-        if (else_body.size() == 1) {
-            auto const if_stmt = else_body[0];
-            if (if_stmt->type() == StatementType::If) {
-                skip = true;
-            }
-        }
+        bool skip = else_body->size() == 1;
         if (skip) {
             stream_ << indent() << "else ";
             skip_indent_ = true;
-            dispatch_node(else_body[0].get());
+            dispatch_node((*else_body)[0].get());
         } else {
-            stream_ << indent() << "else begin" << stream_.endl();
-            indent_++;
-
-            for (auto const& child : else_body) {
-                dispatch_node(child.get());
-            }
-            indent_--;
-
-            stream_ << indent() << "end" << stream_.endl();
+            stream_ << indent() << "else ";
+            dispatch_node(stmt->then_body().get());
         }
     }
 }
