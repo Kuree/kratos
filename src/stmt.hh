@@ -46,8 +46,8 @@ public:
     AssignmentType assign_type() const { return assign_type_; }
     void set_assign_type(AssignmentType assign_type) { assign_type_ = assign_type; }
 
-    const std::shared_ptr<Var> left() const { return left_; }
-    const std::shared_ptr<Var> right() const { return right_; }
+    std::shared_ptr<Var> left() const { return left_; }
+    std::shared_ptr<Var> right() const { return right_; }
 
     void set_left(const std::shared_ptr<Var> &left) { left_ = left; }
     void set_right(const std::shared_ptr<Var> &right) { right_ = right; }
@@ -74,7 +74,7 @@ public:
     explicit IfStmt(std::shared_ptr<Var> predicate);
     explicit IfStmt(Var &var) : IfStmt(var.shared_from_this()) {}
 
-    const std::shared_ptr<Var> predicate() const { return predicate_; }
+    std::shared_ptr<Var> predicate() const { return predicate_; }
     const std::shared_ptr<ScopedStmtBlock> &then_body() const { return then_body_; }
     const std::shared_ptr<ScopedStmtBlock> &else_body() const { return else_body_; }
     void add_then_stmt(const std::shared_ptr<Stmt> &stmt);
@@ -111,21 +111,21 @@ public:
                             const std::shared_ptr<Stmt> &stmt);
     void remove_stmt(const std::shared_ptr<Stmt> &stmt);
 
-    const std::shared_ptr<Var> target() const { return target_; }
+    std::shared_ptr<Var> target() const { return target_; }
 
-    const std::map<std::shared_ptr<Const>, std::vector<std::shared_ptr<Stmt>>> &body() const {
+    const std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> &body() const {
         return body_;
     }
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
-    uint64_t child_count() override;
+    uint64_t child_count() override { return body_.size() + 1; }
     IRNode *get_child(uint64_t index) override;
 
 private:
     std::shared_ptr<Var> target_;
     // default case will be indexed as nullptr
-    std::map<std::shared_ptr<Const>, std::vector<std::shared_ptr<Stmt>>> body_;
+    std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> body_;
 };
 
 /// this is for always block
@@ -145,6 +145,7 @@ public:
 
     std::vector<std::shared_ptr<Stmt>>::iterator begin() { return stmts_.begin(); }
     std::vector<std::shared_ptr<Stmt>>::iterator end() { return stmts_.end(); }
+    std::shared_ptr<Stmt> back() { return stmts_.back(); }
     bool empty() const { return stmts_.empty(); }
     uint64_t size() const { return stmts_.size(); }
     std::shared_ptr<Stmt> operator[] (uint32_t index) { return stmts_[index]; }
@@ -198,7 +199,7 @@ public:
         return port_mapping_;
     }
 
-    const std::map<std::shared_ptr<Var>, std::shared_ptr<Stmt>> port_debug() const {
+    const std::map<std::shared_ptr<Var>, std::shared_ptr<Stmt>> &port_debug() const {
         return port_debug_;
     }
 

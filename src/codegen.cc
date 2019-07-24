@@ -123,7 +123,7 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
     generate_parameters(generator);
     generate_variables(generator);
 
-    for (uint32_t i = 0; i < generator->stmts_count(); i++) {
+    for (uint64_t i = 0; i < generator->stmts_count(); i++) {
         dispatch_node(generator->get_stmt(i).get());
     }
 
@@ -140,7 +140,7 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     auto& port_names_set = generator->get_port_names();
     std::vector<std::string> port_names(port_names_set.begin(), port_names_set.end());
     std::sort(port_names.begin(), port_names.end());
-    for (uint32_t i = 0; i < port_names.size(); i++) {
+    for (uint64_t i = 0; i < port_names.size(); i++) {
         auto const& port_name = port_names[i];
         auto port = generator->get_port(port_name);
         stream_ << std::make_pair(port.get(), (i == port_names.size() - 1) ? "" : ",");
@@ -243,7 +243,7 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
     stream_ << stream_.endl() << "always @(" << sensitive_list_str << ") begin" << stream_.endl();
     indent_++;
 
-    for (uint32_t i = 0; i < stmt->child_count(); i++) {
+    for (uint64_t i = 0; i < stmt->child_count(); i++) {
         dispatch_node(stmt->get_child(i));
     }
 
@@ -258,7 +258,7 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
     stream_ << "always_comb begin" << stream_.endl();
     indent_++;
 
-    for (uint32_t i = 0; i < stmt->child_count(); i++) {
+    for (uint64_t i = 0; i < stmt->child_count(); i++) {
         dispatch_node(stmt->get_child(i));
     }
 
@@ -274,7 +274,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
     stream_ << "begin" << stream_.endl();
     indent_++;
 
-    for (uint32_t i = 0; i < stmt->child_count(); i++) {
+    for (uint64_t i = 0; i < stmt->child_count(); i++) {
         dispatch_node(stmt->get_child(i));
     }
 
@@ -345,19 +345,21 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
     stream_ << indent() << "case (" << stmt->target()->to_string() << ")" << stream_.endl();
     indent_++;
     auto const& body = stmt->body();
-    for (auto& iter : body) {
-        stream_ << indent() << (iter.first ? iter.first->to_string() : "default") << ": ";
-        if (iter.second.empty()) {
+    for (auto& [cond, stmt_blk] : body) {
+        stream_ << indent() << (cond ? cond->to_string() : "default") << ": ";
+        if (stmt_blk->empty()) {
             throw ::runtime_error(
-                ::format("Switch statement condition {0} is empty!", iter.first->to_string()));
+                ::format("Switch statement condition {0} is empty!", cond->to_string()));
         } else {
-            stream_ << "begin" << stream_.endl();
-            indent_++;
-
-            for (auto const& st : iter.second) dispatch_node(st.get());
-
-            indent_--;
-            stream_ << indent() << "end" << stream_.endl();
+            // directly output the code if the block only has 1 element
+            if (stmt_blk->size() == 1) {
+                skip_indent_ = true;
+                dispatch_node((*stmt_blk)[0].get());
+            } else {
+                indent_++;
+                dispatch_node(stmt_blk.get());
+                indent_--;
+            }
         }
     }
 

@@ -36,8 +36,8 @@ TEST(stmt, if_stmt) {  // NOLINT
     if_.add_then_stmt(stmt1);
     auto stmt2 = var3.assign(var4);
     if_.add_else_stmt(stmt2);
-    EXPECT_EQ(if_.then_body().back(), stmt1);
-    EXPECT_EQ(if_.else_body().back(), stmt2);
+    EXPECT_EQ(if_.then_body()->back(), stmt1);
+    EXPECT_EQ(if_.else_body()->back(), stmt2);
 }
 
 TEST(stmt, block) {  // NOLINT

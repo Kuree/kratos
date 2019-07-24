@@ -178,11 +178,18 @@ SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
 void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                                  const std::shared_ptr<Stmt> &stmt) {
     stmt->set_parent(this);
-    auto &body = body_[switch_case];
-    if (std::find(body.begin(), body.end(), stmt) != body.end())
-        throw ::runtime_error(::format("statement already exists in switch body with case {0}",
-                                       switch_case->to_string()));
-    body_[switch_case].emplace_back(stmt);
+    if (body_.find(switch_case) == body_.end()) {
+        body_.emplace(switch_case, std::make_shared<ScopedStmtBlock>());
+    }
+    if (stmt->type() == StatementType::Block) {
+        // merge the block
+        auto blk = stmt->as<StmtBlock>();
+        for (auto const &s: *blk) {
+            body_[switch_case]->add_statement(s);
+        }
+    } else {
+        body_[switch_case]->add_statement(stmt);
+    }
 }
 
 void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
@@ -200,15 +207,13 @@ void SwitchStmt::remove_switch_case(const std::shared_ptr<kratos::Const> &switch
                                     const std::shared_ptr<kratos::Stmt> &stmt) {
     if (body_.find(switch_case) != body_.end()) {
         auto &stmts = body_.at(switch_case);
-        auto pos = std::find(stmts.begin(), stmts.end(), stmt);
-        if (pos != stmts.end())
-            stmts.erase(pos);
+        stmts->remove_stmt(stmt);
     }
 }
 
 void SwitchStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
     for (auto &[c, stmts]: body_) {
-        for (auto const &s: stmts) {
+        for (auto const &s: *stmts) {
             if (s == stmt) {
                 remove_switch_case(c, stmt);
                 break;
@@ -217,23 +222,13 @@ void SwitchStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
     }
 }
 
-uint64_t SwitchStmt::child_count() {
-    uint64_t i = 1;  // 1 for target
-    for (auto const &iter : body_) {
-        i += iter.second.size();
-    }
-    return i;
-}
-
 IRNode *SwitchStmt::get_child(uint64_t index) {
     if (index == 0) {
         return target_.get();
     } else {
         index--;
         for (auto const &iter : body_) {
-            for (auto const &stmt : iter.second) {
-                if (index-- == 0) return stmt.get();
-            }
+            if (index-- == 0) return iter.second.get();
         }
         return nullptr;
     }
