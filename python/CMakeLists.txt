@@ -8,3 +8,7 @@ target_link_libraries(_kratos PUBLIC ${STATIC_FLAG})
 
 set_target_properties(_kratos PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
         SUFFIX "${PYTHON_MODULE_EXTENSION}" COMPILE_FLAGS "-Wno-register")
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set_target_properties(_kratos PROPERTIES COMPILE_FLAGS -fsized-deallocation)
+endif()

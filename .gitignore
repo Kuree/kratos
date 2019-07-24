@@ -65,3 +65,6 @@ temp
 
 # some tests vectors
 test.sv*
+
+# clang build dir
+clang-build
