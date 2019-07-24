@@ -127,33 +127,44 @@ Param &Generator::parameter(const std::string &parameter_name, uint32_t width, b
 }
 
 IRNode *Generator::get_child(uint64_t index) {
-    if (index < stmts_count())
+    if (index < stmts_count()) {
         return stmts_[index].get();
-    else if (index < stmts_count() + get_child_generator_size())
-        return children_[index - stmts_count()].get();
-    else
+    } else if (index < stmts_count() + get_child_generator_size()) {
+        auto n = child_names_[index - stmts_count()];
+        return children_.at(n).get();
+    } else {
         return nullptr;
-}
-
-void Generator::add_child_generator(const std::shared_ptr<Generator> &child) {
-    if (std::find(children_.begin(), children_.end(), child) == children_.end()) {
-        children_.emplace_back(child);
-        child->parent_generator_ = this;
     }
 }
 
-void Generator::add_child_generator(const std::shared_ptr<Generator> &child,
+void Generator::add_child_generator(const std::string &instance_name_,
+                                    const std::shared_ptr<Generator> &child) {
+    child->instance_name = instance_name_;
+    if (children_.find(child->instance_name) == children_.end()) {
+        children_.emplace(child->instance_name, child);
+        child->parent_generator_ = this;
+        child_names_.emplace_back(child->instance_name);
+    } else {
+        throw std::runtime_error(
+            ::format("{0} already exists  in {1}", child->instance_name, instance_name));
+    }
+}
+
+void Generator::add_child_generator(const std::string &instance_name_,
+                                    const std::shared_ptr<Generator> &child,
                                     const std::pair<std::string, uint32_t> &debug_info) {
     if (debug) {
         children_debug_.emplace(child, debug_info);
     }
-    add_child_generator(child);
+    add_child_generator(instance_name_, child);
 }
 
 void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) {
-    auto pos = std::find(children_.begin(), children_.end(), child);
-    if (pos != children_.end()) {
-        children_.erase(pos);
+    auto child_name = child->instance_name;
+    auto pos = std::find(child_names_.begin(), child_names_.end(), child_name);
+    if (pos != child_names_.end()) {
+        child_names_.erase(pos);
+        children_.erase(child_name);
         // need to remove every connected ports
         auto port_names = child->get_port_names();
         for (auto const &port_name : port_names) {
@@ -179,8 +190,17 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
     }
 }
 
+std::vector<std::shared_ptr<Generator>> Generator::get_child_generators() {
+    std::vector<std::shared_ptr<Generator>> result;
+    result.reserve(children_.size());
+    for (auto const &n : child_names_) {
+        result.emplace_back(children_.at(n));
+    }
+    return result;
+}
+
 bool Generator::has_child_generator(const std::shared_ptr<Generator> &child) {
-    return std::find(children_.begin(), children_.end(), child) != children_.end();
+    return children_.find(child->instance_name) != children_.end();
 }
 
 std::set<std::string> Generator::get_vars() {
@@ -317,7 +337,7 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
     }
 
     if (!parent_generator->has_child_generator(new_generator))
-        parent_generator->add_child_generator(new_generator);
+        parent_generator->add_child_generator(new_generator->instance_name, new_generator);
     parent_generator->remove_child_generator(target);
 }
 

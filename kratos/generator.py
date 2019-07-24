@@ -411,10 +411,12 @@ class Generator(metaclass=GeneratorMeta):
         self.__child_generator[instance_name] = generator
         if self.debug:
             fn, ln = get_fn_ln()
-            self.__generator.add_child_generator(generator.__generator,
+            self.__generator.add_child_generator(instance_name,
+                                                 generator.__generator,
                                                  (fn, ln))
         else:
-            self.__generator.add_child_generator(generator.__generator)
+            self.__generator.add_child_generator(instance_name,
+                                                 generator.__generator)
 
     def remove_child_generator(self, generator):
         if self.is_cloned:

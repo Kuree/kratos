@@ -18,7 +18,7 @@ void IRVisitor::visit_root(IRNode *root) {
 }
 
 void IRVisitor::visit_generator_root(Generator *generator) {
-    auto &children = generator->get_child_generators();
+    auto children = generator->get_child_generators();
     generator->accept_generator(this);
     level++;
     for (auto &child : children) visit_generator_root(child.get());

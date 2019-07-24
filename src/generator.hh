@@ -67,11 +67,13 @@ public:
     std::shared_ptr<CombinationalStmtBlock> combinational();
 
     // child generator. needed for generator merge
-    void add_child_generator(const std::shared_ptr<Generator> &child);
-    void add_child_generator(const std::shared_ptr<Generator> &child,
+    void add_child_generator(const std::string &instance_name,
+                             const std::shared_ptr<Generator> &child);
+    void add_child_generator(const std::string &instance_name,
+                             const std::shared_ptr<Generator> &child,
                              const std::pair<std::string, uint32_t> &debug_info);
     void remove_child_generator(const std::shared_ptr<Generator> &child);
-    std::vector<std::shared_ptr<Generator>> &get_child_generators() { return children_; }
+    std::vector<std::shared_ptr<Generator>> get_child_generators();
     uint64_t inline get_child_generator_size() const { return children_.size(); }
     bool has_child_generator(const std::shared_ptr<Generator> &child);
     void accept_generator(IRVisitor *visitor) { visitor->visit(this); }
@@ -131,7 +133,8 @@ private:
 
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
-    std::vector<std::shared_ptr<Generator>> children_;
+    std::unordered_map<std::string, std::shared_ptr<Generator>> children_;
+    std::vector<std::string> child_names_;
     std::unordered_map<std::shared_ptr<Generator>, std::pair<std::string, uint32_t>>
         children_debug_;
 
