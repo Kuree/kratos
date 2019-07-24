@@ -1,7 +1,6 @@
 #include "pass.hh"
 #include <algorithm>
 #include <iostream>
-#include <sstream>
 #include "codegen.hh"
 #include "except.hh"
 #include "fmt/format.h"
@@ -509,7 +508,7 @@ void check_mixed_assignment(Generator* top) {
 class TransformIfCase : public IRVisitor {
 public:
     void visit(CombinationalStmtBlock* stmts) override {
-        for (uint32_t i = 0; i < stmts->child_count(); i++) {
+        for (uint64_t i = 0; i < stmts->child_count(); i++) {
             auto stmt = reinterpret_cast<Stmt*>(stmts->get_child(i));
             Var* target = nullptr;
             std::unordered_set<std::shared_ptr<Stmt>> if_stmts;
@@ -607,7 +606,7 @@ public:
 
             std::vector<std::pair<std::string, uint32_t>> debug_info;
 
-            for (uint32_t i = 0; i < chain.size() - 1; i++) {
+            for (uint64_t i = 0; i < chain.size() - 1; i++) {
                 auto& [pre, stmt] = chain[i];
                 auto next = chain[i + 1].first;
 
@@ -808,7 +807,7 @@ public:
                         throw VarException(::format("redefinition of different packed struct {0}",
                                                     port_struct.struct_name),
                                            {port.get(), struct_ports_.at(port_struct.struct_name)});
-                    for (uint32_t i = 0; i < port_struct.attributes.size(); i++) {
+                    for (uint64_t i = 0; i < port_struct.attributes.size(); i++) {
                         auto const& [name1, width1, signed_1] = struct_.attributes[i];
                         auto const& [name2, width2, signed_2] = port_struct.attributes[i];
                         if (name1 != name2 || width1 != width2 || signed_1 != signed_2)
@@ -861,7 +860,7 @@ public:
         // first filter out sliced assignments
         std::set<std::shared_ptr<AssignStmt>> sliced_stmts;
         uint64_t stmt_count = generator->stmts_count();
-        for (uint32_t i = 0; i < stmt_count; i++) {
+        for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = generator->get_stmt(i);
             if (stmt->type() == StatementType::Assign) {
                 auto assign_stmt = stmt->as<AssignStmt>();
@@ -931,7 +930,7 @@ void merge_wire_assignments(Generator* top) {
 void PassManager::add_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));
-    passes_.emplace(name, fn);
+    passes_.emplace(name, std::move(fn));
     passes_order_.emplace_back(name);
 }
 

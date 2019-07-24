@@ -1,7 +1,6 @@
 #include "hash.hh"
 #include <fstream>
 #include "cxxpool.h"
-#include "expr.hh"
 #include "generator.hh"
 #include "graph.hh"
 #include "ir.hh"
@@ -99,7 +98,7 @@ public:
 
     /// get current hash
     /** @return 64 bit XXHash **/
-    uint64_t hash() const {
+    [[nodiscard]] uint64_t hash() const {
         // fold 256 bit state into one single 64 bit value
         uint64_t result;
         if (totalLength >= MaxBufferSize) {
