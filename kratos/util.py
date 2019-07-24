@@ -1,6 +1,7 @@
 import sys
 from typing import Union, List
 import os
+import math
 
 
 class CLIColors:
@@ -40,3 +41,9 @@ def print_src(src, line_no: Union[List[int], int], offset: int = 1,
 
     # print a line
     print(CLIColors.OKBLUE + "-" * 80 + CLIColors.ENDC, file=sys.stderr)
+
+
+def clog2(x: int) -> int:
+    if x == 0:
+        return 0
+    return int(math.ceil(math.log2(x)))

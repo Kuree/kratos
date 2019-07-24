@@ -2,6 +2,7 @@ from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
     always, verilog, signed, CombinationalCodeBlock, SequentialCodeBlock
 
 from .passes import Attribute
+from .util import clog2
 
 # directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog
@@ -17,4 +18,4 @@ __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
 # code blocks
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",
-            "AssignStmt"]
+            "AssignStmt", "clog2"]
