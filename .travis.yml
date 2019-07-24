@@ -4,6 +4,12 @@ matrix:
           services:
             - docker
           language: minimal
+          env: BUILD_WHEEL=true
+        - name: "Linux ctest"
+          services:
+            - docker
+          language: minimal
+          env: BUILD_WHEEL=false
         - name: "macOS"
           os: osx
           language: shell

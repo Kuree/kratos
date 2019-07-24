@@ -1,17 +1,25 @@
 #!/usr/bin/env bash
-set -e
+set -xe
 
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-    docker pull keyiz/manylinux
-    docker pull keyiz/garnet-flow
-    docker run -d --name manylinux --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos keyiz/manylinux bash
-    docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/garnet-flow bash
+    if [[ "$BUILD_WHEEL" == true ]]; then
+        docker pull keyiz/manylinux
+        docker pull keyiz/garnet-flow
+        docker run -d --name manylinux --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos keyiz/manylinux bash
+        docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/garnet-flow bash
 
-    docker cp ../kratos manylinux:/
-    docker exec -i manylinux bash -c 'cd kratos && python setup.py bdist_wheel'
-    docker exec -i manylinux bash -c 'cd kratos && auditwheel show dist/*'
-    docker exec -i manylinux bash -c 'cd kratos && auditwheel repair dist/*'
-    docker exec -i manylinux-test bash -c 'cd kratos && pip install pytest dist/* && pytest -v tests/'
+        docker exec -i manylinux bash -c 'cd kratos && python setup.py bdist_wheel'
+        docker exec -i manylinux bash -c 'cd kratos && auditwheel show dist/*'
+        docker exec -i manylinux bash -c 'cd kratos && auditwheel repair dist/*'
+        docker exec -i manylinux-test bash -c 'cd kratos && pip install pytest dist/* && pytest -v tests/'
+    else
+        docker pull keyiz/garnet-flow
+        docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/garnet-flow bash
+
+        docker exec -i manylinux-test bash -c 'cd kratos && mkdir build && cd build && cmake ..'
+        docker exec -i manylinux-test bash -c "cd kratos/build && make -j2"
+        docker exec -i manylinux-test bash -c "cd kratos/build && make test"
+    fi
 
 elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     export PYTHON=3.7.0
