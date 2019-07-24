@@ -31,8 +31,6 @@ void decouple_generator_ports(Generator* top);
 
 void uniquify_generators(Generator* top);
 
-void uniquify_module_instances(Generator* top);
-
 std::map<std::string, std::string> generate_verilog(Generator* top);
 
 std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>

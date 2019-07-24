@@ -60,6 +60,7 @@ readable and your life easier:
 - ``uniquify_generators``: assign different module name if two
   are indeed different
 - ``generate_verilog``: verilog code generation pass.
+- ``extract_debug_info``: extract debug information.
 - ``extract_struct_info``: extract packed struct information
 - ``transform_if_to_case``: transform if statement into case statement
   if it determines appropriate. It is because Python doesn't have

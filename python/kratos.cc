@@ -88,14 +88,16 @@ void init_pass(py::module &m) {
         .def("hash_generators", &hash_generators)
         .def("decouple_generator_ports", &decouple_generator_ports)
         .def("uniquify_generators", &uniquify_generators)
-        .def("uniquify_module_instances", &uniquify_module_instances)
         .def("generate_verilog", &generate_verilog)
         .def("transform_if_to_case", &transform_if_to_case)
         .def("remove_fanout_one_wires", &remove_fanout_one_wires)
         .def("remove_pass_through_modules", &remove_pass_through_modules)
         .def("extract_debug_info", &extract_debug_info)
         .def("extract_struct_info", &extract_struct_info)
-        .def("merge_wire_assignments", merge_wire_assignments);
+        .def("merge_wire_assignments", merge_wire_assignments)
+        .def("zero_out_stubs", &zero_out_stubs)
+        .def("remove_unused_vars", &remove_unused_vars)
+        .def("check_mixed_assignment", &check_mixed_assignment);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
 This class gives you the fined control over which pass to run and in which order.

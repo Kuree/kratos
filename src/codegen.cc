@@ -103,8 +103,6 @@ void VerilogModule::run_passes(bool use_parallel, bool run_if_to_case_pass, bool
 
     manager_.add_pass("uniquify_generators", &uniquify_generators);
 
-    manager_.add_pass("uniquify_module_instances", &uniquify_module_instances);
-
     manager_.add_pass("create_module_instantiation", &create_module_instantiation);
 
     // tun the passes
