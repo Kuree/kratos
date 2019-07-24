@@ -372,7 +372,7 @@ Here is an example on how to build a ``case`` based N-input mux.
 
     class Mux(Generator):
         def __init__(self, height: int, width: int):
-            name = "Mux_{0}_{0}".format(width, height)
+            name = "Mux_{0}_{1}".format(width, height)
             super().__init__(name)
 
             # pass through wires
@@ -402,7 +402,7 @@ Here is the generated verilog
 
 .. code-block:: SystemVerilog
 
-  module Mux_16_16 (
+  module Mux_16_3 (
     input logic [15:0] I0,
     input logic [15:0] I1,
     input logic [15:0] I2,
@@ -412,18 +412,10 @@ Here is the generated verilog
 
   always_comb begin
     case (S)
-      default: begin
-        O = 16'h0;
-      end
-      2'h0: begin
-        O = I0;
-      end
-      2'h2: begin
-        O = I2;
-      end
-      2'h1: begin
-        O = I1;
-      end
+      default: O = 16'h0;
+      2'h0: O = I0;
+      2'h1: O = I1;
+      2'h2: O = I2;
     endcase
   end
-  endmodule   // Mux_16_16
+  endmodule   // Mux_16_3
