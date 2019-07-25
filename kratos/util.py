@@ -83,6 +83,14 @@ def reduce_mul(*args):
     return expr
 
 
+def concat(*args):
+    assert len(args) > 1
+    expr = args[0].concat(args[1])
+    for i in range(2, len(args)):
+        expr = expr.concat(args[i])
+    return expr
+
+
 def get_fn_ln(depth: int = 2):
     frame = inspect.stack()[depth]
     filename = frame.filename
