@@ -19,13 +19,6 @@ void def_attributes(T &class_) {
         .def("get_attributes", &K::get_attributes, py::return_value_policy::reference);
 }
 
-template <typename T, typename K>
-void def_trace(T &class_) {
-    class_.def("add_fn_ln", [](K &var, const std::pair<std::string, uint32_t> &info) {
-        var.fn_name_ln.emplace_back(info);
-    });
-}
-
 template <typename T>
 Const &convert_int_to_const(T &var, int64_t value) {
     bool is_signed = var.is_signed;
@@ -300,10 +293,9 @@ void init_common_expr(T &class_) {
             "__getitem__", [](K & k, uint32_t idx) -> auto & { return k[idx]; },
             py::return_value_policy::reference)
         .def("assign", py::overload_cast<const shared_ptr<Var> &>(&K::assign))
-        .def("assign",
-             [](K &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
-                 return left.assign(convert_int_to_const(left, right));
-             })
+        .def("assign", [](K &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
+          return left.assign(convert_int_to_const(left, right));
+        })
         .def("assign", py::overload_cast<const shared_ptr<Var> &>(&K::assign))
         .def("type", &K::type)
         .def("concat", &K::concat, py::return_value_policy::reference)
@@ -317,23 +309,5 @@ void init_common_expr(T &class_) {
 
     def_attributes<T, K>(class_);
 }
-
-void init_expr(pybind11::module &m);
-
-template <typename T>
-void init_var_base(pybind11::class_<T, std::shared_ptr<T>> &class_) {
-    init_common_expr<pybind11::class_<T, std::shared_ptr<T>>, Var>(class_);
-}
-
-template <typename T>
-void init_var_derived(pybind11::class_<T, std::shared_ptr<T>, Var> &class_) {
-    init_common_expr<pybind11::class_<T, std::shared_ptr<T>, Var>, T>(class_);
-    class_.def(
-        "assign",
-        [](const std::shared_ptr<T> &var_to, const std::shared_ptr<Var> &var_from,
-           AssignmentType type) -> auto { return var_to->assign(var_from, type); },
-        pybind11::return_value_policy::reference);
-}
-
 }  // namespace kratos
 #endif  // KRATOS_KRATOS_EXPR_HH
