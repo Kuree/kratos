@@ -388,6 +388,11 @@ You can create a ``SwitchStmt`` through either ``[comb].switch_`` or
 
 .. _link: https://github.com/Kuree/kratos/blob/master/kratos/stmts.py
 
+To create an assignment, you can just use a normal function call to the
+variable/port, such as ``[gen].var.var_name(value)``, where the ``value``
+can be either a variable/port/const or integer values (with implicit
+conversation).
+
 Examples
 --------
 

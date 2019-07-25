@@ -292,10 +292,16 @@ void init_common_expr(T &class_) {
             "__getitem__", [](K & k, uint32_t idx) -> auto & { return k[idx]; },
             py::return_value_policy::reference)
         .def("assign", py::overload_cast<const shared_ptr<Var> &>(&K::assign))
-        .def("assign", [](K &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
-          return left.assign(convert_int_to_const(left, right));
-        })
+        .def("assign",
+             [](K &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
+                 return left.assign(convert_int_to_const(left, right));
+             })
         .def("assign", py::overload_cast<const shared_ptr<Var> &>(&K::assign))
+        .def("__call__",
+             [](K &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
+               return left.assign(convert_int_to_const(left, right));
+             })
+        .def("__call__", py::overload_cast<const shared_ptr<Var> &>(&K::assign))
         .def("type", &K::type)
         .def("concat", &K::concat, py::return_value_policy::reference)
         .def_readwrite("name", &K::name)
