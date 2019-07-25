@@ -2,6 +2,7 @@ import sys
 from typing import Union, List
 import os
 import math
+import inspect
 
 
 class CLIColors:
@@ -47,3 +48,11 @@ def clog2(x: int) -> int:
     if x == 0:
         return 0
     return int(math.ceil(math.log2(x)))
+
+
+def get_fn_ln(depth: int = 2):
+    frame = inspect.stack()[depth]
+    filename = frame.filename
+    filename = os.path.abspath(filename)
+    ln = frame.lineno
+    return filename, ln

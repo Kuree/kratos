@@ -292,14 +292,14 @@ class Generator(metaclass=GeneratorMeta):
         return v
 
     def combinational(self):
-        if self.debug:
+        if self.is_cloned:
             self.__cached_initialization.append((self.combinational, []))
             return
         return CombinationalCodeBlock(self, 3)
 
     def sequential(self, sensitivity_list: List[Tuple[BlockEdgeType,
                                                       _kratos.Var]]):
-        if self.debug:
+        if self.is_cloned:
             self.__cached_initialization.append((self.sequential,
                                                  [sensitivity_list]))
             return

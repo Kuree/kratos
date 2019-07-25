@@ -175,7 +175,7 @@ SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
         throw ::runtime_error(::format("switch target cannot be const value {0}", target->name));
 }
 
-void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
+ScopedStmtBlock & SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                                  const std::shared_ptr<Stmt> &stmt) {
     stmt->set_parent(this);
     if (body_.find(switch_case) == body_.end()) {
@@ -190,11 +190,13 @@ void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
     } else {
         body_[switch_case]->add_stmt(stmt);
     }
+    return *body_[switch_case];
 }
 
-void SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
+ScopedStmtBlock & SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                                  const std::vector<std::shared_ptr<Stmt>> &stmts) {
     for (auto &stmt : stmts) add_switch_case(switch_case, stmt);
+    return *body_[switch_case];
 }
 
 void SwitchStmt::remove_switch_case(const std::shared_ptr<kratos::Const> &switch_case) {

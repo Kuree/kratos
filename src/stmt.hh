@@ -8,7 +8,7 @@ namespace kratos {
 
 enum StatementType { If, Switch, Assign, Block, ModuleInstantiation };
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
-enum StatementBlockType { Combinational, Sequential, Scope};
+enum StatementBlockType { Combinational, Sequential, Scope };
 enum BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
@@ -100,11 +100,11 @@ class SwitchStmt : public Stmt {
 public:
     explicit SwitchStmt(const std::shared_ptr<Var> &target);
 
-    void add_switch_case(const std::shared_ptr<Const> &switch_case,
-                         const std::shared_ptr<Stmt> &stmt);
+    ScopedStmtBlock &add_switch_case(const std::shared_ptr<Const> &switch_case,
+                                     const std::shared_ptr<Stmt> &stmt);
 
-    void add_switch_case(const std::shared_ptr<Const> &switch_case,
-                         const std::vector<std::shared_ptr<Stmt>> &stmts);
+    ScopedStmtBlock &add_switch_case(const std::shared_ptr<Const> &switch_case,
+                                     const std::vector<std::shared_ptr<Stmt>> &stmts);
 
     void remove_switch_case(const std::shared_ptr<Const> &switch_case);
     void remove_switch_case(const std::shared_ptr<Const> &switch_case,
@@ -148,7 +148,7 @@ public:
     std::shared_ptr<Stmt> back() { return stmts_.back(); }
     bool empty() const { return stmts_.empty(); }
     uint64_t size() const { return stmts_.size(); }
-    std::shared_ptr<Stmt> operator[] (uint32_t index) { return stmts_[index]; }
+    std::shared_ptr<Stmt> operator[](uint32_t index) { return stmts_[index]; }
 
 protected:
     explicit StmtBlock(StatementBlockType type);
@@ -158,11 +158,10 @@ private:
     StatementBlockType block_type_;
 };
 
-class ScopedStmtBlock: public StmtBlock {
+class ScopedStmtBlock : public StmtBlock {
 public:
-    ScopedStmtBlock(): StmtBlock(StatementBlockType::Scope) {}
-    void accept(IRVisitor *visitor) override {
-        visitor->visit(this); }
+    ScopedStmtBlock() : StmtBlock(StatementBlockType::Scope) {}
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 };
 
 class CombinationalStmtBlock : public StmtBlock {

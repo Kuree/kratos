@@ -1,4 +1,5 @@
 import _kratos
+from .util import get_fn_ln
 
 
 class IfStmt:
@@ -25,14 +26,18 @@ def if_(predicate: _kratos.Var):
 class SwitchStmt:
     def __init__(self, predicate: _kratos.Var):
         self._stmt = _kratos.SwitchStmt(predicate)
+        if predicate.generator.debug:
+            self._stmt.add_fn_ln(get_fn_ln())
         self.__predicate = predicate
 
     def case_(self, cond: _kratos.Var, *args: _kratos.Stmt):
+        g = self.__predicate.generator
         if isinstance(cond, int):
-            g = self.__predicate.generator
             cond = g.constant(cond, self.__predicate.width,
                               self.__predicate.signed)
-        self._stmt.add_switch_case(cond, args)
+        case = self._stmt.add_switch_case(cond, args)
+        if g.debug:
+            case.add_fn_ln(get_fn_ln())
         return self
 
     def stmt(self):

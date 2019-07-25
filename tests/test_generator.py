@@ -622,7 +622,7 @@ def test_remove_child():
 
 
 def test_syntax_sugar():
-    mod = Generator("mod")
+    mod = Generator("mod", debug=True)
     out_ = mod.var("out", 1)
     in_ = mod.port("in", 1, PortDirection.In)
     comb = mod.combinational()
@@ -632,7 +632,7 @@ def test_syntax_sugar():
     is_valid_verilog(mod_src)
 
     Generator.clear_context()
-    mod = Generator("mod")
+    mod = Generator("mod", debug=True)
     out_ = mod.var("out", 1)
     in_ = mod.port("in", 1, PortDirection.In)
     comb = mod.combinational()

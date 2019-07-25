@@ -4,7 +4,7 @@ import inspect
 import astor
 import _kratos
 import os
-from .util import print_src
+from .util import print_src, get_fn_ln
 import copy
 
 
@@ -308,14 +308,6 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
             signal_name = signal_name_node.s
             result.append((edge_type_name, signal_name))
         return result
-
-
-def get_fn_ln(depth: int = 2):
-    frame = inspect.stack()[depth]
-    filename = frame.filename
-    filename = os.path.abspath(filename)
-    ln = frame.lineno
-    return filename, ln
 
 
 def get_ln(fn):
