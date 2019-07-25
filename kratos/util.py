@@ -49,11 +49,22 @@ def clog2(x: int) -> int:
         return 0
     return int(math.ceil(math.log2(x)))
 
+def __check_input(*args):
+    if len(args) < 2:
+        if isinstance(args[0], (list, tuple)):
+            args = args[0]
+            if len(args) == 1:
+                return False, args[0]
+        else:
+            return False, args[0]
+    return True, args
+
 
 # these are helper functions tp construct complex expressions
 def reduce_or(*args):
-    if len(args) < 2:
-        return args[0]
+    r, args = __check_input(*args)
+    if not r:
+        return args
     expr = args[0] | args[1]
     for i in range(2, len(args)):
         expr = expr | args[i]
@@ -61,8 +72,9 @@ def reduce_or(*args):
 
 
 def reduce_and(*args):
-    if len(args) < 2:
-        return args[0]
+    r, args = __check_input(*args)
+    if not r:
+        return args
     expr = args[0] & args[1]
     for i in range(2, len(args)):
         expr = expr & args[i]
@@ -70,8 +82,9 @@ def reduce_and(*args):
 
 
 def reduce_add(*args):
-    if len(args) < 2:
-        return args[0]
+    r, args = __check_input(*args)
+    if not r:
+        return args
     expr = args[0] + args[1]
     for i in range(2, len(args)):
         expr = expr + args[i]
@@ -79,8 +92,9 @@ def reduce_add(*args):
 
 
 def reduce_mul(*args):
-    if len(args) < 2:
-        return args[0]
+    r, args = __check_input(*args)
+    if not r:
+        return args
     expr = args[0] & args[1]
     for i in range(2, len(args)):
         expr = expr & args[i]
@@ -88,8 +102,9 @@ def reduce_mul(*args):
 
 
 def concat(*args):
-    if len(args) < 2:
-        return args[0]
+    r, args = __check_input(*args)
+    if not r:
+        return args
     expr = args[0].concat(args[1])
     for i in range(2, len(args)):
         expr = expr.concat(args[i])
