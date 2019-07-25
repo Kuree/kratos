@@ -1,6 +1,5 @@
-#include <pybind11/functional.h>
-#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include "../src/codegen.hh"
 #include "../src/except.hh"
@@ -15,6 +14,11 @@
 namespace py = pybind11;
 using std::shared_ptr;
 using namespace kratos;
+
+void init_pass(py::module &m);
+void init_generator(py::module &m);
+void init_expr(py::module &m);
+void init_stmt(py::module &m);
 
 // bind all the enums
 void init_enum(py::module &m) {
@@ -73,102 +77,6 @@ void init_enum(py::module &m) {
         .value("Clock", VarCastType::Clock);
 }
 
-// pass submodule
-void init_pass(py::module &m) {
-    auto pass_m = m.def_submodule("passes");
-
-    pass_m.def("fix_assignment_type", &fix_assignment_type)
-        .def("remove_unused_vars", &remove_unused_vars)
-        .def("verify_generator_connectivity", &verify_generator_connectivity)
-        .def("create_module_instantiation", &create_module_instantiation)
-        .def("hash_generators", &hash_generators)
-        .def("decouple_generator_ports", &decouple_generator_ports)
-        .def("uniquify_generators", &uniquify_generators)
-        .def("generate_verilog", &generate_verilog)
-        .def("transform_if_to_case", &transform_if_to_case)
-        .def("remove_fanout_one_wires", &remove_fanout_one_wires)
-        .def("remove_pass_through_modules", &remove_pass_through_modules)
-        .def("extract_debug_info", &extract_debug_info)
-        .def("extract_struct_info", &extract_struct_info)
-        .def("merge_wire_assignments", merge_wire_assignments)
-        .def("zero_out_stubs", &zero_out_stubs)
-        .def("remove_unused_vars", &remove_unused_vars)
-        .def("check_mixed_assignment", &check_mixed_assignment);
-
-    auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
-This class gives you the fined control over which pass to run and in which order.
-Most passes doesn't return anything, thus it's safe to put it in the pass manager and
-let is run. However, if you want to code gen verilog, you have to call generate_verilog()
-by yourself to obtain the verilog code.)pbdoc");
-    manager.def(py::init<>())
-        .def("add_pass", py::overload_cast<const std::string &, std::function<void(Generator *)>>(
-                             &PassManager::add_pass))
-        .def("run_passes", &PassManager::run_passes)
-        .def("has_pass", &PassManager::has_pass);
-
-    // trampoline class for ast visitor
-    class PyIRVisitor : public IRVisitor {
-    public:
-        using IRVisitor::IRVisitor;
-
-        void visit_root(IRNode *root) override {
-            PYBIND11_OVERLOAD(void, IRVisitor, visit_root, root);
-        }
-
-        void visit_generator_root(Generator *generator) override {
-            PYBIND11_OVERLOAD(void, IRVisitor, visit_generator_root, generator);
-        }
-
-        void visit_content(Generator *generator) override {
-            PYBIND11_OVERLOAD(void, IRVisitor, visit_content, generator);
-        }
-
-        void visit(AssignStmt *stmt) override { PYBIND11_OVERLOAD(void, IRVisitor, visit, stmt); }
-
-        void visit(Port *var) override { PYBIND11_OVERLOAD(void, IRVisitor, visit, var); }
-
-        void visit(Generator *generator) override {
-            PYBIND11_OVERLOAD(void, IRVisitor, visit, generator);
-        }
-    };
-
-    auto ast_visitor = py::class_<IRVisitor, PyIRVisitor>(pass_m, "IRVisitor");
-    ast_visitor.def(py::init<>())
-        .def("visit_generator", py::overload_cast<Generator *>(&IRVisitor::visit))
-        .def("visit_root", &IRVisitor::visit_root);
-
-    auto ast = py::class_<IRNode, std::shared_ptr<IRNode>>(pass_m, "IRNode");
-    ast.def(py::init<IRNodeKind>());
-    def_attributes<py::class_<IRNode, std::shared_ptr<IRNode>>, IRNode>(ast);
-
-    // attributes
-    // type holder due to conversion
-    class PyAttribute : public Attribute {
-    private:
-        explicit PyAttribute(py::object target) : Attribute(), target_(std::move(target)) {
-            type_str = "python";
-        }
-
-    public:
-        using Attribute::Attribute;
-
-        py::object get_py_obj() { return target_; }
-
-        static PyAttribute create(const py::object &target) { return PyAttribute(target); }
-
-    private:
-        py::object target_ = py::none();
-    };
-
-    auto attribute =
-        py::class_<Attribute, PyAttribute, std::shared_ptr<Attribute>>(pass_m, "Attribute");
-    attribute.def(py::init(&PyAttribute::create))
-        .def_readwrite("type_str", &PyAttribute::type_str)
-        .def("get", [=](PyAttribute &attr) { return attr.get_py_obj(); })
-        .def_readwrite("_value_str", &PyAttribute::value_str);
-    py::implicitly_convertible<Attribute, PyAttribute>();
-}
-
 // exception module
 void init_except(py::module &m) {
     auto except_m = m.def_submodule("exception");
@@ -190,88 +98,6 @@ void init_util(py::module &m) {
              "have to have either verilator or iverilog in your $PATH to use this function");
 }
 
-template <typename T, typename K>
-void def_trace(T &class_) {
-    class_.def("add_fn_ln", [](K &var, const std::pair<std::string, uint32_t> &info) {
-        var.fn_name_ln.emplace_back(info);
-    });
-}
-
-template <typename T>
-void init_var_base(py::class_<T, std::shared_ptr<T>> &class_) {
-    init_common_expr<py::class_<T, std::shared_ptr<T>>, Var>(class_);
-}
-
-template <typename T>
-void init_var_derived(py::class_<T, std::shared_ptr<T>, Var> &class_) {
-    init_common_expr<py::class_<T, std::shared_ptr<T>, Var>, T>(class_);
-    class_.def(
-        "assign",
-        [](const std::shared_ptr<T> &var_to, const std::shared_ptr<Var> &var_from,
-           AssignmentType type) -> auto { return var_to->assign(var_from, type); },
-        py::return_value_policy::reference);
-}
-
-// deal with all the expr/var stuff
-void init_expr(py::module &m) {
-    auto var = py::class_<Var, ::shared_ptr<Var>>(m, "Var");
-    init_var_base(var);
-    def_trace<py::class_<Var, ::shared_ptr<Var>>, Var>(var);
-
-    auto expr = py::class_<Expr, ::shared_ptr<Expr>, Var>(m, "Expr");
-    init_var_derived(expr);
-    def_trace<py::class_<Expr, ::shared_ptr<Expr>, Var>, Expr>(expr);
-
-    auto port = py::class_<Port, ::shared_ptr<Port>, Var>(m, "Port");
-    init_var_derived(port);
-    port.def("port_direction", &Port::port_direction).def("port_type", &Port::port_type);
-    def_trace<py::class_<Port, ::shared_ptr<Port>, Var>, Port>(port);
-
-    auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
-    init_var_derived(const_);
-    const_.def("value", &Const::value).def("set_value", &Const::set_value);
-    def_trace<py::class_<Const, ::shared_ptr<Const>, Var>, Const>(const_);
-
-    auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
-    init_var_derived(slice);
-    def_trace<py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>, VarSlice>(slice);
-
-    auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
-    init_var_derived(concat);
-    def_trace<py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>, VarConcat>(concat);
-
-    auto param = py::class_<Param, ::shared_ptr<Param>, Var>(m, "Param");
-    init_var_derived(param);
-    param.def("value", &Param::value).def("set_value", &Param::set_value);
-    def_trace<py::class_<Param, ::shared_ptr<Param>, Var>, Param>(param);
-
-    auto port_packed = py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>(m, "PortPacked");
-    init_var_derived(port_packed);
-    port_packed.def("port_direction", &PortPacked::port_direction)
-        .def("port_type", &PortPacked::port_type)
-        .def(
-            "__getitem__",
-            [](PortPacked & port, const std::string &name) -> auto & { return port[name]; },
-            py::return_value_policy::reference);
-    def_trace<py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>, PortPacked>(port_packed);
-
-    // struct info for packed
-    auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");
-    struct_.def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t, bool>>>())
-        .def_readonly("struct_name", &PackedStruct::struct_name)
-        .def_readonly("attributes", &PackedStruct::attributes);
-
-    auto port_slice =
-        py::class_<PortPackedSlice, ::shared_ptr<PortPackedSlice>, Var>(m, "PortPackedSlice");
-    init_var_derived(port_slice);
-    def_trace<py::class_<PortPackedSlice, ::shared_ptr<PortPackedSlice>, Var>, VarSlice>(
-        port_slice);
-
-    auto array = py::class_<Array, ::shared_ptr<Array>, Var>(m, "Array");
-    init_var_derived(array);
-    def_trace<py::class_<Array, ::shared_ptr<Array>, Var>, Var>(array);
-    array.def("size", &Array::size);
-}
 
 void init_context(py::module &m) {
     auto context = py::class_<Context>(m, "Context");
@@ -287,142 +113,6 @@ void init_context(py::module &m) {
         .def("has_hash", &Context::has_hash);
 }
 
-void init_generator(py::module &m) {
-    auto generator = py::class_<Generator, ::shared_ptr<Generator>, IRNode>(m, "Generator");
-    generator.def("from_verilog", &Generator::from_verilog)
-        .def("var", py::overload_cast<const std::string &, uint32_t>(&Generator::var),
-             py::return_value_policy::reference)
-        .def("var", py::overload_cast<const std::string &, uint32_t, bool>(&Generator::var),
-             py::return_value_policy::reference)
-        .def("port",
-             py::overload_cast<PortDirection, const std::string &, uint32_t>(&Generator::port),
-             py::return_value_policy::reference)
-        .def("port",
-             py::overload_cast<PortDirection, const std::string &, uint32_t, PortType, bool>(
-                 &Generator::port),
-             py::return_value_policy::reference)
-        .def("array",
-             py::overload_cast<const std::string &, uint32_t, uint32_t, bool>(&Generator::array),
-             py::return_value_policy::reference)
-        .def("array", py::overload_cast<const std::string &, uint32_t, uint32_t>(&Generator::array),
-             py::return_value_policy::reference)
-        .def("constant", py::overload_cast<int64_t, uint32_t>(&Generator::constant),
-             py::return_value_policy::reference)
-        .def("constant", py::overload_cast<int64_t, uint32_t, bool>(&Generator::constant),
-             py::return_value_policy::reference)
-        .def("parameter",
-             py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
-             py::return_value_policy::reference)
-        .def("port_packed", &Generator::port_packed, py::return_value_policy::reference)
-        .def("get_params", &Generator::get_params)
-        .def("get_param", &Generator::get_param)
-        .def("get_port", &Generator::get_port, py::return_value_policy::reference)
-        .def("get_var", &Generator::get_var, py::return_value_policy::reference)
-        .def("get_port_names", &Generator::get_port_names)
-        .def("vars", &Generator::vars)
-        .def("add_stmt", &Generator::add_stmt)
-        .def("remove_stmt", &Generator::remove_stmt)
-        .def("stmts_count", &Generator::stmts_count)
-        .def("get_stmt", &Generator::get_stmt)
-        .def("sequential", &Generator::sequential, py::return_value_policy::reference)
-        .def("combinational", &Generator::combinational, py::return_value_policy::reference)
-        .def("add_child_generator",
-             py::overload_cast<const std::string &, const std::shared_ptr<Generator> &>(
-                 &Generator::add_child_generator))
-        .def("add_child_generator",
-             py::overload_cast<const std::string &, const std::shared_ptr<Generator> &,
-                               const std::pair<std::string, uint32_t> &>(
-                 &Generator::add_child_generator))
-        .def("remove_child_generator", &Generator::remove_child_generator)
-        .def("get_child_generators", &Generator::get_child_generators)
-        .def("get_child_generator_size", &Generator::get_child_generator_size)
-        .def("replace_child_generator", &Generator::replace_child_generator)
-        .def("external", &Generator::external)
-        .def("set_external", &Generator::set_external)
-        .def("external_filename", &Generator::external_filename)
-        .def("is_stub", &Generator::is_stub)
-        .def("set_is_stub", &Generator::set_is_stub)
-        .def("wire_ports", &Generator::wire_ports)
-        .def("get_unique_variable_name", &Generator::get_unique_variable_name)
-        .def("context", &Generator::context, py::return_value_policy::reference)
-        .def_readwrite("instance_name", &Generator::instance_name)
-        .def_readwrite("name", &Generator::name)
-        .def_readwrite("debug", &Generator::debug)
-        .def("clone", &Generator::clone)
-        .def_property("is_cloned", &Generator::is_cloned, &Generator::set_is_cloned)
-        .def("__contains__", &Generator::has_child_generator);
-
-    generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
-        var.fn_name_ln.emplace_back(info);
-    });
-}
-
-void init_stmt(py::module &m) {
-    py::class_<Stmt, ::shared_ptr<Stmt>> stmt_(m, "Stmt");
-    stmt_.def(py::init<StatementType>()).def("type", &Stmt::type);
-    def_trace<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
-
-    py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt> assign_(
-        m, "AssignStmt", R"pbdoc(Assignment statement)pbdoc");
-    assign_.def("assign_type", &AssignStmt::assign_type)
-        .def("set_assign_type", &AssignStmt::set_assign_type)
-        .def_property_readonly("left", [](const AssignStmt &stmt) { return stmt.left(); })
-        .def_property_readonly("right", [](const AssignStmt &stmt) { return stmt.right(); });
-
-    def_attributes<py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt>, AssignStmt>(assign_);
-
-    py::class_<IfStmt, ::shared_ptr<IfStmt>, Stmt>(m, "IfStmt")
-        .def(py::init<::shared_ptr<Var>>())
-        .def("predicate", &IfStmt::predicate, py::return_value_policy::reference)
-        .def("then_body", &IfStmt::then_body)
-        .def("else_body", &IfStmt::else_body)
-        .def("add_then_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::add_then_stmt))
-        .def("add_else_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::add_else_stmt))
-        .def("remove_then_stmt",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::remove_then_stmt))
-        .def("remove_else_stmt",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::remove_else_stmt));
-
-    py::class_<SwitchStmt, ::shared_ptr<SwitchStmt>, Stmt>(m, "SwitchStmt")
-        .def(py::init<const ::shared_ptr<Var> &>())
-        .def("add_switch_case",
-             py::overload_cast<const std::shared_ptr<Const> &, const std::shared_ptr<Stmt> &>(
-                 &SwitchStmt::add_switch_case))
-        .def("add_switch_case", py::overload_cast<const std::shared_ptr<Const> &,
-                                                  const std::vector<std::shared_ptr<Stmt>> &>(
-                                    &SwitchStmt::add_switch_case))
-        .def("target", &SwitchStmt::target, py::return_value_policy::reference)
-        .def("body", &SwitchStmt::body)
-        .def("remove_switch_case", py::overload_cast<const std::shared_ptr<kratos::Const> &>(
-                                       &SwitchStmt::remove_switch_case))
-        .def("remove_switch_case",
-             py::overload_cast<const std::shared_ptr<Const> &, const std::shared_ptr<Stmt> &>(
-                 &SwitchStmt::remove_switch_case));
-
-    py::class_<CombinationalStmtBlock, ::shared_ptr<CombinationalStmtBlock>, Stmt>(
-        m, "CombinationalStmtBlock")
-        .def(py::init<>())
-        .def("block_type", &CombinationalStmtBlock::block_type)
-        .def("add_stmt",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&CombinationalStmtBlock::add_stmt))
-        .def("remove_stmt", &CombinationalStmtBlock::remove_stmt);
-
-    py::class_<ScopedStmtBlock, ::shared_ptr<ScopedStmtBlock>, Stmt>(m, "ScopedStmtBlock")
-        .def(py::init<>());
-
-    py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, Stmt>(m,
-                                                                             "SequentialStmtBlock")
-        .def(py::init<>())
-        .def("get_conditions", &SequentialStmtBlock::get_conditions)
-        .def("add_condition", &SequentialStmtBlock::add_condition)
-        .def("add_stmt",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&SequentialStmtBlock::add_stmt))
-        .def("remove_stmt", &SequentialStmtBlock::remove_stmt);
-
-    py::class_<ModuleInstantiationStmt, ::shared_ptr<ModuleInstantiationStmt>, Stmt>(
-        m, "ModuleInstantiationStmt")
-        .def(py::init<Generator *, Generator *>());
-}
 
 void init_code_gen(py::module &m) {
     py::class_<VerilogModule>(m, "VerilogModule")

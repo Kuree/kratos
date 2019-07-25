@@ -10,8 +10,6 @@
 #include "../src/stmt.hh"
 #include "../src/util.hh"
 
-namespace kratos {
-
 template <typename T, typename K>
 void def_attributes(T &class_) {
     namespace py = pybind11;
@@ -20,7 +18,7 @@ void def_attributes(T &class_) {
 }
 
 template <typename T>
-Const &convert_int_to_const(T &var, int64_t value) {
+kratos::Const &convert_int_to_const(T &var, int64_t value) {
     bool is_signed = var.is_signed;
     uint32_t width = var.width;
     auto gen = var.generator;
@@ -28,7 +26,7 @@ Const &convert_int_to_const(T &var, int64_t value) {
 }
 
 template <typename T>
-Const &convert_int_to_const(int64_t value, T &var) {
+kratos::Const &convert_int_to_const(int64_t value, T &var) {
     bool is_signed = var.is_signed;
     uint32_t width = var.width;
     auto gen = var.generator;
@@ -39,6 +37,7 @@ template <typename T, typename K>
 void init_common_expr(T &class_) {
     namespace py = pybind11;
     using std::shared_ptr;
+    using namespace kratos;
     // see how available object overloads here: https://docs.python.org/3/reference/datamodel.html
     class_.def("__repr__", &K::to_string)
         .def(
@@ -309,5 +308,5 @@ void init_common_expr(T &class_) {
 
     def_attributes<T, K>(class_);
 }
-}  // namespace kratos
+
 #endif  // KRATOS_KRATOS_EXPR_HH
