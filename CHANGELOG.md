@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.8] - 2019-07-25
+### Added
+- Proper source code distribution for compiling form scratch (PyPI)
+- Array support variable declaration in generator
+- ScopedStatement for better IR and code quality (#52)
+- `ctest` to travis CI.
+- Add more robust merge wire logic
+- Lots of syntax sugar in Python front-end (#53)
+- Add `clog2()`
+
+### Changed
+- Generator instance has to be unique in C++
+- Add statement will return itself in reference
+- Remove `assign()` side-effects (#48)
+- Split Python bindings into multiple files to speed up the build process.
+
+### Fixed
+- Generator name is wrong in Python front-end
+- Incorrect cache logic in `combinational()` and `sequential()`
+- Fix a bug in source/sink movement due to the change in how connections are stored in slices.
+
 ## [0.0.7] - 2019-07-21
 ### Added
 - Port Assignment check in SV codegen.
