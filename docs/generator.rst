@@ -111,16 +111,27 @@ are not directly implemented as operator overloads in Python:
 Constants
 ---------
 
-Due to type checking, in most cases you're required to call ``const`` function
-to specify the constant value. The exception is when you are doing free-style
-code blocks, the python front-end will try to convert Python ``int`` into
-constants in a safe way. The rule of thumb is to use explicit constant
-as much as possible. Here is the ``const`` function definition
+Kratos's Python front-end will try it's best to do conversation, when it
+deeds type-safe. However, if due to either type checking or some special
+cases where the type conversation doesn't work, you can call ``const``
+function to specify the constant value. The rule of thumb is to use
+explicit constant call as much as possible and only use the implicit
+conversion when you know it's going to be safe. Here is the ``const``
+function definition
 
 .. code-block:: Python
 
   def const(self, value: int, width: int, signed: bool = False)
 
+.. note::
+
+  Say we have ``var + num``, where ``var`` is either a port or variable
+  and ``num`` is a python integer. The rules of implicit conversation is
+  1. The converted constant will have the same width as the ``var``
+  2. The converted constant will have the same sign as the ``var``.
+
+  If the value is out of range, an exception will thrown and you have to
+  use either concatenate or slice the left hand side.
 
 Arrays
 ------
@@ -227,21 +238,21 @@ Here are some examples the free-style code block in kratos.
 .. code-block:: Python
 
     class AsyncReg(Generator):
-    def __init__(self, width):
-        super().__init__("register")
+        def __init__(self, width):
+            super().__init__("register")
 
-        # define inputs and outputs
-        self._in = self.port("in", width, PortDirection.In)
-        self._out = self.port("out", width, PortDirection.Out)
-        self._clk = self.port("clk", 1, PortDirection.In, PortType.Clock)
-        self._rst = self.port("rst", 1, PortDirection.In,
-                              PortType.AsyncReset)
-        self._val = self.var("val", width)
+            # define inputs and outputs
+            self._in = self.port("in", width, PortDirection.In)
+            self._out = self.port("out", width, PortDirection.Out)
+            self._clk = self.port("clk", 1, PortDirection.In, PortType.Clock)
+            self._rst = self.port("rst", 1, PortDirection.In,
+                                  PortType.AsyncReset)
+            self._val = self.var("val", width)
 
-        # add combination and sequential blocks
-        self.add_code(self.seq_code_block)
+            # add combination and sequential blocks
+            self.add_code(self.seq_code_block)
 
-        self.add_code(self.comb_code_block)
+            self.add_code(self.comb_code_block)
 
     @always([(BlockEdgeType.Posedge, "clk"),
              (BlockEdgeType.Posedge, "rst")])
@@ -300,7 +311,7 @@ Here is another example on `for` static evaluation
             self.add_code(self.code)
 
         def code(self):
-            if self.in_ == self.const(1, 1):
+            if self.in_ == 1:
                 for i in range(self.num_loop):
                     self.out_[i] = 1
             else:
@@ -383,20 +394,20 @@ Here is an example on how to build a ``case`` based N-input mux.
                 return
 
             self.sel_size = clog2(height)
-            for i in range(height):
-                self.port("I{0}".format(i), width, PortDirection.In)
+            ports = [self.port("I{0}".format(i), width,
+                               PortDirection.In) for i in range(height)]
             self.out_ = self.port("O", width, PortDirection.Out)
             self.port("S", self.sel_size, PortDirection.In)
 
+            # add a combinational block
+            comb = self.combinational()
+
             # add a case statement
-            stmt = SwitchStmt(self.ports.S)
+            switch_ = comb.switch_(self.ports.S)
             for i in range(height):
-                stmt.add_switch_case(self.const(i, self.sel_size),
-                                    self.out_.assign(self.ports["I{0}".format(i)]))
+                switch_.case_(i, self.out_.assign(ports[i]))
             # add default
-            stmt.add_switch_case(None, self.out_.assign(self.const(0, width)))
-            comb = CombinationalCodeBlock(self)
-            comb.add_stmt(stmt)
+            switch_.case_(None, self.out_.assign(0))
 
 Here is the generated verilog
 

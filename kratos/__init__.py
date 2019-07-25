@@ -17,5 +17,5 @@ __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
 
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",
-            "AssignStmt", "clog2", "if_", "switch_", "Attribute"]
+            "clog2", "if_", "switch_", "Attribute"]
 

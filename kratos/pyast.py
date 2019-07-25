@@ -206,9 +206,6 @@ class Scope:
 
     def assign(self, a, b, f_ln=None):
         assert isinstance(a, _kratos.Var)
-        if isinstance(b, int):
-            # we need to convert b into an integer
-            b = self.generator.const(b, a.width, a.signed)
         try:
             stmt = a.assign(b)
         except _kratos.exception.VarException as ex:
