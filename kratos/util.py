@@ -50,6 +50,39 @@ def clog2(x: int) -> int:
     return int(math.ceil(math.log2(x)))
 
 
+# these are helper functions tp construct complex expressions
+def reduce_or(*args):
+    assert len(args) > 1
+    expr = args[0] | args[1]
+    for i in range(2, len(args)):
+        expr = expr | args[i]
+    return expr
+
+
+def reduce_and(*args):
+    assert len(args) > 1
+    expr = args[0] & args[1]
+    for i in range(2, len(args)):
+        expr = expr & args[i]
+    return expr
+
+
+def reduce_add(*args):
+    assert len(args) > 1
+    expr = args[0] + args[1]
+    for i in range(2, len(args)):
+        expr = expr + args[i]
+    return expr
+
+
+def reduce_mul(*args):
+    assert len(args) > 1
+    expr = args[0] & args[1]
+    for i in range(2, len(args)):
+        expr = expr & args[i]
+    return expr
+
+
 def get_fn_ln(depth: int = 2):
     frame = inspect.stack()[depth]
     filename = frame.filename
