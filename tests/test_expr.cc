@@ -56,6 +56,12 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ(var1.cast(VarCastType::Signed)->to_string(), "$signed(a)");
     EXPECT_EQ(VarCasted(&var1, VarCastType::Signed).to_string(), "$signed(a)");
     EXPECT_TRUE(var1.cast(VarCastType::Signed)->is_signed);
+
+    // test pretty print of expr
+    expr = var1 + var1 + var2;
+    EXPECT_EQ(expr.to_string(), "a + a + b");
+    expr = (var1 + var1) - var2;
+    EXPECT_EQ(expr.to_string(), "(a + a) - b");
 }
 
 TEST(expr, relational) {  // NOLINT
@@ -103,7 +109,7 @@ TEST(expr, concat) {  // NOLINT
     auto &var2 = mod.var("b", 1);
     auto &var3 = var1.concat(var2);
     auto &var3_ = var3.concat(var2);
-    EXPECT_EQ(var3_.to_string(), "{{a, b}, b}");
+    EXPECT_EQ(var3_.to_string(), "{a, b, b}");
 
     // test raw constructor
     const auto &concat = VarConcat(&mod, var1.shared_from_this(), var2.shared_from_this());

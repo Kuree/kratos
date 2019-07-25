@@ -108,6 +108,7 @@ public:
     static void move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_connection);
     virtual void add_sink(const std::shared_ptr<AssignStmt> &stmt) { sinks_.emplace(stmt); }
     virtual void add_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.emplace(stmt); }
+    void add_concat_var(const std::shared_ptr<VarConcat> &var) { concat_vars_.emplace(var); }
 
     template <typename T>
     std::shared_ptr<T> as() {
@@ -183,12 +184,15 @@ public:
 struct VarConcat : public Var {
 public:
     VarConcat(Generator *m, const std::shared_ptr<Var> &first, const std::shared_ptr<Var> &second);
+    VarConcat(VarConcat *first, const std::shared_ptr<Var> &second);
 
     // we tie it to the parent
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
     std::vector<std::shared_ptr<Var>> &vars() { return vars_; }
+
+    VarConcat &concat(Var &var) override;
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 

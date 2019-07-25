@@ -336,6 +336,10 @@ VarConcat::VarConcat(Generator *m, const std::shared_ptr<Var> &first,
                      const std::shared_ptr<Var> &second)
     : Var(m, "", first->width + second->width, first->is_signed && second->is_signed,
           VarType::Expression) {
+    if (first->is_signed != second->is_signed)
+        throw VarException(
+            ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
+            {first.get(), second.get()});
     vars_.emplace_back(first);
     vars_.emplace_back(second);
 }
@@ -354,9 +358,29 @@ void VarConcat::add_sink(const std::shared_ptr<kratos::AssignStmt> &stmt) {
 
 std::string VarConcat::to_string() const {
     std::vector<std::string> var_names;
-    for (const auto &ptr : vars_) var_names.emplace_back(ptr->to_string());
+    for (const auto &ptr : vars_) {
+        var_names.emplace_back(ptr->to_string());
+    }
     auto content = fmt::join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
+}
+
+VarConcat::VarConcat(VarConcat *first, const std::shared_ptr<Var> &second)
+    : Var(first->generator, "", first->width + second->width, first->is_signed && second->is_signed,
+          VarType::Expression) {
+    if (first->is_signed != second->is_signed)
+        throw VarException(
+            ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
+            {first, second.get()});
+    vars_ = std::vector<std::shared_ptr<Var>>(first->vars_.begin(), first->vars_.end());
+    vars_.emplace_back(second);
+}
+
+VarConcat& VarConcat::concat(kratos::Var &var) {
+    auto result = std::make_shared<VarConcat>(this, var.shared_from_this());
+    // add it to the first one
+    vars_[0]->add_concat_var(result);
+    return *result;
 }
 
 std::string Const::to_string() const {
@@ -378,13 +402,14 @@ std::string inline expr_to_string(const Expr *expr, bool is_top) {
     auto right = expr->right;
 
     auto left_str = left->type() == VarType::Expression
-                        ? expr_to_string(left->as<Expr>().get(), false)
+                        ? expr_to_string(left->as<Expr>().get(), expr->op == left->as<Expr>()->op)
                         : left->to_string();
 
     if (right != nullptr) {
-        auto right_str = right->type() == VarType::Expression
-                             ? expr_to_string(right->as<Expr>().get(), false)
-                             : right->to_string();
+        auto right_str =
+            right->type() == VarType::Expression
+                ? expr_to_string(right->as<Expr>().get(), expr->op == right->as<Expr>()->op)
+                : right->to_string();
         if (is_top)
             return ::format("{0} {1} {2}", left_str, ExprOpStr(expr->op), right_str);
         else
@@ -512,24 +537,22 @@ void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
 }
 
 Array::Array(kratos::Generator *m, const std::string &name, uint32_t width, uint32_t size,
-             bool is_signed): Var(m, name, width * size, is_signed), size_(size) {
+             bool is_signed)
+    : Var(m, name, width * size, is_signed), size_(size) {}
 
-}
-
-VarSlice& Array::operator[](uint32_t index) {
-    if (index * size_ > width)
-        throw VarException("index out of range", {});
+VarSlice &Array::operator[](uint32_t index) {
+    if (index * size_ > width) throw VarException("index out of range", {});
     auto slice = std::make_shared<ArraySlice>(this, (index + 1) * size_ - 1, index * size_);
     slices_.emplace(std::make_pair(slice->high, slice->low), slice);
     return *slice;
 }
 
-VarSlice& Array::operator[](std::pair<uint32_t, uint32_t>) {
+VarSlice &Array::operator[](std::pair<uint32_t, uint32_t>) {
     throw std::runtime_error("Not implemented");
 }
 
 std::string ArraySlice::to_string() const {
-    auto p = dynamic_cast<Array*>(parent_var);
+    auto p = dynamic_cast<Array *>(parent_var);
     uint32_t index = low / p->size();
     uint32_t index_1 = (high + 1) / p->size();
     if (index_1 != index + 1) {
