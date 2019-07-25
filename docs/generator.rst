@@ -374,6 +374,20 @@ of statements you can construct:
     it's the same as ``assign var1 = var2;``. The only exception is when one
     of them is a port (not port slice though).
 
+Syntax sugars
+-------------
+
+Kratos' Python front-end provides a concise front-end to create these blocks.
+``SequentialCodeBlock`` can be constructed through ``[gen].sequential()`` and
+``CombinationalCodeBlock`` can be constructed through
+``[gen].combinational()``.
+You can create a ``SwitchStmt`` through either ``[comb].switch_`` or
+``[seq].switch_``. Similarly, you can get a ``IfStmt`` through either
+``[comb].if_`` or ``[seq].if_``. For more details, please check out this
+`link`_
+
+.. _link: https://github.com/Kuree/kratos/blob/master/kratos/stmts.py
+
 Examples
 --------
 
