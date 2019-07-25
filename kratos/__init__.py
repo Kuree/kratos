@@ -18,23 +18,3 @@ __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",
             "clog2", "if_", "switch_", "Attribute"]
-
-
-def print_include_dir():
-    import os
-    abs_path = os.path.abspath(os.path.dirname(__file__))
-    print(abs_path)
-    return abs_path
-
-
-def print_link_dir():
-    import os
-    abs_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-    print(abs_path)
-    return abs_path
-
-
-def print_link_flag():
-    flag = "-lkratos"
-    print(flag)
-    return flag

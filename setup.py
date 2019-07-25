@@ -67,30 +67,6 @@ class CMakeBuild(build_ext):
             ['cmake', '--build', '.', "--target", "_kratos"] + build_args,
             cwd=self.build_temp)
 
-        if platform.system() != "Linux":
-            # we only support linux
-            return
-
-        module_name = ext.name[1:] if ext.name[0] == "_" else ext.name
-
-        # copy the headers over
-        kratos_dirname = os.path.join(extdir, module_name, module_name)
-        if not os.path.isdir(kratos_dirname):
-            os.makedirs(kratos_dirname)
-        # copy every headers over
-        src_path = os.path.join(os.path.dirname(__file__), "src")
-        headers = [f for f in os.listdir(src_path)
-                   if os.path.splitext(f)[-1] == ".hh"]
-        for filename in headers:
-            src_name = os.path.join(src_path, filename)
-            shutil.copy(src_name, kratos_dirname)
-        # create a symbolic link
-        # first find the static library
-        lib_file = os.path.join(self.build_temp, "src", "libkratos.a")
-        assert os.path.isfile(lib_file)
-        # copy that file over as well
-        shutil.copy(lib_file, kratos_dirname)
-
 
 current_directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(current_directory, 'README.rst')) as f:
