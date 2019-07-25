@@ -52,7 +52,8 @@ def clog2(x: int) -> int:
 
 # these are helper functions tp construct complex expressions
 def reduce_or(*args):
-    assert len(args) > 1
+    if len(args) < 2:
+        return args[0]
     expr = args[0] | args[1]
     for i in range(2, len(args)):
         expr = expr | args[i]
@@ -60,7 +61,8 @@ def reduce_or(*args):
 
 
 def reduce_and(*args):
-    assert len(args) > 1
+    if len(args) < 2:
+        return args[0]
     expr = args[0] & args[1]
     for i in range(2, len(args)):
         expr = expr & args[i]
@@ -68,7 +70,8 @@ def reduce_and(*args):
 
 
 def reduce_add(*args):
-    assert len(args) > 1
+    if len(args) < 2:
+        return args[0]
     expr = args[0] + args[1]
     for i in range(2, len(args)):
         expr = expr + args[i]
@@ -76,7 +79,8 @@ def reduce_add(*args):
 
 
 def reduce_mul(*args):
-    assert len(args) > 1
+    if len(args) < 2:
+        return args[0]
     expr = args[0] & args[1]
     for i in range(2, len(args)):
         expr = expr & args[i]
@@ -84,7 +88,8 @@ def reduce_mul(*args):
 
 
 def concat(*args):
-    assert len(args) > 1
+    if len(args) < 2:
+        return args[0]
     expr = args[0].concat(args[1])
     for i in range(2, len(args)):
         expr = expr.concat(args[i])
