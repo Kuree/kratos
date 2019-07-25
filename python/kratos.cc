@@ -10,6 +10,8 @@
 #include "../src/stmt.hh"
 #include "../src/util.hh"
 
+#include "kratos_expr.hh"
+
 namespace py = pybind11;
 using std::shared_ptr;
 using namespace kratos;
@@ -69,12 +71,6 @@ void init_enum(py::module &m) {
         .value("Signed", VarCastType::Signed)
         .value("AsyncReset", VarCastType::AsyncReset)
         .value("Clock", VarCastType::Clock);
-}
-
-template <typename T, typename K>
-void def_attributes(T &class_) {
-    class_.def("add_attribute", &K::add_attribute)
-        .def("get_attributes", &K::get_attributes, py::return_value_policy::reference);
 }
 
 // pass submodule
@@ -201,65 +197,6 @@ void def_trace(T &class_) {
     });
 }
 
-template <typename T, typename K>
-void init_common_expr(T &class_) {
-    // see how available object overloads here: https://docs.python.org/3/reference/datamodel.html
-    class_.def("__repr__", &K::to_string)
-        .def("__invert__", [](const K &var) -> Expr & { return ~var; },
-             py::return_value_policy::reference)
-        .def("__neg__", [](const K &var) -> Expr & { return -var; },
-             py::return_value_policy::reference)
-        .def("__pos__", [](const K &var) -> Expr & { return +var; },
-             py::return_value_policy::reference)
-        .def("__add__", [](const K &left, const Var &right) -> Expr & { return left + right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__sub__", [](const K &left, const Var &right) -> Expr & { return left - right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__mul__", [](const K &left, const Var &right) -> Expr & { return left * right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__mod__", [](const K &left, const Var &right) -> Expr & { return left % right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__div__", [](const K &left, const Var &right) -> Expr & { return left / right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__rshift__", [](const K &left, const Var &right) -> Expr & { return left >> right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__or__", [](const K &left, const Var &right) -> Expr & { return left | right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__and__", [](const K &left, const Var &right) -> Expr & { return left & right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__xor__", [](const K &left, const Var &right) -> Expr & { return left ^ right; },
-             py::return_value_policy::reference)                    // NOLINT
-        .def("ashr", &K::ashr, py::return_value_policy::reference)  // NOLINT
-        .def("__lt__", [](const K &left, const Var &right) -> Expr & { return left < right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__gt__", [](const K &left, const Var &right) -> Expr & { return left > right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__le__", [](const K &left, const Var &right) -> Expr & { return left <= right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__ge__", [](const K &left, const Var &right) -> Expr & { return left >= right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("eq", &K::eq, py::return_value_policy::reference)
-        .def("__neq__", [](const K &left, const Var &right) -> Expr & { return left != right; },
-             py::return_value_policy::reference)  // NOLINT
-        .def("__getitem__", [](K & k, std::pair<uint32_t, uint32_t> v) -> auto & { return k[v]; },
-             py::return_value_policy::reference)
-        .def("__getitem__", [](K & k, uint32_t idx) -> auto & { return k[idx]; },
-             py::return_value_policy::reference)
-        .def("assign", py::overload_cast<const ::shared_ptr<Var> &>(&K::assign),
-             py::return_value_policy::reference)
-        .def("type", &K::type)
-        .def("concat", &K::concat, py::return_value_policy::reference)
-        .def_readwrite("name", &K::name)
-        .def_readwrite("width", &K::width)
-        .def_readwrite("signed", &K::is_signed)
-        .def("sources", &K::sources, py::return_value_policy::reference)
-        .def("sinks", &K::sinks, py::return_value_policy::reference)
-        .def("cast", &K::cast)
-        .def_property_readonly("generator", [](const K &var) { return var.generator; });
-
-    def_attributes<T, K>(class_);
-}
-
 template <typename T>
 void init_var_base(py::class_<T, std::shared_ptr<T>> &class_) {
     init_common_expr<py::class_<T, std::shared_ptr<T>>, Var>(class_);
@@ -268,10 +205,11 @@ void init_var_base(py::class_<T, std::shared_ptr<T>> &class_) {
 template <typename T>
 void init_var_derived(py::class_<T, std::shared_ptr<T>, Var> &class_) {
     init_common_expr<py::class_<T, std::shared_ptr<T>, Var>, T>(class_);
-    class_.def("assign",
-               [](const std::shared_ptr<T> &var_to, const std::shared_ptr<Var> &var_from,
-                  AssignmentType type) -> auto { return var_to->assign(var_from, type); },
-               py::return_value_policy::reference);
+    class_.def(
+        "assign",
+        [](const std::shared_ptr<T> &var_to, const std::shared_ptr<Var> &var_from,
+           AssignmentType type) -> auto { return var_to->assign(var_from, type); },
+        py::return_value_policy::reference);
 }
 
 // deal with all the expr/var stuff
@@ -311,9 +249,10 @@ void init_expr(py::module &m) {
     init_var_derived(port_packed);
     port_packed.def("port_direction", &PortPacked::port_direction)
         .def("port_type", &PortPacked::port_type)
-        .def("__getitem__",
-             [](PortPacked & port, const std::string &name) -> auto & { return port[name]; },
-             py::return_value_policy::reference);
+        .def(
+            "__getitem__",
+            [](PortPacked & port, const std::string &name) -> auto & { return port[name]; },
+            py::return_value_policy::reference);
     def_trace<py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>, PortPacked>(port_packed);
 
     // struct info for packed

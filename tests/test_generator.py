@@ -1,6 +1,6 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute
+    PackedStruct, Port, Attribute, if_, switch_
 from kratos.passes import uniquify_generators, hash_generators
 import os
 import tempfile
@@ -621,5 +621,26 @@ def test_remove_child():
     assert top.stmts_count == 0
 
 
+def test_syntax_sugar():
+    mod = Generator("mod")
+    out_ = mod.var("out", 1)
+    in_ = mod.port("in", 1, PortDirection.In)
+    comb = mod.combinational()
+    comb.if_(in_.eq(1)).then_(out_.assign(0)).else_(out_.assign(1))
+
+    mod_src = verilog(mod)
+    is_valid_verilog(mod_src)
+
+    Generator.clear_context()
+    mod = Generator("mod")
+    out_ = mod.var("out", 1)
+    in_ = mod.port("in", 1, PortDirection.In)
+    comb = mod.combinational()
+    comb.switch_(in_).case_(1, out_.assign(1)).case_(0, out_.assign(0))
+
+    mod_src = verilog(mod)
+    is_valid_verilog(mod_src)
+
+
 if __name__ == "__main__":
-    test_static_eval_for_loop()
+    test_syntax_sugar()

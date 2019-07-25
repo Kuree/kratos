@@ -1,5 +1,6 @@
 import enum
 from .pyast import transform_stmt_block, get_fn_ln
+from .stmts import if_, switch_, IfStmt, SwitchStmt
 import _kratos
 from typing import List, Dict, Union, Tuple
 
@@ -76,6 +77,16 @@ class CodeBlock:
 
     def stmt(self):
         return self._block
+
+    def if_(self, predicate: _kratos.Var) -> IfStmt:
+        stmt = if_(predicate)
+        self.add_stmt(stmt.stmt())
+        return stmt
+
+    def switch_(self, predicate: _kratos.Var) -> SwitchStmt:
+        stmt = switch_(predicate)
+        self.add_stmt(stmt.stmt())
+        return stmt
 
 
 class SequentialCodeBlock(CodeBlock):
