@@ -854,24 +854,66 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
 
 class MergeWireAssignmentsVisitor : public IRVisitor {
 public:
+    void visit(ScopedStmtBlock* block) override { process_stmt_block(block); }
+
+    void visit(SequentialStmtBlock* block) override { process_stmt_block(block); }
+
+    void visit(CombinationalStmtBlock* block) override { process_stmt_block(block); }
+
     void visit(Generator* generator) override {
         std::set<std::shared_ptr<Stmt>> stmts_to_remove;
 
         // first filter out sliced assignments
         std::set<std::shared_ptr<AssignStmt>> sliced_stmts;
+        extract_sliced_stmts(generator, sliced_stmts);
+        get_stmts_to_remove(generator, stmts_to_remove, sliced_stmts);
+
+        // remove them
+        for (auto const& stmt : stmts_to_remove) {
+            generator->remove_stmt(stmt);
+        }
+    }
+
+private:
+    void process_stmt_block(StmtBlock* block) {
+        std::set<std::shared_ptr<Stmt>> stmts_to_remove;
+
+        // first filter out sliced assignments
+        std::set<std::shared_ptr<AssignStmt>> sliced_stmts;
+        extract_sliced_stmts(block, sliced_stmts);
+        get_stmts_to_remove(block, stmts_to_remove, sliced_stmts);
+    }
+
+    void extract_sliced_stmts(Generator* generator,
+                              std::set<std::shared_ptr<AssignStmt>>& sliced_stmts) const {
         uint64_t stmt_count = generator->stmts_count();
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = generator->get_stmt(i);
-            if (stmt->type() == StatementType::Assign) {
+            if (stmt->type() == Assign) {
                 auto assign_stmt = stmt->as<AssignStmt>();
-                if (assign_stmt->left()->type() == VarType::Slice &&
-                    assign_stmt->right()->type() == VarType::Slice) {
+                if (assign_stmt->left()->type() == Slice && assign_stmt->right()->type() == Slice) {
                     sliced_stmts.emplace(assign_stmt);
                 }
             }
         }
+    }
 
-        // then group the assignments together
+    void extract_sliced_stmts(StmtBlock* block,
+                              std::set<std::shared_ptr<AssignStmt>>& sliced_stmts) const {
+        for (auto const& stmt : *block) {
+            if (stmt->type() == Assign) {
+                auto assign_stmt = stmt->as<AssignStmt>();
+                if (assign_stmt->left()->type() == Slice && assign_stmt->right()->type() == Slice) {
+                    sliced_stmts.emplace(assign_stmt);
+                }
+            }
+        }
+    }
+
+    template <typename T>
+    void get_stmts_to_remove(T* generator, std::set<std::shared_ptr<Stmt>>& stmts_to_remove,
+                             const std::set<std::shared_ptr<AssignStmt>>& sliced_stmts) const {
+        // group the assignments together
         using AssignPair = std::pair<Var*, Var*>;
         std::map<AssignPair, std::vector<std::shared_ptr<AssignStmt>>> slice_vars;
         for (auto const& assign_stmt : sliced_stmts) {
@@ -880,8 +922,8 @@ public:
             Var* left_parent = left_slice->parent_var;
             Var* right_parent = right_slice->parent_var;
             // only deal with 1D for now
-            if (left_parent->type() == VarType::Slice) continue;
-            if (right_parent->type() == VarType::Slice) continue;
+            if (left_parent->type() == Slice) continue;
+            if (right_parent->type() == Slice) continue;
             if (left_parent->width != right_parent->width) continue;
 
             slice_vars[{left_parent, right_parent}].emplace_back(assign_stmt);
@@ -903,28 +945,62 @@ public:
                 stmts_to_remove.emplace(stmt);
             }
             // make new assignment
-            auto new_stmt = left->assign(right->shared_from_this(), AssignmentType::Blocking);
-            generator->add_stmt(new_stmt);
-            if (generator->debug) {
-                // merge all the statements
-                for (auto const& stmt : stmts) {
-                    new_stmt->fn_name_ln.insert(new_stmt->fn_name_ln.end(),
-                                                stmt->fn_name_ln.begin(), stmt->fn_name_ln.end());
-                }
-                new_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+            create_new_assignment(generator, stmts, left, right);
+        }
+    }
+    void create_new_assignment(Generator* generator,
+                               const std::vector<std::shared_ptr<AssignStmt>>& stmts,
+                               Var* const left, Var* const right) const {
+        auto new_stmt = left->assign(right->shared_from_this(), Blocking);
+        generator->add_stmt(new_stmt);
+        if (generator->debug) {
+            // merge all the statements
+            for (auto const& stmt : stmts) {
+                new_stmt->fn_name_ln.insert(new_stmt->fn_name_ln.end(), stmt->fn_name_ln.begin(),
+                                            stmt->fn_name_ln.end());
             }
+            new_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
+    }
 
-        for (auto const& stmt : stmts_to_remove) {
-            generator->remove_stmt(stmt);
+    void create_new_assignment(StmtBlock* block,
+                               const std::vector<std::shared_ptr<AssignStmt>>& stmts,
+                               Var* const left, Var* const right) const {
+        auto new_stmt = left->assign(right->shared_from_this(), Blocking);
+        block->add_stmt(new_stmt);
+        auto generator = get_parent(block);
+        if (generator->debug) {
+            // merge all the statements
+            for (auto const& stmt : stmts) {
+                new_stmt->fn_name_ln.insert(new_stmt->fn_name_ln.end(), stmt->fn_name_ln.begin(),
+                                            stmt->fn_name_ln.end());
+            }
+            new_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
+    }
+
+    Generator* get_parent(StmtBlock* block) const {
+        Generator* result = nullptr;
+        IRNode* node = block;
+        for (uint32_t i = 0; i < 10000u; i++) {
+            auto p = node->parent();
+            if (p->ir_node_kind() == IRNodeKind::GeneratorKind) {
+                result = dynamic_cast<Generator*>(p);
+                break;
+            }
+            node = p;
+        }
+        if (!result) {
+            throw StmtException("Cannot find parent for the statement block", {block});
+        }
+        return result;
     }
 };
 
 void merge_wire_assignments(Generator* top) {
     // for now we only merge generator-level assignments
     MergeWireAssignmentsVisitor visitor;
-    visitor.visit_generator_root(top);
+    visitor.visit_root(top);
 }
 
 void PassManager::add_pass(const std::string& name, std::function<void(Generator*)> fn) {
