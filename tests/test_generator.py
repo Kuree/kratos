@@ -1,6 +1,6 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute, if_, switch_
+    PackedStruct, Port, Attribute, zext
 from kratos.passes import uniquify_generators, hash_generators
 import os
 import tempfile
@@ -642,5 +642,15 @@ def test_syntax_sugar():
     is_valid_verilog(mod_src)
 
 
+def test_zero_ext():
+    mod = Generator("mod", debug=True)
+    out_ = mod.port("out", 2, PortDirection.Out)
+    in_ = mod.port("in", 1, PortDirection.In)
+    mod.wire(out_, zext(in_, 2))
+
+    mod_src = verilog(mod, filename="test.sv")
+    is_valid_verilog(mod_src)
+
+
 if __name__ == "__main__":
-    test_syntax_sugar()
+    test_zero_ext()

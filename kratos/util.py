@@ -95,9 +95,9 @@ def reduce_mul(*args):
     r, args = __check_input(*args)
     if not r:
         return args
-    expr = args[0] & args[1]
+    expr = args[0] * args[1]
     for i in range(2, len(args)):
-        expr = expr & args[i]
+        expr = expr * args[i]
     return expr
 
 
@@ -117,3 +117,13 @@ def get_fn_ln(depth: int = 2):
     filename = os.path.abspath(filename)
     ln = frame.lineno
     return filename, ln
+
+
+def zext(var, width):
+    if var.width > width:
+        raise ValueError("Cannot extend {0}".format(var))
+    elif var.width == width:
+        return var
+    else:
+        diff = width - var.width
+        return var.generator.constant(0, diff, var.signed).concat(var)
