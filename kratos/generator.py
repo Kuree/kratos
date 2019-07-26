@@ -336,6 +336,14 @@ class Generator(metaclass=GeneratorMeta):
     def get_var(self, name):
         return self.__generator.get_var(name)
 
+    def remove_port(self, port_name):
+        assert self.__generator.has_port(port_name)
+        self.__generator.remove_port(port_name)
+
+    def remove_var(self, var_name):
+        assert self.__generator.has_var(var_name)
+        self.__generator.remove_var(var_name)
+
     def const(self, value: int, width: int, signed: bool = False):
         return self.__generator.constant(value, width, signed)
 

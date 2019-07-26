@@ -244,6 +244,13 @@ std::string Generator::get_unique_variable_name(const std::string &prefix,
     return result_name;
 }
 
+void Generator::remove_port(const std::string &port_name) {
+    if (has_port(port_name)) {
+        ports_.erase(port_name);
+        remove_var(port_name);
+    }
+}
+
 void Generator::rename_var(const std::string &old_name, const std::string &new_name) {
     auto var = get_var(old_name);
     if (!var) return;

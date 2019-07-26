@@ -49,6 +49,9 @@ public:
     void remove_var(const std::string &var_name) {
         if (vars_.find(var_name) != vars_.end()) vars_.erase(var_name);
     }
+    bool has_port(const std::string &port_name) { return ports_.find(port_name) != ports_.end(); }
+    bool has_var(const std::string &var_name) { return vars_.find(var_name) != vars_.end(); }
+    void remove_port(const std::string &port_name);
     void rename_var(const std::string &old_name, const std::string &new_name);
     const inline std::map<std::string, std::shared_ptr<Param>> &get_params() const {
         return params_;
