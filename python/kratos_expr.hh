@@ -1,7 +1,9 @@
 #ifndef KRATOS_KRATOS_EXPR_HH
 #define KRATOS_KRATOS_EXPR_HH
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
+#include <type_traits>
 #include "../src/codegen.hh"
 #include "../src/except.hh"
 #include "../src/expr.hh"
@@ -31,6 +33,18 @@ kratos::Const &convert_int_to_const(int64_t value, T &var) {
     uint32_t width = var.width;
     auto gen = var.generator;
     return gen->constant(value, width, is_signed);
+}
+
+template <typename T, typename K>
+void init_getitem(T &class_) {
+    namespace py = pybind11;
+    class_
+        .def(
+            "__getitem__", [](K & k, std::pair<uint32_t, uint32_t> v) -> auto & { return k[v]; },
+            py::return_value_policy::reference)
+        .def(
+            "__getitem__", [](K & k, uint32_t idx) -> auto & { return k[idx]; },
+            py::return_value_policy::reference);
 }
 
 template <typename T, typename K>
@@ -284,12 +298,6 @@ void init_common_expr(T &class_) {
             [](const int64_t &left, K &right) -> Expr & {
                 return convert_int_to_const(left, right) != right;
             },
-            py::return_value_policy::reference)  // NOLINT
-        .def(
-            "__getitem__", [](K & k, std::pair<uint32_t, uint32_t> v) -> auto & { return k[v]; },
-            py::return_value_policy::reference)
-        .def(
-            "__getitem__", [](K & k, uint32_t idx) -> auto & { return k[idx]; },
             py::return_value_policy::reference)
         .def("assign", py::overload_cast<const shared_ptr<Var> &>(&K::assign))
         .def("assign",
@@ -299,7 +307,7 @@ void init_common_expr(T &class_) {
         .def("assign", py::overload_cast<const shared_ptr<Var> &>(&K::assign))
         .def("__call__",
              [](K &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
-               return left.assign(convert_int_to_const(left, right));
+                 return left.assign(convert_int_to_const(left, right));
              })
         .def("__call__", py::overload_cast<const shared_ptr<Var> &>(&K::assign))
         .def("type", &K::type)

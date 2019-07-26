@@ -31,6 +31,7 @@ void init_generator(py::module &m) {
              py::return_value_policy::reference)
         .def("array", py::overload_cast<const std::string &, uint32_t, uint32_t>(&Generator::array),
              py::return_value_policy::reference)
+        .def("port_array", &Generator::port_array, py::return_value_policy::reference)
         .def("constant", py::overload_cast<int64_t, uint32_t>(&Generator::constant),
              py::return_value_policy::reference)
         .def("constant", py::overload_cast<int64_t, uint32_t, bool>(&Generator::constant),

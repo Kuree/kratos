@@ -202,24 +202,37 @@ private:
     std::vector<std::shared_ptr<Var>> vars_;
 };
 
-struct Array: public Var {
+struct ArrayKind {
+public:
+    ArrayKind(uint32_t size, std::string name) : size_(size), name_(std::move(name)) {}
+    uint32_t size() { return size_; }
+    const std::string &p_name() { return name_; }
+
+protected:
+    uint32_t size_;
+
+private:
+    const std::string name_;
+};
+
+struct Array : public Var, public ArrayKind {
 public:
     Array(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed);
-
-    uint32_t size() { return size_; }
 
     // slice
     VarSlice &operator[](std::pair<uint32_t, uint32_t> slice) override;
     VarSlice &operator[](uint32_t index) override;
-
-private:
-    uint32_t size_;
 };
 
-struct ArraySlice: public VarSlice {
+struct ArraySlice : public VarSlice {
 public:
-    ArraySlice(Array *parent, uint32_t high, uint32_t low): VarSlice(parent, high, low) {}
+    ArraySlice(Var *parent, ArrayKind *array, uint32_t high, uint32_t low)
+        : VarSlice(parent, high, low), array_(array) {}
+
     std::string to_string() const override;
+
+private:
+    ArrayKind *array_;
 };
 
 struct Const : public Var {

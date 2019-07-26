@@ -166,7 +166,7 @@ VarConcat &Var::concat(Var &var) {
 
 std::string Var::to_string() const { return name; }
 
-VarSlice &Var::operator[](uint32_t bit) { return (*this)[{bit, bit}]; }
+VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     : Var(parent->generator, "", high - low + 1, parent->is_signed, VarType::Slice),
@@ -538,11 +538,11 @@ void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
 
 Array::Array(kratos::Generator *m, const std::string &name, uint32_t width, uint32_t size,
              bool is_signed)
-    : Var(m, name, width * size, is_signed), size_(size) {}
+    : Var(m, name, width * size, is_signed), ArrayKind(size, name) {}
 
 VarSlice &Array::operator[](uint32_t index) {
     if (index * size_ > width) throw VarException("index out of range", {});
-    auto slice = std::make_shared<ArraySlice>(this, (index + 1) * size_ - 1, index * size_);
+    auto slice = std::make_shared<ArraySlice>(this, this, (index + 1) * size_ - 1, index * size_);
     slices_.emplace(std::make_pair(slice->high, slice->low), slice);
     return *slice;
 }
@@ -552,13 +552,13 @@ VarSlice &Array::operator[](std::pair<uint32_t, uint32_t>) {
 }
 
 std::string ArraySlice::to_string() const {
-    auto p = dynamic_cast<Array *>(parent_var);
+    auto p = array_;
     uint32_t index = low / p->size();
     uint32_t index_1 = (high + 1) / p->size();
     if (index_1 != index + 1) {
         throw VarException("Internal error on array slice.", {this});
     }
-    return ::format("{0}[{1}]", p->name, index);
+    return ::format("{0}[{1}]", p->p_name(), index);
 }
 
 }

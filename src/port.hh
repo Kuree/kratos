@@ -32,6 +32,8 @@ public:
     uint64_t child_count() override { return 0; }
     IRNode *get_child(uint64_t) override { return nullptr; }
 
+    virtual bool is_array() { return false; }
+
 private:
     PortDirection direction_;
     PortType type_;
@@ -69,6 +71,20 @@ private:
     PackedStruct struct_;
 
     std::unordered_map<std::string, std::shared_ptr<PortPackedSlice>> members_;
+};
+
+struct PortArray : public Port, public ArrayKind {
+public:
+    PortArray(Generator *module, PortDirection direction, const std::string &name, uint32_t width,
+              uint32_t size, bool is_signed);
+
+    // slice
+    VarSlice &operator[](std::pair<uint32_t, uint32_t> slice) override;
+    VarSlice &operator[](uint32_t index) override;
+    VarSlice &slice(uint32_t idx) { return operator[](idx); }
+
+    bool is_array() override { return true; }
+
 };
 
 struct PortPackedSlice : public VarSlice {

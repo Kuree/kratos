@@ -32,6 +32,8 @@ public:
                bool is_signed);
     PortPacked &port_packed(PortDirection direction, const std::string &port_name,
                             const PackedStruct &packed_struct_);
+    PortArray &port_array(PortDirection direction, const std::string &port_name, uint32_t width,
+        uint32_t size, bool is_signed);
     Array &array(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed);
     Array &array(const std::string &var_name, uint32_t width, uint32_t size);
     Const &constant(int64_t value, uint32_t width);

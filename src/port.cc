@@ -1,6 +1,7 @@
 #include "port.hh"
 #include <stdexcept>
 #include <unordered_map>
+#include "except.hh"
 #include "fmt/format.h"
 
 using fmt::format;
@@ -77,4 +78,20 @@ std::string PortPackedSlice::to_string() const {
     return ::format("{0}.{1}", parent_var->to_string(), member_name_);
 }
 
+PortArray::PortArray(kratos::Generator* module, kratos::PortDirection direction,
+                     const std::string& name, uint32_t width, uint32_t size, bool is_signed)
+    : Port(module, direction, name, width * size, PortType::Data, is_signed),
+      ArrayKind(size, name) {}
+
+VarSlice& PortArray::operator[](uint32_t index) {
+    if (index * size_ > width) throw VarException("index out of range", {});
+    auto slice = std::make_shared<ArraySlice>(this, this, (index + 1) * size_ - 1, index * size_);
+    slices_.emplace(std::make_pair(slice->high, slice->low), slice);
+    return *slice;
 }
+
+VarSlice& PortArray::operator[](std::pair<uint32_t, uint32_t>) {
+    throw std::runtime_error("Not implemented");
+}
+
+}  // namespace kratos

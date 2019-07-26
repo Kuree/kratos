@@ -149,3 +149,11 @@ TEST(expr, array_slice) {   // NOLINT
     auto &slice0 = array0[2];
     EXPECT_EQ(slice0.to_string(), "t[2]");
 }
+
+TEST(expr, port_array) {    // NOLINT
+    Context c;
+    auto mod = c.generator("mod");
+    auto &array = mod.port_array(PortDirection::In, "in", 2, 2, false);
+    EXPECT_EQ(array[1].to_string(), "in[1]");
+
+}

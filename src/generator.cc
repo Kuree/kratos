@@ -438,6 +438,16 @@ PortPacked &Generator::port_packed(PortDirection direction, const std::string &p
     return *p;
 }
 
+PortArray& Generator::port_array(kratos::PortDirection direction, const std::string &port_name,
+                                 uint32_t width, uint32_t size, bool is_signed) {
+    if (ports_.find(port_name) != ports_.end())
+        throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
+    auto p = std::make_shared<PortArray>(this, direction, port_name, width, size, is_signed);
+    vars_.emplace(port_name, p);
+    ports_.emplace(port_name);
+    return *p;
+}
+
 Array &Generator::array(const std::string &var_name, uint32_t width, uint32_t size,
                         bool is_signed) {
     if (vars_.find(var_name) != vars_.end())

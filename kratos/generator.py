@@ -324,6 +324,16 @@ class Generator(metaclass=GeneratorMeta):
             p.add_fn_ln((fn, ln))
         return p
 
+    def port_array(self, name: str, direction: PortDirection,
+                   width: int, size: int, is_signed: bool = False):
+        p = self.__generator.port_array(direction.value, name, width, size,
+                                        is_signed)
+
+        if self.debug:
+            fn, ln = get_fn_ln()
+            p.add_fn_ln((fn, ln))
+        return p
+
     def parameter(self, name: str, width: int,
                   is_signed: bool = False) -> _kratos.Param:
         param = self.__generator.parameter(name, width, is_signed)
