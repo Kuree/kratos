@@ -282,10 +282,8 @@ class Generator(metaclass=GeneratorMeta):
 
     def var(self, name: str, width: int,
             is_signed: bool = False, size: int = 1) -> _kratos.Var:
-        if size > 1:
-            v = self.__generator.array(name, width, size, is_signed)
-        else:
-            v = self.__generator.var(name, width, is_signed)
+
+        v = self.__generator.var(name, width, size, is_signed)
         if self.debug:
             fn, ln = get_fn_ln()
             v.add_fn_ln((fn, ln))
@@ -307,8 +305,8 @@ class Generator(metaclass=GeneratorMeta):
 
     def port(self, name: str, width: int, direction: PortDirection,
              port_type: PortType = PortType.Data,
-             is_signed: bool = False) -> _kratos.Port:
-        p = self.__generator.port(direction.value, name, width,
+             is_signed: bool = False, size: int = 1) -> _kratos.Port:
+        p = self.__generator.port(direction.value, name, width, size,
                                   port_type.value, is_signed)
         if self.debug:
             fn, ln = get_fn_ln()
@@ -319,16 +317,6 @@ class Generator(metaclass=GeneratorMeta):
                     struct_packed: _kratos.PortPacked):
         p = self.__generator.port_packed(direction.value, name,
                                          struct_packed)
-        if self.debug:
-            fn, ln = get_fn_ln()
-            p.add_fn_ln((fn, ln))
-        return p
-
-    def port_array(self, name: str, direction: PortDirection,
-                   width: int, size: int, is_signed: bool = False):
-        p = self.__generator.port_array(direction.value, name, width, size,
-                                        is_signed)
-
         if self.debug:
             fn, ln = get_fn_ln()
             p.add_fn_ln((fn, ln))

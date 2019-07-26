@@ -145,15 +145,8 @@ TEST(expr, port_packed) {  // NOLINT
 TEST(expr, array_slice) {   // NOLINT
     Context c;
     auto mod = c.generator("module");
-    auto &array0 = mod.array("t", 4, 3, false);
+    auto &array0 = mod.var("t", 4, 3, false);
     auto &slice0 = array0[2];
     EXPECT_EQ(slice0.to_string(), "t[2]");
-}
-
-TEST(expr, port_array) {    // NOLINT
-    Context c;
-    auto mod = c.generator("mod");
-    auto &array = mod.port_array(PortDirection::In, "in", 2, 2, false);
-    EXPECT_EQ(array[1].to_string(), "in[1]");
-
+    EXPECT_EQ(slice0[0].to_string(), "t[2][0]");
 }

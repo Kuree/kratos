@@ -46,11 +46,13 @@ enum VarCastType { Signed, Clock, AsyncReset };
 
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
-    Var(Generator *m, const std::string &name, uint32_t width, bool is_signed);
-    Var(Generator *m, const std::string &name, uint32_t width, bool is_signed, VarType type);
+    Var(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed);
+    Var(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed, VarType type);
 
     std::string name;
     uint32_t width;
+    uint32_t var_width;
+    uint32_t size;
     bool is_signed;
 
     // overload all the operators
@@ -179,6 +181,13 @@ public:
     static std::string get_slice_name(const std::string &parent_name, uint32_t high, uint32_t low);
 
     std::string to_string() const override;
+
+    uint32_t var_high() { return var_high_; }
+    uint32_t var_low() { return var_low_; }
+
+private:
+    uint32_t var_high_ = 0;
+    uint32_t var_low_ = 0;
 };
 
 struct VarConcat : public Var {
@@ -200,39 +209,6 @@ public:
 
 private:
     std::vector<std::shared_ptr<Var>> vars_;
-};
-
-struct ArrayKind {
-public:
-    ArrayKind(uint32_t size, std::string name) : size_(size), name_(std::move(name)) {}
-    uint32_t size() { return size_; }
-    const std::string &p_name() { return name_; }
-
-protected:
-    uint32_t size_;
-
-private:
-    const std::string name_;
-};
-
-struct Array : public Var, public ArrayKind {
-public:
-    Array(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed);
-
-    // slice
-    VarSlice &operator[](std::pair<uint32_t, uint32_t> slice) override;
-    VarSlice &operator[](uint32_t index) override;
-};
-
-struct ArraySlice : public VarSlice {
-public:
-    ArraySlice(Var *parent, ArrayKind *array, uint32_t high, uint32_t low)
-        : VarSlice(parent, high, low), array_(array) {}
-
-    std::string to_string() const override;
-
-private:
-    ArrayKind *array_;
 };
 
 struct Const : public Var {

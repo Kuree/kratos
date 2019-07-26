@@ -55,8 +55,9 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
         var->verilog_ln = line_no_;
     }
 
-    (*this) << ::format("logic {0} {1} {2};", var->is_signed ? "signed" : "",
-                        SystemVerilogCodeGen::get_var_width_str(var.get()), var->name)
+    (*this) << ::format("logic {0} {1} {2}{3};", var->is_signed ? "signed" : "",
+                        SystemVerilogCodeGen::get_var_width_str(var.get()), var->name,
+                        var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
             << endl();
     return *this;
 }
@@ -225,7 +226,6 @@ void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
             stmt_code(reinterpret_cast<ScopedStmtBlock*>(stmt));
             break;
         }
-
     }
 }
 
@@ -280,7 +280,6 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
 
     indent_--;
     stream_ << indent() << "end" << stream_.endl();
-
 }
 
 void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
@@ -382,11 +381,10 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     if (!port->is_packed()) strs.emplace_back(get_var_width_str(port));
     strs.emplace_back(port->name);
 
-    if (port->is_array()) {
-        auto a = dynamic_cast<PortArray*>(port);
-        strs.emplace_back(::format("[{0}:0]", a->size() - 1));
+    if (port->size > 1) {
+        strs.emplace_back(::format("[{0}:0]", port->size - 1));
     }
     return join(strs.begin(), strs.end(), " ");
 }
 
-}
+}  // namespace kratos

@@ -63,17 +63,4 @@ void init_expr(py::module &m) {
     def_trace<py::class_<PortPackedSlice, ::shared_ptr<PortPackedSlice>, Var>, VarSlice>(
         port_packed_slice);
 
-    auto array = py::class_<Array, ::shared_ptr<Array>, Var>(m, "Array");
-    init_var_derived(array);
-    def_trace<py::class_<Array, ::shared_ptr<Array>, Var>, Var>(array);
-    array.def("size", &Array::size);
-
-    auto port_array = py::class_<PortArray, ::shared_ptr<PortArray>, Var>(m, "PortArray");
-    init_var_derived(port_array);
-    def_trace<py::class_<PortArray, ::shared_ptr<PortArray>, Var>, Var>(port_array);
-    port_array.def("size", &Array::size)
-    .def("__getitem__", &PortArray::slice, py::return_value_policy::reference_internal);
-
-    auto array_slice = py::class_<ArraySlice, ::shared_ptr<ArraySlice>, VarSlice>(m, "ArraySlice");
-    def_trace<py::class_<ArraySlice, ::shared_ptr<ArraySlice>, VarSlice>, VarSlice>(array_slice);
 }

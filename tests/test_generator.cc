@@ -41,7 +41,7 @@ TEST(generator, rename_var) {  // NOLINT
     mod.rename_var("a", "c");
     EXPECT_EQ(a.name, "c");
     EXPECT_EQ(stmt1->left()->to_string(), "c");
-    EXPECT_EQ(stmt2->right()->to_string(), "c[0:0]");
+    EXPECT_EQ(stmt2->right()->to_string(), "c[0]");
 }
 
 TEST(generator, remove_stmt) {  // NOLINT

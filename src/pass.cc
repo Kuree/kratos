@@ -193,8 +193,8 @@ public:
                     auto src = stmt->right();
                     if (src->type() == VarType::Slice) {
                         auto ptr = src->as<VarSlice>();
-                        auto low = ptr->low;
-                        auto high = ptr->high;
+                        auto low = ptr->var_low();
+                        auto high = ptr->var_high();
                         for (uint32_t i = low; i <= high; i++) {
                             bits.emplace(i);
                         }
@@ -373,7 +373,7 @@ public:
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
-                auto& var = parent->var(new_name, port->width, port->is_signed);
+                auto& var = parent->var(new_name, port->var_width, port->size, port->is_signed);
                 if (parent->debug) {
                     // need to copy over the changes over
                     var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
@@ -408,7 +408,7 @@ public:
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
-                auto& var = parent->var(new_name, port->width, port->is_signed);
+                auto& var = parent->var(new_name, port->var_width, port->size, port->is_signed);
                 if (parent->debug) {
                     // need to copy over the changes over
                     var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
@@ -683,7 +683,7 @@ public:
                     // we will let the later downstream passes to remove the extra wiring
                     auto next_port = (*(port->sinks().begin()))->left();
                     auto var_name = generator->get_unique_variable_name(generator->name, port_name);
-                    auto& new_var = generator->var(var_name, port->width, port->is_signed);
+                    auto& new_var = generator->var(var_name, port->var_width, port->size, port->is_signed);
                     if (generator->debug) {
                         // need to copy the changes over
                         new_var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(

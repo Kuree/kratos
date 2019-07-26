@@ -260,7 +260,7 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *ge
                         throw std::runtime_error(::format("unable to parse {}", port_declaration));
                     const auto &port_name = token;
                     uint32_t width = high - low + 1;
-                    auto p = std::make_shared<Port>(generator, direction, port_name, width,
+                    auto p = std::make_shared<Port>(generator, direction, port_name, width, 1,
                                                     PortType::Data, false);
                     result.emplace(port_name, p);
                 }

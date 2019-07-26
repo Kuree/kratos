@@ -1,12 +1,11 @@
+#include <pybind11/functional.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
-#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
 #include "../src/stmt.hh"
-
 
 namespace py = pybind11;
 using std::shared_ptr;
@@ -17,21 +16,16 @@ void init_generator(py::module &m) {
     generator.def("from_verilog", &Generator::from_verilog)
         .def("var", py::overload_cast<const std::string &, uint32_t>(&Generator::var),
              py::return_value_policy::reference)
-        .def("var", py::overload_cast<const std::string &, uint32_t, bool>(&Generator::var),
+        .def("var",
+             py::overload_cast<const std::string &, uint32_t, uint32_t, bool>(&Generator::var),
              py::return_value_policy::reference)
         .def("port",
              py::overload_cast<PortDirection, const std::string &, uint32_t>(&Generator::port),
              py::return_value_policy::reference)
         .def("port",
-             py::overload_cast<PortDirection, const std::string &, uint32_t, PortType, bool>(
-                 &Generator::port),
+             py::overload_cast<PortDirection, const std::string &, uint32_t, uint32_t, PortType,
+                               bool>(&Generator::port),
              py::return_value_policy::reference)
-        .def("array",
-             py::overload_cast<const std::string &, uint32_t, uint32_t, bool>(&Generator::array),
-             py::return_value_policy::reference)
-        .def("array", py::overload_cast<const std::string &, uint32_t, uint32_t>(&Generator::array),
-             py::return_value_policy::reference)
-        .def("port_array", &Generator::port_array, py::return_value_policy::reference)
         .def("constant", py::overload_cast<int64_t, uint32_t>(&Generator::constant),
              py::return_value_policy::reference)
         .def("constant", py::overload_cast<int64_t, uint32_t, bool>(&Generator::constant),

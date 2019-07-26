@@ -9,7 +9,7 @@ TEST(stmt, assign) {  // NOLINT
     Context c;
     auto &mod = c.generator("test");
     auto &var1 = mod.var("a", 2);
-    auto &var2 = mod.var("b", 2, true);
+    auto &var2 = mod.var("b", 2, 1, true);
     auto &var3 = mod.var("c", 4);
     auto &var4 = mod.var("d", 4);
     EXPECT_ANY_THROW(var1.assign(var2));
@@ -47,7 +47,7 @@ TEST(stmt, block) {  // NOLINT
     auto &var2 = mod.var("b", 2);
     auto &var3 = mod.var("c", 4);
     auto &var4 = mod.var("d", 4);
-    auto &clk = mod.port(PortDirection::In, "clk", 1, PortType::Clock, false);
+    auto &clk = mod.port(PortDirection::In, "clk", 1, 1, PortType::Clock, false);
     //
     auto seq_block = SequentialStmtBlock();
     seq_block.add_stmt(var1.assign(var2));

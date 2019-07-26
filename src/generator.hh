@@ -25,17 +25,18 @@ public:
     Generator(Context *context, const std::string &name)
         : IRNode(IRNodeKind::GeneratorKind), name(name), instance_name(name), context_(context) {}
 
-    Var &var(const std::string &var_name, uint32_t width);
-    Var &var(const std::string &var_name, uint32_t width, bool is_signed);
-    Port &port(PortDirection direction, const std::string &port_name, uint32_t width);
-    Port &port(PortDirection direction, const std::string &port_name, uint32_t width, PortType type,
-               bool is_signed);
+    Var &var(const std::string &var_name, uint32_t width, uint32_t size);
+    Var &var(const std::string &var_name, uint32_t width) { return var(var_name, width, 1); }
+    Var &var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed);
+    Port &port(PortDirection direction, const std::string &port_name, uint32_t width) {
+        return port(direction, port_name, width, 1);
+    }
+    Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
+               uint32_t size);
+    Port &port(PortDirection direction, const std::string &port_name, uint32_t width, uint32_t size,
+               PortType type, bool is_signed);
     PortPacked &port_packed(PortDirection direction, const std::string &port_name,
                             const PackedStruct &packed_struct_);
-    PortArray &port_array(PortDirection direction, const std::string &port_name, uint32_t width,
-        uint32_t size, bool is_signed);
-    Array &array(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed);
-    Array &array(const std::string &var_name, uint32_t width, uint32_t size);
     Const &constant(int64_t value, uint32_t width);
     Const &constant(int64_t value, uint32_t width, bool is_signed);
     Param &parameter(const std::string &parameter_name, uint32_t width);

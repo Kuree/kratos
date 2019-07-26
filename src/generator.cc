@@ -57,11 +57,11 @@ Generator Generator::from_verilog(Context *context, const std::string &src_file,
     return mod;
 }
 
-Var &Generator::var(const std::string &var_name, uint32_t width) {
-    return var(var_name, width, false);
+Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size) {
+    return var(var_name, width, size, false);
 }
 
-Var &Generator::var(const std::string &var_name, uint32_t width, bool is_signed) {
+Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed) {
     if (vars_.find(var_name) != vars_.end()) {
         auto v_p = get_var(var_name);
         if (v_p->width != width || v_p->is_signed != is_signed)
@@ -69,7 +69,7 @@ Var &Generator::var(const std::string &var_name, uint32_t width, bool is_signed)
                 ::format("redefinition of {0} with different width/sign", var_name));
         return *v_p;
     }
-    auto p = std::make_shared<Var>(this, var_name, width, is_signed);
+    auto p = std::make_shared<Var>(this, var_name, width, size, is_signed);
     vars_.emplace(var_name, p);
     return *p;
 }
@@ -79,15 +79,16 @@ std::shared_ptr<Var> Generator::get_var(const std::string &var_name) {
     return vars_.at(var_name);
 }
 
-Port &Generator::port(PortDirection direction, const std::string &port_name, uint32_t width) {
-    return port(direction, port_name, width, PortType::Data, false);
+Port &Generator::port(PortDirection direction, const std::string &port_name, uint32_t width,
+                      uint32_t size) {
+    return port(direction, port_name, width, size, PortType::Data, false);
 }
 
 Port &Generator::port(PortDirection direction, const std::string &port_name, uint32_t width,
-                      PortType type, bool is_signed) {
+                      uint32_t size, PortType type, bool is_signed) {
     if (ports_.find(port_name) != ports_.end())
         throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
-    auto p = std::make_shared<Port>(this, direction, port_name, width, type, is_signed);
+    auto p = std::make_shared<Port>(this, direction, port_name, width, size, type, is_signed);
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
     return *p;
@@ -407,8 +408,8 @@ std::shared_ptr<Generator> Generator::clone() {
     auto port_names = get_port_names();
     for (auto const &port_name : port_names) {
         auto port = get_port(port_name);
-        generator->port(port->port_direction(), port_name, port->width, port->port_type(),
-                        port->is_signed);
+        generator->port(port->port_direction(), port_name, port->width, port->size,
+                        port->port_type(), port->is_signed);
     }
     // also parameters
     for (auto const &[param_name, param] : params_) {
@@ -436,29 +437,6 @@ PortPacked &Generator::port_packed(PortDirection direction, const std::string &p
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
     return *p;
-}
-
-PortArray& Generator::port_array(kratos::PortDirection direction, const std::string &port_name,
-                                 uint32_t width, uint32_t size, bool is_signed) {
-    if (ports_.find(port_name) != ports_.end())
-        throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
-    auto p = std::make_shared<PortArray>(this, direction, port_name, width, size, is_signed);
-    vars_.emplace(port_name, p);
-    ports_.emplace(port_name);
-    return *p;
-}
-
-Array &Generator::array(const std::string &var_name, uint32_t width, uint32_t size,
-                        bool is_signed) {
-    if (vars_.find(var_name) != vars_.end())
-        throw ::runtime_error(::format("{0} already exists in {1}", var_name, name));
-    auto a = std::make_shared<Array>(this, var_name, width, size, is_signed);
-    vars_.emplace(var_name, a);
-    return *a;
-}
-
-Array &Generator::array(const std::string &var_name, uint32_t width, uint32_t size) {
-    return array(var_name, width, size, false);
 }
 
 }

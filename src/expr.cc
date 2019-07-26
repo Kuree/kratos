@@ -134,9 +134,17 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     if (low > high) {
         throw VarException(::format("low ({0}) cannot be larger than ({1})", low, high), {this});
     }
-    if (high >= width) {
-        throw VarException(::format("high ({0}) has to be smaller than width ({1})", high, width),
-                           {this});
+    // if the size is not 1, we are slicing off size, not width
+    if (size == 1) {
+        if (high >= width) {
+            throw VarException(
+                ::format("high ({0}) has to be smaller than width ({1})", high, width), {this});
+        }
+    } else {
+        if (high > size) {
+            throw VarException(::format("high ({0}) has to be smaller than size ({1})", high, size),
+                               {this});
+        }
     }
     // if we already has the slice
     if (slices_.find(slice) != slices_.end()) return *slices_.at(slice);
@@ -169,13 +177,50 @@ std::string Var::to_string() const { return name; }
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
-    : Var(parent->generator, "", high - low + 1, parent->is_signed, VarType::Slice),
+    : Var(parent->generator, "", parent->var_width, 1, parent->is_signed, VarType::Slice),
       parent_var(parent),
       low(low),
-      high(high) {}
+      high(high) {
+    // compute the width
+    if (parent->size == 1) {
+        // this is the actual slice
+        width = high - low + 1;
+        var_width = width;
+    } else {
+        size = high - low + 1;
+        var_width = parent->var_width;
+        width = size * var_width;
+    }
+    // compute the var high and var_low
+    if (parent->type() != VarType::Slice) {
+        // use width to compute
+        if (parent->size == 1) {
+            var_low_ = low;
+            var_high_ = high;
+        } else {
+            var_low_ = low * parent->var_width;
+            var_high_ = (high + 1) * parent->var_width - 1;
+        }
+    } else {
+        // it's a slice
+        if (parent->size == 1) {
+            auto slice = dynamic_cast<VarSlice*>(parent);
+            var_low_ = low + slice->var_low();
+            var_high_ = (high + 1) + slice->var_low();
+        } else {
+            auto slice = dynamic_cast<VarSlice*>(parent);
+            var_low_ = slice->var_low() + low * parent->var_width;
+            var_high_ = slice->var_low() + (high + 1) * parent->var_width - 1;
+        }
+    }
+
+}
 
 std::string VarSlice::get_slice_name(const std::string &parent_name, uint32_t high, uint32_t low) {
-    return ::format("{0}[{1}:{2}]", parent_name, high, low);
+    if (high == low)
+        return ::format("{0}[{1}]", parent_name, high);
+    else
+        return ::format("{0}[{1}:{2}]", parent_name, high, low);
 }
 
 std::string VarSlice::to_string() const {
@@ -183,7 +228,10 @@ std::string VarSlice::to_string() const {
 }
 
 Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
-    : Var(left->generator, "", left->width, left->is_signed), op(op), left(left), right(right) {
+    : Var(left->generator, "", left->width / left->size, left->size, left->is_signed),
+      op(op),
+      left(left),
+      right(right) {
     if (left == nullptr) throw std::runtime_error("left operand is null");
     generator = left->generator;
     if (right != nullptr && left->width != right->width)
@@ -205,13 +253,16 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
     type_ = VarType::Expression;
 }
 
-Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_signed)
-    : Var(module, name, width, is_signed, VarType::Base) {}
+Var::Var(Generator *module, const std::string &name, uint32_t width, uint32_t size, bool is_signed)
+    : Var(module, name, width, size, is_signed, VarType::Base) {}
 
-Var::Var(Generator *module, const std::string &name, uint32_t width, bool is_signed, VarType type)
+Var::Var(Generator *module, const std::string &name, uint32_t width, uint32_t size, bool is_signed,
+         VarType type)
     : IRNode(IRNodeKind::VarKind),
       name(name),
-      width(width),
+      width(width * size),
+      var_width(width),
+      size(size),
       is_signed(is_signed),
       generator(module),
       type_(type) {
@@ -252,7 +303,7 @@ void Var::unassign(const std::shared_ptr<AssignStmt> &stmt) {
 }
 
 Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed)
-    : Var(generator, std::to_string(value), width, is_signed, VarType::ConstValue), value_() {
+    : Var(generator, std::to_string(value), width, 1, is_signed, VarType::ConstValue), value_() {
     // need to deal with the signed value
     if (is_signed) {
         // compute the -max value
@@ -334,7 +385,7 @@ Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
 
 VarConcat::VarConcat(Generator *m, const std::shared_ptr<Var> &first,
                      const std::shared_ptr<Var> &second)
-    : Var(m, "", first->width + second->width, first->is_signed && second->is_signed,
+    : Var(m, "", first->width + second->width, 1, first->is_signed && second->is_signed,
           VarType::Expression) {
     if (first->is_signed != second->is_signed)
         throw VarException(
@@ -366,8 +417,8 @@ std::string VarConcat::to_string() const {
 }
 
 VarConcat::VarConcat(VarConcat *first, const std::shared_ptr<Var> &second)
-    : Var(first->generator, "", first->width + second->width, first->is_signed && second->is_signed,
-          VarType::Expression) {
+    : Var(first->generator, "", first->width + second->width, 1,
+          first->is_signed && second->is_signed, VarType::Expression) {
     if (first->is_signed != second->is_signed)
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
@@ -376,7 +427,7 @@ VarConcat::VarConcat(VarConcat *first, const std::shared_ptr<Var> &second)
     vars_.emplace_back(second);
 }
 
-VarConcat& VarConcat::concat(kratos::Var &var) {
+VarConcat &VarConcat::concat(kratos::Var &var) {
     auto result = std::make_shared<VarConcat>(this, var.shared_from_this());
     // add it to the first one
     vars_[0]->add_concat_var(result);
@@ -534,31 +585,6 @@ void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
         parent = ptr->parent_var;
     }
     parent->add_source(stmt);
-}
-
-Array::Array(kratos::Generator *m, const std::string &name, uint32_t width, uint32_t size,
-             bool is_signed)
-    : Var(m, name, width * size, is_signed), ArrayKind(size, name) {}
-
-VarSlice &Array::operator[](uint32_t index) {
-    if (index * size_ > width) throw VarException("index out of range", {});
-    auto slice = std::make_shared<ArraySlice>(this, this, (index + 1) * size_ - 1, index * size_);
-    slices_.emplace(std::make_pair(slice->high, slice->low), slice);
-    return *slice;
-}
-
-VarSlice &Array::operator[](std::pair<uint32_t, uint32_t>) {
-    throw std::runtime_error("Not implemented");
-}
-
-std::string ArraySlice::to_string() const {
-    auto p = array_;
-    uint32_t index = low / p->size();
-    uint32_t index_1 = (high + 1) / p->size();
-    if (index_1 != index + 1) {
-        throw VarException("Internal error on array slice.", {this});
-    }
-    return ::format("{0}[{1}]", p->p_name(), index);
 }
 
 }

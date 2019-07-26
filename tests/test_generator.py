@@ -653,21 +653,17 @@ def test_zero_ext():
 
 
 def test_port_array():
-    mod = Generator("mod")
-    in_ = mod.port_array("in", PortDirection.In, 2, 2)
-    out1 = mod.port_array("out1", PortDirection.Out, 2, 2)
-    out2 = mod.port_array("out2", PortDirection.Out, 2, 2)
+    mod = Generator("mod", True)
+    in_ = mod.port("in", 2, PortDirection.In, size=2)
+    out1 = mod.port("out1", 2, PortDirection.Out, size=2)
+    out2 = mod.port("out2", 2, PortDirection.Out, size=2)
     mod.wire(out1, in_)
     var = mod.var("a", 2)
-    print(type(out2[0]), type(in_[0]))
-    print(type(out2[0]))
-    print(type(out2[0]))
     mod.wire(out2[0][0], in_[0][1])
-    print(type(out2[0]), type(in_[0]))
     mod.wire(out2[0][1], in_[0][0])
     mod.wire(out2[1], in_[1])
 
-    mod_src = verilog(mod, filename="test.sv")
+    mod_src = verilog(mod)
     is_valid_verilog(mod_src)
 
 
