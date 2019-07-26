@@ -30,8 +30,8 @@ describe the circuit logic. To declare a port, you can call the
 .. code-block:: Python
 
     def port(self, name: str, width: int, direction: PortDirection,
-                port_type: PortType = PortType.Data,
-                is_signed: bool = False)
+             port_type: PortType = PortType.Data,
+             is_signed: bool = False, size: int = 1)
 
 ``PortDirection`` and ``PortType`` are enums to specify the types of
 the port we're creating. The definitions for these enum are:
@@ -52,6 +52,16 @@ the port we're creating. The definitions for these enum are:
         Reset = _kratos.PortType.Reset
 
 Notice that ``_kratos`` is a namespace that came from the native C++ binding.
+kratos also has some helper functions to help you create commonly used ports:
+
+.. code-block:: Python
+
+    def input(self, name, width, port_type: PortType = PortType.Data,
+                  is_signed: bool = False, size: int = 1)
+
+    def clock(self, name, is_input=True)
+
+    def reset(self, name, is_input=True, is_async=True)
 
 To declare a variable, simply call the following function to create one:
 
@@ -242,11 +252,10 @@ Here are some examples the free-style code block in kratos.
             super().__init__("register")
 
             # define inputs and outputs
-            self._in = self.port("in", width, PortDirection.In)
-            self._out = self.port("out", width, PortDirection.Out)
-            self._clk = self.port("clk", 1, PortDirection.In, PortType.Clock)
-            self._rst = self.port("rst", 1, PortDirection.In,
-                                  PortType.AsyncReset)
+            self._in = self.input("in", width)
+            self._out = self.output("out", width)
+            self._clk = self.clock("clk")
+            self._rst = self.reset("rst", 1)
             self._val = self.var("val", width)
 
             # add combination and sequential blocks
@@ -304,8 +313,8 @@ Here is another example on `for` static evaluation
     class PassThrough(Generator):
         def __init__(self, num_loop):
             super().__init__("PassThrough", True)
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", num_loop, PortDirection.Out)
+            self.in_ = self.input("in", 1)
+            self.out_ = self.output("out", num_loop)
             self.num_loop = num_loop
 
             self.add_code(self.code)
@@ -407,16 +416,15 @@ Here is an example on how to build a ``case`` based N-input mux.
 
             # pass through wires
             if height == 1:
-                self.in_ = self.port("I", width, PortDirection.In)
-                self.out_ = self.port("O", width, PortDirection.Out)
+                self.in_ = self.input("I", width)
+                self.out_ = self.output("O", width)
                 self.wire(self.out_, self.in_)
                 return
 
             self.sel_size = clog2(height)
-            ports = [self.port("I{0}".format(i), width,
-                               PortDirection.In) for i in range(height)]
-            self.out_ = self.port("O", width, PortDirection.Out)
-            self.port("S", self.sel_size, PortDirection.In)
+            input_ = self.input(I, width, size=height)
+            self.out_ = self.output("O", width)
+            self.input("S", self.sel_size)
 
             # add a combinational block
             comb = self.combinational()
@@ -424,18 +432,16 @@ Here is an example on how to build a ``case`` based N-input mux.
             # add a case statement
             switch_ = comb.switch_(self.ports.S)
             for i in range(height):
-                switch_.case_(i, self.out_.assign(ports[i]))
+                switch_.case_(i, self.out_(input_[i]))
             # add default
-            switch_.case_(None, self.out_.assign(0))
+            switch_.case_(None, self.out_(0))
 
 Here is the generated verilog
 
 .. code-block:: SystemVerilog
 
   module Mux_16_3 (
-    input logic [15:0] I0,
-    input logic [15:0] I1,
-    input logic [15:0] I2,
+    input logic [15:0] I [2:0],
     output logic [15:0] O,
     input logic [1:0] S
   );
@@ -443,9 +449,9 @@ Here is the generated verilog
   always_comb begin
     case (S)
       default: O = 16'h0;
-      2'h0: O = I0;
-      2'h1: O = I1;
-      2'h2: O = I2;
+      2'h0: O = I[0];
+      2'h1: O = I[1];
+      2'h2: O = I[2];
     endcase
   end
   endmodule   // Mux_16_3

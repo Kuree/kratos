@@ -61,11 +61,10 @@ specify the sensitivity of the ``always`` block when defining
            super().__init__("register")
 
            # define inputs and outputs
-           self._in = self.port("in", width, PortDirection.In)
-           self._out = self.port("out", width, PortDirection.Out)
-           self._clk = self.port("clk", 1, PortDirection.In, PortType.Clock)
-           self._rst = self.port("rst", 1, PortDirection.In,
-                                 PortType.AsyncReset)
+           self._in = self.input("in", width)
+           self._out = self.output("out", width)
+           self._clk = self.clock("clk")
+           self._rst = self.reset("rst")
            self._val = self.var("val", width)
 
            # add combination and sequential blocks
@@ -121,8 +120,8 @@ This is an example to showcase the kratos’ static elaboration ability in
    class PassThrough(Generator):
        def __init__(self, num_loop):
            super().__init__("PassThrough", True)
-           self.in_ = self.port("in", 1, PortDirection.In)
-           self.out_ = self.port("out", num_loop, PortDirection.Out)
+           self.in_ = self.input("in", 1)
+           self.out_ = self.output("out", num_loop)
            self.num_loop = num_loop
 
            self.add_code(self.code)
@@ -172,8 +171,8 @@ to turn on debug (see ``tests/test_generator.py`` for more details).
    class PassThroughMod(Generator):
        def __init__(self):
            super().__init__("mod1", True)
-           self.in_ = self.port("in", 1, PortDirection.In)
-           self.out_ = self.port("out", 1, PortDirection.Out)
+           self.in_ = self.input("in", 1)
+           self.out_ = self.output("out", 1)
            self.wire(self.out_, self.in_)
 
    # ... some other code
@@ -181,8 +180,8 @@ to turn on debug (see ``tests/test_generator.py`` for more details).
        def __init__(self):
            super().__init__("top", True)
 
-           self.port("in", 1, PortDirection.In)
-           self.port("out", 1, PortDirection.Out)
+           self.input("in", 1)
+           self.output("out", 1)
 
            pass_through = PassThroughMod()
            self.add_child_generator("pass", pass_through)
@@ -233,8 +232,8 @@ assignment into a combination block, such as
        def __init__(self):
            super().__init__("top", True)
 
-           self.port("in", 1, PortDirection.In)
-           self.port("out", 1, PortDirection.Out)
+           self.input("in", 1)
+           self.output("out", 1)
 
            pass_through = PassThroughMod()
            self.add_child_generator("pass", pass_through)

@@ -9,8 +9,8 @@ import tempfile
 class PassThroughMod(Generator):
     def __init__(self, is_clone: bool = False):
         super().__init__("mod1", True, is_clone)
-        self.in_ = self.port("in", 1, PortDirection.In)
-        self.out_ = self.port("out", 1, PortDirection.Out)
+        self.in_ = self.input("in", 1)
+        self.out_ = self.output("out", 1)
         self.wire(self.out_, self.in_)
 
 
@@ -18,8 +18,8 @@ class PassThroughTop(Generator):
     def __init__(self):
         super().__init__("top", True)
 
-        self.port("in", 1, PortDirection.In)
-        self.port("out", 1, PortDirection.Out)
+        self.input("in", 1)
+        self.output("out", 1)
 
         pass_through = PassThroughMod()
         self.add_child_generator("pass", pass_through)
@@ -46,11 +46,10 @@ class AsyncReg(Generator):
         super().__init__("register")
 
         # define inputs and outputs
-        self._in = self.port("in", width, PortDirection.In)
-        self._out = self.port("out", width, PortDirection.Out)
-        self._clk = self.port("clk", 1, PortDirection.In, PortType.Clock)
-        self._rst = self.port("rst", 1, PortDirection.In,
-                              PortType.AsyncReset)
+        self._in = self.input("in", width)
+        self._out = self.output("out", width)
+        self._clk = self.clock("clk")
+        self._rst = self.reset("rst")
         self._val = self.var("val", width)
 
         # add combination and sequential blocks

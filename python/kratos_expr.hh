@@ -313,7 +313,16 @@ void init_common_expr(T &class_) {
         .def("type", &K::type)
         .def("concat", &K::concat, py::return_value_policy::reference)
         .def_readwrite("name", &K::name)
-        .def_readwrite("width", &K::width)
+        .def_property(
+            "width", [](K &var) { return var.var_width; },
+            [](K &var, uint32_t width) {
+                var.var_width = width;
+                if (var.size == 1) {
+                    var.width = width;
+                } else {
+                    var.width = var.size * width;
+                }
+            })
         .def_readwrite("signed", &K::is_signed)
         .def("sources", &K::sources, py::return_value_policy::reference)
         .def("sinks", &K::sinks, py::return_value_policy::reference)

@@ -285,8 +285,7 @@ class Generator(metaclass=GeneratorMeta):
 
         v = self.__generator.var(name, width, size, is_signed)
         if self.debug:
-            fn, ln = get_fn_ln()
-            v.add_fn_ln((fn, ln))
+            v.add_fn_ln(get_fn_ln())
         return v
 
     def combinational(self):
@@ -309,8 +308,40 @@ class Generator(metaclass=GeneratorMeta):
         p = self.__generator.port(direction.value, name, width, size,
                                   port_type.value, is_signed)
         if self.debug:
-            fn, ln = get_fn_ln()
-            p.add_fn_ln((fn, ln))
+            p.add_fn_ln(get_fn_ln())
+        return p
+
+    def input(self, name, width, port_type: PortType = PortType.Data,
+              is_signed: bool = False, size: int = 1):
+        p = self.__generator.port(PortDirection.In.value, name, width, size,
+                                  port_type.value, is_signed)
+        if self.debug:
+            p.add_fn_ln(get_fn_ln())
+        return p
+
+    def clock(self, name, is_input=True):
+        direction = PortDirection.In if is_input else PortDirection.Out
+        p = self.__generator.port(direction.value, name, 1, 1,
+                                  PortType.Clock.value, False)
+        if self.debug:
+            p.add_fn_ln(get_fn_ln())
+        return p
+
+    def reset(self, name, is_input=True, is_async=True):
+        direction = PortDirection.In if is_input else PortDirection.Out
+        reset = PortType.AsyncReset if is_async else PortType.Reset
+        p = self.__generator.port(direction.value, name, 1, 1,
+                                  PortType.AsyncReset.value, False)
+        if self.debug:
+            p.add_fn_ln(get_fn_ln())
+        return p
+
+    def output(self, name, width, port_type: PortType = PortType.Data,
+               is_signed: bool = False, size: int = 1):
+        p = self.__generator.port(PortDirection.Out.value, name, width, size,
+                                  port_type.value, is_signed)
+        if self.debug:
+            p.add_fn_ln(get_fn_ln())
         return p
 
     def port_packed(self, name: str, direction: PortDirection,
@@ -318,8 +349,7 @@ class Generator(metaclass=GeneratorMeta):
         p = self.__generator.port_packed(direction.value, name,
                                          struct_packed)
         if self.debug:
-            fn, ln = get_fn_ln()
-            p.add_fn_ln((fn, ln))
+            p.add_fn_ln(get_fn_ln())
         return p
 
     def parameter(self, name: str, width: int,
