@@ -285,6 +285,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
 void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
+        stmt->predicate()->verilog_ln = stream_.line_no();
     }
     stream_ << indent() << ::format("if ({0}) ", stmt->predicate()->to_string());
     auto const& then_body = stmt->then_body();

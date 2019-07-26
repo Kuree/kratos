@@ -683,7 +683,8 @@ public:
                     // we will let the later downstream passes to remove the extra wiring
                     auto next_port = (*(port->sinks().begin()))->left();
                     auto var_name = generator->get_unique_variable_name(generator->name, port_name);
-                    auto& new_var = generator->var(var_name, port->var_width, port->size, port->is_signed);
+                    auto& new_var =
+                        generator->var(var_name, port->var_width, port->size, port->is_signed);
                     if (generator->debug) {
                         // need to copy the changes over
                         new_var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
@@ -751,6 +752,8 @@ public:
     void inline visit(CombinationalStmtBlock* stmt) override { add_info(stmt); }
 
     void inline visit(ModuleInstantiationStmt* stmt) override { add_info(stmt); }
+
+    void inline visit(IfStmt* stmt) override { add_info(stmt); }
 
     std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result;
 

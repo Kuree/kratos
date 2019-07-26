@@ -124,12 +124,17 @@ class IfNodeVisitor(ast.NodeTransformer):
             else_exp = IfNodeVisitor(self.generator, self.fn_src)
             else_expression[idx] = else_exp.visit(node)
 
+        if self.generator.debug:
+            keywords = [ast.keyword(arg="f_ln", value=ast.Num(n=node.lineno))]
+        else:
+            keywords = []
+
         if_node = ast.Call(func=ast.Attribute(value=ast.Name(id="scope",
                                                              ctx=ast.Load()),
                                               attr="if_",
                                               cts=ast.Load()),
                            args=[predicate] + expression,
-                           keywords=[],
+                           keywords=keywords,
                            ctx=ast.Load)
         else_node = ast.Call(func=ast.Attribute(attr="else_", value=if_node,
                                                 cts=ast.Load()),
@@ -177,10 +182,15 @@ class Scope:
 
         self._level = 0
 
-    def if_(self, target, *args):
+    def if_(self, target, *args, f_ln=None):
         class IfStatement:
             def __init__(self, scope):
                 self._if = _kratos.IfStmt(target)
+                if f_ln is not None:
+                    target.add_fn_ln((scope.filename,
+                                      f_ln + scope.ln - 1))
+                    self._if.add_fn_ln((scope.filename,
+                                        f_ln + scope.ln - 1))
                 self.scope = scope
                 for stmt in args:
                     if hasattr(stmt, "stmt"):
