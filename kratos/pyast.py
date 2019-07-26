@@ -9,7 +9,6 @@ import copy
 
 
 class ForNodeVisitor(ast.NodeTransformer):
-
     class NameVisitor(ast.NodeTransformer):
         def __init__(self, target, value):
             self.target = target
@@ -172,10 +171,11 @@ class AssignNodeVisitor(ast.NodeTransformer):
 class Scope:
     def __init__(self, generator, filename, ln):
         self.stmt_list = []
-        self.nested_stmts = set()
         self.generator = generator
         self.filename = filename
         self.ln = ln
+
+        self._level = 0
 
     def if_(self, target, *args):
         class IfStatement:
@@ -185,12 +185,10 @@ class Scope:
                 for stmt in args:
                     if hasattr(stmt, "stmt"):
                         stmt = stmt.stmt()
-                    self.scope.nested_stmts.add(stmt)
                     self._if.add_then_stmt(stmt)
 
             def else_(self, *_args):
                 for stmt in _args:
-                    self.scope.nested_stmts.add(stmt)
                     if hasattr(stmt, "stmt"):
                         self._if.add_else_stmt(stmt.stmt())
                     else:
@@ -201,7 +199,6 @@ class Scope:
                 return self._if
 
         if_stmt = IfStatement(self)
-        self.stmt_list.append(if_stmt)
         return if_stmt
 
     def assign(self, a, b, f_ln=None):
@@ -216,17 +213,26 @@ class Scope:
         if self.filename:
             assert f_ln is not None
             stmt.add_fn_ln((self.filename, f_ln + self.ln - 1))
-        self.stmt_list.append(stmt)
         return stmt
 
+    def add_stmt(self, stmt):
+        self.stmt_list.append(stmt)
+
     def statements(self):
-        # we have some scope level and nested assignments
-        # need to remove them
-        scope_level_stmts = set(self.stmt_list)
-        stmts_to_remove = scope_level_stmts & self.nested_stmts
-        for stmt in stmts_to_remove:
-            self.stmt_list.remove(stmt)
         return self.stmt_list
+
+
+def add_stmt_to_scope(fn_body):
+    for i in range(len(fn_body.body)):
+        node = fn_body.body[i]
+        fn_body.body[i] = ast.Expr(
+            value=ast.Call(func=ast.Attribute(
+            value=ast.Name(id="scope",
+                           ctx=ast.Load()),
+            attr="add_stmt",
+            cts=ast.Load()),
+            args=[node],
+            keywords=[]))
 
 
 def transform_stmt_block(generator, fn, debug=False):
@@ -241,8 +247,8 @@ def transform_stmt_block(generator, fn, debug=False):
     fn_body.decorator_list = []
     # check the function args. it should only has one self now
     args = fn_body.args.args
-    assert len(args) == 1, "statement block {0} has ".format(fn_name) +\
-        "to be defined as def {0}(self)".format(fn_name)
+    assert len(args) == 1, "statement block {0} has ".format(fn_name) + \
+                           "to be defined as def {0}(self)".format(fn_name)
     # add out scope to the arg list to capture all the statements
     args.append(ast.arg(arg="scope", annotation=None))
 
@@ -259,6 +265,9 @@ def transform_stmt_block(generator, fn, debug=False):
     if_visitor = IfNodeVisitor(generator, fn_src)
     fn_body = if_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
+
+    # add stmt to the scope
+    add_stmt_to_scope(fn_body)
 
     # add code to run it
     call_node = ast.Call(func=ast.Name(id=fn_name, ctx=ast.Load()),

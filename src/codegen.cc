@@ -302,7 +302,7 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
             dispatch_node((*else_body)[0].get());
         } else {
             stream_ << indent() << "else ";
-            dispatch_node(stmt->then_body().get());
+            dispatch_node(stmt->else_body().get());
         }
     }
 }

@@ -364,7 +364,7 @@ class Generator(metaclass=GeneratorMeta):
                 seq.add_stmt(stmt)
 
     def __assign(self, var_from, var_to):
-        stmt = var_from.assign(var_to, _kratos.AssignmentType.Blocking)
+        stmt = var_from.assign(var_to)
         self.add_stmt(stmt)
         return stmt
 
