@@ -324,6 +324,7 @@ void init_common_expr(T &class_) {
                 }
             })
         .def_readwrite("signed", &K::is_signed)
+        .def_property_readonly("generator", [](const K& var) { return var.size; })
         .def("sources", &K::sources, py::return_value_policy::reference)
         .def("sinks", &K::sinks, py::return_value_policy::reference)
         .def("cast", &K::cast)
