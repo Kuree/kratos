@@ -34,7 +34,7 @@ void init_pass(py::module &m) {
         .def("extract_struct_info", &extract_struct_info)
         .def("merge_wire_assignments", merge_wire_assignments)
         .def("zero_out_stubs", &zero_out_stubs)
-        .def("remove_unused_vars", &remove_unused_vars)
+        .def("remove_unused_stmts", &remove_unused_stmts)
         .def("check_mixed_assignment", &check_mixed_assignment)
         .def("insert_pipeline_stages", &insert_pipeline_stages);
 

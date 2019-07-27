@@ -36,6 +36,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("remove_fanout_one_wires")
     pass_manager.add_pass("decouple_generator_ports")
     pass_manager.add_pass("remove_unused_vars")
+    pass_manager.add_pass("remove_unused_stmts")
     pass_manager.add_pass("verify_assignments")
     pass_manager.add_pass("verify_generator_connectivity")
     pass_manager.add_pass("check_mixed_assignment")

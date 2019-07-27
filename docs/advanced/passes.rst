@@ -54,7 +54,11 @@ readable and your life easier:
 - ``zero_out_stubs``: zero out the stub outputs.
 - ``check_mixed_assignment``: check if there is any mixed
   blocking/non-blocking assignments in code blocks.
-- ``hash_generators``: hash generators for code generation.
+- ``hash_generators_sequential``: hash generators for code generation
+  sequentially. This not encouraged to use since it's slow.
+- ``hash_generators_parallel``: hash generators for code generation.
+  This is a lock-free thread-pool implementation of the hash function.
+- ``remove_unused_stmts``: remove empty statements in top level.
 - ``decouple_generator_ports``: create extra variable to connect
   sub modules, if necessary.
 - ``uniquify_generators``: assign different module name if two
@@ -115,16 +119,42 @@ port into ``test``
         visitor.visit_root(generator)
 
 To add the pass, you can add the pass into ``verilog`` function
-call
+call. The additional passes will be executed at the very beginning.
 
 .. code-block:: Python
 
     verilog(mod, additional_passes={"name_change": change_name})
 
-At the time of writing there is no easy way to control the ordering of
-additional passes. It is added to the every-end by default. If you want
-to fine-control the ordering, you have to construct the ``kratos.PassManager``
-by yourself and add all the necessary passes.
+If you want to control the ordering of the passes being executed, it is very
+easy to do so in kratos. You can obtain a ``PassManager`` from ``VerilogModule``:
 
+.. code-block:: Python
+
+    code_gen = _kratos.VerilogModule(generator.internal_generator)
+    pass_manager = code_gen.pass_manager()
+
+Then you have to register your own passes using the following function call:
+
+.. code-block:: Python
+
+    pass_manager.register_pass(name, fn)
+
+where ``name`` is the name to be registered in the ``PassManager`` and ``fn``
+is the function. After pass registration, you can call ``add_pass(pass_name)``
+to add passes in order, such as
+
+.. code-block:: Python
+
+    pass_manager.add_pass("fix_assignment_type")
+
+After registering and adding passes, you can call ``code_gen.run_passes`` to
+run all the passes in the order you give. To get verilog out, you can use
+``code_gen.verilog_src()``, which returns a dictionary of verilog source code
+indexed by the module name.
+
+.. note::
+
+    All the built-in passes have been pre-registered. You can just use
+    the name to add the built-in passes.
 
 .. _src/pass.cc: https://github.com/Kuree/kratos/blob/master/src/pass.cc
