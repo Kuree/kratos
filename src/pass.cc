@@ -1055,6 +1055,8 @@ public:
             for (uint32_t i = 0; i < num_stages; i++) {
                 blocks[i] = std::shared_ptr<SequentialStmtBlock>();
                 blocks[i]->add_condition({BlockEdgeType::Posedge, clock_port});
+                if (generator->debug)
+                    blocks[i]->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
             }
             // get all the outputs
             for (auto const& port_name : port_names) {
@@ -1069,6 +1071,8 @@ public:
                         generator->get_unique_variable_name(port_name, ::format("stage_{0}", i));
                     auto &var =
                         generator->var(new_name, port->var_width, port->size, port->is_signed);
+                    if (generator->debug)
+                        var.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                     vars[i] = var.shared_from_this();
                 }
                 // move the source to the first stage

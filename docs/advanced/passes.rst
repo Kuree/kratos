@@ -72,6 +72,12 @@ readable and your life easier:
   but extremely helpful to reduce the simulation size.
 - ``merge_wire_assignments``: this pass merges top level wire slices into
   a single wire assignment.
+- ``insert_pipeline_stages``: this pass insert pipeline registers on the
+  output. You need to add an attribute to the generator you want to
+  insert. The type string should be ``pipeline`` and value string should
+  be ``[num_stages]`` in string. If your generator has multiple clock
+  inputs, you have to add an attribute with ``{pipeline_clk, port_name}``
+  as well.
 
 Write your own Pass
 ===================

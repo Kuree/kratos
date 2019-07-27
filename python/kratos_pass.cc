@@ -33,7 +33,8 @@ void init_pass(py::module &m) {
         .def("merge_wire_assignments", merge_wire_assignments)
         .def("zero_out_stubs", &zero_out_stubs)
         .def("remove_unused_vars", &remove_unused_vars)
-        .def("check_mixed_assignment", &check_mixed_assignment);
+        .def("check_mixed_assignment", &check_mixed_assignment)
+        .def("insert_pipeline_stages", &insert_pipeline_stages);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
 This class gives you the fined control over which pass to run and in which order.
