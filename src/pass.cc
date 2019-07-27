@@ -1106,6 +1106,12 @@ void PassManager::add_pass(const std::string& name, void(fn)(Generator*)) {
     passes_order_.emplace_back(name);
 }
 
+void PassManager::add_pass(const std::string& name) {
+    if (!has_pass(name))
+        throw ::runtime_error(::format("{0} doesn't exists in the pass manager", name));
+    passes_order_.emplace_back(name);
+}
+
 void PassManager::run_passes(Generator* generator) {
     for (const auto& fn_name : passes_order_) {
         auto fn = passes_.at(fn_name);

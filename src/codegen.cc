@@ -109,7 +109,7 @@ void VerilogModule::run_passes(bool use_parallel, bool run_if_to_case_pass, bool
     manager_.add_pass("insert_pipeline_stages", &insert_pipeline_stages);
 
     // check the connection again, just to be safe
-    manager_.add_pass("verify_generator_connectivity", &verify_generator_connectivity);
+    manager_.add_pass("verify_generator_connectivity");
 
     // run the passes
     manager_.run_passes(generator_);

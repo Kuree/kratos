@@ -61,6 +61,7 @@ public:
 
     void add_pass(const std::string& name, std::function<void(Generator*)> fn);
     void add_pass(const std::string& name, void(fn)(Generator*));
+    void add_pass(const std::string &name);
 
     [[nodiscard]] bool inline has_pass(const std::string& name) const {
         return passes_.find(name) != passes_.end();
