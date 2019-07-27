@@ -253,7 +253,6 @@ def test_fanout_mod_inst():
     mod = Mod2()
     mod_src = verilog(mod, optimize_passthrough=False)
     assert "mod2" in mod_src
-    src = mod_src["mod2"]
     assert is_valid_verilog(mod_src)
 
 
@@ -558,7 +557,6 @@ def test_more_debug2():
 
     mod = Top()
     mod_src, debug_info = verilog(mod, debug=True)
-    src = mod_src["top"]
     debug = debug_info["top"]
     assert is_valid_verilog(mod_src)
     assert len(debug) > 3
@@ -657,7 +655,6 @@ def test_port_array():
     out1 = mod.port("out1", 2, PortDirection.Out, size=2)
     out2 = mod.port("out2", 2, PortDirection.Out, size=2)
     mod.wire(out1, in_)
-    var = mod.var("a", 2)
     mod.wire(out2[0][0], in_[0][1])
     mod.wire(out2[0][1], in_[0][0])
     mod.wire(out2[1], in_[1])
