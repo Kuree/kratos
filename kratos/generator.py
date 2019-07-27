@@ -375,6 +375,9 @@ class Generator(metaclass=GeneratorMeta):
     def const(self, value: int, width: int, signed: bool = False):
         return self.__generator.constant(value, width, signed)
 
+    def add_attribute(self, attr):
+        self.__generator.add_attribute(attr)
+
     @property
     def internal_generator(self):
         return self.__generator

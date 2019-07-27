@@ -666,5 +666,18 @@ def test_port_array():
     is_valid_verilog(mod_src)
 
 
+def test_simple_pipeline():
+    mod = PassThroughMod()
+    # add a clock
+    mod.clock("clk")
+    attr = Attribute()
+    attr.type_str = "pipeline"
+    attr.value_str = "2"
+    mod.add_attribute(attr)
+
+    mod_src = verilog(mod)
+    is_valid_verilog(mod_src)
+
+
 if __name__ == "__main__":
-    test_port_array()
+    test_simple_pipeline()

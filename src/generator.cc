@@ -230,6 +230,15 @@ std::string Generator::get_unique_variable_name(const std::string &prefix,
     // NOTE: this is not thread-safe!
     uint32_t count = 0;
     std::string result_name;
+    // maybe we're lucky and not need to prefix the count
+    if (prefix.empty()) {
+        result_name = var_name;
+    } else {
+        result_name = ::format("{0}${1}", prefix, var_name);
+    }
+    if (!get_var(result_name))
+        return result_name;
+
     while (true) {
         if (prefix.empty()) {
             result_name = ::format("{0}_{1}", var_name, count);

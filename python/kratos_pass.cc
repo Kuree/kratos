@@ -106,6 +106,6 @@ by yourself to obtain the verilog code.)pbdoc");
     attribute.def(py::init(&PyAttribute::create))
         .def_readwrite("type_str", &PyAttribute::type_str)
         .def("get", [=](PyAttribute &attr) { return attr.get_py_obj(); })
-        .def_readwrite("_value_str", &PyAttribute::value_str);
+        .def_readwrite("value_str", &PyAttribute::value_str);
     py::implicitly_convertible<Attribute, PyAttribute>();
 }

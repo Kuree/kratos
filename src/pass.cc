@@ -1053,7 +1053,8 @@ public:
             std::vector<std::shared_ptr<SequentialStmtBlock>> blocks;
             blocks.resize(num_stages);
             for (uint32_t i = 0; i < num_stages; i++) {
-                blocks[i] = std::shared_ptr<SequentialStmtBlock>();
+                blocks[i] = std::make_shared<SequentialStmtBlock>();
+                generator->add_stmt(blocks[i]);
                 blocks[i]->add_condition({BlockEdgeType::Posedge, clock_port});
                 if (generator->debug)
                     blocks[i]->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
@@ -1069,7 +1070,7 @@ public:
                 for (uint32_t i = 0; i < num_stages; i++) {
                     auto new_name =
                         generator->get_unique_variable_name(port_name, ::format("stage_{0}", i));
-                    auto &var =
+                    auto& var =
                         generator->var(new_name, port->var_width, port->size, port->is_signed);
                     if (generator->debug)
                         var.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
@@ -1078,13 +1079,14 @@ public:
                 // move the source to the first stage
                 Var::move_src_to(port.get(), vars[0].get(), generator, false);
                 // connect the stages together
-                for (uint32_t i = 0; i < num_stages - 1; i ++) {
+                for (uint32_t i = 0; i < num_stages - 1; i++) {
                     auto pre_stage = vars[i];
                     auto next_stage = vars[i + 1];
-                    blocks[i]->add_stmt(next_stage->assign(pre_stage));
+                    blocks[i]->add_stmt(next_stage->assign(pre_stage, AssignmentType::NonBlocking));
                 }
                 // last stage
-                blocks[num_stages - 1]->add_stmt(port->assign(vars[num_stages - 1]));
+                blocks[num_stages - 1]->add_stmt(port->assign(vars[num_stages - 1],
+                                                 AssignmentType::NonBlocking));
             }
         }
     }
