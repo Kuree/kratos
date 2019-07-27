@@ -204,16 +204,15 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     } else {
         // it's a slice
         if (parent->size == 1) {
-            auto slice = dynamic_cast<VarSlice*>(parent);
+            auto slice = dynamic_cast<VarSlice *>(parent);
             var_low_ = low + slice->var_low();
             var_high_ = (high + 1) + slice->var_low();
         } else {
-            auto slice = dynamic_cast<VarSlice*>(parent);
+            auto slice = dynamic_cast<VarSlice *>(parent);
             var_low_ = slice->var_low() + low * parent->var_width;
             var_high_ = slice->var_low() + (high + 1) * parent->var_width - 1;
         }
     }
-
 }
 
 std::string VarSlice::get_slice_name(const std::string &parent_name, uint32_t high, uint32_t low) {
@@ -488,13 +487,14 @@ void change_var_expr(std::shared_ptr<Expr> expr, Var *target, Var *new_var) {
     if (expr->left->type() == VarType::Expression) {
         expr = expr->left->as<Expr>();
         change_var_expr(expr, target, new_var);
-    } else if (expr->right && expr->right->type() == VarType::Expression) {
+    }
+    if (expr->right && expr->right->type() == VarType::Expression) {
         expr = expr->right->as<Expr>();
         change_var_expr(expr, target, new_var);
-    } else {
-        if (expr->left.get() == target) expr->left = new_var->shared_from_this();
-        if (expr->right && expr->right.get() == target) expr->right = new_var->shared_from_this();
     }
+
+    if (expr->left.get() == target) expr->left = new_var->shared_from_this();
+    if (expr->right && expr->right.get() == target) expr->right = new_var->shared_from_this();
 }
 
 void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
@@ -506,11 +506,38 @@ void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
         else
             throw ::runtime_error("target not found");
     } else if (right->type() == VarType::Slice) {
-        auto slice = right->as<VarSlice>();
-        if (slice->parent_var != target) throw ::runtime_error("target not found");
+        std::shared_ptr<VarSlice> slice;
+        while (right->type() == VarType::Slice) {
+            // this is for nested slicing
+            slice = right->as<VarSlice>();
+            right = slice->parent_var->shared_from_this();
+        }
+        if (right.get() != target) throw ::runtime_error("target not found");
         slice->set_parent(new_var);
     } else if (right->type() == VarType::Expression) {
         change_var_expr(stmt->right()->as<Expr>(), target, new_var);
+    }
+}
+
+void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
+    auto left = stmt->left();
+    if (left->type() == VarType::Base || left->type() == VarType::PortIO ||
+        left->type() == VarType::ConstValue) {
+        if (left.get() == target)
+            stmt->set_left(new_var->shared_from_this());
+        else
+            throw ::runtime_error("target not found");
+    } else if (left->type() == VarType::Slice) {
+        std::shared_ptr<VarSlice> slice;
+        while (left->type() == VarType::Slice) {
+            // this is for nested slicing
+            slice = left->as<VarSlice>();
+            left = slice->parent_var->shared_from_this();
+        }
+        if (left.get() != target) throw ::runtime_error("target not found");
+        slice->set_parent(new_var);
+    } else if (left->type() == VarType::Expression) {
+        change_var_expr(stmt->left()->as<Expr>(), target, new_var);
     }
 }
 
@@ -520,7 +547,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
         throw ::runtime_error("Only base or port variables are allowed.");
 
     for (auto &stmt : var->sources_) {
-        stmt->set_left(new_var->shared_from_this());
+        stmt_set_left(stmt.get(), var, new_var);
         if (parent->debug) {
             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
