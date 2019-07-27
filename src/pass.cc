@@ -166,6 +166,33 @@ void remove_unused_vars(Generator* top) {
     }
 }
 
+class UnusedTopBlockVisitor: public IRVisitor {
+    void visit(Generator* generator) override {
+        std::set<std::shared_ptr<Stmt>> blocks_to_remove;
+        uint64_t stmt_count = generator->stmts_count();
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = generator->get_stmt(i);
+            if (stmt->type() == StatementType::Block) {
+                auto block = dynamic_cast<StmtBlock*>(stmt.get());
+                if (block->empty())
+                    blocks_to_remove.emplace(stmt);
+            }
+        }
+
+        for (auto const &stmt: blocks_to_remove) {
+            generator->remove_stmt(stmt);
+        }
+    }
+};
+
+void remove_unused_stmts(Generator *top) {
+    // for now we'll just remove the top level unused blocks
+    // ideally this should be done through multiple rounds to avoid circular reference,
+    // removed dead stmts and other problems. It should also remove all the other empty statements
+    UnusedTopBlockVisitor visitor;
+    visitor.visit_generator_root(top);
+}
+
 class GeneratorConnectivityVisitor : public IRVisitor {
 public:
     GeneratorConnectivityVisitor() : is_top_level_(true) {}

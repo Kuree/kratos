@@ -81,6 +81,8 @@ void VerilogModule::run_passes(bool use_parallel, bool run_if_to_case_pass, bool
 
     manager_.add_pass("remove_unused_vars", &remove_unused_vars);
 
+    manager_.add_pass("remove_unused_stmts", &remove_unused_stmts);
+
     manager_.add_pass("verify_assignments", &verify_assignments);
 
     manager_.add_pass("verify_generator_connectivity", &verify_generator_connectivity);

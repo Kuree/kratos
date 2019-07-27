@@ -17,6 +17,8 @@ void verify_assignments(Generator* top);
 
 void remove_unused_vars(Generator* top);
 
+void remove_unused_stmts(Generator* top);
+
 void zero_out_stubs(Generator* top);
 
 void verify_generator_connectivity(Generator* top);
