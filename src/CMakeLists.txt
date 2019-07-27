@@ -14,3 +14,10 @@ if (APPLE)
     set_target_properties(kratos PROPERTIES CXX_VISIBILITY_PRESET hidden)
     set_target_properties(fmt PROPERTIES CXX_VISIBILITY_PRESET hidden)
 endif()
+
+# turn all the warnings on
+if (MSVC)
+  target_compile_options(kratos PRIVATE /W4 /WX)
+else()
+  target_compile_options(kratos PRIVATE -Wall -Wextra -pedantic -Werror)
+endif()
