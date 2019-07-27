@@ -6,6 +6,8 @@
 #include "ir.hh"
 #include "pass.hh"
 #include "stmt.hh"
+#include "util.hh"
+
 
 namespace kratos {
 /*
@@ -370,8 +372,7 @@ void hash_generators_context(Context* context, Generator* root, HashStrategy str
             context->add_hash(node, hash);
         }
     } else if (strategy == HashStrategy::ParallelHash) {
-        uint32_t num_cpus = std::thread::hardware_concurrency();
-        num_cpus = std::max(1u, num_cpus / 2);
+        uint32_t num_cpus = get_num_cpus();
         cxxpool::thread_pool pool{num_cpus};
 
         auto levels = g.get_leveled_generators();
@@ -388,7 +389,7 @@ void hash_generators_context(Context* context, Generator* root, HashStrategy str
             }
 
             cxxpool::get(thread_tasks.begin(), thread_tasks.end(), hash_values);
-            for (uint32_t j = 0; j < list.size(); j++) {
+            for (uint64_t j = 0; j < list.size(); j++) {
                 auto const& node = list[j];
                 auto const hash = hash_values[j];
                 context->add_hash(node, hash);

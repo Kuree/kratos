@@ -283,7 +283,7 @@ public:
 
 void create_module_instantiation(Generator* top) {
     ModuleInstantiationVisitor visitor;
-    visitor.visit_generator_root(top);
+    visitor.visit_generator_root_p(top);
 }
 
 class UniqueGeneratorVisitor : public IRVisitor {
@@ -493,7 +493,7 @@ public:
 
 void zero_out_stubs(Generator* top) {
     StubGeneratorVisitor visitor;
-    visitor.visit_generator_root(top);
+    visitor.visit_generator_root_p(top);
 }
 
 class MixedAssignmentVisitor : public IRVisitor {
@@ -683,7 +683,7 @@ public:
 
 void remove_fanout_one_wires(Generator* top) {
     VarFanOutVisitor visitor;
-    visitor.visit_generator_root(top);
+    visitor.visit_generator_root_p(top);
 }
 
 class RemovePassThroughVisitor : public IRVisitor {
@@ -759,7 +759,7 @@ private:
 
 void remove_pass_through_modules(Generator* top) {
     RemovePassThroughVisitor visitor;
-    visitor.visit_generator_root(top);
+    visitor.visit_generator_root_p(top);
 }
 
 // this is only for visiting the vars and assignments in the current generator
@@ -1120,7 +1120,7 @@ public:
 
 void insert_pipeline_stages(Generator* top) {
     PipelineInsertionVisitor visitor;
-    visitor.visit_generator_root(top);
+    visitor.visit_generator_root_p(top);
 }
 
 void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {

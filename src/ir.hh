@@ -59,6 +59,9 @@ public:
     virtual void visit_root(IRNode *root);
     // visit generators only
     virtual void visit_generator_root(Generator *generator);
+    // the parallel version
+    virtual void visit_generator_root_p(Generator *generator);
+
     // visit current scope only
     virtual void visit_content(Generator *generator);
 

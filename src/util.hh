@@ -7,6 +7,9 @@
 
 namespace kratos {
 
+uint32_t get_num_cpus();
+void set_num_cpus(int num_cpu);
+
 std::string ExprOpStr(ExprOp op);
 
 // may need to look at this https://stackoverflow.com/q/28828957

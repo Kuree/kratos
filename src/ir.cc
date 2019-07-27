@@ -1,5 +1,8 @@
 #include "ir.hh"
 #include "generator.hh"
+#include "graph.hh"
+#include "cxxpool.h"
+#include "util.hh"
 
 namespace kratos {
 void IRVisitor::visit_root(IRNode *root) {
@@ -23,6 +26,27 @@ void IRVisitor::visit_generator_root(Generator *generator) {
     level++;
     for (auto &child : children) visit_generator_root(child.get());
     level--;
+}
+
+void IRVisitor::visit_generator_root_p(kratos::Generator *generator) {
+    GeneratorGraph graph(generator);
+    auto levels = graph.get_leveled_generators();
+    uint32_t num_cpus = get_num_cpus();
+    cxxpool::thread_pool pool{num_cpus};
+    for (int i = static_cast<int>(levels.size() - 1); i >= 0; i--) {
+        level = static_cast<uint32_t>(i);
+        pool.clear();
+        auto current_level = levels[i];
+        std::vector<std::future<void>> tasks;
+        tasks.reserve(current_level.size());
+        for (auto mod: current_level) {
+            auto t = pool.push([=](Generator* g) { g->accept_generator(this);}, mod);
+            tasks.emplace_back(std::move(t));
+        }
+        for (auto &t: tasks) {
+            t.get();
+        }
+    }
 }
 
 void IRVisitor::visit_content(Generator *generator) {
