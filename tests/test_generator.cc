@@ -216,7 +216,7 @@ TEST(pass, decouple1) {  // NOLINT
     EXPECT_EQ(mod1.stmts_count(), 2);
     decouple_generator_ports(&mod1);
     EXPECT_EQ(mod1.stmts_count(), 2);
-    auto new_var = mod1.get_var("inst1$in_0");
+    auto new_var = mod1.get_var("inst1$in");
     EXPECT_TRUE(new_var != nullptr);
 
     EXPECT_EQ(new_var->sources().size(), 1);
