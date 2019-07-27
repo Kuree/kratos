@@ -1006,6 +1006,91 @@ void merge_wire_assignments(Generator* top) {
     visitor.visit_root(top);
 }
 
+class PipelineInsertionVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        // only if the generator has attribute of "pipeline" and the value string is the
+        // number of pipeline stages will do
+        bool has_attribute = false;
+        std::string clock_name;
+        auto attributes = generator->get_attributes();
+        uint32_t num_stages = 0;
+        for (auto const& attr : attributes) {
+            if (attr->type_str == "pipeline") {
+                try {
+                    int i = std::stoi(attr->value_str);
+                    if (i > 0) {
+                        num_stages = static_cast<uint32_t>(i);
+                        has_attribute = true;
+                    }
+                } catch (std::invalid_argument const&) {
+                    throw std::runtime_error(
+                        ::format("Unable to get value string from generator {0}", generator->name));
+                }
+            } else if (attr->type_str == "pipeline_clk") {
+                clock_name = attr->value_str;
+            }
+        }
+        if (has_attribute) {
+            auto port_names = generator->get_port_names();
+            // get the clock name, if it's empty
+            if (clock_name.empty()) {
+                // pick the first one
+                for (auto const& port_name : port_names) {
+                    auto port = generator->get_port(port_name);
+                    if (port->port_type() == PortType::Clock) {
+                        clock_name = port_name;
+                        break;
+                    }
+                }
+            }
+            if (clock_name.empty()) {
+                throw std::runtime_error(
+                    ::format("Unable to find clock signal for generator {0}", generator->name));
+            }
+            auto clock_port = generator->get_port(clock_name);
+            // we need to create all the registers based on the posedge of the clock
+            std::vector<std::shared_ptr<SequentialStmtBlock>> blocks;
+            blocks.resize(num_stages);
+            for (uint32_t i = 0; i < num_stages; i++) {
+                blocks[i] = std::shared_ptr<SequentialStmtBlock>();
+                blocks[i]->add_condition({BlockEdgeType::Posedge, clock_port});
+            }
+            // get all the outputs
+            for (auto const& port_name : port_names) {
+                auto port = generator->get_port(port_name);
+                if (port->port_direction() == PortDirection::In) {
+                    continue;
+                }
+                std::vector<std::shared_ptr<Var>> vars;
+                vars.resize(num_stages);
+                for (uint32_t i = 0; i < num_stages; i++) {
+                    auto new_name =
+                        generator->get_unique_variable_name(port_name, ::format("stage_{0}", i));
+                    auto &var =
+                        generator->var(new_name, port->var_width, port->size, port->is_signed);
+                    vars[i] = var.shared_from_this();
+                }
+                // move the source to the first stage
+                Var::move_src_to(port.get(), vars[0].get(), generator, false);
+                // connect the stages together
+                for (uint32_t i = 0; i < num_stages - 1; i ++) {
+                    auto pre_stage = vars[i];
+                    auto next_stage = vars[i + 1];
+                    blocks[i]->add_stmt(next_stage->assign(pre_stage));
+                }
+                // last stage
+                blocks[num_stages - 1]->add_stmt(port->assign(vars[num_stages - 1]));
+            }
+        }
+    }
+};
+
+void insert_pipeline_stages(Generator* top) {
+    PipelineInsertionVisitor visitor;
+    visitor.visit_generator_root(top);
+}
+
 void PassManager::add_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));

@@ -53,6 +53,8 @@ void remove_pass_through_modules(Generator* top);
 
 void merge_wire_assignments(Generator* top);
 
+void insert_pipeline_stages(Generator* top);
+
 class PassManager {
 public:
     PassManager() = default;
@@ -60,13 +62,13 @@ public:
     void add_pass(const std::string& name, std::function<void(Generator*)> fn);
     void add_pass(const std::string& name, void(fn)(Generator*));
 
-    bool inline has_pass(const std::string& name) const {
+    [[nodiscard]] bool inline has_pass(const std::string& name) const {
         return passes_.find(name) != passes_.end();
     }
 
     void run_passes(Generator* generator);
 
-    uint64_t num_passes() const { return passes_order_.size(); }
+    [[nodiscard]] uint64_t num_passes() const { return passes_order_.size(); }
 
 private:
     std::map<std::string, std::function<void(Generator*)>> passes_;
