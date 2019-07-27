@@ -1,7 +1,7 @@
 from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
     PackedStruct, Port, Attribute, zext
-from kratos.passes import uniquify_generators, hash_generators
+from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
 
@@ -87,13 +87,13 @@ def test_module_unique():
     parent.add_child_generator("reg1", reg1)
     parent.add_child_generator("reg2", reg2)
 
-    hash_generators(parent)
+    hash_generators_parallel(parent.internal_generator)
     c = Generator.get_context()
     reg1_hash = c.get_hash(reg1.internal_generator)
     reg2_hash = c.get_hash(reg2.internal_generator)
     assert reg1_hash != reg2_hash
 
-    uniquify_generators(parent)
+    uniquify_generators(parent.internal_generator)
     assert reg1.internal_generator.name != reg2.internal_generator.name
     assert reg1.name != reg2.name
 
@@ -141,7 +141,7 @@ def test_external_module():
     assert mod.internal_generator.external_filename() == src_file
     assert mod.name == "module1"
     assert mod.internal_generator.external()
-    hash_generators(mod)
+    hash_generators_parallel(mod.internal_generator)
     c = Generator.get_context()
     assert c.has_hash(mod.internal_generator)
     assert c.get_hash(mod.internal_generator) != 0

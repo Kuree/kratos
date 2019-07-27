@@ -1,9 +1,9 @@
 from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
-    always, verilog, signed, CombinationalCodeBlock, SequentialCodeBlock
+    always, signed, CombinationalCodeBlock, SequentialCodeBlock
 
-from .passes import Attribute
-from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or, concat, \
-    zext
+from .passes import Attribute, verilog
+from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
+    concat, zext
 
 # directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog

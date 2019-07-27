@@ -14,18 +14,17 @@ using DebugInfo = std::map<uint32_t, std::vector<std::pair<std::string, uint32_t
 
 class VerilogModule {
 public:
-    explicit VerilogModule(Generator* generator) : generator_(generator) {}
+    explicit VerilogModule(Generator* generator) : generator_(generator) {
+        manager_.register_builtin_passes();
+    }
 
-    void run_passes(bool use_parallel, bool run_if_to_case_pass, bool remove_passthrough,
-                    bool run_fanout_one_pass);
+    void run_passes();
 
-    const inline std::map<std::string, std::string>& verilog_src() const { return verilog_src_; }
-    const inline std::map<std::string, DebugInfo>& debug_info() const { return debug_info_; }
+    [[nodiscard]]
+    std::map<std::string, std::string> verilog_src();
     inline PassManager& pass_manager() { return manager_; }
 
 private:
-    std::map<std::string, std::string> verilog_src_;
-    std::map<std::string, DebugInfo> debug_info_;
     Generator* generator_;
 
     PassManager manager_;
@@ -54,7 +53,7 @@ private:
 class SystemVerilogCodeGen {
 public:
     explicit SystemVerilogCodeGen(Generator* generator);
-    const std::string str() { return stream_.str(); }
+    std::string str() { return stream_.str(); }
 
     uint32_t indent_size = 2;
 

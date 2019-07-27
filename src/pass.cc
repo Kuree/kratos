@@ -166,7 +166,7 @@ void remove_unused_vars(Generator* top) {
     }
 }
 
-class UnusedTopBlockVisitor: public IRVisitor {
+class UnusedTopBlockVisitor : public IRVisitor {
     void visit(Generator* generator) override {
         std::set<std::shared_ptr<Stmt>> blocks_to_remove;
         uint64_t stmt_count = generator->stmts_count();
@@ -174,18 +174,17 @@ class UnusedTopBlockVisitor: public IRVisitor {
             auto stmt = generator->get_stmt(i);
             if (stmt->type() == StatementType::Block) {
                 auto block = dynamic_cast<StmtBlock*>(stmt.get());
-                if (block->empty())
-                    blocks_to_remove.emplace(stmt);
+                if (block->empty()) blocks_to_remove.emplace(stmt);
             }
         }
 
-        for (auto const &stmt: blocks_to_remove) {
+        for (auto const& stmt : blocks_to_remove) {
             generator->remove_stmt(stmt);
         }
     }
 };
 
-void remove_unused_stmts(Generator *top) {
+void remove_unused_stmts(Generator* top) {
     // for now we'll just remove the top level unused blocks
     // ideally this should be done through multiple rounds to avoid circular reference,
     // removed dead stmts and other problems. It should also remove all the other empty statements
@@ -1112,8 +1111,8 @@ public:
                     blocks[i]->add_stmt(next_stage->assign(pre_stage, AssignmentType::NonBlocking));
                 }
                 // last stage
-                blocks[num_stages - 1]->add_stmt(port->assign(vars[num_stages - 1],
-                                                 AssignmentType::NonBlocking));
+                blocks[num_stages - 1]->add_stmt(
+                    port->assign(vars[num_stages - 1], AssignmentType::NonBlocking));
             }
         }
     }
@@ -1124,19 +1123,17 @@ void insert_pipeline_stages(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-void PassManager::add_pass(const std::string& name, std::function<void(Generator*)> fn) {
+void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));
     passes_.emplace(name, std::move(fn));
-    passes_order_.emplace_back(name);
 }
 
-void PassManager::add_pass(const std::string& name, void(fn)(Generator*)) {
+void PassManager::register_pass(const std::string& name, void(fn)(Generator*)) {
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));
     auto func = [=](Generator* generator) { (*fn)(generator); };
     passes_.emplace(name, func);
-    passes_order_.emplace_back(name);
 }
 
 void PassManager::add_pass(const std::string& name) {
@@ -1150,6 +1147,47 @@ void PassManager::run_passes(Generator* generator) {
         auto fn = passes_.at(fn_name);
         fn(generator);
     }
+}
+
+void PassManager::register_builtin_passes() {
+    register_pass("remove_pass_through_modules", &remove_pass_through_modules);
+
+    register_pass("transform_if_to_case", &transform_if_to_case);
+
+    register_pass("fix_assignment_type", &fix_assignment_type);
+
+    register_pass("zero_out_stubs", &zero_out_stubs);
+
+    register_pass("remove_fanout_one_wires", &remove_fanout_one_wires);
+
+    register_pass("decouple_generator_ports", &decouple_generator_ports);
+
+    register_pass("remove_unused_vars", &remove_unused_vars);
+
+    register_pass("remove_unused_stmts", &remove_unused_stmts);
+
+    register_pass("verify_assignments", &verify_assignments);
+
+    register_pass("verify_generator_connectivity", &verify_generator_connectivity);
+
+    register_pass("check_mixed_assignment", &check_mixed_assignment);
+
+    register_pass("merge_wire_assignments", &merge_wire_assignments);
+
+    // TODO:
+    //  add inline pass
+
+    register_pass("hash_generators_parallel", &hash_generators_parallel);
+    register_pass("hash_generators_sequential", &hash_generators_sequential);
+
+    register_pass("uniquify_generators", &uniquify_generators);
+
+    register_pass("create_module_instantiation", &create_module_instantiation);
+
+    register_pass("insert_pipeline_stages", &insert_pipeline_stages);
+
+    // check the connection again, just to be safe
+    add_pass("verify_generator_connectivity");
 }
 
 }

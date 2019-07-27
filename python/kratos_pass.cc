@@ -1,6 +1,6 @@
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/functional.h>
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
@@ -22,6 +22,8 @@ void init_pass(py::module &m) {
         .def("verify_generator_connectivity", &verify_generator_connectivity)
         .def("create_module_instantiation", &create_module_instantiation)
         .def("hash_generators", &hash_generators)
+        .def("hash_generators_parallel", &hash_generators_parallel)
+        .def("hash_generators_sequential", &hash_generators_sequential)
         .def("decouple_generator_ports", &decouple_generator_ports)
         .def("uniquify_generators", &uniquify_generators)
         .def("generate_verilog", &generate_verilog)
@@ -42,9 +44,11 @@ Most passes doesn't return anything, thus it's safe to put it in the pass manage
 let is run. However, if you want to code gen verilog, you have to call generate_verilog()
 by yourself to obtain the verilog code.)pbdoc");
     manager.def(py::init<>())
-        .def("add_pass", py::overload_cast<const std::string &, std::function<void(Generator *)>>(
-        &PassManager::add_pass))
-    .def("run_passes", &PassManager::run_passes)
+        .def("register_pass",
+             py::overload_cast<const std::string &, std::function<void(Generator *)>>(
+                 &PassManager::register_pass))
+        .def("run_passes", &PassManager::run_passes)
+        .def("add_pass", &PassManager::add_pass)
         .def("has_pass", &PassManager::has_pass);
 
     // trampoline class for ast visitor
@@ -102,7 +106,7 @@ by yourself to obtain the verilog code.)pbdoc");
     };
 
     auto attribute =
-    py::class_<Attribute, PyAttribute, std::shared_ptr<Attribute>>(pass_m, "Attribute");
+        py::class_<Attribute, PyAttribute, std::shared_ptr<Attribute>>(pass_m, "Attribute");
     attribute.def(py::init(&PyAttribute::create))
         .def_readwrite("type_str", &PyAttribute::type_str)
         .def("get", [=](PyAttribute &attr) { return attr.get_py_obj(); })

@@ -119,7 +119,6 @@ void init_code_gen(py::module &m) {
         .def(py::init<Generator *>())
         .def("verilog_src", &VerilogModule::verilog_src)
         .def("run_passes", &VerilogModule::run_passes)
-        .def("debug_info", &VerilogModule::debug_info)
         .def("pass_manager", &VerilogModule::pass_manager, py::return_value_policy::reference);
 }
 

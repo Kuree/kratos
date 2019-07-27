@@ -62,61 +62,14 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
     return *this;
 }
 
-void VerilogModule::run_passes(bool use_parallel, bool run_if_to_case_pass, bool remove_passthrough,
-                               bool run_fanout_one_pass) {
+void VerilogModule::run_passes() {
     // run multiple passes using pass manager
-
-    if (remove_passthrough)
-        manager_.add_pass("remove_pass_through_modules", &remove_pass_through_modules);
-
-    if (run_if_to_case_pass) manager_.add_pass("transform_if_to_case", &transform_if_to_case);
-
-    manager_.add_pass("fix_assignment_type", &fix_assignment_type);
-
-    manager_.add_pass("zero_out_stubs", &zero_out_stubs);
-
-    if (run_fanout_one_pass) manager_.add_pass("remove_fanout_one_wires", &remove_fanout_one_wires);
-
-    manager_.add_pass("decouple_generator_ports", &decouple_generator_ports);
-
-    manager_.add_pass("remove_unused_vars", &remove_unused_vars);
-
-    manager_.add_pass("remove_unused_stmts", &remove_unused_stmts);
-
-    manager_.add_pass("verify_assignments", &verify_assignments);
-
-    manager_.add_pass("verify_generator_connectivity", &verify_generator_connectivity);
-
-    manager_.add_pass("check_mixed_assignment", &check_mixed_assignment);
-
-    manager_.add_pass("merge_wire_assignments", &merge_wire_assignments);
-
-    // TODO:
-    //  add inline pass
-
-    if (use_parallel) {
-        manager_.add_pass("hash_generators", [=](Generator* generator) {
-            hash_generators(generator, HashStrategy::ParallelHash);
-        });
-    } else {
-        manager_.add_pass("hash_generators", [=](Generator* generator) {
-            hash_generators(generator, HashStrategy::SequentialHash);
-        });
-    }
-
-    manager_.add_pass("uniquify_generators", &uniquify_generators);
-
-    manager_.add_pass("create_module_instantiation", &create_module_instantiation);
-
-    manager_.add_pass("insert_pipeline_stages", &insert_pipeline_stages);
-
-    // check the connection again, just to be safe
-    manager_.add_pass("verify_generator_connectivity");
-
     // run the passes
     manager_.run_passes(generator_);
+}
 
-    verilog_src_ = generate_verilog(generator_);
+std::map<std::string, std::string> VerilogModule::verilog_src() {
+    return generate_verilog(generator_);
 }
 
 SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)

@@ -28,6 +28,12 @@ void check_mixed_assignment(Generator* top);
 void create_module_instantiation(Generator* top);
 
 void hash_generators(Generator* top, HashStrategy strategy);
+void inline hash_generators_parallel(Generator* top) {
+    hash_generators(top, HashStrategy::ParallelHash);
+}
+void inline hash_generators_sequential(Generator* top) {
+    hash_generators(top, HashStrategy::SequentialHash);
+}
 
 void decouple_generator_ports(Generator* top);
 
@@ -61,13 +67,15 @@ class PassManager {
 public:
     PassManager() = default;
 
-    void add_pass(const std::string& name, std::function<void(Generator*)> fn);
-    void add_pass(const std::string& name, void(fn)(Generator*));
-    void add_pass(const std::string &name);
+    void register_pass(const std::string& name, std::function<void(Generator*)> fn);
+    void register_pass(const std::string& name, void(fn)(Generator*));
+    void add_pass(const std::string& name);
 
     [[nodiscard]] bool inline has_pass(const std::string& name) const {
         return passes_.find(name) != passes_.end();
     }
+
+    void register_builtin_passes();
 
     void run_passes(Generator* generator);
 
