@@ -90,16 +90,6 @@ private:
     void stmt_code(ModuleInstantiationStmt* stmt);
 
     void stmt_code(SwitchStmt* stmt);
-
-    template <typename Iter>
-    std::string static join(Iter begin, Iter end, const std::string& sep) {
-        std::stringstream stream;
-        for (auto it = begin; it != end; it++) {
-            if (it != begin) stream << sep;
-            stream << *it;
-        }
-        return stream.str();
-    }
 };
 
 }  // namespace kratos

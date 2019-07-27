@@ -411,7 +411,7 @@ std::string VarConcat::to_string() const {
     for (const auto &ptr : vars_) {
         var_names.emplace_back(ptr->to_string());
     }
-    auto content = fmt::join(var_names.begin(), var_names.end(), ", ");
+    auto content = join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
 }
 
