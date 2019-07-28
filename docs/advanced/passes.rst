@@ -158,3 +158,18 @@ indexed by the module name.
     the name to add the built-in passes.
 
 .. _src/pass.cc: https://github.com/Kuree/kratos/blob/master/src/pass.cc
+
+A note on parallelism
+=====================
+
+Kratos tries to speed up as much as possible by using a threadp pool. By
+default, it uses up to half of the number of CPUs reported by your system.
+This is to ensure the compilation won't interference with other jobs.
+However, should you want to change this behavior, you can use
+``_kratos.util.set_num_cpus(num)``` to change the behavior.
+
+.. note::
+
+    Due to Python's GIL, you cannot run a passes written in Python in
+    parallel in kratos' backend. This is the technical limitation of
+    Python.

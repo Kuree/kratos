@@ -95,7 +95,9 @@ void init_util(py::module &m) {
         .def("is_valid_verilog",
              py::overload_cast<const std::map<std::string, std::string> &>(&is_valid_verilog),
              "Check if the verilog doesn't have any syntax errors. Notice that you "
-             "have to have either verilator or iverilog in your $PATH to use this function");
+             "have to have either verilator or iverilog in your $PATH to use this function")
+        .def("set_num_cpus", &set_num_cpus)
+        .def("get_num_cpus", &get_num_cpus);
 }
 
 
