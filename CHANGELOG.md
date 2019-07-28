@@ -5,6 +5,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.9] - 2019-07-27
+### Added
+- Parallel visit framework for IR (#22)
+- Remove unused stmt pass
+- API to control how many CPUs to use in compilation
+- Insert pipeline registers pass
+- Debug info in if statement
+- Array interface up to 2D array
+- Lots of helper functions in Python front-end, including `zext`, `input` etc.
+
+### Changed:
+- Remove `PortArray` since the array interface is unified.
+- `PassManager` is refactored. Users now have the complete freedom on what passes
+  to run and reuse (#54).
+- Unique naming function is changed so that if will attempt to create names without
+  `count`.
+- All extern modules have been updated to the latest.
+
+### Fixed
+- Fix `remove_unused_var` (#55).
+- Fix `move_src_to` due to the changes of where to store the statements
+- Fix port array code gen
+- Fix code gen bug in if statement
+- Fix pyast statement generation for nested statements
+
 
 ## [0.0.8] - 2019-07-25
 ### Added
