@@ -138,32 +138,29 @@ void verify_assignments(Generator* top) {
     visitor.visit_root(top);
 }
 
-class VarAccumulationVisitor : public IRVisitor {
+class VarUnusedVisitor : public IRVisitor {
 public:
-    VarAccumulationVisitor() : IRVisitor(), vars() {}
-    void visit(Var* var) override {
-        if (var->type() == VarType ::Base) vars.emplace(var->name);
+    void visit(Generator* generator) override {
+        std::set<std::string> vars_to_remove;
+        auto vars = generator->vars();
+        for (auto const &[var_name, var]: vars) {
+            if (var->type() != VarType::Base)
+                continue;
+            if (var->sinks().empty() && var->sources().empty())
+                vars_to_remove.emplace(var_name);
+        }
+
+        // rmeove unused vars
+        for (auto const &var_name: vars_to_remove) {
+            generator->remove_var(var_name);
+        }
     }
-    std::set<std::string> vars;
+
 };
 
 void remove_unused_vars(Generator* top) {
-    // get a set of all variables
-    std::set<std::string> var_names;
-    for (auto const& [var_name, var] : top->vars()) {
-        if (var->type() == VarType::Base) var_names.emplace(var_name);
-    }
-    // visit each assignment to see if we have used it or not
-    VarAccumulationVisitor visitor;
-    visitor.visit_root(top);
-
-    // result set
-    std::set<std::string> diff_set;
-    std::set_difference(var_names.begin(), var_names.end(), visitor.vars.begin(),
-                        visitor.vars.end(), std::inserter(diff_set, diff_set.end()));
-    for (const auto& var_name : diff_set) {
-        top->remove_var(var_name);
-    }
+    VarUnusedVisitor visitor;
+    visitor.visit_generator_root_p(top);
 }
 
 class UnusedTopBlockVisitor : public IRVisitor {
