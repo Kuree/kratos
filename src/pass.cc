@@ -378,8 +378,8 @@ public:
             if (generator->debug) {
                 // get the debug info from the add_generator, if possible
                 auto debug_info = generator->children_debug();
-                if (debug_info.find(child) != debug_info.end()) {
-                    auto info = debug_info.at(child);
+                if (debug_info.find(child->instance_name) != debug_info.end()) {
+                    auto info = debug_info.at(child->instance_name);
                     stmt->fn_name_ln.emplace_back(info);
                 }
                 stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));

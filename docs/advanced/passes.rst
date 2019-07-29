@@ -177,3 +177,16 @@ However, should you want to change this behavior, you can use
     Due to Python's GIL, you cannot run a passes written in Python in
     parallel in kratos' backend. This is the technical limitation of
     Python.
+
+
+Helper functions for your passes
+================================
+
+Kratos comes with many helper functions to make writing passes easier. Here
+is a list of helper functions:
+
+- ``[gen].replace(child_instance_name, new_child)``. This function replace
+  the child generator ``child_instance_name`` with the new generator child
+  ``new_child``, in the context of ``[gen]``, which is a ``Generator`` object.
+  It does all the proper type checking and connection linking for you, in a
+  very efficient manner.

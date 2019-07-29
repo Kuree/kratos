@@ -497,3 +497,29 @@ TEST(pass, zero_input_port2) {  // NOLINT
     zero_generator_inputs(&mod2);
     EXPECT_NO_THROW(verify_generator_connectivity(&mod2));
 }
+
+TEST(generator, replace) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &in1 = mod1.port(PortDirection::In, "in", 1);
+    auto &out1 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("module2");
+    auto &in2 = mod2.port(PortDirection::In, "in", 1);
+    auto &out2 = mod2.port(PortDirection::Out, "out", 1);
+    mod2.add_stmt(out2.assign(in2));
+
+    auto &mod3 = c.generator("module3");
+    auto &in3 = mod3.port(PortDirection::In, "in", 1);
+    auto &out3 = mod3.port(PortDirection::Out, "out", 1);
+    mod3.add_stmt(out3.assign(in3));
+
+    mod1.add_child_generator("mod", mod2.shared_from_this());
+    mod1.add_stmt(in2.assign(in1));
+    mod1.add_stmt(out1.assign(out2));
+
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
+    mod1.replace("mod", mod3.shared_from_this());
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
+
+}

@@ -479,6 +479,16 @@ class Generator(metaclass=GeneratorMeta):
         self.__child_generator.pop(generator.instance_name)
         self.__generator.remove_child_generator(generator.__generator)
 
+    def replace(self, child_name: str, new_child: "Generator"):
+        assert child_name in self.__child_generator
+        if self.debug:
+            debug_info = get_fn_ln()
+            self.__generator.replace(child_name, new_child.internal_generator,
+                                     debug_info)
+        else:
+            self.__generator.replace(child_name, new_child.internal_generator)
+        self.__child_generator[child_name] = new_child
+
     @staticmethod
     def clear_context():
         Generator.__context.clear()

@@ -120,9 +120,14 @@ public:
     // this is for internal libraries only. use it only if you know what you're doing
     void set_is_cloned(bool value) { is_cloned_ = value; }
 
+    // useful passes on generator itself
+    void replace(const std::string &child_name, const std::shared_ptr<Generator> &new_child);
+    void replace(const std::string &child_name, const std::shared_ptr<Generator> &new_child,
+                 const std::pair<std::string, uint32_t> &debug_info);
+
     // debug info
-    const std::unordered_map<std::shared_ptr<Generator>, std::pair<std::string, uint32_t>>
-        &children_debug() const {
+    const std::unordered_map<std::string, std::pair<std::string, uint32_t>> &children_debug()
+        const {
         return children_debug_;
     }
 
@@ -141,8 +146,7 @@ private:
 
     std::unordered_map<std::string, std::shared_ptr<Generator>> children_;
     std::vector<std::string> child_names_;
-    std::unordered_map<std::shared_ptr<Generator>, std::pair<std::string, uint32_t>>
-        children_debug_;
+    std::unordered_map<std::string, std::pair<std::string, uint32_t>> children_debug_;
 
     Generator *parent_generator_ = nullptr;
 

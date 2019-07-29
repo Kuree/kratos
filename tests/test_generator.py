@@ -676,5 +676,22 @@ def test_simple_pipeline():
     is_valid_verilog(mod_src)
 
 
+def test_replace():
+    mod = PassThroughTop()
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("test", True)
+            self.in_ = self.input("in", 1)
+            self.out_ = self.output("out", 1)
+            self.wire(self.out_, self.in_)
+
+    child = Mod()
+    mod.replace("pass", child)
+    mod_src = verilog(mod, optimize_passthrough=False)
+    assert is_valid_verilog(mod_src)
+    assert "test" in mod_src["top"]
+
+
 if __name__ == "__main__":
-    test_simple_pipeline()
+    test_replace()

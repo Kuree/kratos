@@ -3,6 +3,7 @@
 #include <iostream>
 #include <streambuf>
 #include <unordered_set>
+#include "except.hh"
 #include "fmt/format.h"
 #include "stmt.hh"
 #include "util.hh"
@@ -155,7 +156,7 @@ void Generator::add_child_generator(const std::string &instance_name_,
                                     const std::shared_ptr<Generator> &child,
                                     const std::pair<std::string, uint32_t> &debug_info) {
     if (debug) {
-        children_debug_.emplace(child, debug_info);
+        children_debug_.emplace(instance_name_, debug_info);
     }
     add_child_generator(instance_name_, child);
 }
@@ -236,8 +237,7 @@ std::string Generator::get_unique_variable_name(const std::string &prefix,
     } else {
         result_name = ::format("{0}${1}", prefix, var_name);
     }
-    if (!get_var(result_name))
-        return result_name;
+    if (!get_var(result_name)) return result_name;
 
     while (true) {
         if (prefix.empty()) {
@@ -446,6 +446,88 @@ PortPacked &Generator::port_packed(PortDirection direction, const std::string &p
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
     return *p;
+}
+
+void Generator::replace(const std::string &child_name,
+                        const std::shared_ptr<Generator> &new_child) {
+    // obtained the generator
+    if (children_.find(child_name) == children_.end()) {
+        throw ::runtime_error(::format("Unable to find {0} from {1}", child_name, instance_name));
+    }
+    auto old_child = children_.at(child_name);
+    new_child->instance_name = child_name;
+    // first we need to make sure that the interfaces are the same
+    auto old_port_names = old_child->get_port_names();
+    auto new_port_names = new_child->get_port_names();
+    if (old_port_names.size() != new_port_names.size()) {
+        // doesn't match
+        // show all the port definitions
+        std::vector<const Var *> ports;
+        ports.reserve(old_port_names.size() + new_port_names.size());
+        for (auto const &port_name : old_port_names) {
+            ports.emplace_back(old_child->get_port(port_name).get());
+        }
+        for (auto const &port_name : new_port_names) {
+            ports.emplace_back(new_child->get_port(port_name).get());
+        }
+        throw VarException(::format("{0}'s port interface doesn't match with {1}", old_child->name,
+                                    new_child->name),
+                           ports);
+    }
+    // check the name, type, and size
+    for (const auto &port_name : old_port_names) {
+        if (new_port_names.find(port_name) == new_port_names.end()) {
+            // doesn't have the port
+            throw VarException(::format("{0} doesn't have port {1}", new_child->name, port_name),
+                               {old_child->get_port(port_name).get()});
+        }
+        auto old_port = old_child->get_port(port_name);
+        auto new_port = new_child->get_port(port_name);
+        // type checking
+        if (old_port->size != new_port->size || old_port->width != new_port->width) {
+            throw VarException(::format("{0}'s port {1} has different width than {2}'s",
+                                        old_child->name, port_name, new_child->name),
+                               {old_port.get(), new_port.get()});
+        }
+        if (old_port->is_signed != new_port->is_signed) {
+            throw VarException(::format("{0}'s port {1} has different sign than {2}'s",
+                                        old_child->name, port_name, new_child->name),
+                               {old_port.get(), new_port.get()});
+        }
+        if (old_port->port_type() != new_port->port_type()) {
+            throw VarException(::format("{0}'s port {1} has different port type than {2}'s",
+                                        old_child->name, port_name, new_child->name),
+                               {old_port.get(), new_port.get()});
+        }
+        if (old_port->port_direction() != new_port->port_direction()) {
+            throw VarException(::format("{0}'s port {1} has different port direction than {2}'s",
+                                        old_child->name, port_name, new_child->name),
+                               {old_port.get(), new_port.get()});
+        }
+
+        // all passed, now replace the port!
+        if (old_port->port_direction() == PortDirection::In) {
+            // move the src
+            Var::move_src_to(old_port.get(), new_port.get(), this, false);
+        } else if (old_port->port_direction() == PortDirection::Out) {
+            // move the sinks
+            Var::move_sink_to(old_port.get(), new_port.get(), this, false);
+        } else {
+            // inout, move both source and sinks
+            Var::move_src_to(old_port.get(), new_port.get(), this, false);
+            Var::move_sink_to(old_port.get(), new_port.get(), this, false);
+        }
+    }
+
+    // update other meta data info
+    children_[child_name] = new_child;
+    children_debug_.erase(child_name);
+}
+
+void Generator::replace(const std::string &child_name, const std::shared_ptr<Generator> &new_child,
+                        const std::pair<std::string, uint32_t> &debug_info) {
+    replace(child_name, new_child);
+    children_debug_.emplace(child_name, debug_info);
 }
 
 }
