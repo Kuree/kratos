@@ -326,6 +326,7 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
                 edge_type = edge_node.id
             else:
                 edge_type = edge_node.attr
+            edge_type = edge_type.capitalize()
             signal_name = signal_name_node.s
             result.append((edge_type, signal_name))
         return result

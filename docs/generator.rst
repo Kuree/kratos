@@ -231,11 +231,11 @@ list. The list format is ``List[Tuple[EdgeType, str]]``, where the
 ``BlockEdgeType.Negedge``. The ``str`` has be either a port or variable
 name. For instance, the code below will produce a code block that listens
 to ``clk`` and ``rst`` signal. Notice that if you do ``from kratos import
-*``, you can use ``Posedge`` or ``Negedge`` directly.
+*``, you can use ``posedge`` or ``negedge`` directly.
 
 .. code-block:: Python
 
-    @always((Posedge, "clk"), (Posedge, "rst"))
+    @always((posedge, "clk"), (posedge, "rst"))
     def seq_code_block(self):
         # code here
 
@@ -263,7 +263,7 @@ Here are some examples the free-style code block in kratos.
 
             self.add_code(self.comb_code_block)
 
-    @always((Posedge, "clk"), (Posedge, "rst"))
+    @always((posedge, "clk"), (posedge, "rst"))
     def seq_code_block(self):
         if ~self._rst:
             self._val = 0
