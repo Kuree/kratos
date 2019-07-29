@@ -235,8 +235,7 @@ to ``clk`` and ``rst`` signal. Notice that if you do ``from kratos import
 
 .. code-block:: Python
 
-    @always([(Posedge, "clk"),
-             (Posedge, "rst")])
+    @always((Posedge, "clk"), (Posedge, "rst"))
     def seq_code_block(self):
         # code here
 
@@ -264,8 +263,7 @@ Here are some examples the free-style code block in kratos.
 
             self.add_code(self.comb_code_block)
 
-    @always([(Posedge, "clk"),
-             (Posedge, "rst")])
+    @always((Posedge, "clk"), (Posedge, "rst"))
     def seq_code_block(self):
         if ~self._rst:
             self._val = 0

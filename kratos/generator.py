@@ -571,7 +571,7 @@ class Generator(metaclass=GeneratorMeta):
             return g
 
 
-def always(sensitivity):
+def always(*sensitivity):
     for edge, var in sensitivity:
         assert isinstance(edge, BlockEdgeType)
         assert isinstance(var, str)

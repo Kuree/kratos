@@ -317,10 +317,9 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         # making sure it's always
         call_name = call_obj.func.id
         assert call_name == "always"
-        raw_sensitivity = call_obj.args[0]
-        assert isinstance(raw_sensitivity, ast.List)
+        raw_sensitivity = call_obj.args
         result = []
-        for entry in raw_sensitivity.elts:
+        for entry in raw_sensitivity:
             assert len(entry.elts) == 2
             edge_node, signal_name_node = entry.elts
             if isinstance(edge_node, ast.Name):

@@ -57,8 +57,7 @@ class AsyncReg(Generator):
 
         self.add_code(self.comb_code_block)
 
-    @always([(Posedge, "clk"),
-             (Posedge, "rst")])
+    @always((Posedge, "clk"), (Posedge, "rst"))
     def seq_code_block(self):
         if ~self._rst:
             self._val = 0
@@ -322,7 +321,7 @@ def test_illegal_assignment_blocking():
 
             self.add_code(self.code)
 
-        @always([(Posedge, "clk")])
+        @always((Posedge, "clk"))
         def code(self):
             self.out_ = 1
 
