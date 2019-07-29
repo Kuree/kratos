@@ -36,6 +36,7 @@ void init_pass(py::module &m) {
         .def("zero_out_stubs", &zero_out_stubs)
         .def("remove_unused_stmts", &remove_unused_stmts)
         .def("check_mixed_assignment", &check_mixed_assignment)
+        .def("zero_generator_inputs", &zero_generator_inputs)
         .def("insert_pipeline_stages", &insert_pipeline_stages);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(

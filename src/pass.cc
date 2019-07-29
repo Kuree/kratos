@@ -1,5 +1,6 @@
 #include "pass.hh"
 #include <algorithm>
+#include <functional>
 #include <iostream>
 #include "codegen.hh"
 #include "except.hh"
@@ -143,19 +144,16 @@ public:
     void visit(Generator* generator) override {
         std::set<std::string> vars_to_remove;
         auto vars = generator->vars();
-        for (auto const &[var_name, var]: vars) {
-            if (var->type() != VarType::Base)
-                continue;
-            if (var->sinks().empty() && var->sources().empty())
-                vars_to_remove.emplace(var_name);
+        for (auto const& [var_name, var] : vars) {
+            if (var->type() != VarType::Base) continue;
+            if (var->sinks().empty() && var->sources().empty()) vars_to_remove.emplace(var_name);
         }
 
         // rmeove unused vars
-        for (auto const &var_name: vars_to_remove) {
+        for (auto const& var_name : vars_to_remove) {
             generator->remove_var(var_name);
         }
     }
-
 };
 
 void remove_unused_vars(Generator* top) {
@@ -189,6 +187,32 @@ void remove_unused_stmts(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
+bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& bits) {
+    bool result = false;
+    bits.reserve(port->width);
+    if (!port->sources().empty()) {
+        // it has been assigned. need to compute all the slices
+        auto sources = port->sources();
+        for (auto& stmt : sources) {
+            auto src = stmt->right();
+            if (src->type() == VarType::Slice) {
+                auto ptr = src->as<VarSlice>();
+                auto low = ptr->var_low();
+                auto high = ptr->var_high();
+                for (uint32_t i = low; i <= high; i++) {
+                    bits.emplace(i);
+                }
+            } else {
+                result = true;
+                for (uint32_t i = 0; i < port->width; i++) bits.emplace(i);
+                break;
+            }
+        }
+    }
+    if (result && bits.size() != port->width) result = false;
+    return result;
+}
+
 class GeneratorConnectivityVisitor : public IRVisitor {
 public:
     GeneratorConnectivityVisitor() : is_top_level_(true) {}
@@ -206,29 +230,8 @@ public:
                 if (is_top_level_) continue;
             }
 
-            bool has_error = true;
             std::unordered_set<uint32_t> bits;
-            bits.reserve(port->width);
-            if (!port->sources().empty()) {
-                // it has been assigned. need to compute all the slices
-                auto sources = port->sources();
-                for (auto& stmt : sources) {
-                    auto src = stmt->right();
-                    if (src->type() == VarType::Slice) {
-                        auto ptr = src->as<VarSlice>();
-                        auto low = ptr->var_low();
-                        auto high = ptr->var_high();
-                        for (uint32_t i = low; i <= high; i++) {
-                            bits.emplace(i);
-                        }
-                    } else {
-                        has_error = false;
-                        for (uint32_t i = 0; i < port->width; i++) bits.emplace(i);
-                        break;
-                    }
-                }
-            }
-            if (!has_error && bits.size() != port->width) has_error = true;
+            bool has_error = !connected(port, bits);
 
             if (has_error) {
                 std::vector<Stmt*> stmt_list;
@@ -256,6 +259,117 @@ private:
 void verify_generator_connectivity(Generator* top) {
     GeneratorConnectivityVisitor visitor;
     visitor.visit_generator_root(top);
+}
+
+class ZeroGeneratorInputVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        // we only do that with generator that has attributes called "zero_inputs"
+        // we don't care about the values
+        auto attributes = generator->get_attributes();
+        bool has_attribute = false;
+        if (!attributes.empty()) {
+            for (auto const& attr : attributes) {
+                if (attr->type_str == "zero_inputs") {
+                    has_attribute = true;
+                    break;
+                }
+            }
+        }
+        if (has_attribute) {
+            // compute unconnected
+            // check each child generator
+            auto children = generator->get_child_generators();
+            for (auto const& gen : children) {
+                auto port_names = gen->get_port_names();
+                for (auto const& port_name : port_names) {
+                    auto port = gen->get_port(port_name);
+                    std::unordered_set<uint32_t> bits;
+                    bool is_connected = connected(port, bits);
+                    if (!is_connected) {
+                        // notice that we can two choices here:
+                        // bit wiring and bulk wiring
+                        // we will implement bulk wiring here since the merge wiring pass is not
+                        // complete at the time of implementation
+                        std::unordered_set<uint32_t> unconnected_bits;
+                        unconnected_bits.reserve(port->var_width);
+                        for (uint32_t i = 0; i < port->var_width; i++) {
+                            unconnected_bits.emplace(i);
+                        }
+                        // compute the set difference
+                        std::unordered_set<uint32_t> diff;
+                        std::set_difference(bits.begin(), bits.end(), unconnected_bits.begin(),
+                                            unconnected_bits.end(),
+                                            std::inserter(diff, diff.begin()));
+                        std::vector<uint32_t> diff_bits =
+                            std::vector<uint32_t>(diff.begin(), diff.end());
+                        // sort based on the bits
+                        std::sort(diff_bits.begin(), diff_bits.end());
+                        // we will connect the size 1 easily
+                        // however, if it's an array and sliced in a weird way, there is nothing
+                        // easy we can do. for now we will throw an exception
+                        // maximum the slices range
+                        uint32_t low = diff_bits[0];
+                        uint32_t high = low;
+                        uint32_t pre_high = high;
+
+                        // lambda functions to handle the situation
+                        std::function<void(uint32_t, uint32_t)> wire_zero = [=](uint32_t h,
+                                                                                uint32_t l) {
+                            uint32_t ll, hh;
+                            if (port->size == 1) {
+                                ll = l;
+                                hh = h;
+                            } else {
+                                if (l % port->var_width || (h + 1) % port->var_width) {
+                                    // can't handle it right now
+                                    auto stmts = std::vector<Stmt*>();
+                                    stmts.reserve(port->sources().size());
+                                    for (auto const& stmt : port->sources()) {
+                                        stmts.emplace_back(stmt.get());
+                                    }
+                                    throw StmtException(
+                                        "Cannot fix up unpacked array due to irregular slicing",
+                                        stmts);
+                                }
+                                // compute the low and high
+                                ll = l / port->var_width;
+                                hh = h / port->var_width;
+                            }
+                            // a special case is that the port is not connected at all!
+                            if (ll == 0 && hh == (port->width - 1)) {
+                                gen->add_stmt(
+                                    port->assign(gen->constant(0, port->width, port->is_signed)));
+                            } else {
+                                auto& slice = port->operator[]({hh, ll});
+                                gen->add_stmt(
+                                    slice.assign(gen->constant(0, slice.width, slice.is_signed)));
+                            }
+                        };
+
+                        for (auto const bit : diff_bits) {
+                            high = bit;
+                            if (high - pre_high > 1) {
+                                // there is a gap
+                                wire_zero(pre_high, low);
+                                low = high;
+                                pre_high = low;
+                            } else {
+                                pre_high = high;
+                            }
+                            // the last bit
+                            wire_zero(pre_high, low);
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+void zero_generator_inputs(Generator* top) {
+    ZeroGeneratorInputVisitor visitor;
+    visitor.visit_generator_root_p(top);
 }
 
 class ModuleInstantiationVisitor : public IRVisitor {
@@ -1170,6 +1284,8 @@ void PassManager::register_builtin_passes() {
     register_pass("check_mixed_assignment", &check_mixed_assignment);
 
     register_pass("merge_wire_assignments", &merge_wire_assignments);
+
+    register_pass("zero_generator_inputs", &zero_generator_inputs);
 
     // TODO:
     //  add inline pass

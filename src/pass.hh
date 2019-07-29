@@ -23,6 +23,8 @@ void zero_out_stubs(Generator* top);
 
 void verify_generator_connectivity(Generator* top);
 
+void zero_generator_inputs(Generator *top);
+
 void check_mixed_assignment(Generator* top);
 
 void create_module_instantiation(Generator* top);
