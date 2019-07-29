@@ -190,3 +190,14 @@ is a list of helper functions:
   ``new_child``, in the context of ``[gen]``, which is a ``Generator`` object.
   It does all the proper type checking and connection linking for you, in a
   very efficient manner.
+- ``Var.move_src_to(old_var, new_var, parent_gen, keep_connection)``. This is
+  a static function that moves the ``old_var``'s sources to ``new_var``, in
+  the context of ``parent_gen``. If ``keep_connection`` is set to ``true``,
+  it will create a wiring connection between the ``old_var`` and the
+  ``new_var``. Notice that if you're using this function in Python, you have
+  to call ``[gen].internal_generator`` to get the actual C++ generator
+  object as ``parent_gen``.
+- ``Var.move_sink_to(old_var, new_var, parent_gen, keep_connection)``. This is
+  a static function that moves the ``old_var``'s sinks to ``new_var``, in
+  the context of ``parent_gen``. This serves the similar functionality as
+  ``Var.move_src_to()``.

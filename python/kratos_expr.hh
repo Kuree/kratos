@@ -328,7 +328,9 @@ void init_common_expr(T &class_) {
         .def("sources", &K::sources, py::return_value_policy::reference)
         .def("sinks", &K::sinks, py::return_value_policy::reference)
         .def("cast", &K::cast)
-        .def_property_readonly("generator", [](const K &var) { return var.generator; });
+        .def_property_readonly("generator", [](const K &var) { return var.generator; })
+        .def_static("move_src_to", &K::move_src_to)
+        .def_static("move_sink_to", &K::move_sink_to);
 
     def_attributes<T, K>(class_);
 }
