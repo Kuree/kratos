@@ -72,8 +72,8 @@ specify the sensitivity of the ``always`` block when defining
 
            self.add_code(self.comb_code_block)
 
-       @always([(BlockEdgeType.Posedge, "clk"),
-                (BlockEdgeType.Posedge, "rst")])
+       @always([(Posedge, "clk"),
+                (Posedge, "rst")])
        def seq_code_block(self):
            if self._rst:
                self._val = 0

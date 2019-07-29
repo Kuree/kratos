@@ -1,6 +1,6 @@
-from kratos import Generator, PortDirection, PortType, BlockEdgeType, always, \
+from kratos import Generator, PortDirection, PortType, always, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute, zext
+    PackedStruct, Port, Attribute, zext, Posedge, Negedge
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
@@ -57,8 +57,8 @@ class AsyncReg(Generator):
 
         self.add_code(self.comb_code_block)
 
-    @always([(BlockEdgeType.Posedge, "clk"),
-             (BlockEdgeType.Posedge, "rst")])
+    @always([(Posedge, "clk"),
+             (Posedge, "rst")])
     def seq_code_block(self):
         if ~self._rst:
             self._val = 0
@@ -322,7 +322,7 @@ def test_illegal_assignment_blocking():
 
             self.add_code(self.code)
 
-        @always([(BlockEdgeType.Posedge, "clk")])
+        @always([(Posedge, "clk")])
         def code(self):
             self.out_ = 1
 

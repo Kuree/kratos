@@ -230,12 +230,13 @@ list. The list format is ``List[Tuple[EdgeType, str]]``, where the
 ``EdgeType`` can be either ``BlockEdgeType.Posedge`` or
 ``BlockEdgeType.Negedge``. The ``str`` has be either a port or variable
 name. For instance, the code below will produce a code block that listens
-to ``clk`` and ``rst`` signal.
+to ``clk`` and ``rst`` signal. Notice that if you do ``from kratos import
+*``, you can use ``Posedge`` or ``Negedge`` directly.
 
 .. code-block:: Python
 
-    @always([(BlockEdgeType.Posedge, "clk"),
-             (BlockEdgeType.Posedge, "rst")])
+    @always([(Posedge, "clk"),
+             (Posedge, "rst")])
     def seq_code_block(self):
         # code here
 
@@ -263,8 +264,8 @@ Here are some examples the free-style code block in kratos.
 
             self.add_code(self.comb_code_block)
 
-    @always([(BlockEdgeType.Posedge, "clk"),
-             (BlockEdgeType.Posedge, "rst")])
+    @always([(Posedge, "clk"),
+             (Posedge, "rst")])
     def seq_code_block(self):
         if ~self._rst:
             self._val = 0

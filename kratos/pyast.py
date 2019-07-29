@@ -323,9 +323,12 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         for entry in raw_sensitivity.elts:
             assert len(entry.elts) == 2
             edge_node, signal_name_node = entry.elts
-            edge_type_name = edge_node.attr
+            if isinstance(edge_node, ast.Name):
+                edge_type = edge_node.id
+            else:
+                edge_type = edge_node.attr
             signal_name = signal_name_node.s
-            result.append((edge_type_name, signal_name))
+            result.append((edge_type, signal_name))
         return result
 
 

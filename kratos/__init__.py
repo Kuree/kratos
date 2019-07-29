@@ -12,6 +12,9 @@ from _kratos.passes import IRVisitor as IRVisitor
 from _kratos import PackedStruct, Port, Var, AssignmentType
 from .stmts import IfStmt, SwitchStmt, if_, switch_
 
+Posedge = BlockEdgeType.Posedge
+Negedge = BlockEdgeType.Negedge
+
 __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
            "verilog", "signed", "is_valid_verilog", "VarException",
            "StmtException", "IRVisitor"]
@@ -23,3 +26,6 @@ __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
 # utils
 __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",
             "concat", "zext"]
+
+# type aliasing
+__all__ += ["BlockEdgeType", "Posedge", "Negedge"]
