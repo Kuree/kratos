@@ -82,6 +82,10 @@ readable and your life easier:
   be ``[num_stages]`` in string. If your generator has multiple clock
   inputs, you have to add an attribute with ``{pipeline_clk, port_name}``
   as well.
+- ``zero_generator_inputs``: this is a pass that wires all child
+  generator's un-connected inputs to zero. You need to add an attribute to
+  the parent generator. The ``type_str`` should be ``zero_inputs``, no
+  ``value_str`` needed. Notice that it only handles one-level down.
 
 Write your own Pass
 ===================

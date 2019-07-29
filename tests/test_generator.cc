@@ -442,3 +442,58 @@ TEST(pass, module_hash) {  // NOLINT
     hash_generators(&mod1, HashStrategy::SequentialHash);
     hash_generators(&mod1, HashStrategy::ParallelHash);
 }
+
+TEST(pass, zero_input_port1) {   // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &in1 = mod1.port(PortDirection::In, "in", 2);
+    auto &out1 = mod1.port(PortDirection::Out, "out", 2);
+    mod1.add_stmt(out1.assign(in1.shared_from_this()));
+
+    // the parent
+    auto mod2 = c.generator("module2");
+    auto &in2 = mod2.port(PortDirection::In, "in", 1);
+    auto &out2 = mod2.port(PortDirection::Out, "out", 2);
+    mod2.add_child_generator("mod", mod1.shared_from_this());
+    mod2.add_stmt(in1[0].assign(in2));
+    mod2.add_stmt(out2.assign(out1));
+
+    // add attribute
+    auto attr = std::make_shared<Attribute>();
+    attr->type_str = "zero_inputs";
+    mod2.add_attribute(attr);
+
+    // this one won't pass
+    EXPECT_ANY_THROW(verify_generator_connectivity(&mod2));
+    // now fix the connections
+    zero_generator_inputs(&mod2);
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod2));
+}
+
+TEST(pass, zero_input_port2) {  // NOLINT
+    // TODO: change this into a parametrized test
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &in1 = mod1.port(PortDirection::In, "in", 2, 2);
+    auto &out1 = mod1.port(PortDirection::Out, "out", 2, 2);
+    mod1.add_stmt(out1.assign(in1.shared_from_this()));
+
+    // the parent
+    auto mod2 = c.generator("module2");
+    auto &in2 = mod2.port(PortDirection::In, "in", 1, 2);
+    auto &out2 = mod2.port(PortDirection::Out, "out", 2, 2);
+    mod2.add_child_generator("mod", mod1.shared_from_this());
+    mod2.add_stmt(in1[0].assign(in2));
+    mod2.add_stmt(out2.assign(out1));
+
+    // add attribute
+    auto attr = std::make_shared<Attribute>();
+    attr->type_str = "zero_inputs";
+    mod2.add_attribute(attr);
+
+    // this one won't pass
+    EXPECT_ANY_THROW(verify_generator_connectivity(&mod2));
+    // now fix the connections
+    zero_generator_inputs(&mod2);
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod2));
+}

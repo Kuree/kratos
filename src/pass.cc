@@ -194,7 +194,7 @@ bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& 
         // it has been assigned. need to compute all the slices
         auto sources = port->sources();
         for (auto& stmt : sources) {
-            auto src = stmt->right();
+            auto src = stmt->left();
             if (src->type() == VarType::Slice) {
                 auto ptr = src->as<VarSlice>();
                 auto low = ptr->var_low();
@@ -284,6 +284,7 @@ public:
                 auto port_names = gen->get_port_names();
                 for (auto const& port_name : port_names) {
                     auto port = gen->get_port(port_name);
+                    if (port->port_direction() == PortDirection::Out) continue;
                     std::unordered_set<uint32_t> bits;
                     bool is_connected = connected(port, bits);
                     if (!is_connected) {
@@ -291,20 +292,15 @@ public:
                         // bit wiring and bulk wiring
                         // we will implement bulk wiring here since the merge wiring pass is not
                         // complete at the time of implementation
-                        std::unordered_set<uint32_t> unconnected_bits;
-                        unconnected_bits.reserve(port->var_width);
-                        for (uint32_t i = 0; i < port->var_width; i++) {
-                            unconnected_bits.emplace(i);
-                        }
                         // compute the set difference
-                        std::unordered_set<uint32_t> diff;
-                        std::set_difference(bits.begin(), bits.end(), unconnected_bits.begin(),
-                                            unconnected_bits.end(),
-                                            std::inserter(diff, diff.begin()));
-                        std::vector<uint32_t> diff_bits =
-                            std::vector<uint32_t>(diff.begin(), diff.end());
-                        // sort based on the bits
-                        std::sort(diff_bits.begin(), diff_bits.end());
+                        std::vector<uint32_t> diff_bits;
+                        for (uint32_t i = 0; i < port->width; i++) {
+                            if (bits.find(i) == bits.end()) {
+                                // no need to sort the bits since we're going in order
+                                // so it's already sorted.
+                                diff_bits.emplace_back(i);
+                            }
+                        }
                         // we will connect the size 1 easily
                         // however, if it's an array and sliced in a weird way, there is nothing
                         // easy we can do. for now we will throw an exception
@@ -336,15 +332,16 @@ public:
                                 ll = l / port->var_width;
                                 hh = h / port->var_width;
                             }
+                            std::shared_ptr<AssignStmt> stmt;
                             // a special case is that the port is not connected at all!
                             if (ll == 0 && hh == (port->width - 1)) {
-                                gen->add_stmt(
-                                    port->assign(gen->constant(0, port->width, port->is_signed)));
+                                stmt = port->assign(gen->constant(0, port->width, port->is_signed));
                             } else {
                                 auto& slice = port->operator[]({hh, ll});
-                                gen->add_stmt(
-                                    slice.assign(gen->constant(0, slice.width, slice.is_signed)));
+                                stmt = slice.assign(gen->constant(0, slice.width, slice.is_signed));
                             }
+                            stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                            gen->add_stmt(stmt);
                         };
 
                         for (auto const bit : diff_bits) {
@@ -357,9 +354,9 @@ public:
                             } else {
                                 pre_high = high;
                             }
-                            // the last bit
-                            wire_zero(pre_high, low);
                         }
+                        // the last bit
+                        wire_zero(high, low);
                     }
                 }
             }
