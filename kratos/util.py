@@ -51,6 +51,12 @@ def clog2(x: int) -> int:
     return int(math.ceil(math.log2(x)))
 
 
+def flog2(x: int) -> int:
+    if x == 0:
+        return 0
+    return int(math.floor(math.log2(x)))
+
+
 def __check_input(*args):
     if len(args) < 2:
         if isinstance(args[0], (list, tuple)):
