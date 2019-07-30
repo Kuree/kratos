@@ -81,7 +81,7 @@ void init_generator(py::module &m) {
         .def("replace",
              py::overload_cast<const std::string &, const std::shared_ptr<Generator> &,
                                const std::pair<std::string, uint32_t> &>(&Generator::replace))
-        .def("get_clock_ports", &Generator::get_clock_ports);
+        .def("get_ports", &Generator::get_ports);
 
     generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
         var.fn_name_ln.emplace_back(info);

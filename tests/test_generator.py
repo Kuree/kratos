@@ -734,6 +734,43 @@ def test_reg_next():
     is_valid_verilog(mod_src)
 
 
+def test_reg_init():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("test")
+            in_ = self.input("in", 1)
+            out_ = self.output("out", 1)
+            # add a clock
+            self.clock("clk")
+            # add a reset
+            self.reset("rst")
+            a = self.reg_init("a", in_)
+            b = self.reg_init("b", a)
+            self.wire(out_, b)
+
+    mod = Mod()
+    mod_src = verilog(mod)
+    is_valid_verilog(mod_src)
+
+
+def test_reg_enable():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("test")
+            in_ = self.input("in", 1)
+            en_ = self.input("en", 1)
+            out_ = self.output("out", 1)
+            # add a clock
+            self.clock("clk")
+            a = self.reg_enable("a", in_, en_)
+            b = self.reg_enable("b", a, en_)
+            self.wire(out_, b)
+
+    mod = Mod()
+    mod_src = verilog(mod)
+    is_valid_verilog(mod_src)
+
+
 def test_ternary():
     from kratos import mux
 
@@ -752,4 +789,4 @@ def test_ternary():
 
 
 if __name__ == "__main__":
-    test_reg_next()
+    test_reg_enable()

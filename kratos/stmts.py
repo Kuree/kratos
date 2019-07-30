@@ -21,6 +21,13 @@ class IfStmt:
             if self.__generator.debug:
                 stmt.add_fn_ln(get_fn_ln())
             self._stmt.add_else_stmt(stmt)
+        return self
+
+    def then_body(self):
+        return self._stmt.then_body()
+
+    def else_body(self):
+        return self._stmt.else_body()
 
     def stmt(self):
         return self._stmt

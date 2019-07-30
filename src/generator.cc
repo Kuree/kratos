@@ -530,12 +530,12 @@ void Generator::replace(const std::string &child_name, const std::shared_ptr<Gen
     children_debug_.emplace(child_name, debug_info);
 }
 
-std::vector<std::string> Generator::get_clock_ports() const {
+std::vector<std::string> Generator::get_ports(kratos::PortType type) const {
     std::vector<std::string> result;
     auto port_names = get_port_names();
     for (auto const &port_name : port_names) {
         auto port = get_port(port_name);
-        if (port->port_type() == PortType::Clock)
+        if (port->port_type() == type)
             result.emplace_back(port_name);
     }
     return result;

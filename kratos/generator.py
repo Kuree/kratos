@@ -188,7 +188,9 @@ class Generator(metaclass=GeneratorMeta):
         self.__def_instance = self
 
         # helper function data
-        self.__reg_next_stmt = None
+        self.__reg_next_stmt = {}
+        self.__reg_init_stmt = {}
+        self.__reg_en_stmt = {}
 
     def __getitem__(self, instance_name: str):
         """
@@ -575,25 +577,80 @@ class Generator(metaclass=GeneratorMeta):
 
     # list of helper functions similar to chisel, but force good naming
     # so that we can produce a readable verilog
+    def __get_port_name_type(self, port, port_type):
+        if port is None:
+            clock_names = self.__generator.get_ports(port_type.value)
+            assert len(clock_names) > 0, str(port_type) + " signal not found"
+            port = clock_names[0]
+        if isinstance(port, str):
+            port = self.ports[port]
+        assert self.__generator.has_port(port.name)
+        return port.name
+
+    def __get_var_assert(self, var):
+        if isinstance(var, str):
+            var = self.vars[var]
+            assert self.__generator.has_var(var.name)
+        return var
+
+    def __create_new_var(self, var_name, var_ref):
+        new_var = self.var(var_name, var_ref.width, var_ref.signed, var_ref.size)
+        if self.debug:
+            new_var.add_fn_ln(get_fn_ln())
+        return new_var
+
+    def __add_stmt_with_debug(self, block, stmt):
+        if self.debug:
+            stmt.add_fn_ln(get_fn_ln())
+        block.add_stmt(stmt)
+
     def reg_next(self, var_name, var, clk=None):
-        if self.__reg_next_stmt is None:
-            self.__reg_next_stmt = {}
-        if clk is None:
-            clock_names = self.__generator.get_clock_ports()
-            assert len(clock_names) > 0, "Clock signal not found"
-            clk = clock_names[0]
-        if isinstance(clk, str):
-            clk = self.ports[clk]
-        clk_name = clk.name
-        assert self.__generator.has_port(clk_name)
+        clk_name = self.__get_port_name_type(clk, PortType.Clock)
+        clk = self.ports[clk_name]
         if clk_name not in self.__reg_next_stmt:
             self.__reg_next_stmt[clk_name] = self.sequential(
                 (BlockEdgeType.Posedge, clk))
+        var = self.__get_var_assert(var)
+        new_var = self.__create_new_var(var_name, var)
+        self.__add_stmt_with_debug(self.__reg_next_stmt[clk_name],
+                                   new_var.assign(var))
+        return new_var
+
+    def reg_init(self, var_name, var, clk=None, reset=None, init_value=0):
+        clk_name = self.__get_port_name_type(clk, PortType.Clock)
+        rst_name = self.__get_port_name_type(reset, PortType.AsyncReset)
+        clk = self.ports[clk_name]
+        reset = self.ports[rst_name]
+        if (clk_name, rst_name) not in self.__reg_init_stmt:
+            seq = self.sequential((BlockEdgeType.Posedge, clk),
+                                  (BlockEdgeType.Posedge, reset))
+            if_stmt = seq.if_(reset)
+            self.__reg_init_stmt[(clk_name, rst_name)] = if_stmt
+        if_stmt = self.__reg_init_stmt[(clk_name, rst_name)]
+        var = self.__get_var_assert(var)
+        new_var = self.__create_new_var(var_name, var)
+        self.__add_stmt_with_debug(if_stmt.else_body(), new_var.assign(var))
+        self.__add_stmt_with_debug(if_stmt.then_body(),
+                                   new_var.assign(init_value))
+        return new_var
+
+    def reg_enable(self, var_name, var, en, clk=None):
+        clk_name = self.__get_port_name_type(clk, PortType.Clock)
+        clk = self.ports[clk_name]
         if isinstance(var, str):
-            var = self.vars[var]
+            var = self.ports[var]
         assert self.__generator.has_var(var.name)
-        new_var = self.var(var_name, var.width, var.signed, var.size)
-        self.__reg_next_stmt[clk_name].add_stmt(new_var.assign(var))
+        if isinstance(en, str):
+            en = self.ports[en]
+        assert self.__generator.has_var(en.name)
+        if (clk.name, en.name) not in self.__reg_en_stmt:
+            seq = self.sequential((BlockEdgeType.Posedge, clk))
+            if_stmt = seq.if_(en)
+            self.__reg_en_stmt[(clk_name, en.name)] = if_stmt
+        if_stmt = self.__reg_en_stmt[(clk_name, en.name)]
+        var = self.__get_var_assert(var)
+        new_var = self.__create_new_var(var_name, var)
+        self.__add_stmt_with_debug(if_stmt.then_body(), new_var.assign(var))
         return new_var
 
 

@@ -1169,7 +1169,7 @@ public:
             // get the clock name, if it's empty
             if (clock_name.empty()) {
                 // pick the first one
-                auto clock_names = generator->get_clock_ports();
+                auto clock_names = generator->get_ports(PortType::Clock);
                 if (!clock_names.empty())
                     clock_name = clock_names[0];
             }

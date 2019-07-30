@@ -125,7 +125,7 @@ public:
     void replace(const std::string &child_name, const std::shared_ptr<Generator> &new_child,
                  const std::pair<std::string, uint32_t> &debug_info);
 
-    std::vector<std::string> get_clock_ports() const;
+    std::vector<std::string> get_ports(PortType type) const;
 
     // debug info
     const std::unordered_map<std::string, std::pair<std::string, uint32_t>> &children_debug()
