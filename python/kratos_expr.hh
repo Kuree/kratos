@@ -271,15 +271,15 @@ void init_common_expr(T &class_) {
                 return convert_int_to_const(left, right) >= right;
             },
             py::return_value_policy::reference)  // NOLINT
-        .def("eq", &K::eq, py::return_value_policy::reference)
+        .def("__eq__", &K::eq, py::return_value_policy::reference)
         .def(
-            "eq",
+            "__eq__",
             [](const K &left, const int64_t &right) -> Expr & {
                 return left.eq(convert_int_to_const(left, right));
             },
             py::return_value_policy::reference)  // NOLINT
         .def(
-            "eq",
+            "__eq__",
             [](const int64_t &left, K &right) -> Expr & {
                 return convert_int_to_const(left, right).eq(right);
             },
@@ -299,6 +299,10 @@ void init_common_expr(T &class_) {
                 return convert_int_to_const(left, right) != right;
             },
             py::return_value_policy::reference)
+        .def("r_or", &K::r_or, py::return_value_policy::reference)
+        .def("r_xor", &K::r_xor, py::return_value_policy::reference)
+        .def("r_not", &K::r_not, py::return_value_policy::reference)
+        .def("r_and", &K::r_and, py::return_value_policy::reference)
         .def("assign", py::overload_cast<const shared_ptr<Var> &>(&K::assign))
         .def("assign",
              [](K &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
@@ -324,7 +328,7 @@ void init_common_expr(T &class_) {
                 }
             })
         .def_readwrite("signed", &K::is_signed)
-        .def_property_readonly("size", [](const K& var) { return var.size; })
+        .def_property_readonly("size", [](const K &var) { return var.size; })
         .def("sources", &K::sources, py::return_value_policy::reference)
         .def("sinks", &K::sinks, py::return_value_policy::reference)
         .def("cast", &K::cast)

@@ -35,6 +35,8 @@ std::string ExprOpStr(ExprOp op) {
     switch (op) {
         case UInvert:
             return "~";
+        case UNot:
+            return "!";
         case UMinus:
         case Minus:
             return "-";
@@ -53,10 +55,13 @@ std::string ExprOpStr(ExprOp op) {
             return ">>>";
         case ShiftLeft:
             return "<<";
+        case UOr:
         case Or:
             return "|";
+        case UAnd:
         case And:
             return "&";
+        case UXor:
         case Xor:
             return "^";
         case LessThan:

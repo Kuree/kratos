@@ -521,5 +521,4 @@ TEST(generator, replace) {  // NOLINT
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
     mod1.replace("mod", mod3.shared_from_this());
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
-
 }

@@ -161,3 +161,15 @@ TEST(expr, ternary) {  // NOLINT
         ConditionalExpr(cond.shared_from_this(), a.shared_from_this(), b.shared_from_this());
     EXPECT_EQ(result.to_string(), "cond ? a: b");
 }
+
+TEST(expr, unary) {  // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    EXPECT_EQ(a.r_or().to_string(), "|a");
+    EXPECT_EQ(a.r_and().to_string(), "&a");
+    EXPECT_EQ(a.r_xor().to_string(), "^a");
+    EXPECT_EQ(a.r_not().to_string(), "!a");
+    EXPECT_EQ((b + a.r_or()).to_string(), "b + (|a)");
+}

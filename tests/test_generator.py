@@ -730,7 +730,7 @@ def test_reg_next():
             self.wire(out_, b)
 
     mod = Mod()
-    mod_src = verilog(mod, filename="test.sv")
+    mod_src = verilog(mod)
     is_valid_verilog(mod_src)
 
 
@@ -747,9 +747,9 @@ def test_ternary():
 
             self.wire(out, mux(in1, in2, in3))
     mod = Mod()
-    mod_src = verilog(mod, filename="test.sv")
+    mod_src = verilog(mod)
     is_valid_verilog(mod_src)
 
 
 if __name__ == "__main__":
-    test_ternary()
+    test_reg_next()

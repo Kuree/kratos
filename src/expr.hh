@@ -15,6 +15,10 @@ enum ExprOp : uint64_t {
     UInvert,
     UMinus,
     UPlus,
+    UOr,
+    UNot,
+    UAnd,
+    UXor,
 
     // binary
     Add,
@@ -64,6 +68,10 @@ public:
     Expr &operator~() const;
     Expr &operator-() const;
     Expr &operator+() const;
+    Expr &r_or() const;
+    Expr &r_and() const;
+    Expr &r_xor() const;
+    Expr &r_not() const;
     // binary
     Expr &operator+(const Var &var) const;
     Expr &operator-(const Var &var) const;

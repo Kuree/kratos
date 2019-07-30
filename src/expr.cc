@@ -49,6 +49,23 @@ Expr &Var::operator+() const {
     return generator->expr(ExprOp::UPlus, var, nullptr);
 }
 
+Expr &Var::r_or() const {
+    auto var = generator->get_var(name);
+    return generator->expr(ExprOp::UOr, var, nullptr);
+}
+Expr &Var::r_and() const {
+    auto var = generator->get_var(name);
+    return generator->expr(ExprOp::UAnd, var, nullptr);
+}
+Expr &Var::r_xor() const {
+    auto var = generator->get_var(name);
+    return generator->expr(ExprOp::UXor, var, nullptr);
+}
+Expr &Var::r_not() const {
+    auto var = generator->get_var(name);
+    return generator->expr(ExprOp::UNot, var, nullptr);
+}
+
 Expr &Var::operator+(const Var &var) const {
     const auto &[left, right] = get_binary_var_ptr(var);
     return generator->expr(ExprOp::Add, left, right);
