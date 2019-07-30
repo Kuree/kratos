@@ -692,5 +692,25 @@ def test_replace():
     assert "test" in mod_src["top"]
 
 
+def test_local_function():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("test")
+            in_ = self.input("in", 1)
+            out_ = self.output("out", 1)
+            clk = self.clock("clk")
+
+            @always((posedge, "clk"))
+            def code_block():
+                if clk:
+                    out_ = in_
+
+            self.add_code(code_block)
+
+    mod = Mod()
+    mod_src = verilog(mod)
+    is_valid_verilog(mod_src)
+
+
 if __name__ == "__main__":
-    test_replace()
+    test_local_function()

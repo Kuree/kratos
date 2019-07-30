@@ -3,7 +3,6 @@ import textwrap
 import inspect
 import astor
 import _kratos
-import os
 from .util import print_src, get_fn_ln
 import copy
 
@@ -22,10 +21,12 @@ class ForNodeVisitor(ast.NodeTransformer):
                     return ast.Str(s=self.value, lineno=node.lineno)
             return node
 
-    def __init__(self, generator, fn_src):
+    def __init__(self, generator, fn_src, local):
         super().__init__()
         self.generator = generator
         self.fn_src = fn_src
+        self.local = local.copy()
+        self.local["self"] = self.generator
 
     def visit_For(self, node: ast.For):
         # making sure that we don't have for/else case
@@ -39,7 +40,7 @@ class ForNodeVisitor(ast.NodeTransformer):
         iter_ = node.iter
         iter_src = astor.to_source(iter_)
         try:
-            iter_obj = eval(iter_src, {"self": self.generator})
+            iter_obj = eval(iter_src, self.local)
             iter_ = list(iter_obj)
         except RuntimeError:
             print_src(self.fn_src, node.iter.lineno)
@@ -66,10 +67,12 @@ class ForNodeVisitor(ast.NodeTransformer):
 
 
 class IfNodeVisitor(ast.NodeTransformer):
-    def __init__(self, generator, fn_src):
+    def __init__(self, generator, fn_src, local):
         super().__init__()
         self.generator = generator
         self.fn_src = fn_src
+        self.local = local.copy()
+        self.local["self"] = self.generator
 
     def __change_if_predicate(self, node):
         if not isinstance(node, ast.Compare):
@@ -79,7 +82,7 @@ class IfNodeVisitor(ast.NodeTransformer):
             return node
         left = node.left
         left_src = astor.to_source(left)
-        left_val = eval(left_src, {"self": self.generator})
+        left_val = eval(left_src, self.local)
         if isinstance(left_val, _kratos.Var):
             # change it into a function all
             return ast.Call(func=ast.Attribute(value=left,
@@ -96,7 +99,7 @@ class IfNodeVisitor(ast.NodeTransformer):
         # we only replace stuff if the predicate has something to do with the
         # verilog variable
         predicate_src = astor.to_source(predicate)
-        predicate_value = eval(predicate_src, {"self": self.generator})
+        predicate_value = eval(predicate_src, self.local)
         # if's a kratos var, we continue
         if not isinstance(predicate_value, _kratos.Var):
             if not isinstance(predicate_value, bool):
@@ -104,12 +107,14 @@ class IfNodeVisitor(ast.NodeTransformer):
                 raise Exception("Cannot statically evaluate if predicate")
             if predicate_value:
                 for i, n in enumerate(node.body):
-                    if_exp = IfNodeVisitor(self.generator, self.fn_src)
+                    if_exp = IfNodeVisitor(self.generator, self.fn_src,
+                                           self.local)
                     node.body[i] = if_exp.visit(n)
                 return node.body
             else:
                 for i, n in enumerate(node.orelse):
-                    if_exp = IfNodeVisitor(self.generator, self.fn_src)
+                    if_exp = IfNodeVisitor(self.generator, self.fn_src,
+                                           self.local)
                     node.orelse[i] = if_exp.visit(n)
                 return node.orelse
 
@@ -118,10 +123,10 @@ class IfNodeVisitor(ast.NodeTransformer):
 
         # recursive call
         for idx, node in enumerate(expression):
-            if_exp = IfNodeVisitor(self.generator, self.fn_src)
+            if_exp = IfNodeVisitor(self.generator, self.fn_src, self.local)
             expression[idx] = if_exp.visit(node)
         for idx, node in enumerate(else_expression):
-            else_exp = IfNodeVisitor(self.generator, self.fn_src)
+            else_exp = IfNodeVisitor(self.generator, self.fn_src, self.local)
             else_expression[idx] = else_exp.visit(node)
 
         if self.generator.debug:
@@ -237,12 +242,12 @@ def add_stmt_to_scope(fn_body):
         node = fn_body.body[i]
         fn_body.body[i] = ast.Expr(
             value=ast.Call(func=ast.Attribute(
-            value=ast.Name(id="scope",
-                           ctx=ast.Load()),
-            attr="add_stmt",
-            cts=ast.Load()),
-            args=[node],
-            keywords=[]))
+                value=ast.Name(id="scope",
+                               ctx=ast.Load()),
+                attr="add_stmt",
+                cts=ast.Load()),
+                args=[node],
+                keywords=[]))
 
 
 def transform_stmt_block(generator, fn, debug=False):
@@ -257,8 +262,17 @@ def transform_stmt_block(generator, fn, debug=False):
     fn_body.decorator_list = []
     # check the function args. it should only has one self now
     args = fn_body.args.args
-    assert len(args) == 1, "statement block {0} has ".format(fn_name) + \
-                           "to be defined as def {0}(self)".format(fn_name)
+    assert len(args) <= 1, "statement block {0} has ".format(fn_name) + \
+                           "to be defined as def {0}(self) or {0}()".format(
+                               fn_name)
+    insert_self = len(args) == 1
+    if insert_self:
+        _locals = {}
+    else:
+        # pre-compute the frames
+        # we have 2 frames back
+        f = inspect.currentframe().f_back.f_back
+        _locals = f.f_locals.copy()
     # add out scope to the arg list to capture all the statements
     args.append(ast.arg(arg="scope", annotation=None))
 
@@ -268,11 +282,11 @@ def transform_stmt_block(generator, fn, debug=False):
     ast.fix_missing_locations(fn_body)
 
     # static eval for loop
-    for_visitor = ForNodeVisitor(generator, fn_src)
+    for_visitor = ForNodeVisitor(generator, fn_src, _locals)
     fn_body = for_visitor.visit(fn_body)
 
     # transform if and static eval any for loop
-    if_visitor = IfNodeVisitor(generator, fn_src)
+    if_visitor = IfNodeVisitor(generator, fn_src, _locals)
     fn_body = if_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
 
@@ -280,9 +294,13 @@ def transform_stmt_block(generator, fn, debug=False):
     add_stmt_to_scope(fn_body)
 
     # add code to run it
+    if insert_self:
+        args = [ast.Name(id="_self", ctx=ast.Load())]
+    else:
+        args = []
+    args.append(ast.Name(id="_scope", ctx=ast.Load()))
     call_node = ast.Call(func=ast.Name(id=fn_name, ctx=ast.Load()),
-                         args=[ast.Name(id="_self", ctx=ast.Load()),
-                               ast.Name(id="_scope", ctx=ast.Load())],
+                         args=args,
                          keywords=[],
                          ctx=ast.Load
                          )
@@ -300,7 +318,8 @@ def transform_stmt_block(generator, fn, debug=False):
         ln = 0
     # notice that this ln is an offset
     scope = Scope(generator, filename, ln)
-    exec(code_obj, {"_self": generator, "_scope": scope})
+    _locals.update({"_self": generator, "_scope": scope})
+    exec(code_obj, _locals)
     stmts = scope.statements()
     return sensitivity, stmts
 

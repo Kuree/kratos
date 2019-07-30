@@ -243,7 +243,9 @@ You don't have to do anything with the combinational code block.
 
 Examples
 --------
-Here are some examples the free-style code block in kratos.
+Here are some examples the free-style code block in kratos that uses both
+combinational and sequential block. Of course you can write it in a more
+concise way: this is just an example of how to add code blocks.
 
 .. code-block:: Python
 
@@ -263,15 +265,15 @@ Here are some examples the free-style code block in kratos.
 
             self.add_code(self.comb_code_block)
 
-    @always((posedge, "clk"), (posedge, "rst"))
-    def seq_code_block(self):
-        if ~self._rst:
-            self._val = 0
-        else:
-            self._val = self._in
+        @always((posedge, "clk"), (posedge, "rst"))
+        def seq_code_block(self):
+            if ~self._rst:
+                self._val = 0
+            else:
+                self._val = self._in
 
-    def comb_code_block(self):
-        self._out = self._val
+        def comb_code_block(self):
+            self._out = self._val
 
 Here is the verilog produced:
 
@@ -304,6 +306,38 @@ Here is the verilog produced:
     out = val;
   end
   endmodule   // register
+
+If you found the example above verbose, you can put everything inside
+``__init__`` to avoid typing ``self`` over and over again. To produce
+the identical verilog, you can use scoped functions to reuse the
+variables created before:
+
+.. code-block:: Python
+
+  class AsyncReg(Generator):
+      def __init__(self, width):
+          super().__init__("register")
+
+          # define inputs and outputs
+          _in = self.input("in", width)
+          _out = self.output("out", width)
+          _clk = self.clock("clk")
+          _rst = self.reset("rst", 1)
+          _val = self.var("val", width)
+
+          @always((posedge, "clk"), (posedge, "rst"))
+          def seq_code_block():
+              if ~_rst:
+                  _val = 0
+              else:
+                  _val = _in
+
+          def comb_code_block():
+              _out = _val
+
+          # add combination and sequential blocks
+          self.add_code(seq_code_block)
+          self.add_code(comb_code_block)
 
 Here is another example on `for` static evaluation
 

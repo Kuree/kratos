@@ -28,4 +28,4 @@ __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",
             "concat", "zext"]
 
 # type aliasing
-__all__ += ["BlockEdgeType", "Posedge", "Negedge"]
+__all__ += ["BlockEdgeType", "posedge", "negedge"]
