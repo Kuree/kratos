@@ -734,5 +734,22 @@ def test_reg_next():
     is_valid_verilog(mod_src)
 
 
+def test_ternary():
+    from kratos import mux
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("test")
+            in1 = self.input("in1", 1)
+            in2 = self.input("in2", 1)
+            in3 = self.input("in3", 1)
+            out = self.output("out", 1)
+
+            self.wire(out, mux(in1, in2, in3))
+    mod = Mod()
+    mod_src = verilog(mod, filename="test.sv")
+    is_valid_verilog(mod_src)
+
+
 if __name__ == "__main__":
-    test_reg_next()
+    test_ternary()

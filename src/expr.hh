@@ -35,7 +35,10 @@ enum ExprOp : uint64_t {
     LessEqThan,
     GreaterEqThan,
     Eq,
-    Neq
+    Neq,
+
+    // ternary
+    Conditional
 };
 
 bool is_relational_op(ExprOp op);
@@ -47,7 +50,8 @@ enum VarCastType { Signed, Clock, AsyncReset };
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
     Var(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed);
-    Var(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed, VarType type);
+    Var(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed,
+        VarType type);
 
     std::string name;
     uint32_t width;
@@ -255,6 +259,17 @@ struct Expr : public Var {
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return right ? 2 : 1; }
     IRNode *get_child(uint64_t index) override;
+};
+
+struct ConditionalExpr : public Expr {
+    ConditionalExpr(const std::shared_ptr<Var> &condition, const std::shared_ptr<Var> &left,
+                    const std::shared_ptr<Var> &right);
+    uint64_t child_count() override { return 3; }
+    IRNode *get_child(uint64_t index) override;
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    std::string to_string() const override;
+
+    std::shared_ptr<Var> condition;
 };
 
 }  // namespace kratos

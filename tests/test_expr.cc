@@ -142,11 +142,22 @@ TEST(expr, port_packed) {  // NOLINT
     EXPECT_EQ(slice2.high, 2);
 }
 
-TEST(expr, array_slice) {   // NOLINT
+TEST(expr, array_slice) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
     auto &array0 = mod.var("t", 4, 3, false);
     auto &slice0 = array0[2];
     EXPECT_EQ(slice0.to_string(), "t[2]");
     EXPECT_EQ(slice0[0].to_string(), "t[2][0]");
+}
+
+TEST(expr, ternary) {  // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto &cond = mod.var("cond", 1);
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    auto result =
+        ConditionalExpr(cond.shared_from_this(), a.shared_from_this(), b.shared_from_this());
+    EXPECT_EQ(result.to_string(), "cond ? a: b");
 }

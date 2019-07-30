@@ -121,7 +121,7 @@ private:
         }
 
         if (has_error) {
-            std::vector<Stmt*> stmt_list;
+            std::vector<Stmt*> stmt_list{};
             // prepare the error
             for (auto const& stmt : sources) {
                 stmt_list.emplace_back(stmt.get());
@@ -163,7 +163,7 @@ void remove_unused_vars(Generator* top) {
 
 class UnusedTopBlockVisitor : public IRVisitor {
     void visit(Generator* generator) override {
-        std::set<std::shared_ptr<Stmt>> blocks_to_remove;
+        std::set<std::shared_ptr<Stmt>> blocks_to_remove = {};
         uint64_t stmt_count = generator->stmts_count();
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = generator->get_stmt(i);
@@ -408,7 +408,6 @@ public:
 std::map<std::string, std::string> generate_verilog(Generator* top) {
     // this pass assumes that all the generators has been uniquified
     std::map<std::string, std::string> result;
-    std::map<std::string, DebugInfo> debug_info;
     // first get all the unique generators
     UniqueGeneratorVisitor unique_visitor;
     unique_visitor.visit_generator_root(top);
@@ -931,7 +930,7 @@ extract_debug_info(Generator* top) {
 class PortPackedVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
-        auto const port_names = generator->get_port_names();
+        auto const &port_names = generator->get_port_names();
         for (auto const& port_name : port_names) {
             auto port = generator->get_port(port_name);
             if (port->is_packed()) {

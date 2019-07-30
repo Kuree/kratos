@@ -71,6 +71,8 @@ std::string ExprOpStr(ExprOp op) {
             return "==";
         case Neq:
             return "!=";
+        case Conditional:
+            return ":";
         default:
             throw std::runtime_error("unable to find op");
     }

@@ -63,4 +63,9 @@ void init_expr(py::module &m) {
     def_trace<py::class_<PortPackedSlice, ::shared_ptr<PortPackedSlice>, Var>, VarSlice>(
         port_packed_slice);
 
+    // ternary op
+    auto ternary_exp =
+        py::class_<ConditionalExpr, ::shared_ptr<ConditionalExpr>, Expr>(m, "ConditionalExpr");
+    ternary_exp.def(py::init<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &,
+                             const std::shared_ptr<Var> &>());
 }

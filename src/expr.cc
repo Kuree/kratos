@@ -614,4 +614,36 @@ void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
     parent->add_source(stmt);
 }
 
+ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,
+                                 const std::shared_ptr<Var> &left,
+                                 const std::shared_ptr<Var> &right)
+    : Expr(ExprOp::Conditional, left, right), condition(condition) {
+    if (condition->width != 1)
+        throw VarException("Ternary operator's condition has to be a binary value",
+                           {condition.get()});
+    name = to_string();
+}
+
+IRNode *ConditionalExpr::get_child(uint64_t index) {
+    if (index == 0)
+        return condition.get();
+    else if (index == 1)
+        return left.get();
+    else if (index == 2)
+        return right.get();
+    else
+        return nullptr;
+}
+
+void ConditionalExpr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    condition->add_sink(stmt);
+    left->add_sink(stmt);
+    right->add_sink(stmt);
+}
+
+std::string ConditionalExpr::to_string() const {
+    return ::format("{0} ? {1}: {2}", condition->to_string(), left->to_string(),
+                    right->to_string());
+}
+
 }

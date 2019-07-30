@@ -3,6 +3,7 @@ from typing import Union, List
 import os
 import math
 import inspect
+from _kratos import ConditionalExpr
 
 
 class CLIColors:
@@ -48,6 +49,7 @@ def clog2(x: int) -> int:
     if x == 0:
         return 0
     return int(math.ceil(math.log2(x)))
+
 
 def __check_input(*args):
     if len(args) < 2:
@@ -127,3 +129,11 @@ def zext(var, width):
     else:
         diff = width - var.width
         return var.generator.constant(0, diff, var.signed).concat(var)
+
+
+def mux(cond, left, right):
+    return ConditionalExpr(cond, left, right)
+
+
+# also create an alias
+ternary = mux

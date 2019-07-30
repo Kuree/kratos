@@ -3,7 +3,7 @@ from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
 
 from .passes import Attribute, verilog
 from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
-    concat, zext
+    concat, zext, mux, ternary
 
 # directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog
@@ -28,4 +28,4 @@ __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",
             "concat", "zext"]
 
 # type aliasing
-__all__ += ["BlockEdgeType", "posedge", "negedge"]
+__all__ += ["BlockEdgeType", "posedge", "negedge", "mux", "ternary"]
