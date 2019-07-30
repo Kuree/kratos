@@ -284,6 +284,19 @@ void init_common_expr(T &class_) {
                 return convert_int_to_const(left, right).eq(right);
             },
             py::return_value_policy::reference)  // NOLINT
+        .def("eq", &K::eq, py::return_value_policy::reference)
+        .def(
+            "eq",
+            [](const K &left, const int64_t &right) -> Expr & {
+                return left.eq(convert_int_to_const(left, right));
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "eq",
+            [](const int64_t &left, K &right) -> Expr & {
+                return convert_int_to_const(left, right).eq(right);
+            },
+            py::return_value_policy::reference)  // NOLINT
         .def(
             "__neq__", [](const K &left, const Var &right) -> Expr & { return left != right; },
             py::return_value_policy::reference)  // NOLINT
