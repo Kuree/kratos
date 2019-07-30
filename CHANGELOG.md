@@ -5,6 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.10] - 2019-07-30
+### Added
+- Ternary op
+- `reg_next` implementation
+- Ability to add code block in `__init__` as nexted function
+- Expose helper function `move_src_to` and `move_sink_to` to Python.
+- Add an efficient replace to generator
+- Add zero out input pass
+
+### Changed:
+- Simplify how posedge is used in Python.
+- Simplify `always` interface
+
+### Fixed:
+- verify connectivity pass
+
 ## [0.0.9] - 2019-07-27
 ### Added
 - Parallel visit framework for IR (#22)
