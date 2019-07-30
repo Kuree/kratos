@@ -45,7 +45,7 @@ public:
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 
     // ports and vars
-    std::shared_ptr<Port> get_port(const std::string &port_name);
+    std::shared_ptr<Port> get_port(const std::string &port_name) const;
     std::shared_ptr<Var> get_var(const std::string &var_name);
     const std::set<std::string> &get_port_names() const { return ports_; }
     const std::map<std::string, std::shared_ptr<Var>> &vars() const { return vars_; }
@@ -124,6 +124,8 @@ public:
     void replace(const std::string &child_name, const std::shared_ptr<Generator> &new_child);
     void replace(const std::string &child_name, const std::shared_ptr<Generator> &new_child,
                  const std::pair<std::string, uint32_t> &debug_info);
+
+    std::vector<std::string> get_clock_ports() const;
 
     // debug info
     const std::unordered_map<std::string, std::pair<std::string, uint32_t>> &children_debug()

@@ -1170,13 +1170,9 @@ public:
             // get the clock name, if it's empty
             if (clock_name.empty()) {
                 // pick the first one
-                for (auto const& port_name : port_names) {
-                    auto port = generator->get_port(port_name);
-                    if (port->port_type() == PortType::Clock) {
-                        clock_name = port_name;
-                        break;
-                    }
-                }
+                auto clock_names = generator->get_clock_ports();
+                if (!clock_names.empty())
+                    clock_name = clock_names[0];
             }
             if (clock_name.empty()) {
                 throw std::runtime_error(

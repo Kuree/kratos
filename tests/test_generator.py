@@ -712,5 +712,27 @@ def test_local_function():
     is_valid_verilog(mod_src)
 
 
+def test_reg_next():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("test")
+            in_ = self.input("in", 1)
+            out_ = self.output("out", 1)
+            try:
+                a = self.reg_next("var1", in_)
+                assert False
+            except AssertionError:
+                assert True
+            # add a clock
+            self.clock("clk")
+            a = self.reg_next("a", in_)
+            b = self.reg_next("b", a)
+            self.wire(out_, b)
+
+    mod = Mod()
+    mod_src = verilog(mod, filename="test.sv")
+    is_valid_verilog(mod_src)
+
+
 if __name__ == "__main__":
-    test_local_function()
+    test_reg_next()

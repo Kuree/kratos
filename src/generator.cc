@@ -95,7 +95,7 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
     return *p;
 }
 
-std::shared_ptr<Port> Generator::get_port(const std::string &port_name) {
+std::shared_ptr<Port> Generator::get_port(const std::string &port_name) const {
     if (ports_.find(port_name) == ports_.end()) return nullptr;
     auto var_p = vars_.at(port_name);
     return std::static_pointer_cast<Port>(var_p);
@@ -528,6 +528,17 @@ void Generator::replace(const std::string &child_name, const std::shared_ptr<Gen
                         const std::pair<std::string, uint32_t> &debug_info) {
     replace(child_name, new_child);
     children_debug_.emplace(child_name, debug_info);
+}
+
+std::vector<std::string> Generator::get_clock_ports() const {
+    std::vector<std::string> result;
+    auto port_names = get_port_names();
+    for (auto const &port_name : port_names) {
+        auto port = get_port(port_name);
+        if (port->port_type() == PortType::Clock)
+            result.emplace_back(port_name);
+    }
+    return result;
 }
 
 }

@@ -187,6 +187,9 @@ class Generator(metaclass=GeneratorMeta):
 
         self.__def_instance = self
 
+        # helper function data
+        self.__reg_next_stmt = None
+
     def __getitem__(self, instance_name: str):
         """
         Get child instance through instance name
@@ -294,8 +297,8 @@ class Generator(metaclass=GeneratorMeta):
             return
         return CombinationalCodeBlock(self, 3)
 
-    def sequential(self, sensitivity_list: List[Tuple[BlockEdgeType,
-                                                      _kratos.Var]]):
+    def sequential(self, *sensitivity_list: Tuple[BlockEdgeType,
+                                                  _kratos.Var]):
         if self.is_cloned:
             self.__cached_initialization.append((self.sequential,
                                                  [sensitivity_list]))
@@ -569,6 +572,29 @@ class Generator(metaclass=GeneratorMeta):
             g = cls(**kargs)
             g.__def_instance = gen
             return g
+
+    # list of helper functions similar to chisel, but force good naming
+    # so that we can produce a readable verilog
+    def reg_next(self, var_name, var, clk=None):
+        if self.__reg_next_stmt is None:
+            self.__reg_next_stmt = {}
+        if clk is None:
+            clock_names = self.__generator.get_clock_ports()
+            assert len(clock_names) > 0, "Clock signal not found"
+            clk = clock_names[0]
+        if isinstance(clk, str):
+            clk = self.ports[clk]
+        clk_name = clk.name
+        assert self.__generator.has_port(clk_name)
+        if clk_name not in self.__reg_next_stmt:
+            self.__reg_next_stmt[clk_name] = self.sequential(
+                (BlockEdgeType.Posedge, clk))
+        if isinstance(var, str):
+            var = self.vars[var]
+        assert self.__generator.has_var(var.name)
+        new_var = self.var(var_name, var.width, var.signed, var.size)
+        self.__reg_next_stmt[clk_name].add_stmt(new_var.assign(var))
+        return new_var
 
 
 def always(*sensitivity):
