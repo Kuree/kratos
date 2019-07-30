@@ -1,4 +1,5 @@
 from kratos import Generator, signed
+from kratos.util import reduce_or
 
 
 def test_expr():
@@ -33,3 +34,12 @@ def test_signed():
     a = mod.var("a", 2)
     c = signed(a)
     assert str(c) == "$signed(a)"
+
+
+def test_reduce_or():
+    mod = Generator("module")
+    a = mod.var("a", 2)
+    b = mod.var("b", 2)
+    expr = reduce_or(a, b)
+    assert str(expr) == "a | b"
+    assert str(reduce_or(a)) == "a"

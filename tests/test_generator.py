@@ -622,7 +622,7 @@ def test_syntax_sugar():
     out_ = mod.var("out", 1)
     in_ = mod.port("in", 1, PortDirection.In)
     comb = mod.combinational()
-    comb.if_(in_.eq(1)).then_(out_(0)).else_(out_(1))
+    comb.if_(in_ == 1).then_(out_(0)).else_(out_(1))
 
     mod_src = verilog(mod)
     is_valid_verilog(mod_src)

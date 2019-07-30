@@ -4,6 +4,8 @@ import os
 import math
 import inspect
 from _kratos import ConditionalExpr
+import functools
+import operator
 
 
 class CLIColors:
@@ -57,62 +59,24 @@ def flog2(x: int) -> int:
     return int(math.floor(math.log2(x)))
 
 
-def __check_input(*args):
-    if len(args) < 2:
-        if isinstance(args[0], (list, tuple)):
-            args = args[0]
-            if len(args) == 1:
-                return False, args[0]
-        else:
-            return False, args[0]
-    return True, args
-
-
 # these are helper functions tp construct complex expressions
 def reduce_or(*args):
-    r, args = __check_input(*args)
-    if not r:
-        return args
-    expr = args[0] | args[1]
-    for i in range(2, len(args)):
-        expr = expr | args[i]
-    return expr
+    return functools.reduce(operator.or_, args)
 
 
 def reduce_and(*args):
-    r, args = __check_input(*args)
-    if not r:
-        return args
-    expr = args[0] & args[1]
-    for i in range(2, len(args)):
-        expr = expr & args[i]
-    return expr
+    return functools.reduce(operator.and_, args)
 
 
 def reduce_add(*args):
-    r, args = __check_input(*args)
-    if not r:
-        return args
-    expr = args[0] + args[1]
-    for i in range(2, len(args)):
-        expr = expr + args[i]
-    return expr
+    return functools.reduce(operator.add, args)
 
 
 def reduce_mul(*args):
-    r, args = __check_input(*args)
-    if not r:
-        return args
-    expr = args[0] * args[1]
-    for i in range(2, len(args)):
-        expr = expr * args[i]
-    return expr
+    return functools.reduce(operator.mul, args)
 
 
 def concat(*args):
-    r, args = __check_input(*args)
-    if not r:
-        return args
     expr = args[0].concat(args[1])
     for i in range(2, len(args)):
         expr = expr.concat(args[i])
