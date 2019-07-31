@@ -810,5 +810,56 @@ def test_bundle():
     is_valid_verilog(mod_src)
 
 
+def test_bundle_pack():
+    class Test(PortBundle):
+        def __init__(self):
+            super().__init__(True)
+            self.input("a", 1)
+            self.input("b", 1)
+
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod1")
+
+            p = self.port_bundle("p", Test())
+            self.p = p
+            self.a = self.output("a", 1)
+            self.b = self.output("b", 1)
+            self.wire(self.a, p["a"])
+            self.wire(self.b, p["b"])
+
+    class Mod2(Generator):
+        def __init__(self):
+            super().__init__("mod2")
+
+            p = self.port_bundle("p", Test().flip())
+            self.p = p
+            self.a = self.input("a", 1)
+            self.b = self.input("b", 1)
+            self.wire(p["a"], self.a)
+            self.wire(p["b"], self.b)
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            in_ = self.input("a", 1)
+            out_ = self.output("b", 1)
+            mod1 = Mod1()
+            mod2 = Mod2()
+
+            self.add_child_generator("m1", mod1)
+            self.add_child_generator("m2", mod2)
+
+            self.wire(mod1.p.a, in_)
+            self.wire(mod1.p.b, in_)
+            self.wire(mod2.a, in_)
+            self.wire(mod2.b, in_)
+            self.add_stmt(out_.assign(mod1.a + mod2.p.a))
+
+    mod = Mod()
+    mod_src = verilog(mod, optimize_passthrough=False, optimize_fanout=False, optimize_bundle=False,  filename="test.sv")
+    assert is_valid_verilog(mod_src)
+
+
 if __name__ == "__main__":
-    test_bundle()
+    test_bundle_pack()

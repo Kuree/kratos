@@ -133,7 +133,7 @@ TEST(expr, port_packed) {  // NOLINT
     auto struct_ = PackedStruct("data", {{"value1", 1, false}, {"value2", 2, false}});
     auto port = PortPacked(&mod, PortDirection::In, "in", struct_);
 
-    auto slice1 = PortPackedSlice(&port, "value2");
+    auto slice1 = PackedSlice(&port, "value2");
     auto &slice2 = port["value2"];
 
     EXPECT_EQ(slice1.to_string(), "in.value2");

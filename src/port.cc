@@ -6,7 +6,6 @@
 #include "generator.hh"
 #include "stmt.hh"
 
-
 using fmt::format;
 using std::runtime_error;
 using std::string;
@@ -27,10 +26,6 @@ Port::Port(Generator* module, PortDirection direction, const ::string& name, uin
 
 void Port::set_port_type(PortType type) { type_ = type; }
 
-PackedStruct::PackedStruct(std::string struct_name,
-                           std::vector<std::tuple<std::string, uint32_t, bool>> attributes)
-    : struct_name(std::move(struct_name)), attributes(std::move(attributes)) {}
-
 PortPacked::PortPacked(Generator* module, PortDirection direction, const std::string& name,
                        PackedStruct packed_struct_)
     : Port(module, direction, name, 0, 1, PortType::Data, false),
@@ -40,51 +35,23 @@ PortPacked::PortPacked(Generator* module, PortDirection direction, const std::st
     for (auto const& def : struct_.attributes) {
         width += std::get<1>(def);
     }
+    var_width = width;
 }
 
 void PortPacked::set_port_type(PortType) {
     throw ::runtime_error("Cannot set port type for packed struct");
 }
 
-PortPackedSlice& PortPacked::operator[](const std::string& member_name) {
+PackedSlice& PortPacked::operator[](const std::string& member_name) {
     if (members_.find(member_name) != members_.end()) {
         return *members_.at(member_name);
     } else {
-        auto ptr = std::make_shared<PortPackedSlice>(this, member_name);
+        auto ptr = std::make_shared<PackedSlice>(this, member_name);
         members_.emplace(member_name, ptr);
         return *ptr;
     }
 }
 
-PortPackedSlice::PortPackedSlice(PortPacked* parent, const std::string& member_name)
-    : VarSlice(parent, 0, 0), member_name_(member_name) {
-    // compute the high and low
-    uint32_t low_ = 0;
-    bool found = false;
-    auto const& struct_ = parent->packed_struct();
-    for (auto const& [name, width, is_signed_] : struct_.attributes) {
-        if (name == member_name) {
-            found = true;
-            high = width + low_ - 1;
-            low = low_;
-            is_signed = is_signed_;
-            var_high_ = high;
-            var_low_ = low;
-            break;
-        } else {
-            low_ += width;
-        }
-    }
-
-    if (!found) {
-        throw ::runtime_error(
-            ::format("{0} does not exist in {1}", member_name, struct_.struct_name));
-    }
-}
-
-std::string PortPackedSlice::to_string() const {
-    return ::format("{0}.{1}", parent_var->to_string(), member_name_);
-}
 
 void PortBundleDefinition::add_definition(const std::string& name, uint32_t width, uint32_t size,
                                           bool is_signed, kratos::PortDirection direction,
@@ -141,8 +108,7 @@ void PortBundleRef::assign(const std::shared_ptr<PortBundleRef>& other, Generato
         // make stmt
         auto stmt = parent->wire_ports(self_port, other_port);
         if (parent->debug)
-            for (auto const &entry: debug_info)
-                stmt->fn_name_ln.emplace_back(entry);
+            for (auto const& entry : debug_info) stmt->fn_name_ln.emplace_back(entry);
     }
 }
 

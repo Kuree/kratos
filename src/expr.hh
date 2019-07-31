@@ -129,6 +129,8 @@ public:
         return std::static_pointer_cast<T>(shared_from_this());
     }
 
+    virtual bool inline is_packed() { return false; }
+
     virtual std::string to_string() const;
 
     // AST stuff
@@ -252,6 +254,48 @@ public:
 
 private:
     std::string parameter_name_;
+};
+
+
+struct PackedStruct {
+public:
+    std::string struct_name;
+    std::vector<std::tuple<std::string, uint32_t, bool>> attributes;
+
+    PackedStruct(std::string struct_name,
+                 std::vector<std::tuple<std::string, uint32_t, bool>> attributes);
+};
+
+struct PackedSlice : public VarSlice {
+public:
+    PackedSlice(PortPacked *parent, const std::string &member_name);
+    PackedSlice(VarPacked *parent, const std::string &member_name);
+
+    std::string to_string() const override;
+
+private:
+    void set_up(const PackedStruct &struct_, const std::string &member_name);
+    std::string member_name_;
+};
+
+struct VarPacked: public Var {
+public:
+    bool is_packed() override { return true; }
+
+    const PackedStruct &packed_struct() const { return struct_; }
+
+    PackedSlice &operator[](const std::string &member_name);
+
+    // necessary to make pybind happy due to complex inheritance
+    VarSlice inline &operator[](std::pair<uint32_t, uint32_t> slice) override {
+        return Var::operator[](slice);
+    }
+    VarSlice inline &operator[](uint32_t idx) override { return Var::operator[](idx); }
+
+private:
+    PackedStruct struct_;
+
+    std::unordered_map<std::string, std::shared_ptr<PackedSlice>> members_;
 };
 
 struct Expr : public Var {

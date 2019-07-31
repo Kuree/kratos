@@ -287,7 +287,6 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                 if (parent->debug) {
                     port_debug_.emplace(port, stmt);
                 }
-                continue;
             } else {
                 // you need to run a de-slice pass on the module references first
                 throw ::runtime_error(

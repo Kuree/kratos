@@ -14,7 +14,7 @@ enum class PortDirection { In, Out, InOut };
 
 enum class PortType { Data, Clock, AsyncReset, Reset, ClockEnable };
 
-struct PortPackedSlice;
+struct PackedSlice;
 
 struct Port : public Var {
 public:
@@ -25,7 +25,6 @@ public:
     PortType port_type() const { return type_; }
 
     virtual void set_port_type(PortType type);
-    virtual bool inline is_packed() { return false; }
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
@@ -37,15 +36,6 @@ private:
     PortType type_;
 };
 
-struct PackedStruct {
-public:
-    std::string struct_name;
-    std::vector<std::tuple<std::string, uint32_t, bool>> attributes;
-
-    PackedStruct(std::string struct_name,
-                 std::vector<std::tuple<std::string, uint32_t, bool>> attributes);
-};
-
 struct PortPacked : public Port {
 public:
     PortPacked(Generator *module, PortDirection direction, const std::string &name,
@@ -55,7 +45,7 @@ public:
 
     const PackedStruct &packed_struct() const { return struct_; }
 
-    PortPackedSlice &operator[](const std::string &member_name);
+    PackedSlice &operator[](const std::string &member_name);
 
     // necessary to make pybind happy due to complex inheritance
     VarSlice inline &operator[](std::pair<uint32_t, uint32_t> slice) override {
@@ -68,17 +58,7 @@ public:
 private:
     PackedStruct struct_;
 
-    std::unordered_map<std::string, std::shared_ptr<PortPackedSlice>> members_;
-};
-
-struct PortPackedSlice : public VarSlice {
-public:
-    PortPackedSlice(PortPacked *parent, const std::string &member_name);
-
-    std::string to_string() const override;
-
-private:
-    std::string member_name_;
+    std::unordered_map<std::string, std::shared_ptr<PackedSlice>> members_;
 };
 
 struct PortBundleDefinition : public std::enable_shared_from_this<PortBundleDefinition> {

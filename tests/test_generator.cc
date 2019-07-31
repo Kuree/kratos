@@ -561,4 +561,6 @@ TEST(generator, bundle_to_struct) { // NOLINT
     verify_generator_connectivity(&mod1);
     change_port_bundle_struct(&mod1);
     verify_generator_connectivity(&mod1);
+    decouple_generator_ports(&mod1);
+    create_module_instantiation(&mod1);
 }

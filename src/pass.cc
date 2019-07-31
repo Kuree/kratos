@@ -1413,6 +1413,8 @@ void PassManager::register_builtin_passes() {
 
     register_pass("zero_generator_inputs", &zero_generator_inputs);
 
+    register_pass("change_port_bundle_struct", &change_port_bundle_struct);
+
     // TODO:
     //  add inline pass
 

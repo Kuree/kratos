@@ -21,6 +21,8 @@ struct VarConcat;
 struct VarCasted;
 struct PortBundleDefinition;
 struct PortBundleRef;
+struct PortPacked;
+struct VarPacked;
 class Stmt;
 class AssignStmt;
 class IfStmt;

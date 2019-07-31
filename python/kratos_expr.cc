@@ -58,9 +58,9 @@ void init_expr(py::module &m) {
         .def_readonly("attributes", &PackedStruct::attributes);
 
     auto port_packed_slice =
-        py::class_<PortPackedSlice, ::shared_ptr<PortPackedSlice>, Var>(m, "PortPackedSlice");
+        py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>(m, "PackedSlice");
     init_var_derived(port_packed_slice);
-    def_trace<py::class_<PortPackedSlice, ::shared_ptr<PortPackedSlice>, Var>, VarSlice>(
+    def_trace<py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>, VarSlice>(
         port_packed_slice);
 
     // ternary op
