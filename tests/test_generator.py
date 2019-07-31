@@ -799,10 +799,10 @@ def test_bundle():
         def __init__(self):
             super().__init__("test_bundle", True)
 
-            self.port_bundle("in_port", Test())
+            p = self.port_bundle("in_port", Test())
             self.port_bundle("out_port", Test().flip())
 
-            self.wire(self.ports.in_port.a, self.ports.out_port.a)
+            self.wire(p.a, self.ports.out_port.a)
             self.wire(self.ports.in_port.b, self.ports.out_port.b)
 
     mod = Mod()

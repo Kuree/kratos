@@ -1,5 +1,8 @@
-Packed Struct in SystemVerilog
-##############################
+Packed Struct and Bundles
+#########################
+
+Packed Struct
+=============
 
 kratos allows to use packed struct in a limited ways. For now you can only
 use it in ports declaration.
@@ -36,3 +39,49 @@ To generate the packed struct information, you can pass in
 
     mod = Mod()
     mod_src, struct_def = verilog(mod, extra_struct=True)
+
+
+Port Bundles
+============
+Similar to pymtl and Chisel, kratos allows you to create arbitrary port
+bundles with arbitrary direction within it. To create a bundle definition,
+you need to subclass the ``PortBundle`` class like the following:
+
+.. code-block:: Python
+
+    class Test(PortBundle):
+        def __init__(self):
+            super().__init__()
+            self.input("a", 1)
+            self.output("b", 1)
+
+The ``input()`` and ``ouput()`` interfaces are the same as that of
+``Generator``. To add a port bundle to the generator, you can do
+
+.. code-block:: Python
+
+    self.port_bundle("in_port", Test())
+
+where ``"in_port"`` is the bundle port name. Notice that we need to instantiate
+the object. You can also call ``flip`` to flip the port direction in place.
+For instance, you can do something like this:
+
+.. code-block:: Python
+
+    p = self.port_bundle("out_port", Test().flip())
+
+The wiring process is the same as as the packed struct. To access a
+port bundle member, you can either access via ``[]``, ``.``
+(such as ``p.a``), or through ``[gen].ports.p.a``
+
+
+When to use packed sturct and when to use port bundles
+======================================================
+Keep in mind that in SystemVerilog there is no correspondence of a port
+bundle. That means the port bundle will be flattened into normal ports
+(the Python front-end does the job for you). As a result, the generated
+SystemVerilog code may not be that readable. The naming scheme is
+``{bundle_name}_{member_name}``.
+
+The rule of thumb is that if you want to have a mixture of input and output
+in your struct, use port bundle, otherwise use packed struct.
