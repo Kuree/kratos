@@ -5,6 +5,8 @@ from .passes import Attribute, verilog
 from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
     concat, zext, mux, ternary
 
+from .ports import PortBundle
+
 # directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog
 from _kratos.exception import VarException, StmtException
@@ -21,7 +23,7 @@ __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
 
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",
-            "if_", "switch_", "Attribute"]
+            "if_", "switch_", "Attribute", "PortBundle"]
 
 # utils
 __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",

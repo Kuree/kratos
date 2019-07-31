@@ -1,6 +1,7 @@
 import enum
 from .pyast import transform_stmt_block, get_fn_ln
 from .stmts import if_, switch_, IfStmt, SwitchStmt
+from .ports import PortBundle, PortBundleRef
 import _kratos
 from typing import List, Dict, Union, Tuple
 
@@ -112,10 +113,13 @@ class PortProxy:
         self.__generator = generator
 
     def __getitem__(self, key):
-        return self.__generator.internal_generator.get_port(key)
+        if key in self.__generator.port_bundles:
+            return self.__generator.port_bundles[key]
+        else:
+            return self.__generator.internal_generator.get_port(key)
 
     def __getattr__(self, key):
-        return self.__generator.internal_generator.get_port(key)
+        return self[key]
 
 
 class ParamProxy:
@@ -184,6 +188,7 @@ class Generator(metaclass=GeneratorMeta):
         self.ports = PortProxy(self)
         self.params = ParamProxy(self)
         self.vars = VarProxy(self)
+        self.port_bundles = {}
 
         self.__def_instance = self
 
@@ -357,6 +362,13 @@ class Generator(metaclass=GeneratorMeta):
             p.add_fn_ln(get_fn_ln())
         return p
 
+    def port_bundle(self, bundle_name, bundle: PortBundle):
+        assert isinstance(bundle, PortBundle)
+        name, ref = bundle.add_to_generator(bundle_name, self)
+        assert name not in self.port_bundles
+        self.port_bundles[name] = ref
+        return ref
+
     def parameter(self, name: str, width: int,
                   is_signed: bool = False) -> _kratos.Param:
         param = self.__generator.parameter(name, width, is_signed)
@@ -422,6 +434,11 @@ class Generator(metaclass=GeneratorMeta):
         # this is a top level direct wire assignment
         # notice that we can figure out the direction automatically if
         # both of them are ports
+        # handle port bundles
+        if isinstance(var_to, PortBundleRef):
+            assert isinstance(var_from, PortBundleRef)
+            var_to.assign(var_from)
+            return
         if isinstance(var_to, _kratos.Port) and isinstance(var_from,
                                                            _kratos.Port):
             stmt = self.__generator.wire_ports(var_to, var_from)
@@ -429,8 +446,7 @@ class Generator(metaclass=GeneratorMeta):
             stmt = self.__assign(var_to, var_from)
 
         if self.debug:
-            fn, ln = get_fn_ln(2)
-            stmt.add_fn_ln((fn, ln))
+            stmt.add_fn_ln(get_fn_ln())
 
         if attributes is not None:
             if not isinstance(attributes, list):

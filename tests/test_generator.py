@@ -1,6 +1,6 @@
 from kratos import Generator, PortDirection, PortType, always, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute, zext, posedge, negedge
+    PackedStruct, Port, Attribute, zext, posedge, PortBundle
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
@@ -788,5 +788,27 @@ def test_ternary():
     is_valid_verilog(mod_src)
 
 
+def test_bundle():
+    class Test(PortBundle):
+        def __init__(self):
+            super().__init__()
+            self.input("a", 1)
+            self.output("b", 1)
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("test_bundle", True)
+
+            self.port_bundle("in_port", Test())
+            self.port_bundle("out_port", Test().flip())
+
+            self.wire(self.ports.in_port.a, self.ports.out_port.a)
+            self.wire(self.ports.in_port.b, self.ports.out_port.b)
+
+    mod = Mod()
+    mod_src = verilog(mod)
+    is_valid_verilog(mod_src)
+
+
 if __name__ == "__main__":
-    test_reg_enable()
+    test_bundle()
