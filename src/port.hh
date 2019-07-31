@@ -81,7 +81,7 @@ private:
     std::string member_name_;
 };
 
-struct PortBundleDefinition {
+struct PortBundleDefinition : public std::enable_shared_from_this<PortBundleDefinition> {
 public:
     using PortDef = std::tuple<uint32_t, uint32_t, bool, PortDirection, PortType>;
 
@@ -89,6 +89,14 @@ public:
                         PortDirection direction, PortType type);
 
     [[nodiscard]] const std::map<std::string, PortDef> &definition() const { return definitions_; }
+    [[nodiscard]] const std::map<std::string, std::pair<std::string, uint32_t>> &debug_info()
+        const {
+        return debug_info_;
+    }
+
+    void add_debug_info(const std::string &name, const std::pair<std::string, uint32_t> &info) {
+        debug_info_.emplace(name, info);
+    }
 
     std::shared_ptr<PortBundleDefinition> flip();
 
@@ -98,6 +106,7 @@ private:
     // so flip().flip() should return to the same one
     std::shared_ptr<PortBundleDefinition> flipped_ = nullptr;
     std::map<std::string, PortDef> flipped_definitions_;
+    std::map<std::string, std::pair<std::string, uint32_t>> debug_info_;
 };
 
 struct PortBundleRef {

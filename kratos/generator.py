@@ -363,8 +363,13 @@ class Generator(metaclass=GeneratorMeta):
 
     def port_bundle(self, bundle_name, bundle: PortBundle):
         assert isinstance(bundle, PortBundle)
-        return self.__generator.add_bundle_port_def(bundle_name,
-                                                    bundle.definition)
+        if self.debug:
+            return self.__generator.add_bundle_port_def(bundle_name,
+                                                        bundle.definition,
+                                                        get_fn_ln())
+        else:
+            return self.__generator.add_bundle_port_def(bundle_name,
+                                                        bundle.definition)
 
     def parameter(self, name: str, width: int,
                   is_signed: bool = False) -> _kratos.Param:
@@ -611,7 +616,8 @@ class Generator(metaclass=GeneratorMeta):
         return var
 
     def __create_new_var(self, var_name, var_ref):
-        new_var = self.var(var_name, var_ref.width, var_ref.signed, var_ref.size)
+        new_var = self.var(var_name, var_ref.width, var_ref.signed,
+                           var_ref.size)
         if self.debug:
             new_var.add_fn_ln(get_fn_ln())
         return new_var

@@ -791,7 +791,7 @@ def test_ternary():
 def test_bundle():
     class Test(PortBundle):
         def __init__(self):
-            super().__init__()
+            super().__init__(True)
             self.input("a", 1)
             self.output("b", 1)
 

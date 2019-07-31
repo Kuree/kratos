@@ -546,16 +546,33 @@ std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(const std::string 
         throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
     auto definition = def->definition();
     auto ref = std::make_shared<PortBundleRef>(this, def);
+    auto const &debug_info = def->debug_info();
     for (auto const &[name, bundle] : definition) {
         auto const &[width, size, is_signed, direction, port_type] = bundle;
         auto var_name = get_unique_variable_name(port_name, name);
-        port(direction, var_name, width, size, port_type, is_signed);
+        auto &p = port(direction, var_name, width, size, port_type, is_signed);
         // add to the ref mapping as well
         ref->add_name_mapping(name, var_name);
+        if (debug && debug_info.find(name) != debug_info.end()) {
+            p.fn_name_ln.emplace_back(debug_info.at(name));
+        }
     }
     // add to the bundle mapping
     port_bundle_mapping_.emplace(port_name, ref);
 
+    return ref;
+}
+
+std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(
+    const std::string &port_name, const std::shared_ptr<PortBundleDefinition> &def,
+    const std::pair<std::string, uint32_t> &debug_info) {
+    auto ref = add_bundle_port_def(port_name, def);
+    auto definition = def->definition();
+    for (auto const &iter: definition) {
+        auto base_name = iter.first;
+        auto &port = ref->get_port(base_name);
+        port.fn_name_ln.emplace_back(debug_info);
+    }
     return ref;
 }
 

@@ -82,7 +82,13 @@ void init_generator(py::module &m) {
              py::overload_cast<const std::string &, const std::shared_ptr<Generator> &,
                                const std::pair<std::string, uint32_t> &>(&Generator::replace))
         .def("get_ports", &Generator::get_ports)
-        .def("add_bundle_port_def", &Generator::add_bundle_port_def)
+        .def("add_bundle_port_def",
+             py::overload_cast<const std::string &, const std::shared_ptr<PortBundleDefinition> &,
+                               const std::pair<std::string, uint32_t> &>(
+                 &Generator::add_bundle_port_def))
+        .def("add_bundle_port_def",
+             py::overload_cast<const std::string &, const std::shared_ptr<PortBundleDefinition> &>(
+                 &Generator::add_bundle_port_def))
         .def("get_bundle_ref", &Generator::get_bundle_ref)
         .def("has_port_bundle", &Generator::has_port_bundle);
 
@@ -95,7 +101,8 @@ void init_generator(py::module &m) {
     bundle_def.def(py::init<>())
         .def("add_definition", &PortBundleDefinition::add_definition)
         .def("definition", &PortBundleDefinition::definition)
-        .def("flip", &PortBundleDefinition::flip);
+        .def("flip", &PortBundleDefinition::flip)
+        .def("add_debug_info", &PortBundleDefinition::add_debug_info);
 
     auto bundle_ref = py::class_<PortBundleRef, std::shared_ptr<PortBundleRef>>(m, "PortBundleRef");
     bundle_ref

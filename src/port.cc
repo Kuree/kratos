@@ -106,6 +106,8 @@ std::shared_ptr<PortBundleDefinition> PortBundleDefinition::flip() {
     flipped_ = std::make_shared<PortBundleDefinition>();
     flipped_->definitions_ = flipped_definitions_;
     flipped_->flipped_definitions_ = definitions_;
+    flipped_->debug_info_ = debug_info_;
+    flipped_->flipped_ = shared_from_this();
     return flipped_;
 }
 
