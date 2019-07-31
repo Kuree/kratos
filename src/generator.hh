@@ -136,6 +136,12 @@ public:
         const std::string &port_name, const std::shared_ptr<PortBundleDefinition> &def,
         const std::pair<std::string, uint32_t> &debug_info);
     std::shared_ptr<PortBundleRef> get_bundle_ref(const std::string &port_name);
+    const std::map<std::string, std::shared_ptr<PortBundleRef>> &port_bundle_mapping() const {
+        return port_bundle_mapping_;
+    }
+    void remove_bundle_port_ref(const std::string &ref_name) {
+        port_bundle_mapping_.erase(ref_name);
+    }
 
     // debug info
     const std::unordered_map<std::string, std::pair<std::string, uint32_t>> &children_debug()

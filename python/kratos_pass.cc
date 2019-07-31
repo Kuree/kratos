@@ -37,7 +37,8 @@ void init_pass(py::module &m) {
         .def("remove_unused_stmts", &remove_unused_stmts)
         .def("check_mixed_assignment", &check_mixed_assignment)
         .def("zero_generator_inputs", &zero_generator_inputs)
-        .def("insert_pipeline_stages", &insert_pipeline_stages);
+        .def("insert_pipeline_stages", &insert_pipeline_stages)
+        .def("change_port_bundle_struct", &change_port_bundle_struct);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
 This class gives you the fined control over which pass to run and in which order.

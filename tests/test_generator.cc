@@ -522,3 +522,43 @@ TEST(generator, replace) {  // NOLINT
     mod1.replace("mod", mod3.shared_from_this());
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 }
+
+TEST(generator, bundle_to_struct) { // NOLINT
+    Context c;
+    auto def = std::make_shared<PortBundleDefinition>("bundle");
+    def->add_definition("a", 1, 1, false, PortDirection::In, PortType::Data);
+    def->add_definition("b", 1, 1, false, PortDirection::In, PortType::Data);
+    auto &mod1 = c.generator("module1");
+    auto &mod2 = c.generator("module2");
+    auto &mod3 = c.generator("module3");
+
+    // mod2 definition
+    mod2.add_bundle_port_def("p", def);
+    auto &port2_a = mod2.port(PortDirection::Out, "a", 1);
+    auto &port2_b = mod2.port(PortDirection::Out, "b", 1);
+    mod2.add_stmt(port2_a.assign(mod2.get_bundle_ref("p")->get_port("a")));
+    mod2.add_stmt(port2_b.assign(mod2.get_bundle_ref("p")->get_port("b")));
+    mod1.add_child_generator("mod2", mod2.shared_from_this());
+
+    // mod3 definition
+    mod3.add_bundle_port_def("p", def->flip());
+    auto &port3_a = mod3.port(PortDirection::In, "a", 1);
+    auto &port3_b = mod3.port(PortDirection::In, "b", 1);
+    mod3.add_stmt(mod3.get_bundle_ref("p")->get_port("a").assign(port3_a));
+    mod3.add_stmt(mod3.get_bundle_ref("p")->get_port("b").assign(port3_b));
+    mod1.add_child_generator("mod3", mod3.shared_from_this());
+
+    // mod1 definition
+    auto &mod1_a = mod1.port(PortDirection::In, "a", 1);
+    auto &mod1_b = mod1.port(PortDirection::Out, "b", 1);
+    mod1.add_stmt(mod2.get_bundle_ref("p")->get_port("a").assign(mod1_a));
+    mod1.add_stmt(mod2.get_bundle_ref("p")->get_port("b").assign(mod1_a));
+    mod1.add_stmt(port3_a.assign(mod1_a));
+    mod1.add_stmt(port3_b.assign(mod1_a));
+    mod1.add_stmt(mod1_b.assign(mod3.get_bundle_ref("p")->get_port("b") + port2_b));
+
+    // run bundle to pack pass
+    verify_generator_connectivity(&mod1);
+    change_port_bundle_struct(&mod1);
+    verify_generator_connectivity(&mod1);
+}

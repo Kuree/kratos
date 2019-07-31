@@ -65,6 +65,8 @@ void merge_wire_assignments(Generator* top);
 
 void insert_pipeline_stages(Generator* top);
 
+void change_port_bundle_struct(Generator* top);
+
 class PassManager {
 public:
     PassManager() = default;

@@ -195,7 +195,7 @@ private:
 // this is slower than xxhash
 // but it's simple, so use it to hash the variables
 // based on https://gist.github.com/underscorediscovery/81308642d0325fd386237cfa3b44785c
-inline uint64_t hash_64_fnv1a(const void* key, const uint64_t len) {
+uint64_t hash_64_fnv1a(const void* key, uint64_t len) {
     auto data = static_cast<const char*>(key);
     uint64_t hash = 0xcbf29ce484222325;
     uint64_t prime = 0x100000001b3;

@@ -98,11 +98,12 @@ void init_generator(py::module &m) {
 
     auto bundle_def = py::class_<PortBundleDefinition, std::shared_ptr<PortBundleDefinition>>(
         m, "PortBundleDefinition");
-    bundle_def.def(py::init<>())
+    bundle_def.def(py::init<std::string>())
         .def("add_definition", &PortBundleDefinition::add_definition)
         .def("definition", &PortBundleDefinition::definition)
         .def("flip", &PortBundleDefinition::flip)
-        .def("add_debug_info", &PortBundleDefinition::add_debug_info);
+        .def("add_debug_info", &PortBundleDefinition::add_debug_info)
+        .def_property("name", &PortBundleDefinition::get_name, &PortBundleDefinition::set_name);
 
     auto bundle_ref = py::class_<PortBundleRef, std::shared_ptr<PortBundleRef>>(m, "PortBundleRef");
     bundle_ref

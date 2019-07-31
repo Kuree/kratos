@@ -68,6 +68,8 @@ PortPackedSlice::PortPackedSlice(PortPacked* parent, const std::string& member_n
             high = width + low_ - 1;
             low = low_;
             is_signed = is_signed_;
+            var_high_ = high;
+            var_low_ = low;
             break;
         } else {
             low_ += width;
@@ -103,7 +105,7 @@ void PortBundleDefinition::add_definition(const std::string& name, uint32_t widt
 
 std::shared_ptr<PortBundleDefinition> PortBundleDefinition::flip() {
     if (flipped_) return flipped_;
-    flipped_ = std::make_shared<PortBundleDefinition>();
+    flipped_ = std::make_shared<PortBundleDefinition>(name_);
     flipped_->definitions_ = flipped_definitions_;
     flipped_->flipped_definitions_ = definitions_;
     flipped_->debug_info_ = debug_info_;

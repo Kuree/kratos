@@ -197,7 +197,7 @@ public:
     uint32_t var_high() { return var_high_; }
     uint32_t var_low() { return var_low_; }
 
-private:
+protected:
     uint32_t var_high_ = 0;
     uint32_t var_low_ = 0;
 };

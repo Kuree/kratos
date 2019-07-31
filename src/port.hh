@@ -88,6 +88,8 @@ public:
     void add_definition(const std::string &name, uint32_t width, uint32_t size, bool is_signed,
                         PortDirection direction, PortType type);
 
+    explicit PortBundleDefinition(std::string name) : name_(std::move(name)) {}
+
     [[nodiscard]] const std::map<std::string, PortDef> &definition() const { return definitions_; }
     [[nodiscard]] const std::map<std::string, std::pair<std::string, uint32_t>> &debug_info()
         const {
@@ -98,9 +100,13 @@ public:
         debug_info_.emplace(name, info);
     }
 
+    void set_name(const std::string &name) { name_ = name; }
+    const std::string &get_name() const { return name_; }
+
     std::shared_ptr<PortBundleDefinition> flip();
 
 private:
+    std::string name_;
     std::map<std::string, PortDef> definitions_;
     // this is for performance reason, we don't want to flip all the time
     // so flip().flip() should return to the same one
@@ -118,9 +124,15 @@ public:
     void add_name_mapping(const std::string &port_name, const std::string &real_name) {
         name_mappings_.emplace(port_name, real_name);
     }
+    [[nodiscard]] const std::map<std::string, std::string> &name_mappings() const {
+        return name_mappings_;
+    }
 
     void assign(const std::shared_ptr<PortBundleRef> &other, Generator *parent,
                 const std::vector<std::pair<std::string, uint32_t>> &debug_info);
+
+    [[nodiscard]]
+    const std::string &def_name() const { return definition_->get_name(); }
 
 private:
     Generator *generator;

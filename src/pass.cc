@@ -930,7 +930,7 @@ extract_debug_info(Generator* top) {
 class PortPackedVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
-        auto const &port_names = generator->get_port_names();
+        auto const& port_names = generator->get_port_names();
         for (auto const& port_name : port_names) {
             auto port = generator->get_port(port_name);
             if (port->is_packed()) {
@@ -1170,8 +1170,7 @@ public:
             if (clock_name.empty()) {
                 // pick the first one
                 auto clock_names = generator->get_ports(PortType::Clock);
-                if (!clock_names.empty())
-                    clock_name = clock_names[0];
+                if (!clock_names.empty()) clock_name = clock_names[0];
             }
             if (clock_name.empty()) {
                 throw std::runtime_error(
@@ -1224,6 +1223,141 @@ public:
 void insert_pipeline_stages(Generator* top) {
     PipelineInsertionVisitor visitor;
     visitor.visit_generator_root_p(top);
+}
+
+class PortBundleVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        auto const& mappings = generator->port_bundle_mapping();
+        for (auto const& [entry_name, ref] : mappings) {
+            auto& mapping = ref->name_mappings();
+            PortDirection dir = PortDirection::InOut;
+            bool initialized = false;
+            bool same_direction = true;
+            for (auto const& iter : mapping) {
+                auto port_name = iter.second;
+                auto port = generator->get_port(port_name);
+                // all the ports have to have the same direction
+                if (!initialized) {
+                    initialized = true;
+                    dir = port->port_direction();
+                } else {
+                    if (dir != port->port_direction()) {
+                        same_direction = false;
+                        break;
+                    }
+                }
+                if (port->size != 1) {
+                    // TODO: upgrade packed struct to support array
+                    same_direction = false;
+                    break;
+                }
+            }
+            if (same_direction && dir != PortDirection::InOut && !mapping.empty()) {
+                // this is the one we need to convert
+                auto bundle_name = ref->def_name();
+                bundle_mapping[bundle_name].emplace_back(std::make_pair(entry_name, generator));
+            }
+        }
+    }
+
+    std::map<std::string, std::vector<std::pair<std::string, Generator*>>> bundle_mapping;
+};
+
+void merge_bundle_mapping(
+    const std::map<std::string, std::vector<std::pair<std::string, Generator*>>>& old_mapping) {
+    for (auto const& [bundle_name, generators] : old_mapping) {
+        std::map<Generator*, uint64_t> bundle_hashs;
+        std::shared_ptr<PortBundleRef> ref_port_ref;
+        Generator* ref_generator = nullptr;
+        for (auto const& [entry_name, generator] : generators) {
+            auto ref = generator->get_bundle_ref(entry_name);
+            auto mappings = ref->name_mappings();
+            std::vector<std::string> ports;
+            ports.reserve(mappings.size());
+            for (auto const& iter : mappings) {
+                ports.emplace_back(iter.first);
+            }
+            std::sort(ports.begin(), ports.end());
+            std::string base_str;
+            for (auto const& port_name : ports) {
+                auto port = generator->get_port(mappings.at(port_name));
+                base_str.append(::format("{0}{1}{2}{3}", port->var_width, port->width,
+                                         port->is_signed, port_name));
+            }
+            uint64_t hash = hash_64_fnv1a(base_str.c_str(), base_str.size());
+            if (bundle_hashs.find(generator) != bundle_hashs.end()) {
+                if (bundle_hashs.at(generator) != hash)
+                    throw ::runtime_error(::format(
+                        "Port bundle with same name {0} have different definition", bundle_name));
+            }
+            bundle_hashs.emplace(generator, hash);
+
+            ref_generator = generator;
+            ref_port_ref = ref;
+        }
+        // for now we require the naming of the bundle has to be the same
+        bool initialized = false;
+        uint64_t base_hash = 0;
+        for (auto const& iter : bundle_hashs) {
+            uint64_t hash = iter.second;
+            if (!initialized) {
+                initialized = true;
+                base_hash = hash;
+            } else {
+                if (base_hash != hash) {
+                    throw ::runtime_error(::format(
+                        "Port bundle with same name {0} have different definition", bundle_name));
+                }
+            }
+        }
+        if (!ref_generator) throw ::runtime_error("Internal error. ref generator cannot be null");
+        // create a packed struct
+        std::vector<std::tuple<std::string, uint32_t, bool>> def;
+        auto const& mapping = ref_port_ref->name_mappings();
+        for (auto const& [var_name, real_name] : mapping) {
+            auto port = ref_generator->get_port(real_name);
+            def.emplace_back(std::make_tuple(var_name, port->width, port->is_signed));
+        }
+        PackedStruct struct_(bundle_name, def);
+        for (auto const& [entry_name, generator] : generators) {
+            auto p = dynamic_cast<Generator*>(generator->parent());
+            // move sources around the ports
+            auto ref = generator->get_bundle_ref(entry_name);
+            auto const &m = ref->name_mappings();
+            auto dir = generator->get_port(m.begin()->second)->port_direction();
+            auto &packed = generator->port_packed(dir, entry_name, struct_);
+
+            for (auto const &[attr, real_name]: m) {
+                auto &slice = packed[attr];
+                auto target = generator->get_port(real_name);
+                // depends on the direction, the parent can change;
+                if (dir == PortDirection::In) {
+                    if (p) {
+                        Var::move_src_to(target.get(), &slice, p, false);
+                    }
+                    Var::move_sink_to(target.get(), &slice, generator, false);
+                } else {
+                    Var::move_src_to(target.get(), &slice, generator, false);
+                    if (p) {
+                        Var::move_sink_to(target.get(), &slice, p, false);
+                    }
+                }
+                // remove target
+                generator->remove_port(real_name);
+            }
+            // remove bundle info
+            generator->remove_bundle_port_ref(entry_name);
+        }
+    }
+}
+
+void change_port_bundle_struct(Generator* top) {
+    // pass to extract all the bundles
+    PortBundleVisitor b_visitor;
+    // this cannot be parallelized if we don't use a lock
+    b_visitor.visit_generator_root(top);
+    merge_bundle_mapping(b_visitor.bundle_mapping);
 }
 
 void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {

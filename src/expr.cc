@@ -568,7 +568,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
         if (parent->debug) {
             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
-        new_var->sources_.emplace(stmt);
+        new_var->add_source(stmt);
     }
     // now clear the sources
     var->sources_.clear();
@@ -593,7 +593,7 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
         if (parent->debug) {
             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
-        new_var->sinks_.emplace(stmt);
+        new_var->add_sink(stmt);
     }
     // now clear the sinks
     var->sinks_.clear();
