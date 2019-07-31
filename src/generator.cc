@@ -235,7 +235,7 @@ std::string Generator::get_unique_variable_name(const std::string &prefix,
     if (prefix.empty()) {
         result_name = var_name;
     } else {
-        result_name = ::format("{0}${1}", prefix, var_name);
+        result_name = ::format("{0}_{1}", prefix, var_name);
     }
     if (!get_var(result_name)) return result_name;
 
@@ -243,7 +243,7 @@ std::string Generator::get_unique_variable_name(const std::string &prefix,
         if (prefix.empty()) {
             result_name = ::format("{0}_{1}", var_name, count);
         } else {
-            result_name = ::format("{0}${1}_{2}", prefix, var_name, count);
+            result_name = ::format("{0}_{1}_{2}", prefix, var_name, count);
         }
         if (!get_var(result_name)) {
             break;
@@ -535,10 +535,35 @@ std::vector<std::string> Generator::get_ports(kratos::PortType type) const {
     auto port_names = get_port_names();
     for (auto const &port_name : port_names) {
         auto port = get_port(port_name);
-        if (port->port_type() == type)
-            result.emplace_back(port_name);
+        if (port->port_type() == type) result.emplace_back(port_name);
     }
     return result;
+}
+
+std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(const std::string &port_name,
+                                    const std::shared_ptr<PortBundleDefinition> &def) {
+    if (port_bundle_mapping_.find(port_name) != port_bundle_mapping_.end())
+        throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
+    auto definition = def->definition();
+    auto ref = std::make_shared<PortBundleRef>(this, def);
+    for (auto const &[name, bundle] : definition) {
+        auto const &[width, size, is_signed, direction, port_type] = bundle;
+        auto var_name = get_unique_variable_name(port_name, name);
+        port(direction, var_name, width, size, port_type, is_signed);
+        // add to the ref mapping as well
+        ref->add_name_mapping(name, var_name);
+    }
+    // add to the bundle mapping
+    port_bundle_mapping_.emplace(port_name, ref);
+
+    return ref;
+}
+
+std::shared_ptr<PortBundleRef> Generator::get_bundle_ref(const std::string &port_name) {
+    if (!has_port_bundle(port_name)) {
+        throw ::runtime_error(port_name + " not found in " + name);
+    }
+    return port_bundle_mapping_.at(port_name);
 }
 
 }

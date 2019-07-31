@@ -3,6 +3,9 @@
 #include <unordered_map>
 #include "except.hh"
 #include "fmt/format.h"
+#include "generator.hh"
+#include "stmt.hh"
+
 
 using fmt::format;
 using std::runtime_error;
@@ -79,6 +82,64 @@ PortPackedSlice::PortPackedSlice(PortPacked* parent, const std::string& member_n
 
 std::string PortPackedSlice::to_string() const {
     return ::format("{0}.{1}", parent_var->to_string(), member_name_);
+}
+
+void PortBundleDefinition::add_definition(const std::string& name, uint32_t width, uint32_t size,
+                                          bool is_signed, kratos::PortDirection direction,
+                                          kratos::PortType type) {
+    if (definitions_.find(name) != definitions_.end())
+        throw ::runtime_error(name + " already exists");
+    definitions_.emplace(name, std::make_tuple(width, size, is_signed, direction, type));
+    PortDirection dir;
+    if (direction == PortDirection::In) {
+        dir = PortDirection::Out;
+    } else if (direction == PortDirection::Out) {
+        dir = PortDirection::In;
+    } else {
+        throw ::runtime_error("PortBundle doesn't allow inout");
+    }
+    flipped_definitions_.emplace(name, std::make_tuple(width, size, is_signed, dir, type));
+}
+
+std::shared_ptr<PortBundleDefinition> PortBundleDefinition::flip() {
+    if (flipped_) return flipped_;
+    flipped_ = std::make_shared<PortBundleDefinition>();
+    flipped_->definitions_ = flipped_definitions_;
+    flipped_->flipped_definitions_ = definitions_;
+    return flipped_;
+}
+
+Port& PortBundleRef::get_port(const std::string& name) {
+    if (name_mappings_.find(name) == name_mappings_.end())
+        throw ::runtime_error(::format("Unable to find {0} in port bundle", name));
+    auto const& port_name = name_mappings_.at(name);
+    return *generator->get_port(port_name);
+}
+
+void PortBundleRef::assign(const std::shared_ptr<PortBundleRef>& other, Generator* parent,
+                           const std::vector<std::pair<std::string, uint32_t>>& debug_info) {
+    // making sure they have the same interface
+    auto self_def = definition_->definition();
+    auto other_def = other->definition_->definition();
+    if (self_def.size() != other_def.size()) {
+        throw ::runtime_error("PortBundle definition doesn't match");
+    }
+    for (auto const& iter : self_def) {
+        auto attr_name = iter.first;
+        auto self_real_port = name_mappings_.at(attr_name);
+        auto self_port = generator->get_port(self_real_port);
+        if (other_def.find(attr_name) == other_def.end())
+            throw VarException(
+                ::format("Unable to find {0} from {1}", attr_name, other->generator->name),
+                {self_port.get()});
+        auto other_real_port = other->name_mappings_.at(attr_name);
+        auto other_port = other->generator->get_port(other_real_port);
+        // make stmt
+        auto stmt = parent->wire_ports(self_port, other_port);
+        if (parent->debug)
+            for (auto const &entry: debug_info)
+                stmt->fn_name_ln.emplace_back(entry);
+    }
 }
 
 }  // namespace kratos

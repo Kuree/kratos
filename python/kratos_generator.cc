@@ -81,9 +81,32 @@ void init_generator(py::module &m) {
         .def("replace",
              py::overload_cast<const std::string &, const std::shared_ptr<Generator> &,
                                const std::pair<std::string, uint32_t> &>(&Generator::replace))
-        .def("get_ports", &Generator::get_ports);
+        .def("get_ports", &Generator::get_ports)
+        .def("add_bundle_port_def", &Generator::add_bundle_port_def)
+        .def("get_bundle_ref", &Generator::get_bundle_ref)
+        .def("has_port_bundle", &Generator::has_port_bundle);
 
     generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
         var.fn_name_ln.emplace_back(info);
     });
+
+    auto bundle_def = py::class_<PortBundleDefinition, std::shared_ptr<PortBundleDefinition>>(
+        m, "PortBundleDefinition");
+    bundle_def.def(py::init<>())
+        .def("add_definition", &PortBundleDefinition::add_definition)
+        .def("definition", &PortBundleDefinition::definition)
+        .def("flip", &PortBundleDefinition::flip);
+
+    auto bundle_ref = py::class_<PortBundleRef, std::shared_ptr<PortBundleRef>>(m, "PortBundleRef");
+    bundle_ref
+        .def(
+            "__getitem__", [](PortBundleRef & ref, const std::string &name) -> auto & {
+                return ref.get_port(name);
+            },
+            py::return_value_policy::reference)
+        .def(
+            "__getattr__", [](PortBundleRef & ref, const std::string &name) -> auto & {
+                return ref.get_port(name);
+            },
+            py::return_value_policy::reference);
 }

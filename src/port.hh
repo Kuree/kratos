@@ -81,6 +81,44 @@ private:
     std::string member_name_;
 };
 
+struct PortBundleDefinition {
+public:
+    using PortDef = std::tuple<uint32_t, uint32_t, bool, PortDirection, PortType>;
+
+    void add_definition(const std::string &name, uint32_t width, uint32_t size, bool is_signed,
+                        PortDirection direction, PortType type);
+
+    [[nodiscard]] const std::map<std::string, PortDef> &definition() const { return definitions_; }
+
+    std::shared_ptr<PortBundleDefinition> flip();
+
+private:
+    std::map<std::string, PortDef> definitions_;
+    // this is for performance reason, we don't want to flip all the time
+    // so flip().flip() should return to the same one
+    std::shared_ptr<PortBundleDefinition> flipped_ = nullptr;
+    std::map<std::string, PortDef> flipped_definitions_;
+};
+
+struct PortBundleRef {
+public:
+    PortBundleRef(Generator *generator, std::shared_ptr<PortBundleDefinition> def)
+        : generator(generator), definition_(std::move(def)) {}
+
+    Port &get_port(const std::string &name);
+    void add_name_mapping(const std::string &port_name, const std::string &real_name) {
+        name_mappings_.emplace(port_name, real_name);
+    }
+
+    void assign(const std::shared_ptr<PortBundleRef> &other, Generator *parent,
+                const std::vector<std::pair<std::string, uint32_t>> &debug_info);
+
+private:
+    Generator *generator;
+    const std::shared_ptr<PortBundleDefinition> definition_;
+    std::map<std::string, std::string> name_mappings_;
+};
+
 }  // namespace kratos
 
 #endif  // KRATOS_PORT_HH

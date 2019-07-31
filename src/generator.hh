@@ -126,6 +126,13 @@ public:
                  const std::pair<std::string, uint32_t> &debug_info);
 
     std::vector<std::string> get_ports(PortType type) const;
+    // port bundles
+    bool inline has_port_bundle(const std::string &port_name) {
+        return port_bundle_mapping_.find(port_name) != port_bundle_mapping_.end();
+    }
+    std::shared_ptr<PortBundleRef> add_bundle_port_def(
+        const std::string &port_name, const std::shared_ptr<PortBundleDefinition> &def);
+    std::shared_ptr<PortBundleRef> get_bundle_ref(const std::string &port_name);
 
     // debug info
     const std::unordered_map<std::string, std::pair<std::string, uint32_t>> &children_debug()
@@ -143,6 +150,7 @@ private:
     std::set<std::string> ports_;
     std::map<std::string, std::shared_ptr<Param>> params_;
     std::unordered_set<std::shared_ptr<Expr>> exprs_;
+    std::map<std::string, std::shared_ptr<PortBundleRef>> port_bundle_mapping_;
 
     std::vector<std::shared_ptr<Stmt>> stmts_;
 

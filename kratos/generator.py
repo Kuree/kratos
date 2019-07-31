@@ -1,7 +1,7 @@
 import enum
 from .pyast import transform_stmt_block, get_fn_ln
 from .stmts import if_, switch_, IfStmt, SwitchStmt
-from .ports import PortBundle, PortBundleRef
+from .ports import PortBundle
 import _kratos
 from typing import List, Dict, Union, Tuple
 
@@ -113,8 +113,8 @@ class PortProxy:
         self.__generator = generator
 
     def __getitem__(self, key):
-        if key in self.__generator.port_bundles:
-            return self.__generator.port_bundles[key]
+        if self.__generator.internal_generator.has_port_bundle(key):
+            return self.__generator.internal_generator.get_bundle_ref(key)
         else:
             return self.__generator.internal_generator.get_port(key)
 
@@ -188,7 +188,6 @@ class Generator(metaclass=GeneratorMeta):
         self.ports = PortProxy(self)
         self.params = ParamProxy(self)
         self.vars = VarProxy(self)
-        self.port_bundles = {}
 
         self.__def_instance = self
 
@@ -364,10 +363,8 @@ class Generator(metaclass=GeneratorMeta):
 
     def port_bundle(self, bundle_name, bundle: PortBundle):
         assert isinstance(bundle, PortBundle)
-        name, ref = bundle.add_to_generator(bundle_name, self)
-        assert name not in self.port_bundles
-        self.port_bundles[name] = ref
-        return ref
+        return self.__generator.add_bundle_port_def(bundle_name,
+                                                    bundle.definition)
 
     def parameter(self, name: str, width: int,
                   is_signed: bool = False) -> _kratos.Param:
@@ -435,9 +432,13 @@ class Generator(metaclass=GeneratorMeta):
         # notice that we can figure out the direction automatically if
         # both of them are ports
         # handle port bundles
-        if isinstance(var_to, PortBundleRef):
-            assert isinstance(var_from, PortBundleRef)
-            var_to.assign(var_from)
+        if isinstance(var_to, _kratos.PortBundleRef):
+            assert isinstance(var_from, _kratos.PortBundleRef)
+            if self.debug:
+                entry = get_fn_ln(1)
+            else:
+                entry = []
+            var_from.assign(var_to, self.__generator, entry)
             return
         if isinstance(var_to, _kratos.Port) and isinstance(var_from,
                                                            _kratos.Port):
