@@ -476,12 +476,6 @@ public:
         }
         auto const& port_names = generator->get_port_names();
 
-
-
-        if (generator->name == "module3") {
-            printf("here\n");
-        }
-
         for (auto const& port_name : port_names) {
             auto port = generator->get_port(port_name);
             auto const port_direction = port->port_direction();
@@ -531,7 +525,6 @@ public:
                 // same logic as the port dir in
                 // if we're connected to a base variable, we are good
                 const auto& sinks = port->sinks();
-                printf("%s sink size: %ld\n", port->name.c_str(), sinks.size());
                 if (sinks.empty()) {
                     continue;
                 }
@@ -569,7 +562,6 @@ public:
                 }
                 // replace all the sources
                 Var::move_sink_to(port.get(), var.get(), parent, true);
-                printf("here\n");
             } else {
                 throw ::runtime_error("Not implement yet");
             }
@@ -1349,25 +1341,22 @@ void merge_bundle_mapping(
             auto& packed = generator->port_packed(dir, entry_name, struct_);
 
             for (auto const& [attr, real_name] : m) {
-                auto& slice = packed[attr];
                 auto target = generator->get_port(real_name);
-                printf("target size: %ld\n", target->sinks().size());
                 if (dir != target->port_direction())
                     throw ::runtime_error("Internal error: direction doesn't match");
                 // depends on the direction, the parent can change;
                 if (dir == PortDirection::In) {
                     if (p) {
-                        Var::move_src_to(target.get(), &slice, p, false);
+                        Var::move_src_to(target.get(), &packed[attr], p, false);
                     }
-                    Var::move_sink_to(target.get(), &slice, generator, false);
+                    Var::move_sink_to(target.get(), &packed[attr], generator, false);
                 } else {
-                    Var::move_src_to(target.get(), &slice, generator, false);
+                    Var::move_src_to(target.get(), &packed[attr], generator, false);
                     if (p) {
-                        Var::move_sink_to(target.get(), &slice, p, false);
+                        Var::move_sink_to(target.get(), &packed[attr], p, false);
                     }
                 }
                 // remove target
-                printf("remove port: %s sink size: %ld\n", real_name.c_str(), packed.sinks().size());
                 generator->remove_port(real_name);
             }
             // remove bundle info

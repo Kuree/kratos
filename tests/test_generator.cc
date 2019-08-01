@@ -566,7 +566,5 @@ TEST(generator, bundle_to_struct) { // NOLINT
     decouple_generator_ports(&mod1);
     create_module_instantiation(&mod1);
     remove_fanout_one_wires(&mod1);
-    auto mod_src = generate_verilog(&mod1);
-    printf("%s\n", mod_src.at("module3").c_str());
-    printf("%ld\n", mod1.stmts_count());
+    generate_verilog(&mod1);
 }
