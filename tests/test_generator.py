@@ -857,7 +857,7 @@ def test_bundle_pack():
             self.add_stmt(out_.assign(mod1.a + mod2.p.a))
 
     mod = Mod()
-    mod_src = verilog(mod, optimize_passthrough=False)
+    mod_src = verilog(mod, optimize_passthrough=False, filename="test.sv")
     # assert is_valid_verilog(mod_src)
 
 

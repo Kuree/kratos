@@ -6,6 +6,7 @@
 #include "generator.hh"
 #include "stmt.hh"
 #include "util.hh"
+#include <algorithm>
 
 using fmt::format;
 using std::make_shared;
@@ -195,7 +196,8 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     : Var(parent->generator, "", parent->var_width, 1, parent->is_signed, VarType::Slice),
       parent_var(parent),
       low(low),
-      high(high) {
+      high(high),
+      op_({high, low}) {
     // compute the width
     if (parent->size == 1) {
         // this is the actual slice
@@ -498,22 +500,30 @@ IRNode *Expr::get_child(uint64_t index) {
         return nullptr;
 }
 
-void set_var_parent(std::shared_ptr<Var> var, Var* target, Var* new_var, bool check_target) {
+void set_var_parent(std::shared_ptr<Var> &var, Var *target, Var *new_var, bool check_target) {
     std::shared_ptr<VarSlice> slice;
-    while (var->type() == VarType::Slice) {
+    std::shared_ptr<Var> parent_var = var;
+    std::vector<std::shared_ptr<VarSlice>> slices;
+    while (parent_var->type() == VarType::Slice) {
         // this is for nested slicing
-        slice = var->as<VarSlice>();
-        var = slice->parent_var->shared_from_this();
+        slice = parent_var->as<VarSlice>();
+        slices.emplace_back(slice);
+        parent_var = slice->parent_var->shared_from_this();
     }
-    if (var.get() != target) {
+    if (parent_var.get() != target) {
         if (check_target)
             throw ::runtime_error("target not found");
         else
             return;
     }
-    if (!slice)
-        throw ::runtime_error("Internal Error: slice cannot be null");
-    slice->set_parent(new_var);
+    if (!slice) throw ::runtime_error("Internal Error: slice cannot be null");
+
+    auto new_var_ptr = new_var->as<Var>();
+    std::reverse(slices.begin(), slices.end());
+    for (auto const &s: slices) {
+        new_var_ptr = s->slice_var(new_var_ptr);
+    }
+    var = new_var_ptr;
 }
 
 void change_var_expr(std::shared_ptr<Expr> expr, Var *target, Var *new_var) {
@@ -539,7 +549,7 @@ void change_var_expr(std::shared_ptr<Expr> expr, Var *target, Var *new_var) {
 }
 
 void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
-    auto right = stmt->right();
+    auto& right = stmt->right();
     if (right->type() == VarType::Base || right->type() == VarType::PortIO ||
         right->type() == VarType::ConstValue) {
         if (right.get() == target)
@@ -554,7 +564,7 @@ void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
 }
 
 void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
-    auto left = stmt->left();
+    auto &left = stmt->left();
     if (left->type() == VarType::Base || left->type() == VarType::PortIO ||
         left->type() == VarType::ConstValue) {
         if (left.get() == target)
@@ -714,6 +724,16 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
     if (!found) {
         throw ::runtime_error(
             ::format("{0} does not exist in {1}", member_name, struct_.struct_name));
+    }
+}
+
+shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
+    if (var->type() == PortIO) {
+        auto v = var->as<PortPacked>();
+        return v->operator[](member_name_).shared_from_this();
+    } else {
+        auto v = var->as<VarPacked>();
+        return v->operator[](member_name_).shared_from_this();
     }
 }
 

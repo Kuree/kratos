@@ -1342,18 +1342,19 @@ void merge_bundle_mapping(
 
             for (auto const& [attr, real_name] : m) {
                 auto target = generator->get_port(real_name);
+                auto &slice = packed[attr];
                 if (dir != target->port_direction())
                     throw ::runtime_error("Internal error: direction doesn't match");
                 // depends on the direction, the parent can change;
                 if (dir == PortDirection::In) {
                     if (p) {
-                        Var::move_src_to(target.get(), &packed[attr], p, false);
+                        Var::move_src_to(target.get(), &slice, p, false);
                     }
-                    Var::move_sink_to(target.get(), &packed[attr], generator, false);
+                    Var::move_sink_to(target.get(), &slice, generator, false);
                 } else {
-                    Var::move_src_to(target.get(), &packed[attr], generator, false);
+                    Var::move_src_to(target.get(), &slice, generator, false);
                     if (p) {
-                        Var::move_sink_to(target.get(), &packed[attr], p, false);
+                        Var::move_sink_to(target.get(), &slice, p, false);
                     }
                 }
                 // remove target

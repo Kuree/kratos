@@ -128,6 +128,7 @@ public:
     }
 
     virtual bool inline is_packed() const { return false; }
+    virtual std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) { return var; }
 
     virtual std::string to_string() const;
 
@@ -197,9 +198,15 @@ public:
     uint32_t var_high() { return var_high_; }
     uint32_t var_low() { return var_low_; }
 
+    std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override {
+        return var->operator[](op_).shared_from_this();
+    }
+
 protected:
     uint32_t var_high_ = 0;
     uint32_t var_low_ = 0;
+
+    std::pair<uint32_t, uint32_t> op_;
 };
 
 struct VarConcat : public Var {
@@ -269,6 +276,8 @@ public:
     PackedSlice(VarPacked *parent, const std::string &member_name);
 
     std::string to_string() const override;
+
+    std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override;
 
 private:
     void set_up(const PackedStruct &struct_, const std::string &member_name);

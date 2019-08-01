@@ -49,6 +49,8 @@ public:
 
     std::shared_ptr<Var> left() const { return left_; }
     std::shared_ptr<Var> right() const { return right_; }
+    std::shared_ptr<Var> &left() { return left_; }
+    std::shared_ptr<Var> &right() { return right_; }
 
     void set_left(const std::shared_ptr<Var> &left) { left_ = left; }
     void set_right(const std::shared_ptr<Var> &right) { right_ = right; }
