@@ -483,7 +483,6 @@ public:
                 const auto& sources = port->sources();
                 // unless it's driven by a single var or port, we need to duplicate
                 // the variable
-                printf("%s %ld\n", port_name.c_str(), sources.size());
                 if (sources.size() == 1) {
                     const auto& stmt = *sources.begin();
                     if (stmt->left() == port) {

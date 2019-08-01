@@ -559,6 +559,7 @@ TEST(generator, bundle_to_struct) { // NOLINT
 
     // run bundle to pack pass
     verify_generator_connectivity(&mod1);
+    // remove_pass_through_modules(&mod1);
     change_port_bundle_struct(&mod1);
     verify_generator_connectivity(&mod1);
     decouple_generator_ports(&mod1);
