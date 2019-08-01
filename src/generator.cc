@@ -448,6 +448,15 @@ PortPacked &Generator::port_packed(PortDirection direction, const std::string &p
     return *p;
 }
 
+VarPacked& Generator::var_packed(const std::string &var_name,
+                                 const kratos::PackedStruct &packed_struct_) {
+    if (vars_.find(var_name) != vars_.end())
+        throw ::runtime_error(::format("{0} already exists in {1}", var_name, name));
+    auto v = std::make_shared<VarPacked>(this, var_name, packed_struct_);
+    vars_.emplace(var_name, v);
+    return *v;
+}
+
 void Generator::replace(const std::string &child_name,
                         const std::shared_ptr<Generator> &new_child) {
     // obtained the generator

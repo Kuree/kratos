@@ -51,6 +51,15 @@ void init_expr(py::module &m) {
             py::return_value_policy::reference);
     def_trace<py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>, PortPacked>(port_packed);
 
+    auto var_packed = py::class_<VarPacked, ::shared_ptr<VarPacked>, Var>(m, "VarPacked");
+    init_var_derived(var_packed);
+    var_packed
+        .def(
+            "__getitem__",
+            [](VarPacked & port, const std::string &name) -> auto & { return port[name]; },
+            py::return_value_policy::reference);
+    def_trace<py::class_<VarPacked, ::shared_ptr<VarPacked>, Var>, VarPacked>(var_packed);
+
     // struct info for packed
     auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");
     struct_.def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t, bool>>>())

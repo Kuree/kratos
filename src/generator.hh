@@ -37,6 +37,7 @@ public:
                PortType type, bool is_signed);
     PortPacked &port_packed(PortDirection direction, const std::string &port_name,
                             const PackedStruct &packed_struct_);
+    VarPacked &var_packed(const std::string &var_name, const PackedStruct &packed_struct_);
     Const &constant(int64_t value, uint32_t width);
     Const &constant(int64_t value, uint32_t width, bool is_signed);
     Param &parameter(const std::string &parameter_name, uint32_t width);

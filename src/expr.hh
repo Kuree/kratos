@@ -280,6 +280,8 @@ private:
 
 struct VarPacked: public Var {
 public:
+    VarPacked(Generator *m, const std::string &name, PackedStruct packed_struct_);
+
     bool is_packed() override { return true; }
 
     const PackedStruct &packed_struct() const { return struct_; }

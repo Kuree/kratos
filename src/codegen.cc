@@ -55,7 +55,16 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
         var->verilog_ln = line_no_;
     }
 
-    (*this) << ::format("logic {0} {1} {2}{3};", var->is_signed ? "signed" : "",
+    // based on whether it's packed or not
+    std::string type;
+    if (var->is_packed()) {
+        auto v = var->as<VarPacked>();
+        type = v->packed_struct().struct_name;
+    } else {
+        type = "logic";
+    }
+
+    (*this) << ::format("{0} {1} {2} {3}{4};", type, var->is_signed ? "signed" : "",
                         SystemVerilogCodeGen::get_var_width_str(var.get()), var->name,
                         var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
             << endl();

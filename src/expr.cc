@@ -667,24 +667,23 @@ PackedStruct::PackedStruct(std::string struct_name,
                            std::vector<std::tuple<std::string, uint32_t, bool>> attributes)
     : struct_name(std::move(struct_name)), attributes(std::move(attributes)) {}
 
-
-PackedSlice::PackedSlice(PortPacked* parent, const std::string& member_name)
+PackedSlice::PackedSlice(PortPacked *parent, const std::string &member_name)
     : VarSlice(parent, 0, 0), member_name_(member_name) {
-    auto const& struct_ = parent->packed_struct();
+    auto const &struct_ = parent->packed_struct();
     set_up(struct_, member_name);
 }
 
-PackedSlice::PackedSlice(kratos::VarPacked* parent, const std::string& member_name)
+PackedSlice::PackedSlice(kratos::VarPacked *parent, const std::string &member_name)
     : VarSlice(parent, 0, 0), member_name_(member_name) {
-    auto const& struct_ = parent->packed_struct();
+    auto const &struct_ = parent->packed_struct();
     set_up(struct_, member_name);
 }
 
-void PackedSlice::set_up(const kratos::PackedStruct& struct_, const std::string& member_name) {
+void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string &member_name) {
     // compute the high and low
     uint32_t low_ = 0;
     bool found = false;
-    for (auto const& [name, width, is_signed_] : struct_.attributes) {
+    for (auto const &[name, width, is_signed_] : struct_.attributes) {
         if (name == member_name) {
             found = true;
             high = width + low_ - 1;
@@ -708,7 +707,7 @@ std::string PackedSlice::to_string() const {
     return ::format("{0}.{1}", parent_var->to_string(), member_name_);
 }
 
-PackedSlice& VarPacked::operator[](const std::string& member_name) {
+PackedSlice &VarPacked::operator[](const std::string &member_name) {
     if (members_.find(member_name) != members_.end()) {
         return *members_.at(member_name);
     } else {
@@ -716,6 +715,16 @@ PackedSlice& VarPacked::operator[](const std::string& member_name) {
         members_.emplace(member_name, ptr);
         return *ptr;
     }
+}
+
+VarPacked::VarPacked(Generator *m, const std::string &name, PackedStruct packed_struct_)
+    : Var(m, name, 0, 1, false), struct_(std::move(packed_struct_)) {
+    // compute the width
+    width = 0;
+    for (auto const &def : struct_.attributes) {
+        width += std::get<1>(def);
+    }
+    var_width = width;
 }
 
 }

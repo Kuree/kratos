@@ -483,6 +483,7 @@ public:
                 const auto& sources = port->sources();
                 // unless it's driven by a single var or port, we need to duplicate
                 // the variable
+                printf("%s %ld\n", port_name.c_str(), sources.size());
                 if (sources.size() == 1) {
                     const auto& stmt = *sources.begin();
                     if (stmt->left() == port) {
@@ -541,15 +542,21 @@ public:
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
-                auto& var = parent->var(new_name, port->var_width, port->size, port->is_signed);
+                if (port->is_packed()) {
+                    auto packed = port->as<PortPacked>();
+                    parent->var_packed(new_name, packed->packed_struct());
+                } else {
+                    parent->var(new_name, port->var_width, port->size, port->is_signed);
+                }
+                auto var = parent->get_var(new_name);
                 if (parent->debug) {
                     // need to copy over the changes over
-                    var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
+                    var->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
                         port->fn_name_ln.begin(), port->fn_name_ln.end());
-                    var.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                    var->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                 }
                 // replace all the sources
-                Var::move_sink_to(port.get(), &var, parent, true);
+                Var::move_sink_to(port.get(), var.get(), parent, true);
             } else {
                 throw ::runtime_error("Not implement yet");
             }
