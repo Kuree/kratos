@@ -476,6 +476,12 @@ public:
         }
         auto const& port_names = generator->get_port_names();
 
+
+
+        if (generator->name == "module3") {
+            printf("here\n");
+        }
+
         for (auto const& port_name : port_names) {
             auto port = generator->get_port(port_name);
             auto const port_direction = port->port_direction();
@@ -506,19 +512,26 @@ public:
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
-                auto& var = parent->var(new_name, port->var_width, port->size, port->is_signed);
+                if (port->is_packed()) {
+                    auto packed = port->as<PortPacked>();
+                    parent->var_packed(new_name, packed->packed_struct());
+                } else {
+                    parent->var(new_name, port->var_width, port->size, port->is_signed);
+                }
+                auto var = parent->get_var(new_name);
                 if (parent->debug) {
                     // need to copy over the changes over
-                    var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
+                    var->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
                         port->fn_name_ln.begin(), port->fn_name_ln.end());
-                    var.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                    var->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                 }
                 // replace all the sources
-                Var::move_src_to(port.get(), &var, parent, true);
+                Var::move_src_to(port.get(), var.get(), parent, true);
             } else if (port_direction == PortDirection::Out) {
                 // same logic as the port dir in
                 // if we're connected to a base variable, we are good
                 const auto& sinks = port->sinks();
+                printf("%s sink size: %ld\n", port->name.c_str(), sinks.size());
                 if (sinks.empty()) {
                     continue;
                 }
@@ -556,6 +569,7 @@ public:
                 }
                 // replace all the sources
                 Var::move_sink_to(port.get(), var.get(), parent, true);
+                printf("here\n");
             } else {
                 throw ::runtime_error("Not implement yet");
             }
@@ -813,7 +827,7 @@ public:
 
         for (auto const& child : child_to_remove) {
             // we move the src and sinks around
-            const auto& port_names = generator->get_port_names();
+            const auto& port_names = child->get_port_names();
             for (auto const& port_name : port_names) {
                 auto port = child->get_port(port_name);
                 if (port->port_direction() == PortDirection::In) {
@@ -872,7 +886,7 @@ private:
 
 void remove_pass_through_modules(Generator* top) {
     RemovePassThroughVisitor visitor;
-    visitor.visit_generator_root_p(top);
+    visitor.visit_generator_root(top);
 }
 
 // this is only for visiting the vars and assignments in the current generator
@@ -1330,13 +1344,16 @@ void merge_bundle_mapping(
             auto p = dynamic_cast<Generator*>(generator->parent());
             // move sources around the ports
             auto ref = generator->get_bundle_ref(entry_name);
-            auto const &m = ref->name_mappings();
+            auto const& m = ref->name_mappings();
             auto dir = generator->get_port(m.begin()->second)->port_direction();
-            auto &packed = generator->port_packed(dir, entry_name, struct_);
+            auto& packed = generator->port_packed(dir, entry_name, struct_);
 
-            for (auto const &[attr, real_name]: m) {
-                auto &slice = packed[attr];
+            for (auto const& [attr, real_name] : m) {
+                auto& slice = packed[attr];
                 auto target = generator->get_port(real_name);
+                printf("target size: %ld\n", target->sinks().size());
+                if (dir != target->port_direction())
+                    throw ::runtime_error("Internal error: direction doesn't match");
                 // depends on the direction, the parent can change;
                 if (dir == PortDirection::In) {
                     if (p) {
@@ -1350,6 +1367,7 @@ void merge_bundle_mapping(
                     }
                 }
                 // remove target
+                printf("remove port: %s sink size: %ld\n", real_name.c_str(), packed.sinks().size());
                 generator->remove_port(real_name);
             }
             // remove bundle info

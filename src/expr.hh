@@ -114,9 +114,7 @@ public:
     void remove_sink(const std::shared_ptr<AssignStmt> &stmt) { sinks_.erase(stmt); }
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const { return sources_; };
     void remove_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.erase(stmt); }
-    std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> &get_slices() {
-        return slices_;
-    }
+    std::set<std::shared_ptr<VarSlice>> &get_slices() { return slices_; }
 
     static void move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_connection);
     static void move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_connection);
@@ -129,7 +127,7 @@ public:
         return std::static_pointer_cast<T>(shared_from_this());
     }
 
-    virtual bool inline is_packed() { return false; }
+    virtual bool inline is_packed() const { return false; }
 
     virtual std::string to_string() const;
 
@@ -151,7 +149,7 @@ protected:
 
     std::unordered_set<std::shared_ptr<VarConcat>> concat_vars_;
 
-    std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> slices_;
+    std::set<std::shared_ptr<VarSlice>> slices_;
 
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
@@ -256,7 +254,6 @@ private:
     std::string parameter_name_;
 };
 
-
 struct PackedStruct {
 public:
     std::string struct_name;
@@ -278,11 +275,11 @@ private:
     std::string member_name_;
 };
 
-struct VarPacked: public Var {
+struct VarPacked : public Var {
 public:
     VarPacked(Generator *m, const std::string &name, PackedStruct packed_struct_);
 
-    bool is_packed() override { return true; }
+    bool is_packed() const override { return true; }
 
     const PackedStruct &packed_struct() const { return struct_; }
 
@@ -296,8 +293,6 @@ public:
 
 private:
     PackedStruct struct_;
-
-    std::unordered_map<std::string, std::shared_ptr<PackedSlice>> members_;
 };
 
 struct Expr : public Var {

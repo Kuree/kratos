@@ -13,6 +13,24 @@ namespace kratos {
 
 IRNode *Stmt::parent() { return parent_; }
 
+Generator* Stmt::generator_parent() const {
+    IRNode *p = parent_;
+    // we don't do while loop here to prevent infinite loop
+    // 100000 is sufficient for almost all designs.
+    for (uint32_t i = 0; i < 100000u; i++) {
+        if (p->ir_node_kind() != IRNodeKind::GeneratorKind) {
+            p = p->parent();
+        } else {
+            break;
+        }
+    }
+    if (p->ir_node_kind() != IRNodeKind::GeneratorKind) {
+        throw ::runtime_error("Internal Error: cannot find parent for stmt");
+    }
+    return dynamic_cast<Generator*>(p);
+
+}
+
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
     : AssignStmt(left, right, AssignmentType::Undefined) {}
 
@@ -250,13 +268,13 @@ std::unordered_set<std::shared_ptr<AssignStmt>> filter_assignments_with_target(
     return result;
 }
 
-std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> filter_slice_pairs_with_target(
-    const std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> &slices,
+std::set<std::shared_ptr<VarSlice>> filter_slice_pairs_with_target(
+    const std::set<std::shared_ptr<VarSlice>> &slices,
     Generator *target, bool lhs) {
-    std::map<std::pair<uint32_t, uint32_t>, std::shared_ptr<VarSlice>> result;
-    for (auto const &[slice_pair, slice] : slices) {
+    std::set<std::shared_ptr<VarSlice>> result;
+    for (auto const &slice : slices) {
         if (!filter_assignments_with_target(slice->sources(), target, lhs).empty()) {
-            result.emplace(slice_pair, slice);
+            result.emplace(slice);
         }
     }
     return result;

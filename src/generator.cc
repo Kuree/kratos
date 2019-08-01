@@ -592,4 +592,19 @@ std::shared_ptr<PortBundleRef> Generator::get_bundle_ref(const std::string &port
     return port_bundle_mapping_.at(port_name);
 }
 
+void Generator::remove_var(const std::string &var_name) {
+    if (vars_.find(var_name) == vars_.end()) {
+        throw ::runtime_error(::format("Cannot find {0} from {1}", var_name, name));
+    }
+    auto var = vars_.at(var_name);
+    if (!var->sources().empty()) {
+        throw ::runtime_error(::format("{0} still has source connection(s)"));
+    }
+    if (!var->sinks().empty()) {
+        throw ::runtime_error(::format("{0} still has sink connection(s)"));
+    }
+
+    vars_.erase(var_name);
+}
+
 }

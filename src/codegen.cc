@@ -64,9 +64,10 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
         type = "logic";
     }
 
-    (*this) << ::format("{0} {1} {2} {3}{4};", type, var->is_signed ? "signed" : "",
-                        SystemVerilogCodeGen::get_var_width_str(var.get()), var->name,
-                        var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
+    (*this) << ::format(
+                   "{0} {1} {2} {3}{4};", type, var->is_signed ? "signed" : "",
+                   SystemVerilogCodeGen::get_var_width_str(var.get()), var->name,
+                   var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
             << endl();
     return *this;
 }
@@ -101,7 +102,7 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
 }
 
 std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {
-    return var->var_width > 1 ? ::format("[{0}:0]", var->var_width - 1) : "";
+    return var->var_width > 1 && !var->is_packed() ? ::format("[{0}:0]", var->var_width - 1) : "";
 }
 
 void SystemVerilogCodeGen::generate_ports(Generator* generator) {

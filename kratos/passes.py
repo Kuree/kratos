@@ -50,7 +50,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     else:
         pass_manager.add_pass("hash_generators_sequential")
     pass_manager.add_pass("uniquify_generators")
-    pass_manager.add_pass("create_module_instantiation")
+    # pass_manager.add_pass("create_module_instantiation")
     pass_manager.add_pass("insert_pipeline_stages")
 
     code_gen.run_passes()
@@ -62,10 +62,11 @@ def verilog(generator: Generator, optimize_if: bool = True,
     else:
         info = {}
 
-    if extra_struct:
+    if extra_struct or filename:
         struct_info = _kratos.passes.extract_struct_info(
             generator.internal_generator)
-        result.append(struct_info)
+        if extra_struct:
+            result.append(struct_info)
     else:
         struct_info = {}
 

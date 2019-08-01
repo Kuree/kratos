@@ -53,12 +53,10 @@ public:
     }
     VarSlice inline &operator[](uint32_t idx) override { return Var::operator[](idx); }
 
-    bool is_packed() override { return true; }
+    bool is_packed() const override { return true; }
 
 private:
     PackedStruct struct_;
-
-    std::unordered_map<std::string, std::shared_ptr<PackedSlice>> members_;
 };
 
 struct PortBundleDefinition : public std::enable_shared_from_this<PortBundleDefinition> {

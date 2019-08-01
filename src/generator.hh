@@ -50,9 +50,7 @@ public:
     std::shared_ptr<Var> get_var(const std::string &var_name);
     const std::set<std::string> &get_port_names() const { return ports_; }
     const std::map<std::string, std::shared_ptr<Var>> &vars() const { return vars_; }
-    void remove_var(const std::string &var_name) {
-        if (vars_.find(var_name) != vars_.end()) vars_.erase(var_name);
-    }
+    void remove_var(const std::string &var_name);
     bool has_port(const std::string &port_name) { return ports_.find(port_name) != ports_.end(); }
     bool has_var(const std::string &var_name) { return vars_.find(var_name) != vars_.end(); }
     void remove_port(const std::string &port_name);

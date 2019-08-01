@@ -163,14 +163,12 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
                                {this});
         }
     }
-    // if we already has the slice
-    if (slices_.find(slice) != slices_.end()) return *slices_.at(slice);
     // create a new one
     // notice that slice is not part of generator's variables. It's handled by the parent (var)
     // itself
     auto var_slice = ::make_shared<VarSlice>(this, high, low);
-    slices_.emplace(slice, var_slice);
-    return *slices_.at(slice);
+    slices_.emplace(var_slice);
+    return *var_slice;
 }
 
 VarConcat &Var::concat(Var &var) {
@@ -500,6 +498,24 @@ IRNode *Expr::get_child(uint64_t index) {
         return nullptr;
 }
 
+void set_var_parent(std::shared_ptr<Var> var, Var* target, Var* new_var, bool check_target) {
+    std::shared_ptr<VarSlice> slice;
+    while (var->type() == VarType::Slice) {
+        // this is for nested slicing
+        slice = var->as<VarSlice>();
+        var = slice->parent_var->shared_from_this();
+    }
+    if (var.get() != target) {
+        if (check_target)
+            throw ::runtime_error("target not found");
+        else
+            return;
+    }
+    if (!slice)
+        throw ::runtime_error("Internal Error: slice cannot be null");
+    slice->set_parent(new_var);
+}
+
 void change_var_expr(std::shared_ptr<Expr> expr, Var *target, Var *new_var) {
     if (expr->left->type() == VarType::Expression) {
         expr = expr->left->as<Expr>();
@@ -512,6 +528,14 @@ void change_var_expr(std::shared_ptr<Expr> expr, Var *target, Var *new_var) {
 
     if (expr->left.get() == target) expr->left = new_var->shared_from_this();
     if (expr->right && expr->right.get() == target) expr->right = new_var->shared_from_this();
+
+    // need to change the parent as well
+    if (expr->left->type() == VarType::Slice) {
+        set_var_parent(expr->left, target, new_var, false);
+    }
+    if (expr->right && expr->right->type() == VarType::Slice) {
+        set_var_parent(expr->right, target, new_var, false);
+    }
 }
 
 void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
@@ -523,14 +547,7 @@ void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
         else
             throw ::runtime_error("target not found");
     } else if (right->type() == VarType::Slice) {
-        std::shared_ptr<VarSlice> slice;
-        while (right->type() == VarType::Slice) {
-            // this is for nested slicing
-            slice = right->as<VarSlice>();
-            right = slice->parent_var->shared_from_this();
-        }
-        if (right.get() != target) throw ::runtime_error("target not found");
-        slice->set_parent(new_var);
+        set_var_parent(right, target, new_var, true);
     } else if (right->type() == VarType::Expression) {
         change_var_expr(stmt->right()->as<Expr>(), target, new_var);
     }
@@ -545,14 +562,7 @@ void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
         else
             throw ::runtime_error("target not found");
     } else if (left->type() == VarType::Slice) {
-        std::shared_ptr<VarSlice> slice;
-        while (left->type() == VarType::Slice) {
-            // this is for nested slicing
-            slice = left->as<VarSlice>();
-            left = slice->parent_var->shared_from_this();
-        }
-        if (left.get() != target) throw ::runtime_error("target not found");
-        slice->set_parent(new_var);
+        set_var_parent(left, target, new_var, true);
     } else if (left->type() == VarType::Expression) {
         change_var_expr(stmt->left()->as<Expr>(), target, new_var);
     }
@@ -564,6 +574,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
         throw ::runtime_error("Only base or port variables are allowed.");
 
     for (auto &stmt : var->sources_) {
+        if (stmt->generator_parent() != parent) continue;
         stmt_set_left(stmt.get(), var, new_var);
         if (parent->debug) {
             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
@@ -589,6 +600,9 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
         throw ::runtime_error("Only base or port variables are allowed.");
 
     for (auto &stmt : var->sinks_) {
+        if (stmt->generator_parent() != parent) {
+            continue;
+        }
         stmt_set_right(stmt.get(), var, new_var);
         if (parent->debug) {
             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
@@ -708,13 +722,9 @@ std::string PackedSlice::to_string() const {
 }
 
 PackedSlice &VarPacked::operator[](const std::string &member_name) {
-    if (members_.find(member_name) != members_.end()) {
-        return *members_.at(member_name);
-    } else {
-        auto ptr = std::make_shared<PackedSlice>(this, member_name);
-        members_.emplace(member_name, ptr);
-        return *ptr;
-    }
+    auto ptr = std::make_shared<PackedSlice>(this, member_name);
+    slices_.emplace(ptr);
+    return *ptr;
 }
 
 VarPacked::VarPacked(Generator *m, const std::string &name, PackedStruct packed_struct_)

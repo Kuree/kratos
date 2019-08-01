@@ -43,13 +43,9 @@ void PortPacked::set_port_type(PortType) {
 }
 
 PackedSlice& PortPacked::operator[](const std::string& member_name) {
-    if (members_.find(member_name) != members_.end()) {
-        return *members_.at(member_name);
-    } else {
-        auto ptr = std::make_shared<PackedSlice>(this, member_name);
-        members_.emplace(member_name, ptr);
-        return *ptr;
-    }
+    auto ptr = std::make_shared<PackedSlice>(this, member_name);
+    slices_.emplace(ptr);
+    return *ptr;
 }
 
 
