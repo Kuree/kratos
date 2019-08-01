@@ -13,7 +13,7 @@ namespace kratos {
 
 IRNode *Stmt::parent() { return parent_; }
 
-Generator* Stmt::generator_parent() const {
+Generator *Stmt::generator_parent() const {
     IRNode *p = parent_;
     // we don't do while loop here to prevent infinite loop
     // 100000 is sufficient for almost all designs.
@@ -27,8 +27,7 @@ Generator* Stmt::generator_parent() const {
     if (p->ir_node_kind() != IRNodeKind::GeneratorKind) {
         throw ::runtime_error("Internal Error: cannot find parent for stmt");
     }
-    return dynamic_cast<Generator*>(p);
-
+    return dynamic_cast<Generator *>(p);
 }
 
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
@@ -120,7 +119,7 @@ void IfStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
             return;
         }
     }
-    for (auto const &s: *else_body_) {
+    for (auto const &s : *else_body_) {
         if (s == stmt) {
             remove_else_stmt(stmt);
             return;
@@ -168,8 +167,7 @@ void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
 
 void StmtBlock::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
     auto pos = std::find(stmts_.begin(), stmts_.end(), stmt);
-    if (pos != stmts_.end())
-        stmts_.erase(pos);
+    if (pos != stmts_.end()) stmts_.erase(pos);
 }
 
 void StmtBlock::set_child(uint64_t index, const std::shared_ptr<Stmt> &stmt) {
@@ -180,15 +178,19 @@ void SequentialStmtBlock::add_condition(
     const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition) {
     // notice that the condition variable cannot be used as a condition
     // for now we only allow Port (clk and reset) type to use as conditions
+    // make sure no duplicate
+    auto pos = std::find(conditions_.begin(), conditions_.end(), condition);
+    if (pos != conditions_.end())
+        return;
     auto var = condition.second;
     if (var->type() != VarType::PortIO)
-        throw ::runtime_error("only ports are allowed for sequential block condition.");
+        throw VarException("only ports are allowed for sequential block condition.", {var.get()});
     const auto &port = var->as<Port>();
     if (port->port_type() != PortType::AsyncReset && port->port_type() != PortType::Clock) {
-        throw ::runtime_error(
-            "only clock and async reset allowed to use as sequential block condition");
+        throw VarException(
+            "only clock and async reset allowed to use as sequential block condition", {var.get()});
     }
-    conditions_.emplace(condition);
+    conditions_.emplace_back(condition);
     auto stmt = var->generator->get_null_var(var)->assign(var);
     stmt->set_parent(this);
 }
@@ -202,8 +204,8 @@ SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
     stmt->set_parent(this);
 }
 
-ScopedStmtBlock & SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
-                                 const std::shared_ptr<Stmt> &stmt) {
+ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
+                                             const std::shared_ptr<Stmt> &stmt) {
     stmt->set_parent(this);
     if (body_.find(switch_case) == body_.end()) {
         body_.emplace(switch_case, std::make_shared<ScopedStmtBlock>());
@@ -211,7 +213,7 @@ ScopedStmtBlock & SwitchStmt::add_switch_case(const std::shared_ptr<Const> &swit
     if (stmt->type() == StatementType::Block) {
         // merge the block
         auto blk = stmt->as<StmtBlock>();
-        for (auto const &s: *blk) {
+        for (auto const &s : *blk) {
             body_[switch_case]->add_stmt(s);
         }
     } else {
@@ -220,8 +222,8 @@ ScopedStmtBlock & SwitchStmt::add_switch_case(const std::shared_ptr<Const> &swit
     return *body_[switch_case];
 }
 
-ScopedStmtBlock & SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
-                                 const std::vector<std::shared_ptr<Stmt>> &stmts) {
+ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
+                                             const std::vector<std::shared_ptr<Stmt>> &stmts) {
     for (auto &stmt : stmts) add_switch_case(switch_case, stmt);
     return *body_[switch_case];
 }
@@ -241,8 +243,8 @@ void SwitchStmt::remove_switch_case(const std::shared_ptr<kratos::Const> &switch
 }
 
 void SwitchStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
-    for (auto &[c, stmts]: body_) {
-        for (auto const &s: *stmts) {
+    for (auto &[c, stmts] : body_) {
+        for (auto const &s : *stmts) {
             if (s == stmt) {
                 remove_switch_case(c, stmt);
                 break;
@@ -278,8 +280,7 @@ std::unordered_set<std::shared_ptr<AssignStmt>> filter_assignments_with_target(
 }
 
 std::set<std::shared_ptr<VarSlice>> filter_slice_pairs_with_target(
-    const std::set<std::shared_ptr<VarSlice>> &slices,
-    Generator *target, bool lhs) {
+    const std::set<std::shared_ptr<VarSlice>> &slices, Generator *target, bool lhs) {
     std::set<std::shared_ptr<VarSlice>> result;
     for (auto const &slice : slices) {
         if (!filter_assignments_with_target(slice->sources(), target, lhs).empty()) {

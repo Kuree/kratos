@@ -84,7 +84,9 @@ def output_verilog(filename, mod_src, info, struct_info):
             def_ = struct_info[struct_name]
             f.write(def_ + "\n")
 
-        for mod_name in mod_src:
+        mod_src_names = list(mod_src.keys())
+        mod_src_names.sort()
+        for mod_name in mod_src_names:
             src = mod_src[mod_name]
             mod_info = info[mod_name] if mod_name in info else {}
             lines = src.split("\n")

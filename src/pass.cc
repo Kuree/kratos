@@ -809,11 +809,11 @@ class RemovePassThroughVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         const auto& children = generator->get_child_generators();
-        std::set<std::shared_ptr<Generator>> child_to_remove;
+        std::vector<std::shared_ptr<Generator>> child_to_remove;
         for (auto const& child : children) {
             if (is_pass_through(child.get())) {
                 // need to remove it
-                child_to_remove.emplace(child);
+                child_to_remove.emplace_back(child);
             }
         }
 
@@ -827,7 +827,8 @@ public:
                     // basically compress the module into a variable
                     // we will let the later downstream passes to remove the extra wiring
                     auto next_port = (*(port->sinks().begin()))->left();
-                    auto var_name = generator->get_unique_variable_name(generator->name, port_name);
+                    auto var_name =
+                        generator->get_unique_variable_name(child->instance_name, port_name);
                     auto& new_var =
                         generator->var(var_name, port->var_width, port->size, port->is_signed);
                     if (generator->debug) {
@@ -1342,7 +1343,7 @@ void merge_bundle_mapping(
 
             for (auto const& [attr, real_name] : m) {
                 auto target = generator->get_port(real_name);
-                auto &slice = packed[attr];
+                auto& slice = packed[attr];
                 if (dir != target->port_direction())
                     throw ::runtime_error("Internal error: direction doesn't match");
                 // depends on the direction, the parent can change;

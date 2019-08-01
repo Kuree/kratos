@@ -205,19 +205,23 @@ bool Generator::has_child_generator(const std::shared_ptr<Generator> &child) {
     return children_.find(child->instance_name) != children_.end();
 }
 
-std::set<std::string> Generator::get_vars() {
-    std::set<std::string> result;
+std::vector<std::string> Generator::get_vars() {
+    std::vector<std::string> result;
+    result.reserve(vars_.size());
     for (auto const &[name, ptr] : vars_) {
         if (ptr->type() == VarType::Base) {
-            result.emplace(name);
+            result.emplace_back(name);
         }
     }
+    std::sort(result.begin(), result.end());
     return result;
 }
 
-std::set<std::string> Generator::get_all_var_names() {
-    std::set<std::string> result;
-    for (auto const &[name, ptr] : vars_) result.emplace(name);
+std::vector<std::string> Generator::get_all_var_names() {
+    std::vector<std::string> result;
+    result.reserve(vars_.size());
+    for (auto const &[name, ptr] : vars_) result.emplace_back(name);
+    std::sort(result.begin(), result.end());
     return result;
 }
 

@@ -64,10 +64,9 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
         type = "logic";
     }
 
-    (*this) << ::format(
-                   "{0} {1} {2} {3}{4};", type, var->is_signed ? "signed" : "",
-                   SystemVerilogCodeGen::get_var_width_str(var.get()), var->name,
-                   var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
+    (*this) << ::format("{0} {1} {2} {3}{4};", type, var->is_signed ? "signed" : "",
+                        SystemVerilogCodeGen::get_var_width_str(var.get()), var->name,
+                        var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
             << endl();
     return *this;
 }
@@ -283,11 +282,18 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
     auto& params = stmt->target()->get_params();
     auto debug_info = stmt->port_debug();
     if (!params.empty()) {
+        std::vector<std::string> param_names;
+        param_names.reserve(params.size());
+        for (auto const& iter : params) {
+            param_names.emplace_back(iter.first);
+        }
+        std::sort(param_names.begin(), param_names.end());
         stream_ << " #(" << stream_.endl();
         indent_++;
 
         uint32_t count = 0;
-        for (auto const& [name, param] : params) {
+        for (auto const& name : param_names) {
+            auto const& param = params.at(name);
             stream_ << indent()
                     << ::format(
                            ".{0}({1}){2}", name, param->value_str(),
@@ -299,7 +305,13 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
     stream_ << " " << stmt->target()->instance_name << " (" << stream_.endl();
     indent_++;
     uint32_t count = 0;
-    for (auto const& [internal, external] : stmt->port_mapping()) {
+    std::vector<std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>>> ports;
+    auto const& mapping = stmt->port_mapping();
+    ports.reserve(mapping.size());
+    for (auto const& iter : mapping) ports.emplace_back(iter);
+    std::sort(ports.begin(), ports.end(),
+              [](const auto& lhs, const auto& rhs) { return lhs.first->name < rhs.first->name; });
+    for (auto const& [internal, external] : ports) {
         if (generator_->debug && debug_info.find(internal) != debug_info.end()) {
             debug_info.at(internal)->verilog_ln = stream_.line_no();
         }

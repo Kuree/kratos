@@ -4,6 +4,7 @@ from kratos import Generator, PortDirection, PortType, always, \
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
+import filecmp
 
 
 class PassThroughMod(Generator):
@@ -26,6 +27,23 @@ class PassThroughTop(Generator):
         self.wire(self["pass"].ports["in"], self.ports["in"], )
 
         self.wire(self.ports.out, self["pass"].ports.out)
+
+
+def check_gold(mod, gold_name, **kargs):
+    with tempfile.TemporaryDirectory() as tempdir:
+        filename = os.path.join(tempdir, "test.sv")
+        gold = os.path.join(os.path.dirname(__file__), "gold",
+                            gold_name + ".sv")
+        verilog(mod, filename=filename, **kargs)
+        assert os.path.isfile(gold)
+        assert os.path.isfile(filename)
+        if not filecmp.cmp(filename, gold):
+            with open(filename) as f:
+                print(f.read())
+            print("-" * 80)
+            with open(gold) as f:
+                print(f.read())
+            assert False
 
 
 def test_generator():
@@ -71,11 +89,7 @@ class AsyncReg(Generator):
 def test_async_reg():
     reg_width = 16
     reg = AsyncReg(reg_width)
-    # produce verilog
-    verilog_src = verilog(reg)
-    assert "register" in verilog_src
-    reg_src = verilog_src["register"]
-    assert is_valid_verilog(reg_src)
+    check_gold(reg, "test_async_reg")
 
 
 def test_module_unique():
@@ -116,22 +130,14 @@ def test_else_if():
                 self._out = 1
 
     mod = ElseIf()
-    mod_src = verilog(mod)
-    assert "elseif" in mod_src
-    src = mod_src["elseif"]
-    assert is_valid_verilog(src)
+    check_gold(mod, "test_else_if")
 
 
 def test_mod_instantiation():
     mod = PassThroughTop()
     # turn off pass through module optimization since it will remove
     # mod2 completely
-    mod_src = verilog(mod, optimize_passthrough=False)
-    assert "mod1" in mod_src
-    assert "top" in mod_src
-    mod2_src = mod_src["top"]
-    assert "$" not in mod2_src
-    assert is_valid_verilog(mod_src)
+    check_gold(mod, "test_mod_instantiation", optimize_passthrough=False)
 
 
 def test_external_module():
@@ -164,9 +170,7 @@ def test_for_loop():
                 self.output[i] = self.inputs[i]
 
     mod = Module(4)
-    mod_src = verilog(mod)
-    src = mod_src["mod"]
-    assert is_valid_verilog(src)
+    check_gold(mod, "test_for_loop")
 
 
 def test_switch():
@@ -188,20 +192,14 @@ def test_switch():
                 self._out = 2
 
     mod = Switch()
-    mod_src = verilog(mod)
-    src = mod_src["switch_test"]
-    assert is_valid_verilog(src)
+    check_gold(mod, "test_switch")
 
 
 def test_pass_through():
     mod = PassThroughTop()
     # turn off pass through module optimization since it will remove
     # mod2 completely
-    mod_src = verilog(mod, optimize_passthrough=True)
-    assert "top" in mod_src
-    assert "mod1" not in mod_src
-    assert is_valid_verilog(mod_src["top"])
-    assert "mod1" not in mod_src["top"]
+    check_gold(mod, "test_pass_through", optimize_passthrough=True)
 
 
 def test_nested_if():
@@ -223,9 +221,7 @@ def test_nested_if():
                 self.out_ = 2
 
     mod = Mod()
-    mod_src = verilog(mod)
-    src = mod_src["mod1"]
-    assert is_valid_verilog(src)
+    check_gold(mod, "test_nested_if")
 
 
 def test_fanout_mod_inst():
@@ -239,7 +235,7 @@ def test_fanout_mod_inst():
             self.mod_2 = PassThroughMod()
 
             self.add_child_generator("mod1", self.mod_1)
-            self.add_child_generator("mod2", self.mod_2)
+            self.add_child_generator("mod3", self.mod_2)
 
             self.wire(self.in_, self.mod_1.in_)
             self.wire(self.in_, self.mod_2.in_)
@@ -250,9 +246,10 @@ def test_fanout_mod_inst():
             self.out_ = self.mod_1.out_ + self.mod_2.out_
 
     mod = Mod2()
-    mod_src = verilog(mod, optimize_passthrough=False)
-    assert "mod2" in mod_src
-    assert is_valid_verilog(mod_src)
+    check_gold(mod, "test_fanout_mod_inst", optimize_passthrough=False)
+    Generator.clear_context()
+    mod2 = Mod2()
+    check_gold(mod2, "test_fanout_mod_inst_passthrough")
 
 
 def test_debug():
@@ -357,17 +354,11 @@ def test_data_if():
                     self.out_ = 1
 
     mod = Mod(True)
-    mod_src = verilog(mod)
-    src = mod_src["mod1"]
-    assert is_valid_verilog(src)
-    assert "in == 1'h1" in src
+    check_gold(mod, "test_data_if_true")
     # need to clear the context, otherwise it will be a different module name
     Generator.clear_context()
     mod = Mod(False)
-    mod_src = verilog(mod)
-    src = mod_src["mod1"]
-    assert is_valid_verilog(src)
-    assert "in == 1'h0" in src
+    check_gold(mod, "test_data_if_false")
 
 
 def test_static_eval_for_loop():
@@ -391,13 +382,13 @@ def test_static_eval_for_loop():
     loop = 4
     mod = Mod(loop)
     mod_src, mod_debug = verilog(mod, debug=True)
-    src = mod_src["mod1"]
     mod_mapping = mod_debug["mod1"]
     lines = list(mod_mapping.keys())
     lines.sort()
     for ii in range(len(mod_mapping) - loop, len(mod_mapping) - 1):
         assert mod_mapping[lines[-1]][-1] == mod_mapping[lines[ii]][-1]
-    assert is_valid_verilog(src)
+    Generator.clear_context()
+    check_gold(mod, "test_static_eval_for_loop")
 
 
 def test_pass():
@@ -423,10 +414,7 @@ def test_pass():
             self.wire(self.out_, self.in_)
 
     mod = Mod1()
-    mod_src = verilog(mod, additional_passes={"name_change": change_name})
-    src = mod_src["mod1"]
-    assert is_valid_verilog(src)
-    assert "logic  test" in src
+    check_gold(mod, "test_pass", additional_passes={"name_change": change_name})
 
 
 def test_const_port():
@@ -444,10 +432,7 @@ def test_const_port():
             self.wire(self.out_[1], self.in_)
 
     mod = Mod()
-    mod_src = verilog(mod, optimize_passthrough=False)
-    assert "mod" in mod_src
-
-    assert is_valid_verilog(mod_src)
+    check_gold(mod, "test_const_port", optimize_passthrough=False)
 
 
 def test_create():
@@ -473,12 +458,7 @@ def test_create():
     mod3.in_.width = 3
     mod3.out_.width = 3
     assert not mod3.is_cloned
-    mod_src = verilog(mod3)
-
-    # we didn't change the name
-    assert "mod_1" in mod_src
-    assert "2:0" in mod_src["mod_1"]
-    assert is_valid_verilog(mod_src)
+    check_gold(mod3, "test_create")
 
 
 def test_clone():
@@ -505,7 +485,7 @@ def test_clone():
     mod = Mod2()
     assert not mod.child1.is_cloned
     assert mod.child2.is_cloned
-    mod_src = verilog(mod, False, False, False)
+    mod_src = verilog(mod, optimize_fanout=False, optimize_passthrough=False)
     assert is_valid_verilog(mod_src)
 
 
@@ -521,12 +501,7 @@ def test_packed_struct():
             self.wire(self.ports["out"], self.ports["in"])
 
     mod = Mod()
-    mod_src, struct_def = verilog(mod, optimize_passthrough=False,
-                                  extra_struct=True)
-    src = mod_src["mod"]
-    struct_src = struct_def["config_data"]
-    src = struct_src + "\n" + src
-    assert is_valid_verilog(src)
+    check_gold(mod, "test_packed_struct", optimize_passthrough=False)
 
 
 def test_more_debug1():
@@ -601,10 +576,7 @@ def test_wire_merge():
                 self.wire(self.ports["out"][i], self.ports["in"][i])
 
     mod = TestModule(4)
-    mod_src = verilog(mod)
-    src = mod_src["Test"]
-    assert "assign out = in" in src
-    assert is_valid_verilog(mod_src)
+    check_gold(mod, "test_wire_merge")
 
 
 def test_remove_child():
@@ -658,8 +630,7 @@ def test_port_array():
     mod.wire(out2[0][1], in_[0][0])
     mod.wire(out2[1], in_[1])
 
-    mod_src = verilog(mod)
-    is_valid_verilog(mod_src)
+    check_gold(mod, "test_port_array")
 
 
 def test_simple_pipeline():
@@ -671,8 +642,7 @@ def test_simple_pipeline():
     attr.value_str = "2"
     mod.add_attribute(attr)
 
-    mod_src = verilog(mod)
-    is_valid_verilog(mod_src)
+    check_gold(mod, "test_simple_pipeline")
 
 
 def test_replace():
@@ -687,9 +657,7 @@ def test_replace():
 
     child = Mod()
     mod.replace("pass", child)
-    mod_src = verilog(mod, optimize_passthrough=False)
-    assert is_valid_verilog(mod_src)
-    assert "test" in mod_src["top"]
+    check_gold(mod, "test_replace", optimize_passthrough=False)
 
 
 def test_local_function():
@@ -708,8 +676,7 @@ def test_local_function():
             self.add_code(code_block)
 
     mod = Mod()
-    mod_src = verilog(mod)
-    is_valid_verilog(mod_src)
+    check_gold(mod, "test_local_function")
 
 
 def test_reg_next():
@@ -730,8 +697,7 @@ def test_reg_next():
             self.wire(out_, b)
 
     mod = Mod()
-    mod_src = verilog(mod)
-    is_valid_verilog(mod_src)
+    check_gold(mod, "test_reg_next")
 
 
 def test_reg_init():
@@ -749,8 +715,7 @@ def test_reg_init():
             self.wire(out_, b)
 
     mod = Mod()
-    mod_src = verilog(mod)
-    is_valid_verilog(mod_src)
+    check_gold(mod, "test_reg_init")
 
 
 def test_reg_enable():
@@ -767,8 +732,7 @@ def test_reg_enable():
             self.wire(out_, b)
 
     mod = Mod()
-    mod_src = verilog(mod)
-    is_valid_verilog(mod_src)
+    check_gold(mod, "test_reg_enable")
 
 
 def test_ternary():
@@ -784,8 +748,7 @@ def test_ternary():
 
             self.wire(out, mux(in1, in2, in3))
     mod = Mod()
-    mod_src = verilog(mod)
-    is_valid_verilog(mod_src)
+    check_gold(mod, "test_ternary")
 
 
 def test_bundle():
@@ -806,8 +769,7 @@ def test_bundle():
             self.wire(self.ports.in_port.b, self.ports.out_port.b)
 
     mod = Mod()
-    mod_src = verilog(mod)
-    is_valid_verilog(mod_src)
+    check_gold(mod, "test_bundle")
 
 
 def test_bundle_pack():
@@ -857,9 +819,9 @@ def test_bundle_pack():
             self.add_stmt(out_.assign(mod1.a + mod2.p.a))
 
     mod = Mod()
-    mod_src = verilog(mod, optimize_passthrough=False, filename="test.sv")
+    mod_src = verilog(mod, optimize_passthrough=False)
     # assert is_valid_verilog(mod_src)
 
 
 if __name__ == "__main__":
-    test_bundle_pack()
+    test_bundle()

@@ -179,7 +179,7 @@ class SequentialStmtBlock : public StmtBlock {
 public:
     SequentialStmtBlock() : StmtBlock(StatementBlockType::Sequential) {}
 
-    const std::set<std::pair<BlockEdgeType, std::shared_ptr<Var>>> &get_conditions() const {
+    const std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> &get_conditions() const {
         return conditions_;
     }
 
@@ -188,7 +188,7 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
-    std::set<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
+    std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
 };
 
 class ModuleInstantiationStmt : public Stmt {

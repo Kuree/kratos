@@ -91,9 +91,9 @@ public:
     uint64_t inline child_count() override { return stmts_count() + get_child_generator_size(); }
     IRNode *get_child(uint64_t index) override;
 
-    std::set<std::string> get_vars();
+    std::vector<std::string> get_vars();
 
-    std::set<std::string> get_all_var_names();
+    std::vector<std::string> get_all_var_names();
 
     std::string get_unique_variable_name(const std::string &prefix, const std::string &var_name);
 
