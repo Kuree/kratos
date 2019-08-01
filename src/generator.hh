@@ -150,6 +150,8 @@ public:
 
     ~Generator() override = default;
 
+    std::shared_ptr<Var> get_null_var(const std::shared_ptr<Var> &var);
+
 private:
     std::vector<std::string> lib_files_;
     Context *context_;
@@ -176,6 +178,8 @@ private:
     // used for shallow cloning
     std::unordered_set<std::shared_ptr<Generator>> clones_;
     bool is_cloned_ = false;
+
+    // meta values
 };
 
 }  // namespace kratos

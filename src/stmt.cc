@@ -85,6 +85,10 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
 
     then_body_->set_parent(this);
     else_body_->set_parent(this);
+
+    // just to add the sinks
+    auto stmt = predicate_->generator->get_null_var(predicate_)->assign(predicate_);
+    stmt->set_parent(this);
 }
 
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
@@ -176,14 +180,17 @@ void SequentialStmtBlock::add_condition(
     const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition) {
     // notice that the condition variable cannot be used as a condition
     // for now we only allow Port (clk and reset) type to use as conditions
-    if (condition.second->type() != VarType::PortIO)
+    auto var = condition.second;
+    if (var->type() != VarType::PortIO)
         throw ::runtime_error("only ports are allowed for sequential block condition.");
-    const auto &port = condition.second->as<Port>();
+    const auto &port = var->as<Port>();
     if (port->port_type() != PortType::AsyncReset && port->port_type() != PortType::Clock) {
         throw ::runtime_error(
             "only clock and async reset allowed to use as sequential block condition");
     }
     conditions_.emplace(condition);
+    auto stmt = var->generator->get_null_var(var)->assign(var);
+    stmt->set_parent(this);
 }
 
 SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
@@ -191,6 +198,8 @@ SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
     // we don't allow const target
     if (target->type() == VarType::ConstValue)
         throw ::runtime_error(::format("switch target cannot be const value {0}", target->name));
+    auto stmt = target_->generator->get_null_var(target_)->assign(target_);
+    stmt->set_parent(this);
 }
 
 ScopedStmtBlock & SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,

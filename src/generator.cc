@@ -448,7 +448,7 @@ PortPacked &Generator::port_packed(PortDirection direction, const std::string &p
     return *p;
 }
 
-VarPacked& Generator::var_packed(const std::string &var_name,
+VarPacked &Generator::var_packed(const std::string &var_name,
                                  const kratos::PackedStruct &packed_struct_) {
     if (vars_.find(var_name) != vars_.end())
         throw ::runtime_error(::format("{0} already exists in {1}", var_name, name));
@@ -549,8 +549,8 @@ std::vector<std::string> Generator::get_ports(kratos::PortType type) const {
     return result;
 }
 
-std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(const std::string &port_name,
-                                    const std::shared_ptr<PortBundleDefinition> &def) {
+std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(
+    const std::string &port_name, const std::shared_ptr<PortBundleDefinition> &def) {
     if (port_bundle_mapping_.find(port_name) != port_bundle_mapping_.end())
         throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
     auto definition = def->definition();
@@ -577,7 +577,7 @@ std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(
     const std::pair<std::string, uint32_t> &debug_info) {
     auto ref = add_bundle_port_def(port_name, def);
     auto definition = def->definition();
-    for (auto const &iter: definition) {
+    for (auto const &iter : definition) {
         auto base_name = iter.first;
         auto &port = ref->get_port(base_name);
         port.fn_name_ln.emplace_back(debug_info);
@@ -605,6 +605,10 @@ void Generator::remove_var(const std::string &var_name) {
     }
 
     vars_.erase(var_name);
+}
+
+std::shared_ptr<Var> Generator::get_null_var(const std::shared_ptr<Var> &var) {
+    return std::make_shared<Var>(this, "", var->width, var->size, var->is_signed, VarType::Base);
 }
 
 }
