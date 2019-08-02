@@ -328,7 +328,7 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
-    stream_ << indent() << "case (" << stmt->target()->to_string() << ")" << stream_.endl();
+    stream_ << indent() << "unique case (" << stmt->target()->to_string() << ")" << stream_.endl();
     indent_++;
     auto const& body = stmt->body();
     for (auto& [cond, stmt_blk] : body) {

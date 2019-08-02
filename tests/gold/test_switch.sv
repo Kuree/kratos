@@ -4,7 +4,7 @@ module switch_test (
 );
 
 always_comb begin
-  case (in)
+  unique case (in)
     default: out = 3'h2;
     3'h0: out = 3'h0;
     3'h1: out = 3'h1;
