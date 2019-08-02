@@ -68,6 +68,7 @@ private:
     Stream stream_;
     Generator* generator_;
     bool skip_indent_ = false;
+    std::unordered_map<StmtBlock*, std::string> label_index_;
 
     void generate_ports(Generator* generator);
     void generate_variables(Generator* generator);
@@ -90,6 +91,10 @@ private:
     void stmt_code(ModuleInstantiationStmt* stmt);
 
     void stmt_code(SwitchStmt* stmt);
+
+    // reverse indexing the named blocks
+    std::unordered_map<StmtBlock*, std::string> index_named_block();
+    std::string block_label(StmtBlock *stmt);
 };
 
 }  // namespace kratos

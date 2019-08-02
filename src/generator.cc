@@ -615,4 +615,24 @@ std::shared_ptr<Var> Generator::get_null_var(const std::shared_ptr<Var> &var) {
     return std::make_shared<Var>(this, "", var->width, var->size, var->is_signed, VarType::Base);
 }
 
+std::shared_ptr<StmtBlock> Generator::get_named_block(const std::string &block_name) const {
+    if (!has_named_block(block_name)) return nullptr;
+    return named_blocks_.at(block_name);
+}
+
+void Generator::add_named_block(const std::string &block_name,
+                                const std::shared_ptr<StmtBlock> &block) {
+    if (has_named_block(block_name))
+        throw StmtException(::format("{0} already exists in {1}", block_name, name), {block.get()});
+    named_blocks_.emplace(block_name, block);
+}
+
+std::unordered_set<std::string> Generator::named_blocks_labels() const {
+    std::unordered_set<std::string> result;
+    result.reserve(named_blocks_.size());
+    for (auto const &iter: named_blocks_)
+        result.emplace(iter.first);
+    return result;
+}
+
 }

@@ -196,6 +196,9 @@ class Generator(metaclass=GeneratorMeta):
         self.__reg_init_stmt = {}
         self.__reg_en_stmt = {}
 
+        # meta data
+        self.__stmt_label_mapping = {}
+
     def __getitem__(self, instance_name: str):
         """
         Get child instance through instance name
@@ -675,6 +678,22 @@ class Generator(metaclass=GeneratorMeta):
         new_var = self.__create_new_var(var_name, var)
         self.__add_stmt_with_debug(if_stmt.then_body(), new_var.assign(var))
         return new_var
+
+    # meta values
+    def mark_stmt(self, name: str, stmt):
+        if not isinstance(stmt, _kratos.StmtBlock):
+            raw_stmt = stmt.stmt()
+        else:
+            raw_stmt = stmt
+        if self.__generator.has_named_block(name):
+            raise ValueError(name + " already exists")
+
+        self.__stmt_label_mapping[name] = stmt
+        self.__generator.add_named_block(name, raw_stmt)
+        
+    def get_marked_stmt(self, name):
+        assert name in self.__stmt_label_mapping
+        return self.__stmt_label_mapping[name]
 
 
 def always(*sensitivity):

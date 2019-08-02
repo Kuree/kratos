@@ -90,7 +90,10 @@ void init_generator(py::module &m) {
              py::overload_cast<const std::string &, const std::shared_ptr<PortBundleDefinition> &>(
                  &Generator::add_bundle_port_def))
         .def("get_bundle_ref", &Generator::get_bundle_ref)
-        .def("has_port_bundle", &Generator::has_port_bundle);
+        .def("has_port_bundle", &Generator::has_port_bundle)
+        .def("get_named_block", &Generator::get_named_block)
+        .def("add_named_block", &Generator::add_named_block)
+        .def("has_named_block", &Generator::has_named_block);
 
     generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
         var.fn_name_ln.emplace_back(info);

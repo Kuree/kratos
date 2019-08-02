@@ -86,6 +86,9 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
     // if it's an external file, we don't output anything
     if (generator->external()) return;
 
+    // index the named blocks
+    label_index_ = index_named_block();
+
     // output module definition
     stream_ << ::format("module {0} (", generator->name) << stream_.endl();
     generate_ports(generator);
@@ -209,7 +212,8 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
         sensitive_list.emplace_back(::format("{0} {1}", edge, var->to_string()));
     }
     std::string sensitive_list_str = join(sensitive_list.begin(), sensitive_list.end(), ", ");
-    stream_ << stream_.endl() << "always @(" << sensitive_list_str << ") begin" << stream_.endl();
+    stream_ << stream_.endl() << "always @(" << sensitive_list_str << ") begin" << block_label(stmt)
+            << stream_.endl();
     indent_++;
 
     for (uint64_t i = 0; i < stmt->child_count(); i++) {
@@ -224,7 +228,7 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
     }
-    stream_ << "always_comb begin" << stream_.endl();
+    stream_ << "always_comb begin" << block_label(stmt) << stream_.endl();
     indent_++;
 
     for (uint64_t i = 0; i < stmt->child_count(); i++) {
@@ -240,7 +244,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
         stmt->verilog_ln = stream_.line_no();
     }
 
-    stream_ << "begin" << stream_.endl();
+    stream_ << "begin" << block_label(stmt) << stream_.endl();
     indent_++;
 
     for (uint64_t i = 0; i < stmt->child_count(); i++) {
@@ -368,6 +372,23 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         strs.emplace_back(::format("[{0}:0]", port->size - 1));
     }
     return join(strs.begin(), strs.end(), " ");
+}
+
+std::unordered_map<StmtBlock*, std::string> SystemVerilogCodeGen::index_named_block() {
+    std::unordered_map<StmtBlock*, std::string> result;
+    auto names = generator_->named_blocks_labels();
+    result.reserve(names.size());
+    for (auto const& name : names) {
+        result.emplace(generator_->get_named_block(name).get(), name);
+    }
+    return result;
+}
+
+std::string SystemVerilogCodeGen::block_label(kratos::StmtBlock* stmt) {
+    if (label_index_.find(stmt) != label_index_.end())
+        return label_index_.at(stmt) + ":";
+    else
+        return "";
 }
 
 }  // namespace kratos

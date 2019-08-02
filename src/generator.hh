@@ -150,7 +150,15 @@ public:
 
     ~Generator() override = default;
 
+    // meta functions
     std::shared_ptr<Var> get_null_var(const std::shared_ptr<Var> &var);
+    bool inline has_named_block(const std::string &block_name) const {
+        return named_blocks_.find(block_name) != named_blocks_.end();
+    }
+    std::shared_ptr<StmtBlock> get_named_block(const std::string &block_name) const;
+    void add_named_block(const std::string &block_name,
+                         const std::shared_ptr<StmtBlock> &block);
+    std::unordered_set<std::string> named_blocks_labels() const;
 
 private:
     std::vector<std::string> lib_files_;
@@ -180,6 +188,8 @@ private:
     bool is_cloned_ = false;
 
     // meta values
+    // named blocks
+    std::unordered_map<std::string, std::shared_ptr<StmtBlock>> named_blocks_;
 };
 
 }  // namespace kratos
