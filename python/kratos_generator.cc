@@ -34,6 +34,7 @@ void init_generator(py::module &m) {
              py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
              py::return_value_policy::reference)
         .def("port_packed", &Generator::port_packed, py::return_value_policy::reference)
+        .def("enum", &Generator::enum_, py::return_value_policy::reference)
         .def("get_params", &Generator::get_params)
         .def("get_param", &Generator::get_param)
         .def("get_port", &Generator::get_port, py::return_value_policy::reference)

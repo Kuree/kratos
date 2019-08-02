@@ -78,3 +78,9 @@ void init_expr(py::module &m) {
     ternary_exp.def(py::init<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &,
                              const std::shared_ptr<Var> &>());
 }
+
+void init_enum_type(py::module &m) {
+    using namespace kratos;
+    auto enum_ = py::class_<Enum>(m, "Enum");
+    enum_.def_readonly("name", &Enum::name);
+}

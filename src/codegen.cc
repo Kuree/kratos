@@ -95,6 +95,8 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
     stream_ << ");" << stream_.endl() << stream_.endl();
     generate_parameters(generator);
     generate_variables(generator);
+    generate_enums(generator);
+
 
     for (uint64_t i = 0; i < generator->stmts_count(); i++) {
         dispatch_node(generator->get_stmt(i).get());
@@ -136,6 +138,12 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
     for (auto const& [name, param] : params) {
         stream_ << ::format("parameter {0} = {1};", name, param->value_str()) << stream_.endl();
     }
+}
+
+void SystemVerilogCodeGen::generate_enums(kratos::Generator* generator) {
+    auto enums = generator->get_enums();
+    for (auto const &iter: enums)
+        enum_code(iter.second.get());
 }
 
 std::string SystemVerilogCodeGen::indent() {
@@ -389,6 +397,20 @@ std::string SystemVerilogCodeGen::block_label(kratos::StmtBlock* stmt) {
         return " :" + label_index_.at(stmt);
     else
         return "";
+}
+
+void SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
+    stream_ << indent() << "enum {" << stream_.endl();
+    uint32_t count = 0;
+    indent_++;
+    for (auto const &[name, c]: enum_->values) {
+        stream_ << indent() << name << " = " << c->to_string();
+        if (++count != enum_->values.size())
+            stream_ << ",";
+        stream_ << stream_.endl();
+    }
+    indent_--;
+    stream_ << indent() << "} " << enum_->name << ";" << stream_.endl();
 }
 
 }  // namespace kratos

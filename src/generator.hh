@@ -42,6 +42,9 @@ public:
     Const &constant(int64_t value, uint32_t width, bool is_signed);
     Param &parameter(const std::string &parameter_name, uint32_t width);
     Param &parameter(const std::string &parameter_name, uint32_t width, bool is_signed);
+    Enum &enum_(const std::string &enum_name,
+                const std::map<std::string,uint64_t> &definition,
+                uint32_t width);
 
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 
@@ -58,6 +61,7 @@ public:
     const inline std::map<std::string, std::shared_ptr<Param>> &get_params() const {
         return params_;
     }
+    const inline std::map<std::string, std::shared_ptr<Enum>> &get_enums() const { return enums_; }
     std::shared_ptr<Param> get_param(const std::string &param_name) const;
 
     // statements
@@ -156,8 +160,7 @@ public:
         return named_blocks_.find(block_name) != named_blocks_.end();
     }
     std::shared_ptr<StmtBlock> get_named_block(const std::string &block_name) const;
-    void add_named_block(const std::string &block_name,
-                         const std::shared_ptr<StmtBlock> &block);
+    void add_named_block(const std::string &block_name, const std::shared_ptr<StmtBlock> &block);
     std::unordered_set<std::string> named_blocks_labels() const;
 
 private:
@@ -190,6 +193,8 @@ private:
     // meta values
     // named blocks
     std::unordered_map<std::string, std::shared_ptr<StmtBlock>> named_blocks_;
+    // enums
+    std::map<std::string, std::shared_ptr<Enum>> enums_;
 };
 
 }  // namespace kratos

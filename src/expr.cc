@@ -1,4 +1,5 @@
 #include "expr.hh"
+#include <algorithm>
 #include <iostream>
 #include <stdexcept>
 #include "except.hh"
@@ -6,7 +7,6 @@
 #include "generator.hh"
 #include "stmt.hh"
 #include "util.hh"
-#include <algorithm>
 
 using fmt::format;
 using std::make_shared;
@@ -520,7 +520,7 @@ void set_var_parent(std::shared_ptr<Var> &var, Var *target, Var *new_var, bool c
 
     auto new_var_ptr = new_var->as<Var>();
     std::reverse(slices.begin(), slices.end());
-    for (auto const &s: slices) {
+    for (auto const &s : slices) {
         new_var_ptr = s->slice_var(new_var_ptr);
     }
     var = new_var_ptr;
@@ -549,7 +549,7 @@ void change_var_expr(std::shared_ptr<Expr> expr, Var *target, Var *new_var) {
 }
 
 void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
-    auto& right = stmt->right();
+    auto &right = stmt->right();
     if (right->type() == VarType::Base || right->type() == VarType::PortIO ||
         right->type() == VarType::ConstValue) {
         if (right.get() == target)
@@ -755,6 +755,15 @@ VarPacked::VarPacked(Generator *m, const std::string &name, PackedStruct packed_
         width += std::get<1>(def);
     }
     var_width = width;
+}
+
+Enum::Enum(kratos::Generator *generator, std::string name,
+           const std::map<std::string,uint64_t> &values, uint32_t width)
+    : name(std::move(name)) {
+    for (auto const &[n, value] : values) {
+        auto &c = generator->constant(value, width);
+        this->values.emplace(n, c.as<Const>());
+    }
 }
 
 }

@@ -330,5 +330,11 @@ struct ConditionalExpr : public Expr {
     std::shared_ptr<Var> condition;
 };
 
+struct Enum {
+    Enum(Generator* generator, std::string name, const std::map<std::string, uint64_t> &values, uint32_t width);
+    std::map<std::string, std::shared_ptr<Const>> values;
+    std::string name;
+};
+
 }  // namespace kratos
 #endif  // KRATOS_EXPR_HH

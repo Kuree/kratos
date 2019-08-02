@@ -835,5 +835,15 @@ def test_named_block():
     check_gold(mod, "test_named_block")
 
 
+def test_enum():
+    mod = Generator("mod", debug=True)
+    out_ = mod.var("out", 1)
+    in_ = mod.port("in", 1, PortDirection.In)
+    mod.enum("color", {"red": 1, "green": 2}, 2)
+    mod.wire(out_, in_)
+
+    check_gold(mod, "test_enum")
+
+
 if __name__ == "__main__":
-    test_named_block()
+    test_enum()

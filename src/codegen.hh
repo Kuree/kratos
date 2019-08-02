@@ -73,6 +73,7 @@ private:
     void generate_ports(Generator* generator);
     void generate_variables(Generator* generator);
     void generate_parameters(Generator* generator);
+    void generate_enums(Generator* generator);
 
     void dispatch_node(IRNode* node);
 
@@ -91,6 +92,8 @@ private:
     void stmt_code(ModuleInstantiationStmt* stmt);
 
     void stmt_code(SwitchStmt* stmt);
+
+    void enum_code(Enum* enum_);
 
     // reverse indexing the named blocks
     std::unordered_map<StmtBlock*, std::string> index_named_block();

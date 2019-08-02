@@ -128,6 +128,13 @@ Param &Generator::parameter(const std::string &parameter_name, uint32_t width, b
     return *ptr;
 }
 
+Enum& Generator::enum_(const std::string &enum_name,
+                       const std::map<std::string, uint64_t> &definition, uint32_t width) {
+    auto p = std::make_shared<Enum>(this, enum_name, definition, width);
+    enums_.emplace(enum_name, p);
+    return *p;
+}
+
 IRNode *Generator::get_child(uint64_t index) {
     if (index < stmts_count()) {
         return stmts_[index].get();

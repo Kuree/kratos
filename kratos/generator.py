@@ -342,8 +342,8 @@ class Generator(metaclass=GeneratorMeta):
     def reset(self, name, is_input=True, is_async=True):
         direction = PortDirection.In if is_input else PortDirection.Out
         reset = PortType.AsyncReset if is_async else PortType.Reset
-        p = self.__generator.port(direction.value, name, 1, 1,
-                                  PortType.AsyncReset.value, False)
+        p = self.__generator.port(direction.value, name, 1, 1, reset.value,
+                                  False)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         return p
@@ -382,6 +382,9 @@ class Generator(metaclass=GeneratorMeta):
             fn, ln = get_fn_ln()
             param.add_fn_ln((fn, ln))
         return param
+
+    def enum(self, name: str, values: Dict[str, int], width):
+        return self.__generator.enum(name, values, width)
 
     def get_var(self, name):
         return self.__generator.get_var(name)
