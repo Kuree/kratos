@@ -766,6 +766,12 @@ Enum::Enum(kratos::Generator *generator, std::string name,
     }
 }
 
+std::shared_ptr<EnumConst> Enum::get_enum(const std::string &enum_name) {
+    if (values.find(name) == values.end())
+        throw ::runtime_error(::format("Cannot find {0} in {1}", enum_name, name));
+    return values.at(enum_name);
+}
+
 EnumConst::EnumConst(kratos::Generator *m, int64_t value, uint32_t width, kratos::Enum *parent,
                      std::string name)
     : Const(m, value, width, false), parent_(parent), name_(std::move(name)) {}

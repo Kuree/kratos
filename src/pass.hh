@@ -67,6 +67,8 @@ void insert_pipeline_stages(Generator* top);
 
 void change_port_bundle_struct(Generator* top);
 
+void realize_fsm(Generator* top);
+
 class PassManager {
 public:
     PassManager() = default;

@@ -7,6 +7,7 @@
 #include "fmt/format.h"
 #include "stmt.hh"
 #include "util.hh"
+#include "fsm.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -135,11 +136,28 @@ Enum& Generator::enum_(const std::string &enum_name,
     return *p;
 }
 
-EnumVar& Generator::enum_var(const std::string& var_name, std::shared_ptr<Enum> enum_def) {
+EnumVar& Generator::enum_var(const std::string& var_name, const std::shared_ptr<Enum>& enum_def) {
     if (has_var(var_name))
         throw VarException(::format("{0} already exists", var_name), {get_var(var_name).get()});
     auto p = std::make_shared<EnumVar>(this, var_name, enum_def);
-    vars_.emplace(var_name, var_name);
+    vars_.emplace(var_name, p);
+    return *p;
+}
+
+FSM& Generator::fsm(const std::string &fsm_name) {
+    if (fsms_.find(fsm_name) != fsms_.end())
+        throw ::runtime_error(::format("FSM {0} already exists in {1}", fsm_name, name));
+    auto p = std::make_shared<FSM>(fsm_name, this);
+    fsms_.emplace(fsm_name, p);
+    return *p;
+}
+
+FSM& Generator::fsm(const std::string &fsm_name, const std::shared_ptr<Var> &clk,
+                    const std::shared_ptr<Var> &reset) {
+    if (fsms_.find(fsm_name) != fsms_.end())
+        throw ::runtime_error(::format("FSM {0} already exists in {1}", fsm_name, name));
+    auto p = std::make_shared<FSM>(fsm_name, this, clk, reset);
+    fsms_.emplace(fsm_name, p);
     return *p;
 }
 

@@ -13,8 +13,8 @@ public:
 
     std::shared_ptr<FSMState> add_state(const std::string &name);
     std::shared_ptr<FSMState> get_state(const std::string &name);
-    void set_default_state(const std::string &name);
-    void set_default_state(const std::shared_ptr<FSMState> &state);
+    void set_start_state(const std::string &name);
+    void set_start_state(const std::shared_ptr<FSMState> &state);
 
     // specify the state machine outputs and inputs
     void output(const std::string &var_name);
@@ -34,7 +34,7 @@ private:
     std::map<std::string, std::shared_ptr<FSMState>> states_;
     // use it to keep it in order
     std::vector<std::string> state_names_;
-    std::shared_ptr<FSMState> default_state_ = nullptr;
+    std::shared_ptr<FSMState> start_state_ = nullptr;
 };
 
 class FSMState : public std::enable_shared_from_this<FSMState> {
@@ -44,6 +44,10 @@ public:
     void next(const std::shared_ptr<FSMState> &next_state, std::shared_ptr<Var> &cond);
     void output(const std::shared_ptr<Var> &output_var, const std::shared_ptr<Var> &value_var);
     void check_outputs();
+
+    const inline std::string &name() { return name_; }
+    const inline std::map<Var*, FSMState*> &transitions() { return transitions_; }
+    const inline std::map<Var*, Var*> &output_values() const { return output_values_; }
 
 private:
     std::string name_;

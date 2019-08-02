@@ -42,10 +42,12 @@ public:
     Const &constant(int64_t value, uint32_t width, bool is_signed);
     Param &parameter(const std::string &parameter_name, uint32_t width);
     Param &parameter(const std::string &parameter_name, uint32_t width, bool is_signed);
-    Enum &enum_(const std::string &enum_name,
-                const std::map<std::string,uint64_t> &definition,
+    Enum &enum_(const std::string &enum_name, const std::map<std::string, uint64_t> &definition,
                 uint32_t width);
-    EnumVar &enum_var(const std::string& var_name, std::shared_ptr<Enum> enum_def);
+    EnumVar &enum_var(const std::string &var_name, const std::shared_ptr<Enum>& enum_def);
+    FSM &fsm(const std::string &fsm_name);
+    FSM &fsm(const std::string &fsm_name, const std::shared_ptr<Var> &clk,
+             const std::shared_ptr<Var> &reset);
 
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 
@@ -64,6 +66,7 @@ public:
     }
     const inline std::map<std::string, std::shared_ptr<Enum>> &get_enums() const { return enums_; }
     std::shared_ptr<Param> get_param(const std::string &param_name) const;
+    const std::map<std::string, std::shared_ptr<FSM>> &fsms() const { return fsms_; }
 
     // statements
     void add_stmt(std::shared_ptr<Stmt> stmt);
@@ -196,6 +199,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<StmtBlock>> named_blocks_;
     // enums
     std::map<std::string, std::shared_ptr<Enum>> enums_;
+    std::map<std::string, std::shared_ptr<FSM>> fsms_;
 };
 
 }  // namespace kratos

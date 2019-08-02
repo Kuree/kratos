@@ -346,7 +346,7 @@ private:
 };
 
 
-struct Enum {
+struct Enum: std::enable_shared_from_this<Enum> {
 public:
     Enum(Generator *generator, std::string name, const std::map<std::string, uint64_t> &values,
          uint32_t width);
@@ -354,6 +354,8 @@ public:
     std::string name;
 
     uint32_t inline width() { return width_; }
+
+    std::shared_ptr<EnumConst> get_enum(const std::string &name);
 
 private:
     uint32_t width_;

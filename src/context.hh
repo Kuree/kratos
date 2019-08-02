@@ -34,6 +34,7 @@ class ScopedStmtBlock;
 class CombinationalStmtBlock;
 class SequentialStmtBlock;
 class ModuleInstantiationStmt;
+class FSM;
 enum AssignmentType : int;
 enum HashStrategy : int;
 

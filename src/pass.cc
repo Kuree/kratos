@@ -5,6 +5,7 @@
 #include "codegen.hh"
 #include "except.hh"
 #include "fmt/format.h"
+#include "fsm.hh"
 #include "generator.hh"
 #include "port.hh"
 #include "util.hh"
@@ -1375,6 +1376,20 @@ void change_port_bundle_struct(Generator* top) {
     merge_bundle_mapping(b_visitor.bundle_mapping);
 }
 
+class FSMVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        for (auto const& iter : generator->fsms()) {
+            iter.second->realize();
+        }
+    }
+};
+
+void realize_fsm(Generator* top) {
+    FSMVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
 void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));
@@ -1429,6 +1444,8 @@ void PassManager::register_builtin_passes() {
     register_pass("zero_generator_inputs", &zero_generator_inputs);
 
     register_pass("change_port_bundle_struct", &change_port_bundle_struct);
+
+    register_pass("realize_fsm", &realize_fsm);
 
     // TODO:
     //  add inline pass
