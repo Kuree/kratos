@@ -38,8 +38,7 @@ void FSM::realize() {
     // first, get state and next state variable
     // compute number of states
     uint64_t num_states = states_.size();
-    if (!num_states)
-        throw ::runtime_error(::format("FSM {0} is empty", fsm_name()));
+    if (!num_states) throw ::runtime_error(::format("FSM {0} is empty", fsm_name()));
     uint32_t size = std::ceil(std::log2(num_states));
     (void)size;
 }
@@ -107,6 +106,15 @@ void FSMState::check_outputs() {
     for (auto const& output : outputs) {
         if (output_values_.find(output) == output_values_.end()) {
             throw VarException(::format("{0} not specified", output->to_string()), {output});
+        }
+    }
+    // the other way, this is to ensure a bijection
+    for (auto const& iter : output_values_) {
+        auto const& output = iter.first;
+        if (outputs.find(output) == outputs.end()) {
+            throw VarException(::format("{0} is not specified in FSM {1}", output->to_string(),
+                                        parent_->fsm_name()),
+                               {output});
         }
     }
 }

@@ -404,7 +404,7 @@ void SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
     uint32_t count = 0;
     indent_++;
     for (auto const &[name, c]: enum_->values) {
-        stream_ << indent() << name << " = " << c->to_string();
+        stream_ << indent() << name << " = " << c->value_string();
         if (++count != enum_->values.size())
             stream_ << ",";
         stream_ << stream_.endl();

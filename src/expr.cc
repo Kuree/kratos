@@ -758,12 +758,40 @@ VarPacked::VarPacked(Generator *m, const std::string &name, PackedStruct packed_
 }
 
 Enum::Enum(kratos::Generator *generator, std::string name,
-           const std::map<std::string,uint64_t> &values, uint32_t width)
-    : name(std::move(name)) {
+           const std::map<std::string, uint64_t> &values, uint32_t width)
+    : name(std::move(name)), width_(width) {
     for (auto const &[n, value] : values) {
-        auto &c = generator->constant(value, width);
-        this->values.emplace(n, c.as<Const>());
+        auto c = std::make_shared<EnumConst>(generator, value, width, this, n);
+        this->values.emplace(n, c);
     }
+}
+
+EnumConst::EnumConst(kratos::Generator *m, int64_t value, uint32_t width, kratos::Enum *parent,
+                     std::string name)
+    : Const(m, value, width, false), parent_(parent), name_(std::move(name)) {}
+
+std::string EnumConst::to_string() const {
+    if (parent_->values.find(name_) == parent_->values.end()) {
+        throw VarException(::format("{0} is not in enum type {1}", name_, parent_->name), {this});
+    }
+    return name_;
+}
+
+std::shared_ptr<AssignStmt> EnumVar::assign(const std::shared_ptr<Var> &var,
+                                            kratos::AssignmentType type) {
+    if (!var->is_enum())
+        throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
+    if (var->type() == VarType::ConstValue) {
+        auto p = var->as<EnumConst>();
+        if (p->enum_def()->name != enum_type_->name)
+            throw VarException("Cannot assign different enum type", {this, var.get()});
+    } else {
+        auto p = var->as<EnumVar>();
+        if (p->enum_type_->name != enum_type_->name) {
+            throw VarException("Cannot assign different enum type", {this, var.get()});
+        }
+    }
+    return Var::assign(var, type);
 }
 
 }

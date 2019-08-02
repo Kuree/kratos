@@ -23,6 +23,8 @@ struct PortBundleDefinition;
 struct PortBundleRef;
 struct PortPacked;
 struct VarPacked;
+struct Enum;
+struct EnumConst;
 class Stmt;
 class AssignStmt;
 class IfStmt;

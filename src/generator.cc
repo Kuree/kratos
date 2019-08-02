@@ -135,6 +135,14 @@ Enum& Generator::enum_(const std::string &enum_name,
     return *p;
 }
 
+EnumVar& Generator::enum_var(const std::string& var_name, std::shared_ptr<Enum> enum_def) {
+    if (has_var(var_name))
+        throw VarException(::format("{0} already exists", var_name), {get_var(var_name).get()});
+    auto p = std::make_shared<EnumVar>(this, var_name, enum_def);
+    vars_.emplace(var_name, var_name);
+    return *p;
+}
+
 IRNode *Generator::get_child(uint64_t index) {
     if (index < stmts_count()) {
         return stmts_[index].get();

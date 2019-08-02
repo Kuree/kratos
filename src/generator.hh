@@ -45,6 +45,7 @@ public:
     Enum &enum_(const std::string &enum_name,
                 const std::map<std::string,uint64_t> &definition,
                 uint32_t width);
+    EnumVar &enum_var(const std::string& var_name, std::shared_ptr<Enum> enum_def);
 
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 

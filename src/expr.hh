@@ -128,6 +128,7 @@ public:
     }
 
     virtual bool inline is_packed() const { return false; }
+    virtual bool inline is_enum() const { return false; }
     virtual std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) { return var; }
 
     virtual std::string to_string() const;
@@ -330,10 +331,47 @@ struct ConditionalExpr : public Expr {
     std::shared_ptr<Var> condition;
 };
 
+struct EnumConst : public Const {
+public:
+    EnumConst(Generator *m, int64_t value, uint32_t width, Enum *parent, std::string name);
+    std::string to_string() const override;
+    std::string value_string() { return Const::to_string(); }
+
+    bool inline is_enum() const override { return true; }
+    const inline Enum* enum_def() const { return parent_; }
+
+private:
+    Enum *parent_;
+    std::string name_;
+};
+
+
 struct Enum {
-    Enum(Generator* generator, std::string name, const std::map<std::string, uint64_t> &values, uint32_t width);
-    std::map<std::string, std::shared_ptr<Const>> values;
+public:
+    Enum(Generator *generator, std::string name, const std::map<std::string, uint64_t> &values,
+         uint32_t width);
+    std::map<std::string, std::shared_ptr<EnumConst>> values;
     std::string name;
+
+    uint32_t inline width() { return width_; }
+
+private:
+    uint32_t width_;
+};
+
+struct EnumVar : public Var {
+public:
+    bool inline is_enum() const override { return true; }
+
+    EnumVar(Generator *m, const std::string &name, const std::shared_ptr<Enum> &enum_type)
+        : Var(m, name, enum_type->width(), 1, false), enum_type_(enum_type.get()) {}
+
+    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
+                                       AssignmentType type) override;
+
+    const inline Enum*  enum_type() const { return enum_type_; }
+private:
+    Enum *enum_type_;
 };
 
 }  // namespace kratos
