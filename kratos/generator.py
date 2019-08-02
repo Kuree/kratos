@@ -690,7 +690,7 @@ class Generator(metaclass=GeneratorMeta):
 
         self.__stmt_label_mapping[name] = stmt
         self.__generator.add_named_block(name, raw_stmt)
-        
+
     def get_marked_stmt(self, name):
         assert name in self.__stmt_label_mapping
         return self.__stmt_label_mapping[name]

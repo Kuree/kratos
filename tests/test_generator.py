@@ -823,5 +823,17 @@ def test_bundle_pack():
     # assert is_valid_verilog(mod_src)
 
 
+def test_named_block():
+    mod = Generator("mod", debug=True)
+    out_ = mod.var("out", 1)
+    in_ = mod.port("in", 1, PortDirection.In)
+    comb = mod.combinational()
+    if_ = comb.if_(in_ == 1)
+    if_.then_(out_(0)).else_(out_(1))
+    mod.mark_stmt("TEST", if_.then_body())
+
+    check_gold(mod, "test_named_block")
+
+
 if __name__ == "__main__":
-    test_bundle()
+    test_named_block()

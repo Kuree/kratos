@@ -61,12 +61,14 @@ void init_stmt(py::module &m) {
              py::overload_cast<const ::shared_ptr<Stmt> &>(&CombinationalStmtBlock::add_stmt))
         .def("remove_stmt", &CombinationalStmtBlock::remove_stmt);
 
-    py::class_<ScopedStmtBlock, ::shared_ptr<ScopedStmtBlock>, Stmt>(m, "ScopedStmtBlock")
+    py::class_<StmtBlock, ::shared_ptr<StmtBlock>, Stmt>(m, "StmtBlock");   // NOLINT
+
+    py::class_<ScopedStmtBlock, ::shared_ptr<ScopedStmtBlock>, StmtBlock>(m, "ScopedStmtBlock")
         .def(py::init<>())
         .def("add_stmt",
              py::overload_cast<const ::shared_ptr<Stmt> &>(&ScopedStmtBlock::add_stmt));
 
-    py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, Stmt>(m,
+    py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, StmtBlock>(m,
                                                                              "SequentialStmtBlock")
         .def(py::init<>())
         .def("get_conditions", &SequentialStmtBlock::get_conditions)

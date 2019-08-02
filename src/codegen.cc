@@ -386,7 +386,7 @@ std::unordered_map<StmtBlock*, std::string> SystemVerilogCodeGen::index_named_bl
 
 std::string SystemVerilogCodeGen::block_label(kratos::StmtBlock* stmt) {
     if (label_index_.find(stmt) != label_index_.end())
-        return label_index_.at(stmt) + ":";
+        return " :" + label_index_.at(stmt);
     else
         return "";
 }
