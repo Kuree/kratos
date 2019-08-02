@@ -81,6 +81,6 @@ void init_expr(py::module &m) {
 
 void init_enum_type(py::module &m) {
     using namespace kratos;
-    auto enum_ = py::class_<Enum>(m, "Enum");
+    auto enum_ = py::class_<Enum, std::shared_ptr<Enum>>(m, "Enum");
     enum_.def_readonly("name", &Enum::name);
 }

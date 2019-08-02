@@ -84,11 +84,11 @@ void FSM::realize() {
         std::shared_ptr<IfStmt> if_ = nullptr;
         for (auto const& [cond, next_state] : state->transitions()) {
             if (!if_) {
-                if_ = std::make_shared<IfStmt>(cond);
+                if_ = std::make_shared<IfStmt>(cond->shared_from_this());
                 if_->add_then_stmt(
                     current_state.assign(enum_def.get_enum(next_state->name()), Blocking));
             } else {
-                auto new_if = std::make_shared<IfStmt>(cond);
+                auto new_if = std::make_shared<IfStmt>(cond->shared_from_this());
                 new_if->add_then_stmt(
                     current_state.assign(enum_def.get_enum(next_state->name()), Blocking));
                 if_->add_else_stmt(new_if);

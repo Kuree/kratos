@@ -20,6 +20,7 @@ void init_generator(py::module &m);
 void init_expr(py::module &m);
 void init_stmt(py::module &m);
 void init_enum_type(py::module &m);
+void init_fsm(py::module &m);
 
 // bind all the enums
 void init_enum(py::module &m) {
@@ -140,4 +141,5 @@ PYBIND11_MODULE(_kratos, m) {
     init_util(m);
     init_except(m);
     init_enum_type(m);
+    init_fsm(m);
 }
