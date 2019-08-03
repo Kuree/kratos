@@ -2,6 +2,7 @@ import enum
 from .pyast import transform_stmt_block, get_fn_ln
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
+from .fsm import FSM
 import _kratos
 from typing import List, Dict, Union, Tuple
 
@@ -470,9 +471,9 @@ class Generator(metaclass=GeneratorMeta):
         if clk_name is not None and reset_name is not None:
             clk = self.__generator.get_var(clk_name)
             reset = self.__generator.get_var(reset_name)
-            return self.__generator.fsm(fsm_name, clk, reset)
+            return FSM(self, self.__generator.fsm(fsm_name, clk, reset))
         else:
-            return self.__generator.fsm(fsm_name)
+            return FSM(self, self.__generator.fsm(fsm_name))
 
     def add_stmt(self, stmt):
         if self.is_cloned:

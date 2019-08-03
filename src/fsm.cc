@@ -54,6 +54,12 @@ void FSM::realize() {
         iter.second->check_outputs();
     }
     auto& enum_def = generator_->enum_(fsm_name_ + "_state", raw_def, width);
+    // add debug info
+    if (generator_->debug) {
+        for (auto const& [name, info] : fn_name_ln_) {
+            enum_def.add_debug_info(name, info);
+        }
+    }
     // create two state variable, current_state, and next_state
     auto current_state_name = generator_->get_unique_variable_name(fsm_name_, "current_state");
     auto next_state_name = generator_->get_unique_variable_name(fsm_name_, "next_state");
@@ -100,10 +106,26 @@ void FSM::realize() {
                 if_->add_then_stmt(
                     next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking));
                 top_if = if_;
+                if (generator_->debug) {
+                    auto debug_info = state->next_state_fn_ln();
+                    if (debug_info.find(next_fsm_state) != debug_info.end()) {
+                        auto info = debug_info.at(next_fsm_state);
+                        if_->predicate()->fn_name_ln.emplace_back(info);
+                        if_->then_body()->fn_name_ln.emplace_back(info);
+                    }
+                }
             } else {
                 auto new_if = std::make_shared<IfStmt>(cond->shared_from_this());
                 new_if->add_then_stmt(
                     next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking));
+                if (generator_->debug) {
+                    auto debug_info = state->next_state_fn_ln();
+                    if (debug_info.find(next_fsm_state) != debug_info.end()) {
+                        auto info = debug_info.at(next_fsm_state);
+                        new_if->predicate()->fn_name_ln.emplace_back(info);
+                        new_if->then_body()->fn_name_ln.emplace_back(info);
+                    }
+                }
                 if_->add_else_stmt(new_if);
                 if_ = new_if;
             }
@@ -132,7 +154,13 @@ void FSM::realize() {
             auto value = output_values.at(output_var);
             if (value) {
                 // value can be a nullptr
-                stmts.emplace_back(output_var->assign(value->shared_from_this()));
+                auto stmt = output_var->assign(value->shared_from_this());
+                if (generator_->debug) {
+                    auto debug_info = state->output_fn_ln();
+                    if (debug_info.find(output_var) != debug_info.end())
+                        stmt->fn_name_ln.emplace_back(debug_info.at(output_var));
+                }
+                stmts.emplace_back(stmt);
             }
         }
         // add it to the case
@@ -166,6 +194,13 @@ std::shared_ptr<FSMState> FSM::add_state(const std::string& name) {
     states_.emplace(name, ptr);
     state_names_.emplace_back(name);
     return ptr;
+}
+
+std::shared_ptr<FSMState> FSM::add_state(const std::string& name,
+                                         const std::pair<std::string, uint32_t>& debug_info) {
+    // add debug info
+    fn_name_ln_.emplace(name, debug_info);
+    return add_state(name);
 }
 
 std::shared_ptr<FSMState> FSM::get_state(const std::string& name) {
@@ -277,6 +312,12 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, std::shared_ptr
     transitions_.emplace(ptr, state_ptr);
 }
 
+void FSMState::next(const std::shared_ptr<FSMState>& next_state, std::shared_ptr<Var>& cond,
+                    const std::pair<std::string, uint32_t>& debug_info) {
+    next(next_state, cond);
+    next_state_fn_ln_.emplace(next_state.get(), debug_info);
+}
+
 void FSMState::output(const std::shared_ptr<Var>& output_var,
                       const std::shared_ptr<Var>& value_var) {
     auto output = output_var.get();
@@ -291,6 +332,18 @@ void FSMState::output(const std::shared_ptr<Var>& output_var,
 void FSMState::output(const std::shared_ptr<Var>& output_var, int64_t value) {
     auto& c = parent_->generator()->constant(value, output_var->width, output_var->is_signed);
     output(output_var, c.shared_from_this());
+}
+
+void FSMState::output(const std::shared_ptr<Var>& output_var, int64_t value,
+                      const std::pair<std::string, uint32_t>& debug_info) {
+    output_fn_ln_.emplace(output_var.get(), debug_info);
+    output(output_var, value);
+}
+
+void FSMState::output(const std::shared_ptr<Var>& output_var, const std::shared_ptr<Var>& value_var,
+                      const std::pair<std::string, uint32_t>& debug_info) {
+    output_fn_ln_.emplace(output_var.get(), debug_info);
+    output(output_var, value_var);
 }
 
 void FSMState::check_outputs() {

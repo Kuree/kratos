@@ -1379,6 +1379,8 @@ void change_port_bundle_struct(Generator* top) {
 class FSMVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
+        if (generator->is_cloned())
+            return;
         for (auto const& iter : generator->fsms()) {
             iter.second->realize();
         }

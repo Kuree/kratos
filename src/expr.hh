@@ -356,9 +356,11 @@ public:
     uint32_t inline width() { return width_; }
 
     std::shared_ptr<EnumConst> get_enum(const std::string &name);
+    void add_debug_info(const std::string &enum_name, const std::pair<std::string, uint32_t> &debug);
 
 private:
     uint32_t width_;
+    std::unordered_map<std::string, std::pair<std::string, uint32_t>> fn_name_ln_;
 };
 
 struct EnumVar : public Var {

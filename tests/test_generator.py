@@ -31,10 +31,11 @@ class PassThroughTop(Generator):
 
 def check_gold(mod, gold_name, **kargs):
     with tempfile.TemporaryDirectory() as tempdir:
+        tempdir = "temp"
         filename = os.path.join(tempdir, "test.sv")
         gold = os.path.join(os.path.dirname(__file__), "gold",
                             gold_name + ".sv")
-        verilog(mod, filename=filename, **kargs)
+        verilog(mod, filename=filename, debug=True, **kargs)
         assert os.path.isfile(gold)
         assert os.path.isfile(filename)
         if not filecmp.cmp(filename, gold):
@@ -860,7 +861,7 @@ def test_enum():
 
 
 def test_fsm():
-    mod = Generator("mod")
+    mod = Generator("mod", debug=True)
     out_ = mod.output("out", 2)
     in_ = mod.input("in", 2)
     # fsm requires a clk and async rst
