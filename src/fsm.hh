@@ -27,6 +27,9 @@ public:
     // dot graph
     std::string dot_graph();
     void dot_graph(const std::string &filename);
+    // output table
+    std::string output_table();
+    void output_table(const std::string &filename);
 
     Generator* generator() { return generator_; }
 

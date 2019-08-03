@@ -231,6 +231,39 @@ void FSM::dot_graph(const std::string& filename) {
     stream.close();
 }
 
+std::string FSM::output_table() {
+    std::stringstream stream;
+    // sort the outputs
+    std::vector<Var*> outputs;
+    outputs.reserve(outputs_.size());
+    for (auto const& var : outputs_) outputs.emplace_back(var);
+    std::sort(outputs.begin(), outputs.end(),
+              [](const auto& lhs, const auto& rhs) { return lhs->to_string() < rhs->to_string(); });
+    // write the header
+    stream << "State";
+    for (const auto& var : outputs) stream << "," << var->to_string();
+    stream << ::endl;
+
+    // notice that we don't need to sort the state names since it's stored in map
+    // which is ordered
+    for (auto const& [state_name, state] : states_) {
+        stream << state_name;
+        for (auto const& output : outputs) {
+            auto value = state->output_values().at(output);
+            stream << "," << value->to_string();
+        }
+        stream << ::endl;
+    }
+
+    return stream.str();
+}
+
+void FSM::output_table(const std::string& filename) {
+    std::ofstream stream(filename);
+    stream << output_table();
+    stream.close();
+}
+
 FSMState::FSMState(std::string name, FSM* parent) : name_(std::move(name)), parent_(parent) {}
 
 void FSMState::next(const std::shared_ptr<FSMState>& next_state, std::shared_ptr<Var>& cond) {

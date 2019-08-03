@@ -887,6 +887,8 @@ def test_fsm():
     # output fsm graph
     dot = fsm.dot_graph()
     check_file(dot, "test_fsm.dot")
+    csv = fsm.output_table()
+    check_file(csv, "test_fsm.csv")
 
 
 if __name__ == "__main__":
