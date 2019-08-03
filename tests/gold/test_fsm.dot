@@ -1,0 +1,10 @@
+digraph Color {
+    rankdir=LR;
+
+    node [shape = doublecircle, label="Red"] Red;
+    node [shape = circle, label="Blue"] Blue;
+
+    Blue    ->  Red [ label = "in == 2'h1" ];
+    Red    ->  Red [ label = "in == 2'h0" ];
+    Red    ->  Blue [ label = "in == 2'h1" ];
+}

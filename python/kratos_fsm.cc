@@ -19,7 +19,9 @@ void init_fsm(py::module &m) {
         .def("output", py::overload_cast<const std::string &>(&FSM::output))
         .def("output", py::overload_cast<const std::shared_ptr<Var> &>(&FSM::output))
         .def("fsm_name", &FSM::fsm_name)
-        .def("outputs", &FSM::outputs);
+        .def("outputs", &FSM::outputs)
+        .def("dot_graph", py::overload_cast<>(&FSM::dot_graph))
+        .def("dot_graph", py::overload_cast<const std::string &>(&FSM::dot_graph));
 
     py::class_<FSMState, std::shared_ptr<FSMState>>(m, "FSMState")
         .def("next", &FSMState::next)

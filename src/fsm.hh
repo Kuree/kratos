@@ -24,6 +24,9 @@ public:
     const std::unordered_set<Var*> &outputs() const { return outputs_; }
 
     void realize();
+    // dot graph
+    std::string dot_graph();
+    void dot_graph(const std::string &filename);
 
     Generator* generator() { return generator_; }
 

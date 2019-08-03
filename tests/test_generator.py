@@ -46,6 +46,20 @@ def check_gold(mod, gold_name, **kargs):
             assert False
 
 
+def check_file(src_str, gold_filename):
+    gold = os.path.join(os.path.dirname(__file__), "gold",
+                        gold_filename)
+    with open(gold) as f:
+        gold_text = f.read()
+        if src_str != gold_text:
+            print(src_str)
+            print("-" * 80)
+            print(gold_text)
+            with open("test.dot", "w") as ff:
+                ff.write(src_str)
+            assert False
+
+
 def test_generator():
     mods = []
     for i in range(10):
@@ -870,6 +884,9 @@ def test_fsm():
     fsm.set_start_state("Red")
 
     check_gold(mod, "test_fsm")
+    # output fsm graph
+    dot = fsm.dot_graph()
+    check_file(dot, "test_fsm.dot")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,14 @@
 #include "fsm.hh"
 #include <fmt/format.h>
 #include <cmath>
+#include <fstream>
+#include <sstream>
 #include <utility>
 #include "except.hh"
 #include "generator.hh"
 
 using fmt::format;
+using std::endl;
 using std::runtime_error;
 
 namespace kratos {
@@ -90,7 +93,7 @@ void FSM::realize() {
         std::sort(vars.begin(), vars.end(), [=](const auto& lhs, const auto& rhs) {
             return transitions.at(lhs)->name() < transitions.at(rhs)->name();
         });
-        for (auto const &cond : vars) {
+        for (auto const& cond : vars) {
             auto next_fsm_state = transitions.at(cond);
             if (!if_) {
                 if_ = std::make_shared<IfStmt>(cond->shared_from_this());
@@ -174,6 +177,59 @@ std::shared_ptr<FSMState> FSM::get_state(const std::string& name) {
 void FSM::set_start_state(const std::string& name) { set_start_state(get_state(name)); }
 
 void FSM::set_start_state(const std::shared_ptr<FSMState>& state) { start_state_ = state; }
+
+std::string FSM::dot_graph() {
+    constexpr char indent[] = "    ";
+    std::stringstream stream;
+
+    // header
+    stream << "digraph " << fsm_name_ << " {" << endl;
+    stream << indent << "rankdir=LR;" << ::endl << ::endl;
+
+    // start state is double circle
+    std::string start_state_name;
+    if (start_state_) start_state_name = start_state_->name();
+    if (!start_state_name.empty())
+        stream << indent
+               << ::format("node [shape = doublecircle, label=\"{0}\"] {0};", start_state_->name())
+               << ::endl;
+    // the rest of the states
+    for (auto const& iter : states_) {
+        auto state_name = iter.first;
+        if (state_name == start_state_name) continue;
+        stream << indent << ::format("node [shape = circle, label=\"{0}\"] {0};", state_name)
+               << ::endl;
+    }
+
+    stream << ::endl;
+    // state transition
+    for (auto const& [state_name, state] : states_) {
+        auto transitions = state->transitions();
+        // deterministic sorting
+        std::vector<Var*> conds;
+        conds.reserve(transitions.size());
+        for (auto const& iter : transitions) conds.emplace_back(iter.first);
+        std::sort(conds.begin(), conds.end(), [](auto const& lhs, auto const& rhs) {
+            return lhs->to_string() < rhs->to_string();
+        });
+        for (auto const& cond : conds) {
+            auto next_state = transitions.at(cond);
+            stream << indent
+                   << ::format("{0}    ->  {1} [ label = \"{2}\" ];", state_name,
+                               next_state->name(), cond->to_string())
+                   << ::endl;
+        }
+    }
+    stream << "}" << ::endl;
+
+    return stream.str();
+}
+
+void FSM::dot_graph(const std::string& filename) {
+    std::ofstream stream(filename);
+    stream << dot_graph();
+    stream.close();
+}
 
 FSMState::FSMState(std::string name, FSM* parent) : name_(std::move(name)), parent_(parent) {}
 
