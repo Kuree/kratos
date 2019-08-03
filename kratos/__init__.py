@@ -14,12 +14,15 @@ from _kratos.passes import IRVisitor as IRVisitor
 from _kratos import PackedStruct, Port, Var, AssignmentType
 from .stmts import IfStmt, SwitchStmt, if_, switch_
 
+# FSMs
+from _kratos import FSM, FSMState
+
 posedge = BlockEdgeType.Posedge
 negedge = BlockEdgeType.Negedge
 
 __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
            "verilog", "signed", "is_valid_verilog", "VarException",
-           "StmtException", "IRVisitor"]
+           "StmtException", "IRVisitor", "FSM", "FSMState"]
 
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",

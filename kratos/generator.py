@@ -466,6 +466,14 @@ class Generator(metaclass=GeneratorMeta):
             for attr in attributes:
                 stmt.add_attribute(attr)
 
+    def add_fsm(self, fsm_name: str, clk_name=None, reset_name=None):
+        if clk_name is not None and reset_name is not None:
+            clk = self.__generator.get_var(clk_name)
+            reset = self.__generator.get_var(reset_name)
+            return self.__generator.fsm(fsm_name, clk, reset)
+        else:
+            return self.__generator.fsm(fsm_name)
+
     def add_stmt(self, stmt):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_stmt, [stmt]))

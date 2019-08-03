@@ -82,20 +82,22 @@ void FSM::realize() {
     for (auto const& [state_name, state] : states_) {
         // a list of if statements
         std::shared_ptr<IfStmt> if_ = nullptr;
-        for (auto const& [cond, next_state] : state->transitions()) {
+        for (auto const& [cond, next_fsm_state] : state->transitions()) {
             if (!if_) {
                 if_ = std::make_shared<IfStmt>(cond->shared_from_this());
                 if_->add_then_stmt(
-                    current_state.assign(enum_def.get_enum(next_state->name()), Blocking));
+                    next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking));
             } else {
                 auto new_if = std::make_shared<IfStmt>(cond->shared_from_this());
                 new_if->add_then_stmt(
-                    current_state.assign(enum_def.get_enum(next_state->name()), Blocking));
+                    next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking));
                 if_->add_else_stmt(new_if);
                 if_ = new_if;
             }
         }
-        if (if_) case_state_comb->add_switch_case(enum_def.get_enum(state_name), if_);
+        if (!if_)
+            throw ::runtime_error("Unable to find any state transition");
+        case_state_comb->add_switch_case(enum_def.get_enum(state_name), if_);
     }
 
     // add it to the state_comb
@@ -186,6 +188,11 @@ void FSMState::output(const std::shared_ptr<Var>& output_var,
                            {output_values_.at(output)});
     }
     output_values_.emplace(output, value);
+}
+
+void FSMState::output(const std::shared_ptr<Var>& output_var, int64_t value) {
+    auto &c = parent_->generator()->constant(value, output_var->width, output_var->is_signed);
+    output(output_var, c.shared_from_this());
 }
 
 void FSMState::check_outputs() {

@@ -27,11 +27,13 @@ def verilog(generator: Generator, optimize_if: bool = True,
     # load all the passes
     # you can easily roll your own functions to control how the passes
     # are run
+
+    pass_manager.add_pass("realize_fsm")
     if optimize_passthrough:
         pass_manager.add_pass("remove_pass_through_modules")
     if optimize_if:
         pass_manager.add_pass("transform_if_to_case")
-    pass_manager.add_pass("fix_assignment_type")
+    # fsm elaboration has to happen before unused vars removal
     pass_manager.add_pass("zero_out_stubs")
     if optimize_fanout:
         pass_manager.add_pass("remove_fanout_one_wires")
@@ -39,6 +41,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     if optimize_bundle:
         pass_manager.add_pass("change_port_bundle_struct")
     pass_manager.add_pass("decouple_generator_ports")
+    pass_manager.add_pass("fix_assignment_type")
     pass_manager.add_pass("remove_unused_vars")
     pass_manager.add_pass("remove_unused_stmts")
     pass_manager.add_pass("verify_assignments")

@@ -4,6 +4,7 @@
 #include <pybind11/stl.h>
 #include "../src/except.hh"
 #include "../src/expr.hh"
+#include "../src/fsm.hh"
 #include "../src/generator.hh"
 #include "../src/stmt.hh"
 
@@ -94,7 +95,13 @@ void init_generator(py::module &m) {
         .def("has_port_bundle", &Generator::has_port_bundle)
         .def("get_named_block", &Generator::get_named_block)
         .def("add_named_block", &Generator::add_named_block)
-        .def("has_named_block", &Generator::has_named_block);
+        .def("has_named_block", &Generator::has_named_block)
+        .def("fsm", py::overload_cast<const std::string &>(&Generator::fsm),
+             py::return_value_policy::reference)
+        .def("fsm",
+             py::overload_cast<const std::string &, const std::shared_ptr<Var> &,
+                               const std::shared_ptr<Var> &>(&Generator::fsm),
+             py::return_value_policy::reference);
 
     generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
         var.fn_name_ln.emplace_back(info);

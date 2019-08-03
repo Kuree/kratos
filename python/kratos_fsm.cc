@@ -11,8 +11,8 @@ void init_fsm(py::module &m) {
     py::class_<FSM, std::shared_ptr<FSM>>(m, "FSM")
         .def(py::init<std::string, Generator *>())
         .def(py::init<std::string, Generator *, std::shared_ptr<Var>, std::shared_ptr<Var>>())
-        .def("add_state", &FSM::add_state)
-        .def("get_state", &FSM::get_state)
+        .def("add_state", &FSM::add_state, py::return_value_policy::reference)
+        .def("get_state", &FSM::get_state, py::return_value_policy::reference)
         .def("set_start_state", py::overload_cast<const std::string &>(&FSM::set_start_state))
         .def("set_start_state",
              py::overload_cast<const std::shared_ptr<FSMState> &>(&FSM::set_start_state))
@@ -21,7 +21,11 @@ void init_fsm(py::module &m) {
         .def("fsm_name", &FSM::fsm_name)
         .def("outputs", &FSM::outputs);
 
-    py::class_<FSMState, std::shared_ptr<FSMState>>(m, "FSMState").def("next", &FSMState::next)
-    .def("output", &FSMState::output)
-    .def_property_readonly("name", &FSMState::name);
+    py::class_<FSMState, std::shared_ptr<FSMState>>(m, "FSMState")
+        .def("next", &FSMState::next)
+        .def("output",
+             py::overload_cast<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &>(
+                 &FSMState::output))
+        .def("output", py::overload_cast<const std::shared_ptr<Var> &, int64_t>(&FSMState::output))
+        .def_property_readonly("name", &FSMState::name);
 }

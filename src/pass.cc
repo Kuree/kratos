@@ -1459,8 +1459,6 @@ void PassManager::register_builtin_passes() {
 
     register_pass("insert_pipeline_stages", &insert_pipeline_stages);
 
-    // check the connection again, just to be safe
-    add_pass("verify_generator_connectivity");
 }
 
 }

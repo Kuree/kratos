@@ -845,5 +845,32 @@ def test_enum():
     check_gold(mod, "test_enum")
 
 
+def test_fsm():
+    mod = Generator("mod")
+    out_ = mod.output("out", 2)
+    in_ = mod.input("in", 2)
+    # fsm requires a clk and async rst
+    mod.clock("clk")
+    mod.reset("rst")
+    # add a dummy fsm
+    fsm = mod.add_fsm("Color")
+    # add outputs
+    fsm.output(out_)
+    # add states
+    red = fsm.add_state("Red")
+    blue = fsm.add_state("Blue")
+    # set the state transition
+    red.next(red, in_ == 0)
+    red.next(blue, in_ == 1)
+    blue.next(red, in_ == 1)
+    # fill in outputs
+    red.output(out_, 2)
+    blue.output(out_, 1)
+    # set the start case
+    fsm.set_start_state("Red")
+
+    # check_gold(mod, "test_fsm")
+
+
 if __name__ == "__main__":
-    test_enum()
+    test_fsm()

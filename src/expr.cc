@@ -767,7 +767,7 @@ Enum::Enum(kratos::Generator *generator, std::string name,
 }
 
 std::shared_ptr<EnumConst> Enum::get_enum(const std::string &enum_name) {
-    if (values.find(name) == values.end())
+    if (values.find(enum_name) == values.end())
         throw ::runtime_error(::format("Cannot find {0} in {1}", enum_name, name));
     return values.at(enum_name);
 }

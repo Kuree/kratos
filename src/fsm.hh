@@ -25,6 +25,8 @@ public:
 
     void realize();
 
+    Generator* generator() { return generator_; }
+
 private:
     std::string fsm_name_;
     Generator *generator_;
@@ -43,6 +45,7 @@ public:
 
     void next(const std::shared_ptr<FSMState> &next_state, std::shared_ptr<Var> &cond);
     void output(const std::shared_ptr<Var> &output_var, const std::shared_ptr<Var> &value_var);
+    void output(const std::shared_ptr<Var> &output_var, int64_t value);
     void check_outputs();
 
     const inline std::string &name() { return name_; }
