@@ -82,11 +82,21 @@ void FSM::realize() {
     for (auto const& [state_name, state] : states_) {
         // a list of if statements
         std::shared_ptr<IfStmt> if_ = nullptr;
-        for (auto const& [cond, next_fsm_state] : state->transitions()) {
+        std::shared_ptr<IfStmt> top_if = nullptr;
+        std::vector<Var*> vars;
+        auto transitions = state->transitions();
+        vars.reserve(transitions.size());
+        for (auto const& iter : transitions) vars.emplace_back(iter.first);
+        std::sort(vars.begin(), vars.end(), [=](const auto& lhs, const auto& rhs) {
+            return transitions.at(lhs)->name() < transitions.at(rhs)->name();
+        });
+        for (auto const &cond : vars) {
+            auto next_fsm_state = transitions.at(cond);
             if (!if_) {
                 if_ = std::make_shared<IfStmt>(cond->shared_from_this());
                 if_->add_then_stmt(
                     next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking));
+                top_if = if_;
             } else {
                 auto new_if = std::make_shared<IfStmt>(cond->shared_from_this());
                 new_if->add_then_stmt(
@@ -95,9 +105,8 @@ void FSM::realize() {
                 if_ = new_if;
             }
         }
-        if (!if_)
-            throw ::runtime_error("Unable to find any state transition");
-        case_state_comb->add_switch_case(enum_def.get_enum(state_name), if_);
+        if (!top_if) throw ::runtime_error("Unable to find any state transition");
+        case_state_comb->add_switch_case(enum_def.get_enum(state_name), top_if);
     }
 
     // add it to the state_comb
@@ -191,7 +200,7 @@ void FSMState::output(const std::shared_ptr<Var>& output_var,
 }
 
 void FSMState::output(const std::shared_ptr<Var>& output_var, int64_t value) {
-    auto &c = parent_->generator()->constant(value, output_var->width, output_var->is_signed);
+    auto& c = parent_->generator()->constant(value, output_var->width, output_var->is_signed);
     output(output_var, c.shared_from_this());
 }
 

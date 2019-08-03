@@ -5,6 +5,7 @@
 #include "../src/port.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
+#include "../src/fsm.hh"
 #include "gtest/gtest.h"
 
 using namespace kratos;
@@ -567,4 +568,34 @@ TEST(generator, bundle_to_struct) { // NOLINT
     create_module_instantiation(&mod1);
     remove_fanout_one_wires(&mod1);
     generate_verilog(&mod1);
+}
+
+TEST(generator, fsm) {  // NOLINT
+    Context c;
+    auto mod = c.generator("mod");
+    auto& out_ = mod.port(PortDirection::Out, "out", 2);
+    auto& in_ = mod.port(PortDirection::In, "in", 2);
+    mod.port(PortDirection::In, "clk", 1, 1, PortType::Clock, false);
+    mod.port(PortDirection::In, "rst", 1, 1, PortType::AsyncReset, false);
+
+    auto &fsm = mod.fsm("Color");
+    fsm.output(out_.shared_from_this());
+
+    auto red = fsm.add_state("Red");
+    auto blue = fsm.add_state("Blue");
+    auto expr1 = in_.eq(mod.constant(0, 2)).shared_from_this();
+    red->next(red, expr1);
+    auto expr2 = in_.eq(mod.constant(1, 2)).shared_from_this();
+    red->next(blue, expr2);
+    blue->next(red, expr2);
+
+
+    red->output(out_.shared_from_this(), mod.constant(2, 2).shared_from_this());
+    blue->output(out_.shared_from_this(), mod.constant(1, 2).shared_from_this());
+    fsm.set_start_state(red);
+
+    realize_fsm(&mod);
+    fix_assignment_type(&mod);
+    auto mod_src = generate_verilog(&mod);
+    is_valid_verilog(mod_src);
 }

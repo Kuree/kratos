@@ -869,7 +869,7 @@ def test_fsm():
     # set the start case
     fsm.set_start_state("Red")
 
-    # check_gold(mod, "test_fsm")
+    check_gold(mod, "test_fsm")
 
 
 if __name__ == "__main__":
