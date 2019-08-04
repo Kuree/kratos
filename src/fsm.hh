@@ -18,6 +18,9 @@ public:
     std::shared_ptr<FSMState> get_state(const std::string &name);
     void set_start_state(const std::string &name);
     void set_start_state(const std::shared_ptr<FSMState> &state);
+    void set_start_state(const std::string &name, const std::pair<std::string, uint32_t> &debug);
+    void set_start_state(const std::shared_ptr<FSMState> &state,
+                         const std::pair<std::string, uint32_t> &debug);
 
     // specify the state machine outputs and inputs
     void output(const std::string &var_name);
@@ -46,6 +49,7 @@ private:
     // use it to keep it in order
     std::vector<std::string> state_names_;
     std::shared_ptr<FSMState> start_state_ = nullptr;
+    std::pair<std::string, uint32_t> start_state_debug_ = {"", 0};
 
     std::unordered_map<std::string, std::pair<std::string, uint32_t>> fn_name_ln_;
 };

@@ -18,10 +18,11 @@ class FSM:
             return FSMState(self.__generator, self.__fsm.add_state(name))
 
     def set_start_state(self, state):
-        if isinstance(state, str):
-            self.__fsm.set_start_state(state)
-        elif isinstance(state, FSMState):
-            self.__fsm.set_start_state(state.internal_state)
+        if isinstance(state, FSMState):
+            state = state.internal_state
+        if self.__generator.debug:
+            debug = get_fn_ln()
+            self.__fsm.set_start_state(state, debug)
         else:
             self.__fsm.set_start_state(state)
 

@@ -31,11 +31,10 @@ class PassThroughTop(Generator):
 
 def check_gold(mod, gold_name, **kargs):
     with tempfile.TemporaryDirectory() as tempdir:
-        tempdir = "temp"
         filename = os.path.join(tempdir, "test.sv")
         gold = os.path.join(os.path.dirname(__file__), "gold",
                             gold_name + ".sv")
-        verilog(mod, filename=filename, debug=True, **kargs)
+        verilog(mod, filename=filename, **kargs)
         assert os.path.isfile(gold)
         assert os.path.isfile(filename)
         if not filecmp.cmp(filename, gold):

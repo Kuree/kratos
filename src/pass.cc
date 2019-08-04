@@ -887,6 +887,9 @@ void remove_pass_through_modules(Generator* top) {
 class DebugInfoVisitor : public IRVisitor {
 public:
     void visit(Var* var) override { add_info(var); }
+    void visit(Expr* expr) override { add_info(expr); }
+    void visit(EnumVar* var) override { add_info(var); }
+    void visit(EnumConst* var) override { add_info(var); }
 
     void inline visit(AssignStmt* stmt) override { add_info(stmt); }
 
@@ -1379,8 +1382,7 @@ void change_port_bundle_struct(Generator* top) {
 class FSMVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
-        if (generator->is_cloned())
-            return;
+        if (generator->is_cloned()) return;
         for (auto const& iter : generator->fsms()) {
             iter.second->realize();
         }
@@ -1460,7 +1462,6 @@ void PassManager::register_builtin_passes() {
     register_pass("create_module_instantiation", &create_module_instantiation);
 
     register_pass("insert_pipeline_stages", &insert_pipeline_stages);
-
 }
 
 }

@@ -71,6 +71,8 @@ public:
     virtual inline void visit(VarSlice *) {}
     virtual inline void visit(VarConcat *) {}
     virtual inline void visit(Expr *) {}
+    virtual inline void visit(EnumVar *) {}
+    virtual inline void visit(EnumConst*) {}
     virtual inline void visit(Const *) {}
     virtual inline void visit(Parameter *) {}
     virtual inline void visit(AssignStmt *) {}

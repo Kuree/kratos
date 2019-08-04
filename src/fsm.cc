@@ -65,6 +65,10 @@ void FSM::realize() {
     auto next_state_name = generator_->get_unique_variable_name(fsm_name_, "next_state");
     auto& current_state = generator_->enum_var(current_state_name, enum_def.shared_from_this());
     auto& next_state = generator_->enum_var(next_state_name, enum_def.shared_from_this());
+    if (generator_->debug) {
+        current_state.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+        next_state.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+    }
 
     // sequential logic
     // if (reset)
@@ -79,9 +83,23 @@ void FSM::realize() {
         start_state_ = get_state(start_state_name);
     }
     auto seq_if = std::make_shared<IfStmt>(reset_);
-    seq_if->add_then_stmt(
-        current_state.assign(enum_def.get_enum(start_state_->name()), AssignmentType::NonBlocking));
-    seq_if->add_else_stmt(current_state.assign(next_state.shared_from_this(), NonBlocking));
+    {
+        auto stmt = current_state.assign(enum_def.get_enum(start_state_->name()),
+                                         AssignmentType::NonBlocking);
+        seq_if->add_then_stmt(stmt);
+        if (generator_->debug) {
+            if (!start_state_debug_.first.empty()) {
+                stmt->fn_name_ln.emplace_back(start_state_debug_);
+            }
+            stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+        }
+    }
+    {
+        auto stmt = current_state.assign(next_state.shared_from_this(), NonBlocking);
+        if (generator_->debug)
+            stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+        seq_if->add_else_stmt(stmt);
+    }
     // add it to the seq
     seq->add_stmt(seq_if);
 
@@ -103,27 +121,25 @@ void FSM::realize() {
             auto next_fsm_state = transitions.at(cond);
             if (!if_) {
                 if_ = std::make_shared<IfStmt>(cond->shared_from_this());
-                if_->add_then_stmt(
-                    next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking));
+                auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking);
+                if_->add_then_stmt(stmt);
                 top_if = if_;
                 if (generator_->debug) {
                     auto debug_info = state->next_state_fn_ln();
                     if (debug_info.find(next_fsm_state) != debug_info.end()) {
                         auto info = debug_info.at(next_fsm_state);
-                        if_->predicate()->fn_name_ln.emplace_back(info);
-                        if_->then_body()->fn_name_ln.emplace_back(info);
+                        stmt->fn_name_ln.emplace_back(info);
                     }
                 }
             } else {
                 auto new_if = std::make_shared<IfStmt>(cond->shared_from_this());
-                new_if->add_then_stmt(
-                    next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking));
+                auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking);
+                new_if->add_then_stmt(stmt);
                 if (generator_->debug) {
                     auto debug_info = state->next_state_fn_ln();
                     if (debug_info.find(next_fsm_state) != debug_info.end()) {
                         auto info = debug_info.at(next_fsm_state);
-                        new_if->predicate()->fn_name_ln.emplace_back(info);
-                        new_if->then_body()->fn_name_ln.emplace_back(info);
+                        stmt->fn_name_ln.emplace_back(info);
                     }
                 }
                 if_->add_else_stmt(new_if);
@@ -212,6 +228,17 @@ std::shared_ptr<FSMState> FSM::get_state(const std::string& name) {
 void FSM::set_start_state(const std::string& name) { set_start_state(get_state(name)); }
 
 void FSM::set_start_state(const std::shared_ptr<FSMState>& state) { start_state_ = state; }
+
+void FSM::set_start_state(const std::string& name, const std::pair<std::string, uint32_t>& debug) {
+    set_start_state(name);
+    start_state_debug_ = debug;
+}
+
+void FSM::set_start_state(const std::shared_ptr<FSMState>& state,
+                          const std::pair<std::string, uint32_t>& debug) {
+    set_start_state(state);
+    start_state_debug_ = debug;
+}
 
 std::string FSM::dot_graph() {
     constexpr char indent[] = "    ";

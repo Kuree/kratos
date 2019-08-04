@@ -25,6 +25,7 @@ struct PortPacked;
 struct VarPacked;
 struct Enum;
 struct EnumConst;
+struct EnumVar;
 class Stmt;
 class AssignStmt;
 class IfStmt;

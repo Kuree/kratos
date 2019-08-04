@@ -774,7 +774,8 @@ std::shared_ptr<EnumConst> Enum::get_enum(const std::string &enum_name) {
 
 void Enum::add_debug_info(const std::string &enum_name,
                           const std::pair<std::string, uint32_t> &debug) {
-    fn_name_ln_.emplace(enum_name, debug);
+    auto var = values.at(enum_name);
+    var->fn_name_ln.emplace_back(debug);
 }
 
 EnumConst::EnumConst(kratos::Generator *m, int64_t value, uint32_t width, kratos::Enum *parent,

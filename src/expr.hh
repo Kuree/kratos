@@ -340,6 +340,8 @@ public:
     bool inline is_enum() const override { return true; }
     const inline Enum* enum_def() const { return parent_; }
 
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
 private:
     Enum *parent_;
     std::string name_;
@@ -360,7 +362,6 @@ public:
 
 private:
     uint32_t width_;
-    std::unordered_map<std::string, std::pair<std::string, uint32_t>> fn_name_ln_;
 };
 
 struct EnumVar : public Var {
@@ -374,6 +375,8 @@ public:
                                        AssignmentType type) override;
 
     const inline Enum*  enum_type() const { return enum_type_; }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
 private:
     Enum *enum_type_;
 };

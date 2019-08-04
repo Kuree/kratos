@@ -21,6 +21,12 @@ void init_fsm(py::module &m) {
         .def("set_start_state", py::overload_cast<const std::string &>(&FSM::set_start_state))
         .def("set_start_state",
              py::overload_cast<const std::shared_ptr<FSMState> &>(&FSM::set_start_state))
+        .def("set_start_state",
+             py::overload_cast<const std::string &, const std::pair<std::string, uint32_t> &>(
+                 &FSM::set_start_state))
+        .def("set_start_state",
+             py::overload_cast<const std::shared_ptr<FSMState> &,
+                               const std::pair<std::string, uint32_t> &>(&FSM::set_start_state))
         .def("output", py::overload_cast<const std::string &>(&FSM::output))
         .def("output", py::overload_cast<const std::shared_ptr<Var> &>(&FSM::output))
         .def("fsm_name", &FSM::fsm_name)

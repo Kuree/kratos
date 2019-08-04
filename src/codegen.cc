@@ -266,7 +266,8 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
 void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
-        stmt->predicate()->verilog_ln = stream_.line_no();
+        if (stmt->predicate()->verilog_ln == 0)
+            stmt->predicate()->verilog_ln = stream_.line_no();
     }
     stream_ << indent() << ::format("if ({0}) ", stmt->predicate()->to_string());
     auto const& then_body = stmt->then_body();
@@ -404,8 +405,9 @@ void SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
     uint32_t count = 0;
     indent_++;
     for (auto &[name, c]: enum_->values) {
-        if (generator_->debug)
+        if (generator_->debug) {
             c->verilog_ln = stream_.line_no();
+        }
         stream_ << indent() << name << " = " << c->value_string();
         if (++count != enum_->values.size())
             stream_ << ",";
