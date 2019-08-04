@@ -115,8 +115,8 @@ the generator instance. For instance:
 
 .. code-block:: Python
 
-    clk = self.port("clk", 1, PortDirection.In, PortType.Clock)
-    seq_block = self.sequential([BlockEdgeType.Posedge, clk])
+    clk = self.clock("clk")
+    seq_block = self.sequential((posedge, clk))
 
 This will produce the following verilog code:
 
@@ -185,11 +185,11 @@ Here is an example on how can you can construct a switch statement:
     var_2 = self.var("value2", 16)
     stmt = SwitchStmt(var)
     # you can use a single statement
-    stmt.add_switch_case(self.const(1, 16), var_1.assign(self.const(1, 16)))
-    stmt.add_switch_case(self.const(2, 16), var_2.assign(self.const(1, 16)))
+    stmt.case(1, var_1.assign(1))
+    stmt.case(2, var_2.assign(1))
     # you can also pass in a list of statements
-    stmt.add_switch_case(None, [var_1.assign(self.const(0, 16)),
-                                var_2.assign(self.const(0, 16))])
+    stmt.add_switch_case(None, [var_1.assign(0),
+                                var_2.assign(0)])
     # remember to add it to a either sequential or combinational code block!
     # we re-use the sequential block we created above.
     seq_block.add_stmt(stmt)
@@ -230,9 +230,9 @@ Here is an example on how to construct an ``IfStmt``.
     var = self.var("var", 1)
     value = self.var("value", 1)
 
-    if_stmt = IfStmt(var.eq(self.const(0, 1)))
-    if_stmt.add_then_stmt(value.assign(self.const(1, 1)))
-    if_stmt.add_else_stmt(value.assign(self.const(0, 1)))
+    if_ = IfStmt(var == 0)
+    if_.then_(value.assign(1))
+    if_.else_(value.assign(0))
 
     # remember to add it to a either sequential or combinational code block!
     # we re-use the combinational block we created above.
@@ -260,3 +260,31 @@ Here is the generated verilog:
     If you have nested ``IfStmt``, in some cases the compiler may do some
     optimization to optimize them away. Please refer to the passes to
     see more details.
+
+Syntax sugars
+-------------
+
+Kratos provides some syntax sugar to make statement creations less verbose.
+You can call ``if_`` and ``switch_`` to create statements in a functional
+manner. Notice that if you call ``if_`` and ``switch_`` directly from
+``combinational`` and ``sequential``, the statements will be added to the
+always block automatically.
+
+For assignments, you can use functional call the assign the values, such as
+``var_to(var_src)``. Here are some examples on the syntax sugars:
+
+.. code-block:: Python
+
+    mod = Generator("mod")
+    out_ = mod.var("out", 1)
+    in_ = mod.port("in", 1, PortDirection.In)
+    comb = mod.combinational()
+    comb.if_(in_ == 1).then_(out_(0)).else_(out_(1))
+
+.. code-block:: Python
+
+    mod = Generator("mod")
+    out_ = mod.var("out", 1)
+    in_ = mod.port("in", 1, PortDirection.In)
+    comb = mod.combinational()
+    comb.switch_(in_).case_(1, out_(1)).case_(0, out_(0))
