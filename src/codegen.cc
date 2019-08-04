@@ -340,14 +340,25 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
     stream_ << indent() << "unique case (" << stmt->target()->to_string() << ")" << stream_.endl();
     indent_++;
     auto const& body = stmt->body();
-    for (auto& [cond, stmt_blk] : body) {
+    std::vector<std::shared_ptr<Const>> conds;
+    conds.reserve(body.size());
+    for (auto const& iter : body) {
+        if (iter.first) conds.emplace_back(iter.first);
+    }
+    std::sort(conds.begin(), conds.end(),
+              [](const auto& lhs, const auto& rhs) { return lhs->value() < rhs->value(); });
+    if (body.find(nullptr) != body.end())
+        conds.emplace_back(nullptr);
+
+    for (auto& cond : conds) {
+        auto &stmt_blk = body.at(cond);
         stream_ << indent() << (cond ? cond->to_string() : "default") << ": ";
         if (stmt_blk->empty()) {
             throw ::runtime_error(
                 ::format("Switch statement condition {0} is empty!", cond->to_string()));
         } else {
             // directly output the code if the block only has 1 element
-            if (stmt_blk->size() == 1) {
+            if (stmt_blk->size() == 1 && label_index_.find(stmt_blk.get()) == label_index_.end()) {
                 skip_indent_ = true;
                 dispatch_node((*stmt_blk)[0].get());
             } else {

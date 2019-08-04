@@ -33,8 +33,12 @@ always_comb begin
 end
 always_comb begin
   unique case (Color_current_state)
-    Blue: out = 2'h1;
-    Red: out = 2'h2;
+    Blue: begin :Color_Blue_Output
+        out = 2'h1;
+      end
+    Red: begin :Color_Red_Output
+        out = 2'h2;
+      end
   endcase
 end
 endmodule   // mod

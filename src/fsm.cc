@@ -96,8 +96,7 @@ void FSM::realize() {
     }
     {
         auto stmt = current_state.assign(next_state.shared_from_this(), NonBlocking);
-        if (generator_->debug)
-            stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+        if (generator_->debug) stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         seq_if->add_else_stmt(stmt);
     }
     // add it to the seq
@@ -180,7 +179,9 @@ void FSM::realize() {
             }
         }
         // add it to the case
-        output_case_comb->add_switch_case(enum_def.get_enum(state_name), stmts);
+        auto &case_stmt = output_case_comb->add_switch_case(enum_def.get_enum(state_name), stmts);
+        generator_->add_named_block(::format("{0}_{1}_Output", fsm_name_, state_name),
+                                    case_stmt.as<ScopedStmtBlock>());
     }
 
     // add it to the output_comb
