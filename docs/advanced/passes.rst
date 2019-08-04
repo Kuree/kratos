@@ -86,6 +86,9 @@ readable and your life easier:
   generator's un-connected inputs to zero. You need to add an attribute to
   the parent generator. The ``type_str`` should be ``zero_inputs``, no
   ``value_str`` needed. Notice that it only handles one-level down.
+- ``change_port_bundle_struct``: automatically change the port bundle into
+  packed struct whenever possible
+- ``realize_fsm``: realize finite state machine into more basic primitives.
 
 Write your own Pass
 ===================

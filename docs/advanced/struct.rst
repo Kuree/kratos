@@ -85,3 +85,9 @@ SystemVerilog code may not be that readable. The naming scheme is
 
 The rule of thumb is that if you want to have a mixture of input and output
 in your struct, use port bundle, otherwise use packed struct.
+
+.. note::
+
+    There is a pass called ``change_port_bundle_struct`` that can convert
+    port bundles into a packed struct. The only condition is that all the
+    ports in the bundle have to be the same direction.
