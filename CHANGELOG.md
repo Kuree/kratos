@@ -5,6 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.11] - 2019-08-03
+### Added
+- Port bundles and a pass to convert port bundle to packed struct
+- Named code blocks
+- Add enum.
+- Add class-class object FSM and full debugging.
+
+### Changed
+- `__eq__` can be used to compare numbers
+- All `case` will be `unique case`.
+- Most tests will have gold files to compare with.
+
+### Fixed
+- Fixed slicing bugs in `move_src_to` and `move_sink_to`.
+- Fixed one extra pass in the pass manager.
+
 ## [0.0.10] - 2019-07-30
 ### Added
 - Ternary op
