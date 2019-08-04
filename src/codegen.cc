@@ -60,6 +60,9 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
     if (var->is_packed()) {
         auto v = var->as<VarPacked>();
         type = v->packed_struct().struct_name;
+    } else if (var->is_enum()) {
+        auto v = var->as<EnumVar>();
+        type = v->enum_type()->name;
     } else {
         type = "logic";
     }
@@ -94,9 +97,8 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
     generate_ports(generator);
     stream_ << ");" << stream_.endl() << stream_.endl();
     generate_parameters(generator);
-    generate_variables(generator);
     generate_enums(generator);
-
+    generate_variables(generator);
 
     for (uint64_t i = 0; i < generator->stmts_count(); i++) {
         dispatch_node(generator->get_stmt(i).get());
@@ -142,8 +144,7 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
 
 void SystemVerilogCodeGen::generate_enums(kratos::Generator* generator) {
     auto enums = generator->get_enums();
-    for (auto const &iter: enums)
-        enum_code(iter.second.get());
+    for (auto const& iter : enums) enum_code(iter.second.get());
 }
 
 std::string SystemVerilogCodeGen::indent() {
@@ -266,8 +267,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
 void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
-        if (stmt->predicate()->verilog_ln == 0)
-            stmt->predicate()->verilog_ln = stream_.line_no();
+        if (stmt->predicate()->verilog_ln == 0) stmt->predicate()->verilog_ln = stream_.line_no();
     }
     stream_ << indent() << ::format("if ({0}) ", stmt->predicate()->to_string());
     auto const& then_body = stmt->then_body();
@@ -401,16 +401,15 @@ std::string SystemVerilogCodeGen::block_label(kratos::StmtBlock* stmt) {
 }
 
 void SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
-    stream_ << indent() << "enum {" << stream_.endl();
+    stream_ << indent() << "typedef enum {" << stream_.endl();
     uint32_t count = 0;
     indent_++;
-    for (auto &[name, c]: enum_->values) {
+    for (auto& [name, c] : enum_->values) {
         if (generator_->debug) {
             c->verilog_ln = stream_.line_no();
         }
         stream_ << indent() << name << " = " << c->value_string();
-        if (++count != enum_->values.size())
-            stream_ << ",";
+        if (++count != enum_->values.size()) stream_ << ",";
         stream_ << stream_.endl();
     }
     indent_--;

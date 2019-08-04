@@ -5,12 +5,12 @@ module mod (
   input logic  rst
 );
 
-logic   Color_current_state;
-logic   Color_next_state;
-enum {
+typedef enum {
   Blue = 1'h0,
   Red = 1'h1
 } Color_state;
+Color_state   Color_current_state;
+Color_state   Color_next_state;
 
 always @(posedge clk, posedge rst) begin
   if (rst) begin
