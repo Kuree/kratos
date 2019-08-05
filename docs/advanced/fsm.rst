@@ -117,6 +117,11 @@ be converted into images via ``dot``. You can also use ``fsm.output_table()``
 to obtain the table for each state's output. Again, providing the function
 with a file name will save the output to a file.
 
+Here is the state transition graph generated from the example
+
+.. figure:: /images/fsm.svg
+    :align: center
+
 As always, if you set the ``debug`` in the generator to be ``true``, Kratos
 will generate full trace of each statements back to the original python
 functions. In addition, it utilizes named block to group outputs signals
