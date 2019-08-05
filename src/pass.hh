@@ -67,8 +67,6 @@ void insert_pipeline_stages(Generator* top);
 
 void change_port_bundle_struct(Generator* top);
 
-void detect_duplicated_fsm_state(Generator* top);
-
 void realize_fsm(Generator* top);
 
 class PassManager {
