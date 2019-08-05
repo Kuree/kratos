@@ -167,8 +167,9 @@ void FSM::realize() {
                   [](auto& lhs, auto& rhs) { return lhs->name < rhs->name; });
         for (auto const& output_var : vars) {
             auto value = output_values.at(output_var);
-            if (value) {
+            if (value && value != output_var) {
                 // value can be a nullptr
+                // users may use the same variable to indicate not changed
                 auto stmt = output_var->assign(value->shared_from_this());
                 if (generator_->debug) {
                     auto debug_info = state->output_fn_ln();
@@ -186,6 +187,9 @@ void FSM::realize() {
 
     // add it to the output_comb
     output_comb->add_stmt(output_case_comb);
+
+    // set to realized
+    realized_ = true;
 }
 
 void FSM::output(const std::string& var_name) {

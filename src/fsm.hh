@@ -28,8 +28,10 @@ public:
 
     const std::string &fsm_name() const { return fsm_name_; }
     const std::unordered_set<Var *> &outputs() const { return outputs_; }
+    const std::map<std::string, std::shared_ptr<FSMState>> &states() const { return states_; }
 
     void realize();
+    bool realized() const { return realized_; }
     // dot graph
     std::string dot_graph();
     void dot_graph(const std::string &filename);
@@ -52,6 +54,8 @@ private:
     std::pair<std::string, uint32_t> start_state_debug_ = {"", 0};
 
     std::unordered_map<std::string, std::pair<std::string, uint32_t>> fn_name_ln_;
+
+    bool realized_ = false;
 };
 
 class FSMState : public std::enable_shared_from_this<FSMState> {

@@ -1379,12 +1379,71 @@ void change_port_bundle_struct(Generator* top) {
     merge_bundle_mapping(b_visitor.bundle_mapping);
 }
 
+
+class DuplicatedFSMStateVisitor : public IRVisitor {
+public:
+    void visit(Generator *generator) override {
+        if (generator->is_cloned()) return;
+        for (auto const &iter: generator->fsms()) {
+            auto fsm = iter.second;
+        }
+    }
+
+private:
+    void static detect_duplicated_state(const std::shared_ptr<FSM>& fsm) {
+        // O(n^2) brute-force to compute the output and transition conditions
+        auto const &states = fsm->states();
+        std::vector<std::string> state_names;
+        std::map<std::string, std::string> duplicated_states;
+        state_names.reserve(states.size());
+        for (auto const &iter: states) state_names.emplace_back(iter.first);
+        for (uint64_t i = 0; i < states.size(); i++) {
+            // don't run on the state to be removed
+            if (duplicated_states.find(state_names[i]) != duplicated_states.end())
+                continue;
+            const auto& state1 = states.at(state_names[i]);
+            auto const & state1_trans = state1->transitions();
+            for (uint64_t j = 0; j < states.size(); j++) {
+                const auto& state2 = states.at(state_names[j]);
+                auto const &state2_trans = state2->transitions();
+                bool same = true;
+                if (state1_trans.size() != state2_trans.size()) break;
+                for (auto const &[cond1, next_state1]: state1_trans) {
+                    bool found = false;
+                    for (auto const &[cond2, next_state2]: state2_trans) {
+                        if (cond1->to_string() == cond2->to_string() && next_state1 == next_state2) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        same = false;
+                        break;
+                    }
+                }
+                if (same) {
+                    // put state2 into duplicated list
+                    duplicated_states.emplace(state_names[j], state_names[i]);
+                }
+            }
+        }
+        if (!duplicated_states.empty()) {
+            
+        }
+    }
+};
+
+void detect_duplicated_fsm_state(Generator* top) {
+    DuplicatedFSMStateVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
 class FSMVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         if (generator->is_cloned()) return;
         for (auto const& iter : generator->fsms()) {
-            iter.second->realize();
+            if (!iter.second->realized()) iter.second->realize();
         }
     }
 };
