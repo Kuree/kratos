@@ -128,8 +128,20 @@ functions. In addition, it utilizes named block to group outputs signals
 together in generated SystemVerilog. This will make debugging with waveform
 much easier.
 
+Moore machine to Mealy
+======================
+
+Kratos offers a simple way to convert Moore machine (the default) one into a
+Mealy machine. To avoid state naming confusion, all states are kept the same
+all the outputs are handled through functions inside the state transition
+block.
+
+To set the FSM to Mealy machine, simply do ``fsm.is_moore = False`` to convert
+it into a Mealy machine. You're free to change it at any time before the FSM
+hits ``realize_fsm`` pass.
+
 Coming Soon
 ===========
 
 1. Formal verification on FSM: both general cases and per-design
-2. Automatic Moore machine -> Mealy machine conversation
+2. Directly specify Mealy machine.

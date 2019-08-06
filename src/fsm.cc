@@ -108,8 +108,7 @@ void FSM::realize() {
     // now the output logic
     // only generate output state block in moore machine. in mealy machine, the output
     // is fused inside the state transition.
-    if (moore_)
-        generate_output(enum_def, current_state);
+    if (moore_) generate_output(enum_def, current_state);
 
     // set to realized
     realized_ = true;
@@ -121,25 +120,23 @@ std::shared_ptr<FunctionStmtBlock> FSM::get_func_def() {
     std::unordered_map<std::string, Var*> name_mapping;
     name_mapping.reserve(outputs_.size());
     // add outputs
-    for (auto const &var: outputs_) {
+    for (auto const& var : outputs_) {
         auto var_name = var->to_string() + "_value";
         func->input(var_name, var->width, var->is_signed);
         name_mapping.emplace(var_name, var);
     }
     auto ports = func->ports();
-    for (auto const &[var_name, port]: ports) {
+    for (auto const& [var_name, port] : ports) {
         auto var = name_mapping.at(var_name);
         func->add_stmt(var->assign(port, AssignmentType::Blocking));
     }
     return func;
 }
 
-void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state,
-                                    EnumVar& next_state) {
+void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, EnumVar& next_state) {
     auto state_comb = generator_->combinational();
     std::shared_ptr<FunctionStmtBlock> func_def = nullptr;
-    if (!moore_)
-        func_def = get_func_def();
+    if (!moore_) func_def = get_func_def();
     auto case_state_comb = std::make_shared<SwitchStmt>(current_state.shared_from_this());
     for (auto const& [state_name, state] : states_) {
         // a list of if statements
@@ -208,9 +205,11 @@ std::shared_ptr<FunctionCallStmt>& FSM::get_func_call_stmt(
     const std::shared_ptr<FunctionStmtBlock>& func_def, const FSMState* next_fsm_state,
     std::shared_ptr<FunctionCallStmt>& func_stmt) const {  // get arg mapping
     std::map<std::string, std::shared_ptr<Var>> mapping;
-    auto const &output_values = next_fsm_state->output_values();
-    for (auto const &[var_from, var_to]: output_values) {
-        mapping.emplace(var_from->to_string() + "_value", var_to->shared_from_this());
+    auto const& output_values = next_fsm_state->output_values();
+    for (auto const& [var_from, var_to] : output_values) {
+        std::shared_ptr<Var> var_to_ =
+            var_to ? var_to->shared_from_this() : var_from->shared_from_this();
+        mapping.emplace(var_from->to_string() + "_value", var_to_);
     }
     func_stmt = std::make_shared<FunctionCallStmt>(func_def, mapping);
     return func_stmt;
