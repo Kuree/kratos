@@ -150,7 +150,7 @@ void SystemVerilogCodeGen::generate_enums(kratos::Generator* generator) {
 
 void SystemVerilogCodeGen::generate_functions(kratos::Generator* generator) {
     auto funcs = generator->functions();
-    for (auto const &iter: funcs) stmt_code(iter.second.get());
+    for (auto const& iter : funcs) stmt_code(iter.second.get());
 }
 
 std::string SystemVerilogCodeGen::indent() {
@@ -276,7 +276,6 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
     stream_ << indent() << "end" << stream_.endl();
 }
 
-
 void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
@@ -287,12 +286,12 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     uint64_t count = 0;
     auto ports = stmt->ports();
     // the map is ordered
-    for (auto const &iter: ports) {
-        stream_<< indent() << get_port_str(iter.second.get());
+    for (auto const& iter : ports) {
+        stream_ << indent() << get_port_str(iter.second.get());
         if (++count != ports.size())
             stream_ << "," << stream_.endl();
         else
-            stream_  << stream_.endl() << ");" << stream_.endl();
+            stream_ << stream_.endl() << ");" << stream_.endl();
     }
     indent_--;
 
@@ -305,7 +304,6 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
         stream_ << indent() << stmt->function_name() << " = " << stmt->return_value()->to_string();
     indent_--;
     stream_ << indent() << "end" << stream_.endl() << "endfunction" << stream_.endl();
-
 }
 
 void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
@@ -391,11 +389,10 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
     }
     std::sort(conds.begin(), conds.end(),
               [](const auto& lhs, const auto& rhs) { return lhs->value() < rhs->value(); });
-    if (body.find(nullptr) != body.end())
-        conds.emplace_back(nullptr);
+    if (body.find(nullptr) != body.end()) conds.emplace_back(nullptr);
 
     for (auto& cond : conds) {
-        auto &stmt_blk = body.at(cond);
+        auto& stmt_blk = body.at(cond);
         stream_ << indent() << (cond ? cond->to_string() : "default") << ": ";
         if (stmt_blk->empty()) {
             throw ::runtime_error(
@@ -420,11 +417,13 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
 void SystemVerilogCodeGen::stmt_code(kratos::FunctionCallStmt* stmt) {
     // since this is a statement, we don't allow it has return value
     // need to use it as a function call expr instead
+    if (stmt->parent()->ir_node_kind() != IRNodeKind::StmtKind) {
+        throw StmtException("Function call statement cannot be used in top level", {stmt});
+    }
     stream_ << indent() << stmt->func()->function_name() << " (";
     std::vector<std::string> names;
     names.reserve(stmt->args().size());
-    for (auto const &iter: stmt->args())
-        names.emplace_back(iter.second->to_string());
+    for (auto const& iter : stmt->args()) names.emplace_back(iter.second->to_string());
     stream_ << join(names.begin(), names.end(), ", ");
 
     stream_ << ");" << stream_.endl();

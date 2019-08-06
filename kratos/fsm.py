@@ -38,6 +38,14 @@ class FSM:
         else:
             return self.__fsm.output_table()
 
+    @property
+    def is_moore(self):
+        return self.__fsm.is_moore()
+
+    @is_moore.setter
+    def is_moore(self, value):
+        self.__fsm.set_moore(value)
+
 
 class FSMState:
     def __init__(self, generator, fsm_state):

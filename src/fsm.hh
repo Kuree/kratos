@@ -62,6 +62,14 @@ private:
 
     bool realized_ = false;
     bool moore_ = true;
+
+    void generate_state_transition(Enum &enum_def, EnumVar &current_state,
+                                   EnumVar &next_state);
+    void generate_output(Enum &enum_def, EnumVar &current_state);
+    std::shared_ptr<FunctionStmtBlock> get_func_def();
+    std::shared_ptr<FunctionCallStmt> &get_func_call_stmt(
+        const std::shared_ptr<FunctionStmtBlock> &func_def, const FSMState *next_fsm_state,
+        std::shared_ptr<FunctionCallStmt> &func_stmt) const;
 };
 
 class FSMState : public std::enable_shared_from_this<FSMState> {

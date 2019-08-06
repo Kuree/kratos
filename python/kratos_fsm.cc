@@ -34,7 +34,9 @@ void init_fsm(py::module &m) {
         .def("dot_graph", py::overload_cast<>(&FSM::dot_graph))
         .def("dot_graph", py::overload_cast<const std::string &>(&FSM::dot_graph))
         .def("output_table", py::overload_cast<>(&FSM::output_table))
-        .def("output_table", py::overload_cast<const std::string &>(&FSM::output_table));
+        .def("output_table", py::overload_cast<const std::string &>(&FSM::output_table))
+        .def("set_moore", &FSM::set_moore)
+        .def("is_moore", &FSM::is_moore);
 
     py::class_<FSMState, std::shared_ptr<FSMState>>(m, "FSMState")
         .def("next", py::overload_cast<const std::shared_ptr<FSMState> &, std::shared_ptr<Var> &>(

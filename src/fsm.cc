@@ -103,7 +103,43 @@ void FSM::realize() {
     seq->add_stmt(seq_if);
 
     // combination logic to compute next state
+    generate_state_transition(enum_def, current_state, next_state);
+
+    // now the output logic
+    // only generate output state block in moore machine. in mealy machine, the output
+    // is fused inside the state transition.
+    if (moore_)
+        generate_output(enum_def, current_state);
+
+    // set to realized
+    realized_ = true;
+}
+
+std::shared_ptr<FunctionStmtBlock> FSM::get_func_def() {
+    auto function_name = fsm_name_ + "_output";
+    auto func = generator_->function(function_name);
+    std::unordered_map<std::string, Var*> name_mapping;
+    name_mapping.reserve(outputs_.size());
+    // add outputs
+    for (auto const &var: outputs_) {
+        auto var_name = var->to_string() + "_value";
+        func->input(var_name, var->width, var->is_signed);
+        name_mapping.emplace(var_name, var);
+    }
+    auto ports = func->ports();
+    for (auto const &[var_name, port]: ports) {
+        auto var = name_mapping.at(var_name);
+        func->add_stmt(port->assign(var->shared_from_this(), AssignmentType::Blocking));
+    }
+    return func;
+}
+
+void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state,
+                                    EnumVar& next_state) {
     auto state_comb = generator_->combinational();
+    std::shared_ptr<FunctionStmtBlock> func_def = nullptr;
+    if (!moore_)
+        func_def = get_func_def();
     auto case_state_comb = std::make_shared<SwitchStmt>(current_state.shared_from_this());
     for (auto const& [state_name, state] : states_) {
         // a list of if statements
@@ -122,6 +158,12 @@ void FSM::realize() {
                 if_ = std::make_shared<IfStmt>(cond->shared_from_this());
                 auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking);
                 if_->add_then_stmt(stmt);
+                // mealy machine need to add extra state transition outputs
+                std::shared_ptr<FunctionCallStmt> func_stmt = nullptr;
+                if (!moore_) {
+                    func_stmt = get_func_call_stmt(func_def, next_fsm_state, func_stmt);
+                    if_->add_then_stmt(func_stmt);
+                }
                 top_if = if_;
                 if (generator_->debug) {
                     auto debug_info = state->next_state_fn_ln();
@@ -129,10 +171,18 @@ void FSM::realize() {
                         auto info = debug_info.at(next_fsm_state);
                         stmt->fn_name_ln.emplace_back(info);
                     }
+                    if (func_stmt)
+                        func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                 }
             } else {
                 auto new_if = std::make_shared<IfStmt>(cond->shared_from_this());
                 auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking);
+                // mealy machine need to add extra state transition outputs
+                std::shared_ptr<FunctionCallStmt> func_stmt = nullptr;
+                if (!moore_) {
+                    func_stmt = get_func_call_stmt(func_def, next_fsm_state, func_stmt);
+                    if_->add_then_stmt(func_stmt);
+                }
                 new_if->add_then_stmt(stmt);
                 if (generator_->debug) {
                     auto debug_info = state->next_state_fn_ln();
@@ -140,6 +190,8 @@ void FSM::realize() {
                         auto info = debug_info.at(next_fsm_state);
                         stmt->fn_name_ln.emplace_back(info);
                     }
+                    if (func_stmt)
+                        func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                 }
                 if_->add_else_stmt(new_if);
                 if_ = new_if;
@@ -151,8 +203,20 @@ void FSM::realize() {
 
     // add it to the state_comb
     state_comb->add_stmt(case_state_comb);
+}
+std::shared_ptr<FunctionCallStmt>& FSM::get_func_call_stmt(
+    const std::shared_ptr<FunctionStmtBlock>& func_def, const FSMState* next_fsm_state,
+    std::shared_ptr<FunctionCallStmt>& func_stmt) const {  // get arg mapping
+    std::map<std::string, std::shared_ptr<Var>> mapping;
+    auto const &output_values = next_fsm_state->output_values();
+    for (auto const &[var_from, var_to]: output_values) {
+        mapping.emplace(var_from->to_string(), var_to->shared_from_this());
+    }
+    func_stmt = std::make_shared<FunctionCallStmt>(func_def, mapping);
+    return func_stmt;
+}
 
-    // now the output logic
+void FSM::generate_output(Enum& enum_def, EnumVar& current_state) {
     auto output_comb = generator_->combinational();
     auto output_case_comb = std::make_shared<SwitchStmt>(current_state.shared_from_this());
     for (auto const& [state_name, state] : states_) {
@@ -180,16 +244,13 @@ void FSM::realize() {
             }
         }
         // add it to the case
-        auto &case_stmt = output_case_comb->add_switch_case(enum_def.get_enum(state_name), stmts);
-        generator_->add_named_block(::format("{0}_{1}_Output", fsm_name_, state_name),
+        auto& case_stmt = output_case_comb->add_switch_case(enum_def.get_enum(state_name), stmts);
+        generator_->add_named_block(::fmt::v5::format("{0}_{1}_Output", fsm_name_, state_name),
                                     case_stmt.as<ScopedStmtBlock>());
     }
 
     // add it to the output_comb
     output_comb->add_stmt(output_case_comb);
-
-    // set to realized
-    realized_ = true;
 }
 
 void FSM::output(const std::string& var_name) {
