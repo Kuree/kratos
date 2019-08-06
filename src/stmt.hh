@@ -199,7 +199,6 @@ public:
           function_name_(std::move(function_name)) {}
 
     std::shared_ptr<Port> input(const std::string &name, uint32_t width, bool is_signed);
-    std::shared_ptr<Port> output(const std::string &name, uint32_t width, bool is_signed);
     const std::map<std::string, std::shared_ptr<Port>> &ports() const { return ports_; }
     std::shared_ptr<Port> get_port(const std::string &port_name);
     void return_(const std::shared_ptr<Var> &expr) { return_value_  = expr; }

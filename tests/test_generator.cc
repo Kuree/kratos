@@ -596,6 +596,7 @@ TEST(generator, fsm) {  // NOLINT
 
     realize_fsm(&mod);
     fix_assignment_type(&mod);
+    verify_generator_connectivity(&mod);
     auto mod_src = generate_verilog(&mod);
     is_valid_verilog(mod_src);
 }
