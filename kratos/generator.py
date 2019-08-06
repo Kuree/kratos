@@ -447,7 +447,7 @@ class Generator(metaclass=GeneratorMeta):
         if isinstance(var_to, _kratos.PortBundleRef):
             assert isinstance(var_from, _kratos.PortBundleRef)
             if self.debug:
-                entry = get_fn_ln(1)
+                entry = get_fn_ln()
             else:
                 entry = []
             var_from.assign(var_to, self.__generator, entry)

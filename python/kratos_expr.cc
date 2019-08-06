@@ -15,34 +15,27 @@ void init_expr(py::module &m) {
     def_trace<py::class_<Var, ::shared_ptr<Var>>, Var>(var);
 
     auto expr = py::class_<Expr, ::shared_ptr<Expr>, Var>(m, "Expr");
-    init_var_derived(expr);
     def_trace<py::class_<Expr, ::shared_ptr<Expr>, Var>, Expr>(expr);
 
     auto port = py::class_<Port, ::shared_ptr<Port>, Var>(m, "Port");
-    init_var_derived(port);
     port.def("port_direction", &Port::port_direction).def("port_type", &Port::port_type);
     def_trace<py::class_<Port, ::shared_ptr<Port>, Var>, Port>(port);
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
-    init_var_derived(const_);
     const_.def("value", &Const::value).def("set_value", &Const::set_value);
     def_trace<py::class_<Const, ::shared_ptr<Const>, Var>, Const>(const_);
 
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
-    init_var_derived(slice);
     def_trace<py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>, VarSlice>(slice);
 
     auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
-    init_var_derived(concat);
     def_trace<py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>, VarConcat>(concat);
 
     auto param = py::class_<Param, ::shared_ptr<Param>, Var>(m, "Param");
-    init_var_derived(param);
     param.def("value", &Param::value).def("set_value", &Param::set_value);
     def_trace<py::class_<Param, ::shared_ptr<Param>, Var>, Param>(param);
 
     auto port_packed = py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>(m, "PortPacked");
-    init_var_derived(port_packed);
     port_packed.def("port_direction", &PortPacked::port_direction)
         .def("port_type", &PortPacked::port_type)
         .def(
@@ -52,7 +45,6 @@ void init_expr(py::module &m) {
     def_trace<py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>, PortPacked>(port_packed);
 
     auto var_packed = py::class_<VarPacked, ::shared_ptr<VarPacked>, Var>(m, "VarPacked");
-    init_var_derived(var_packed);
     var_packed
         .def(
             "__getitem__",
@@ -68,7 +60,6 @@ void init_expr(py::module &m) {
 
     auto port_packed_slice =
         py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>(m, "PackedSlice");
-    init_var_derived(port_packed_slice);
     def_trace<py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>, VarSlice>(
         port_packed_slice);
 
