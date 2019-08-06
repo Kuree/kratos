@@ -125,6 +125,15 @@ def test_module_unique():
     assert reg1.name != reg2.name
 
 
+def test_wire_const():
+    mod = Generator("test")
+    out_ = mod.output("out", 1)
+    mod.wire(out_, 1)
+
+    mod_src = verilog(mod)
+    assert is_valid_verilog(mod_src)
+
+
 def test_else_if():
     class ElseIf(Generator):
         def __init__(self):
@@ -913,4 +922,4 @@ def test_fsm_mealy():
 
 
 if __name__ == "__main__":
-    test_fsm_mealy()
+    test_wire_const()
