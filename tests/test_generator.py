@@ -859,15 +859,7 @@ def test_enum():
     check_gold(mod, "test_enum")
 
 
-def test_fsm():
-    mod = Generator("mod", debug=True)
-    out_ = mod.output("out", 2)
-    in_ = mod.input("in", 2)
-    # fsm requires a clk and async rst
-    mod.clock("clk")
-    mod.reset("rst")
-    # add a dummy fsm
-    fsm = mod.add_fsm("Color")
+def setup_fsm(fsm, out_, in_):
     # add outputs
     fsm.output(out_)
     # add states
@@ -883,6 +875,19 @@ def test_fsm():
     # set the start case
     fsm.set_start_state("Red")
 
+
+def test_fsm():
+    mod = Generator("mod", debug=True)
+    out_ = mod.output("out", 2)
+    in_ = mod.input("in", 2)
+    # fsm requires a clk and async rst
+    mod.clock("clk")
+    mod.reset("rst")
+    # add a dummy fsm
+    fsm = mod.add_fsm("Color")
+    # setup FSM
+    setup_fsm(fsm, out_, in_)
+
     check_gold(mod, "test_fsm")
     # output fsm graph
     dot = fsm.dot_graph()
@@ -891,5 +896,21 @@ def test_fsm():
     check_file(csv, "test_fsm.csv")
 
 
+def test_fsm_mealy():
+    mod = Generator("mod", debug=True)
+    out_ = mod.output("out", 2)
+    in_ = mod.input("in", 2)
+    # fsm requires a clk and async rst
+    mod.clock("clk")
+    mod.reset("rst")
+    # add a dummy fsm
+    fsm = mod.add_fsm("Color")
+    # setup FSM
+    setup_fsm(fsm, out_, in_)
+    # use mealy
+    fsm.is_moore = False
+    check_gold(mod, "test_fsm_mealy")
+
+
 if __name__ == "__main__":
-    test_fsm()
+    test_fsm_mealy()

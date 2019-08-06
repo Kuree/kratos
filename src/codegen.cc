@@ -280,8 +280,8 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
     }
-
-    stream_ << "function " << stmt->function_name() << "(" << stream_.endl();
+    std::string return_str = stmt->return_value() ? "" : "void ";
+    stream_ << "function " << return_str << stmt->function_name() << "(" << stream_.endl();
     indent_++;
     uint64_t count = 0;
     auto ports = stmt->ports();
@@ -468,7 +468,8 @@ std::string SystemVerilogCodeGen::block_label(kratos::StmtBlock* stmt) {
 }
 
 void SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
-    stream_ << indent() << "typedef enum {" << stream_.endl();
+    std::string logic_str = enum_->width() == 1 ? "" : ::format("[{0}:0]", enum_->width() - 1);
+    stream_ << indent() << "typedef enum logic" << logic_str << " {" << stream_.endl();
     uint32_t count = 0;
     indent_++;
     for (auto& [name, c] : enum_->values) {
