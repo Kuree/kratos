@@ -905,6 +905,8 @@ public:
 
     void inline visit(IfStmt* stmt) override { add_info(stmt); }
 
+    void inline visit(FunctionCallStmt* stmt) override { add_info(stmt); }
+
     std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result;
 
 private:
@@ -1378,7 +1380,6 @@ void change_port_bundle_struct(Generator* top) {
     b_visitor.visit_generator_root(top);
     merge_bundle_mapping(b_visitor.bundle_mapping);
 }
-
 
 class FSMVisitor : public IRVisitor {
 public:

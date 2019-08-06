@@ -420,6 +420,8 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionCallStmt* stmt) {
     if (stmt->parent()->ir_node_kind() != IRNodeKind::StmtKind) {
         throw StmtException("Function call statement cannot be used in top level", {stmt});
     }
+    if (generator_->debug)
+        stmt->verilog_ln = stream_.line_no();
     stream_ << indent() << stmt->func()->function_name() << " (";
     std::vector<std::string> names;
     names.reserve(stmt->args().size());

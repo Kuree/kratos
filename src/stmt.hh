@@ -225,6 +225,8 @@ public:
     const std::shared_ptr<FunctionStmtBlock> &func() { return func_; }
     const std::map<std::string, std::shared_ptr<Var>> &args() const { return args_; };
 
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
 private:
     std::shared_ptr<FunctionStmtBlock> func_;
     std::map<std::string, std::shared_ptr<Var>> args_;

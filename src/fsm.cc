@@ -133,6 +133,14 @@ std::shared_ptr<FunctionStmtBlock> FSM::get_func_def() {
     return func;
 }
 
+void add_debug_info(const std::shared_ptr<FSMState>& state,
+                    const std::shared_ptr<FunctionCallStmt>& func_stmt) {
+    auto fn_ln = state->output_fn_ln();
+    for (auto const& iter : fn_ln) {
+        func_stmt->fn_name_ln.emplace_back(iter.second);
+    }
+}
+
 void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, EnumVar& next_state) {
     auto state_comb = generator_->combinational();
     std::shared_ptr<FunctionStmtBlock> func_def = nullptr;
@@ -168,8 +176,10 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
                         auto info = debug_info.at(next_fsm_state);
                         stmt->fn_name_ln.emplace_back(info);
                     }
-                    if (func_stmt)
+                    if (func_stmt) {
+                        add_debug_info(state, func_stmt);
                         func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                    }
                 }
             } else {
                 auto new_if = std::make_shared<IfStmt>(cond->shared_from_this());
@@ -187,8 +197,10 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
                         auto info = debug_info.at(next_fsm_state);
                         stmt->fn_name_ln.emplace_back(info);
                     }
-                    if (func_stmt)
+                    if (func_stmt) {
+                        add_debug_info(state, func_stmt);
                         func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                    }
                 }
                 if_->add_else_stmt(new_if);
                 if_ = new_if;
@@ -202,10 +214,10 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
     state_comb->add_stmt(case_state_comb);
 }
 std::shared_ptr<FunctionCallStmt>& FSM::get_func_call_stmt(
-    const std::shared_ptr<FunctionStmtBlock>& func_def, const FSMState* next_fsm_state,
+    const std::shared_ptr<FunctionStmtBlock>& func_def, const FSMState* fsm_state,
     std::shared_ptr<FunctionCallStmt>& func_stmt) const {  // get arg mapping
     std::map<std::string, std::shared_ptr<Var>> mapping;
-    auto const& output_values = next_fsm_state->output_values();
+    auto const& output_values = fsm_state->output_values();
     for (auto const& [var_from, var_to] : output_values) {
         std::shared_ptr<Var> var_to_ =
             var_to ? var_to->shared_from_this() : var_from->shared_from_this();
