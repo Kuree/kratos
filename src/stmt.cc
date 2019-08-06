@@ -180,8 +180,7 @@ void SequentialStmtBlock::add_condition(
     // for now we only allow Port (clk and reset) type to use as conditions
     // make sure no duplicate
     auto pos = std::find(conditions_.begin(), conditions_.end(), condition);
-    if (pos != conditions_.end())
-        return;
+    if (pos != conditions_.end()) return;
     auto var = condition.second;
     if (var->type() != VarType::PortIO)
         throw VarException("only ports are allowed for sequential block condition.", {var.get()});
@@ -288,6 +287,54 @@ std::set<std::shared_ptr<VarSlice>> filter_slice_pairs_with_target(
         }
     }
     return result;
+}
+
+std::shared_ptr<Port> FunctionStmtBlock::input(const std::string &name, uint32_t width,
+                                               bool is_signed) {
+    auto p = std::make_shared<Port>(parent_, PortDirection::In, name, width, 1, PortType::Data,
+                                    is_signed);
+    ports_.emplace(name, p);
+    return p;
+}
+
+std::shared_ptr<Port> FunctionStmtBlock::output(const std::string &name, uint32_t width,
+                                                bool is_signed) {
+    auto p = std::make_shared<Port>(parent_, PortDirection::Out, name, width, 1, PortType::Data,
+                                    is_signed);
+    ports_.emplace(name, p);
+    return p;
+}
+
+std::shared_ptr<Port> FunctionStmtBlock::get_port(const std::string &port_name) {
+    if (ports_.find(port_name) != ports_.end())
+        throw ::runtime_error(::format("cannot find {0}", port_name));
+    return ports_.at(port_name);
+}
+
+void FunctionStmtBlock::set_parent(kratos::IRNode *parent) {
+    // the parent is preset already
+    if (parent != parent_)
+        throw StmtException("Function statement cannot change its parent", {this});
+}
+
+FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &func,
+                                   const std::map<std::string, std::shared_ptr<Var>> &args)
+    : Stmt(StatementType::FunctionalCall), func_(func), args_(args) {
+    // check the function call types
+    auto ports = func->ports();
+    for (auto const &[port_name, func_port] : ports) {
+        if (args.find(port_name) == args.end()) {
+            throw VarException(::format("{0} is not connected", port_name), {func_port.get()});
+        }
+        // check the port types
+        auto &arg_port = args.at(port_name);
+        if (func_port->width != arg_port->width)
+            throw VarException(::format("{0}'s width doesn't match", port_name),
+                               {func_port.get(), arg_port.get()});
+        if (func_port->is_signed != arg_port->is_signed)
+            throw VarException(::format("{0}'s sign doesn't match", port_name),
+                               {func_port.get(), arg_port.get()});
+    }
 }
 
 ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *parent)

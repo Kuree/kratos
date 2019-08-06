@@ -599,3 +599,21 @@ TEST(generator, fsm) {  // NOLINT
     auto mod_src = generate_verilog(&mod);
     is_valid_verilog(mod_src);
 }
+
+TEST(generator, function_call_stmt) {   // NOLINT
+    Context c;
+    auto& mod = c.generator("mod");
+    auto& in_ = mod.port(PortDirection::In, "in", 2);
+    auto& out_ = mod.port(PortDirection::Out, "out", 2);
+    auto func = mod.function("test");
+    auto func_in = func->input("in_arg", 2, false);
+    func->add_stmt(out_.assign(func_in, AssignmentType::Blocking));
+    std::map<std::string, std::shared_ptr<Var>> args = {{"in_arg", in_.shared_from_this()}};
+    auto stmt = std::make_shared<FunctionCallStmt>(func, args);
+    auto comb = mod.combinational();
+    comb->add_stmt(stmt);
+
+    verify_generator_connectivity(&mod);
+    auto mod_src = generate_verilog(&mod);
+    is_valid_verilog(mod_src);
+}

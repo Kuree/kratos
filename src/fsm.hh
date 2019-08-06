@@ -41,6 +41,11 @@ public:
 
     Generator *generator() { return generator_; }
 
+    // code gen style
+    // either moore or mealy
+    void set_moore(bool is_moore) { moore_ = is_moore; }
+    bool is_moore() const { return moore_; }
+
 private:
     std::string fsm_name_;
     Generator *generator_;
@@ -56,6 +61,7 @@ private:
     std::unordered_map<std::string, std::pair<std::string, uint32_t>> fn_name_ln_;
 
     bool realized_ = false;
+    bool moore_ = true;
 };
 
 class FSMState : public std::enable_shared_from_this<FSMState> {

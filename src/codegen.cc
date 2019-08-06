@@ -99,6 +99,7 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
     generate_parameters(generator);
     generate_enums(generator);
     generate_variables(generator);
+    generate_functions(generator);
 
     for (uint64_t i = 0; i < generator->stmts_count(); i++) {
         dispatch_node(generator->get_stmt(i).get());
@@ -147,6 +148,11 @@ void SystemVerilogCodeGen::generate_enums(kratos::Generator* generator) {
     for (auto const& iter : enums) enum_code(iter.second.get());
 }
 
+void SystemVerilogCodeGen::generate_functions(kratos::Generator* generator) {
+    auto funcs = generator->functions();
+    for (auto const &iter: funcs) stmt_code(iter.second.get());
+}
+
 std::string SystemVerilogCodeGen::indent() {
     if (skip_indent_) {
         skip_indent_ = false;
@@ -174,6 +180,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         stmt_code(reinterpret_cast<ModuleInstantiationStmt*>(node));
     } else if (stmt_ptr->type() == StatementType ::Switch) {
         stmt_code(reinterpret_cast<SwitchStmt*>(node));
+    } else if (stmt_ptr->type() == StatementType ::FunctionalCall) {
+        stmt_code(reinterpret_cast<FunctionCallStmt*>(node));
     } else {
         throw ::runtime_error("Not implemented");
     }
@@ -205,6 +213,10 @@ void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
         }
         case StatementBlockType::Scope: {
             stmt_code(reinterpret_cast<ScopedStmtBlock*>(stmt));
+            break;
+        }
+        case StatementBlockType::Function: {
+            stmt_code(reinterpret_cast<FunctionStmtBlock*>(stmt));
             break;
         }
     }
@@ -262,6 +274,38 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
 
     indent_--;
     stream_ << indent() << "end" << stream_.endl();
+}
+
+
+void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
+    if (generator_->debug) {
+        stmt->verilog_ln = stream_.line_no();
+    }
+
+    stream_ << "function " << stmt->function_name() << "(" << stream_.endl();
+    indent_++;
+    uint64_t count = 0;
+    auto ports = stmt->ports();
+    // the map is ordered
+    for (auto const &iter: ports) {
+        stream_<< indent() << get_port_str(iter.second.get());
+        if (++count != ports.size())
+            stream_ << "," << stream_.endl();
+        else
+            stream_  << stream_.endl() << ");" << stream_.endl();
+    }
+    indent_--;
+
+    stream_ << "begin" << stream_.endl();
+    indent_++;
+    for (uint64_t i = 0; i < stmt->child_count(); i++) {
+        dispatch_node(stmt->get_child(i));
+    }
+    if (stmt->return_value())
+        stream_ << indent() << stmt->function_name() << " = " << stmt->return_value()->to_string();
+    indent_--;
+    stream_ << indent() << "end" << stream_.endl() << "endfunction" << stream_.endl();
+
 }
 
 void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
@@ -371,6 +415,19 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
 
     indent_--;
     stream_ << indent() << "endcase" << stream_.endl();
+}
+
+void SystemVerilogCodeGen::stmt_code(kratos::FunctionCallStmt* stmt) {
+    // since this is a statement, we don't allow it has return value
+    // need to use it as a function call expr instead
+    stream_ << indent() << stmt->func()->function_name() << " (";
+    std::vector<std::string> names;
+    names.reserve(stmt->args().size());
+    for (auto const &iter: stmt->args())
+        names.emplace_back(iter.second->to_string());
+    stream_ << join(names.begin(), names.end(), ", ");
+
+    stream_ << ");" << stream_.endl();
 }
 
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {

@@ -6,9 +6,9 @@
 
 namespace kratos {
 
-enum StatementType { If, Switch, Assign, Block, ModuleInstantiation };
+enum StatementType { If, Switch, Assign, Block, ModuleInstantiation, FunctionalCall };
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
-enum StatementBlockType { Combinational, Sequential, Scope };
+enum StatementBlockType { Combinational, Sequential, Scope, Function };
 enum BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
@@ -189,6 +189,46 @@ public:
 
 private:
     std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
+};
+
+class FunctionStmtBlock : public StmtBlock {
+public:
+    FunctionStmtBlock(Generator *parent, std::string function_name)
+        : StmtBlock(StatementBlockType::Function),
+          parent_(parent),
+          function_name_(std::move(function_name)) {}
+
+    std::shared_ptr<Port> input(const std::string &name, uint32_t width, bool is_signed);
+    std::shared_ptr<Port> output(const std::string &name, uint32_t width, bool is_signed);
+    const std::map<std::string, std::shared_ptr<Port>> &ports() const { return ports_; }
+    std::shared_ptr<Port> get_port(const std::string &port_name);
+    void return_(const std::shared_ptr<Var> &expr) { return_value_  = expr; }
+    std::shared_ptr<Var> return_value() { return return_value_; }
+    std::string function_name() { return function_name_; }
+
+    void set_parent(IRNode *parent) override;
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+private:
+    Generator *parent_;
+    std::string function_name_;
+
+    std::map<std::string, std::shared_ptr<Port>> ports_;
+    std::shared_ptr<Var> return_value_ = nullptr;
+};
+
+class FunctionCallStmt : public Stmt {
+public:
+    FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &func,
+                     const std::map<std::string, std::shared_ptr<Var>> &args);
+
+    const std::shared_ptr<FunctionStmtBlock> &func() { return func_; }
+    const std::map<std::string, std::shared_ptr<Var>> &args() const { return args_; };
+
+private:
+    std::shared_ptr<FunctionStmtBlock> func_;
+    std::map<std::string, std::shared_ptr<Var>> args_;
 };
 
 class ModuleInstantiationStmt : public Stmt {

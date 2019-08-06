@@ -34,6 +34,8 @@ class StmtBlock;
 class ScopedStmtBlock;
 class CombinationalStmtBlock;
 class SequentialStmtBlock;
+class FunctionStmtBlock;
+class FunctionCallStmt;
 class ModuleInstantiationStmt;
 class FSM;
 enum AssignmentType : int;

@@ -74,6 +74,7 @@ private:
     void generate_variables(Generator* generator);
     void generate_parameters(Generator* generator);
     void generate_enums(Generator* generator);
+    void generate_functions(Generator* generator);
 
     void dispatch_node(IRNode* node);
 
@@ -92,6 +93,10 @@ private:
     void stmt_code(ModuleInstantiationStmt* stmt);
 
     void stmt_code(SwitchStmt* stmt);
+
+    void stmt_code(FunctionStmtBlock *stmt);
+
+    void stmt_code(FunctionCallStmt* stmt);
 
     void enum_code(Enum* enum_);
 
