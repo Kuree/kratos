@@ -412,7 +412,7 @@ class Generator(metaclass=GeneratorMeta):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_code, [fn]))
             return
-        raw_sensitives, stmts = transform_stmt_block(self, fn, self.debug)
+        raw_sensitives, stmts = transform_stmt_block(self, fn)
         if len(raw_sensitives) == 0:
             # it's a combinational block
             comb = CombinationalCodeBlock(self)

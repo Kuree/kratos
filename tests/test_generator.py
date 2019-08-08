@@ -921,5 +921,28 @@ def test_fsm_mealy():
     check_gold(mod, "test_fsm_mealy")
 
 
+def test_function():
+    from kratos.func import function, func_scope
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            self._in = self.input("in", 1)
+            self._out = self.output("out", 1)
+
+            self.add_code(self.code)
+
+        @function
+        def update_out(self, value):
+            # need to set arg information
+            func_scope.input(value, 1)
+            return value + self._in
+
+        def code(self):
+            self._out = self.update_out(self._in)
+
+    # mod = Mod()
+
+
 if __name__ == "__main__":
-    test_wire_const()
+    test_function()

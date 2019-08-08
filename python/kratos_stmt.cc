@@ -82,4 +82,9 @@ void init_stmt(py::module &m) {
         .def(py::init<Generator *, Generator *>());
 
     py::class_<ReturnStmt, std::shared_ptr<ReturnStmt>, Stmt>(m, "ReturnStmt");
+    py::class_<FunctionStmtBlock, std::shared_ptr<FunctionStmtBlock>, StmtBlock>(m, "FunctionStmtBlock")
+        .def("input", &FunctionStmtBlock::input)
+        .def("return_stmt", &FunctionStmtBlock::return_stmt)
+        .def("add_stmt",
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&FunctionStmtBlock::add_stmt));
 }

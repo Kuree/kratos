@@ -178,6 +178,12 @@ std::shared_ptr<FunctionStmtBlock> Generator::function(const std::string &func_n
     return p;
 }
 
+std::shared_ptr<FunctionStmtBlock> Generator::get_function(const std::string &func_name) const {
+    if (!has_function(func_name))
+        throw ::runtime_error(::format("{0} does not exist", func_name));
+    return funcs_.at(func_name);
+}
+
 IRNode *Generator::get_child(uint64_t index) {
     if (index < stmts_count()) {
         return stmts_[index].get();

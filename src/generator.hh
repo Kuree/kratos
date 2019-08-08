@@ -73,6 +73,10 @@ public:
     const std::map<std::string, std::shared_ptr<FunctionStmtBlock>> &functions() const {
         return funcs_;
     }
+    bool inline has_function(const std::string &func_name) const {
+        return funcs_.find(func_name) != funcs_.end();
+    }
+    std::shared_ptr<FunctionStmtBlock> get_function(const std::string &func_name) const;
 
     // statements
     void add_stmt(std::shared_ptr<Stmt> stmt);

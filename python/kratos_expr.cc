@@ -45,11 +45,10 @@ void init_expr(py::module &m) {
     def_trace<py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>, PortPacked>(port_packed);
 
     auto var_packed = py::class_<VarPacked, ::shared_ptr<VarPacked>, Var>(m, "VarPacked");
-    var_packed
-        .def(
-            "__getitem__",
-            [](VarPacked & port, const std::string &name) -> auto & { return port[name]; },
-            py::return_value_policy::reference);
+    var_packed.def(
+        "__getitem__",
+        [](VarPacked & port, const std::string &name) -> auto & { return port[name]; },
+        py::return_value_policy::reference);
     def_trace<py::class_<VarPacked, ::shared_ptr<VarPacked>, Var>, VarPacked>(var_packed);
 
     // struct info for packed
@@ -60,14 +59,18 @@ void init_expr(py::module &m) {
 
     auto port_packed_slice =
         py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>(m, "PackedSlice");
-    def_trace<py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>, VarSlice>(
-        port_packed_slice);
+    def_trace<py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>, VarSlice>(port_packed_slice);
 
     // ternary op
     auto ternary_exp =
         py::class_<ConditionalExpr, ::shared_ptr<ConditionalExpr>, Expr>(m, "ConditionalExpr");
     ternary_exp.def(py::init<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &,
                              const std::shared_ptr<Var> &>());
+    // function call expr
+    auto call_Var =
+        py::class_<FunctionCallVar, ::shared_ptr<FunctionCallVar>, Var>(m, "FunctionCallVar");
+    def_trace<py::class_<FunctionCallVar, ::shared_ptr<FunctionCallVar>, Var>, FunctionCallVar>(
+        call_Var);
 }
 
 void init_enum_type(py::module &m) {
