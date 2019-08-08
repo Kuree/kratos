@@ -204,6 +204,10 @@ public:
     std::shared_ptr<Var> function_handler() { return function_handler_; };
     void create_function_handler(uint32_t width, bool is_signed);
     std::shared_ptr<ReturnStmt> return_stmt(const std::shared_ptr<Var> &var);
+    void set_port_ordering(const std::map<std::string, uint32_t> &ordering);
+    void set_port_ordering(const std::map<uint32_t, std::string> &ordering);
+    const std::map<std::string, uint32_t> &port_ordering() const { return port_ordering_; }
+    Generator *generator() { return parent_; }
 
     void set_parent(IRNode *parent) override;
 
@@ -216,6 +220,7 @@ private:
     std::map<std::string, std::shared_ptr<Port>> ports_;
     bool has_return_value_ = false;
     std::shared_ptr<Var> function_handler_ = nullptr;
+    std::map<std::string, uint32_t> port_ordering_;
 };
 
 class ReturnStmt : public Stmt {
@@ -239,13 +244,13 @@ public:
                      const std::map<std::string, std::shared_ptr<Var>> &args);
 
     const std::shared_ptr<FunctionStmtBlock> &func() { return func_; }
-    const std::map<std::string, std::shared_ptr<Var>> &args() const { return args_; };
+    const std::shared_ptr<FunctionCallVar> &var() const { return var_; };
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
     std::shared_ptr<FunctionStmtBlock> func_;
-    std::map<std::string, std::shared_ptr<Var>> args_;
+    std::shared_ptr<FunctionCallVar> var_;
 };
 
 class ModuleInstantiationStmt : public Stmt {

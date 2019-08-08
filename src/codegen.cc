@@ -292,9 +292,23 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     indent_++;
     uint64_t count = 0;
     auto ports = stmt->ports();
-    // the map is ordered
-    for (auto const& iter : ports) {
-        stream_ << indent() << get_port_str(iter.second.get());
+    // if the ordering is specified, use the ordering
+    // otherwise use the default map ordering, which is sorted alphabetically
+    std::vector<std::string> port_names;
+    port_names.reserve(ports.size());
+    auto ordering = stmt->port_ordering();
+    for (auto const& iter : ports) port_names.emplace_back(iter.first);
+    if (!ordering.empty()) {
+        if (ordering.size() != ports.size())
+            throw ::runtime_error("Port ordering size mismatches ports");
+        // sort the list
+        std::sort(port_names.begin(), port_names.end(), [&](auto const& lhs, auto const& rhs) {
+            return ordering.at(lhs) < ordering.at(rhs);
+        });
+    }
+    for (auto const& port_name : port_names) {
+        auto port = ports.at(port_name).get();
+        stream_ << indent() << get_port_str(port);
         if (++count != ports.size())
             stream_ << "," << stream_.endl();
         else
@@ -426,13 +440,9 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionCallStmt* stmt) {
         throw StmtException("Function call statement cannot be used in top level", {stmt});
     }
     if (generator_->debug) stmt->verilog_ln = stream_.line_no();
-    stream_ << indent() << stmt->func()->function_name() << " (";
-    std::vector<std::string> names;
-    names.reserve(stmt->args().size());
-    for (auto const& iter : stmt->args()) names.emplace_back(iter.second->to_string());
-    stream_ << join(names.begin(), names.end(), ", ");
+    stream_ << indent() << stmt->var()->to_string();
 
-    stream_ << ");" << stream_.endl();
+    stream_ << ";" << stream_.endl();
 }
 
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {

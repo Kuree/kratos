@@ -385,7 +385,8 @@ private:
 struct FunctionCallVar : public Var {
 public:
     FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStmtBlock> &func_def,
-                    const std::map<std::string, std::shared_ptr<Var>> &args);
+                    const std::map<std::string, std::shared_ptr<Var>> &args,
+                    bool has_return = true);
     bool is_function() const override { return true; }
 
     VarSlice &operator[](std::pair<uint32_t, uint32_t>) override {

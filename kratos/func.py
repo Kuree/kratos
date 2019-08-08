@@ -34,6 +34,8 @@ class FunctionCall:
                 if not isinstance(stmt, _kratos.Stmt):
                     stmt = stmt.stmt()
                 func.add_stmt(stmt)
+            # set ordering
+            func.set_port_ordering(args_order)
             self.__cache_ordering[generator.name, fn_name] = args_order
         else:
             args_order = self.__cache_ordering[generator.name, fn_name]

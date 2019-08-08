@@ -50,6 +50,9 @@ public:
              const std::shared_ptr<Var> &reset);
     FunctionCallVar &call(const std::string &func_name,
                           const std::map<std::string, std::shared_ptr<Var>> &args);
+    FunctionCallVar &call(const std::string &func_name,
+                          const std::map<std::string, std::shared_ptr<Var>> &args,
+                          bool has_return);
 
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 

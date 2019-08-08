@@ -80,12 +80,16 @@ void init_stmt(py::module &m) {
         m, "ModuleInstantiationStmt")
         .def(py::init<Generator *, Generator *>());
 
-    py::class_<ReturnStmt, std::shared_ptr<ReturnStmt>, Stmt>(m, "ReturnStmt");
+    py::class_<ReturnStmt, std::shared_ptr<ReturnStmt>, Stmt>(m, "ReturnStmt");  // NOLINT
     py::class_<FunctionStmtBlock, std::shared_ptr<FunctionStmtBlock>, StmtBlock>(
         m, "FunctionStmtBlock")
         .def("input", &FunctionStmtBlock::input)
         .def("return_stmt", &FunctionStmtBlock::return_stmt)
         .def("add_stmt",
              py::overload_cast<const ::shared_ptr<Stmt> &>(&FunctionStmtBlock::add_stmt))
-        .def("get_port", &FunctionStmtBlock::get_port);
+        .def("get_port", &FunctionStmtBlock::get_port)
+        .def("set_port_ordering", py::overload_cast<const std::map<std::string, uint32_t> &>(
+                                      &FunctionStmtBlock::set_port_ordering))
+        .def("set_port_ordering", py::overload_cast<const std::map<uint32_t, std::string> &>(
+                                      &FunctionStmtBlock::set_port_ordering));
 }

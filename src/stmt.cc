@@ -17,14 +17,14 @@ Generator *Stmt::generator_parent() const {
     IRNode *p = parent_;
     // we don't do while loop here to prevent infinite loop
     // 100000 is sufficient for almost all designs.
-    for (uint32_t i = 0; i < 100000u; i++) {
+    for (uint32_t i = 0; i < 100000u && p; i++) {
         if (p->ir_node_kind() != IRNodeKind::GeneratorKind) {
             p = p->parent();
         } else {
             break;
         }
     }
-    if (p->ir_node_kind() != IRNodeKind::GeneratorKind) {
+    if (!p || p->ir_node_kind() != IRNodeKind::GeneratorKind) {
         throw ::runtime_error("Internal Error: cannot find parent for stmt");
     }
     return dynamic_cast<Generator *>(p);
@@ -328,6 +328,24 @@ std::shared_ptr<ReturnStmt> FunctionStmtBlock::return_stmt(const std::shared_ptr
     return std::make_shared<ReturnStmt>(this, var);
 }
 
+void FunctionStmtBlock::set_port_ordering(const std::map<std::string, uint32_t> &ordering) {
+    if (ordering.size() != ports_.size())
+        throw ::runtime_error("Port ordering size does not match with declared outputs");
+    for (auto const &iter: ordering) {
+        if (ports_.find(iter.first) == ports_.end())
+            throw ::runtime_error(::format("{0} does not exist"));
+    }
+    port_ordering_ = ordering;
+}
+
+void FunctionStmtBlock::set_port_ordering(const std::map<uint32_t, std::string> &ordering) {
+    std::map<std::string, uint32_t> result;
+    for (auto const &[index, name]: ordering) {
+        result.emplace(name, index);
+    }
+    set_port_ordering(result);
+}
+
 ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def,
                        std::shared_ptr<Var> value)
     : Stmt(StatementType::Return), func_def_(func_def), value_(std::move(value)) {}
@@ -371,7 +389,7 @@ void ReturnStmt::set_parent(kratos::IRNode *parent) {
 
 FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &func,
                                    const std::map<std::string, std::shared_ptr<Var>> &args)
-    : Stmt(StatementType::FunctionalCall), func_(func), args_(args) {
+    : Stmt(StatementType::FunctionalCall), func_(func) {
     // check the function call types
     auto ports = func->ports();
     for (auto const &[port_name, func_port] : ports) {
@@ -387,6 +405,9 @@ FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &fun
             throw VarException(::format("{0}'s sign doesn't match", port_name),
                                {func_port.get(), arg_port.get()});
     }
+    auto generator = func->generator();
+    auto &p = generator->call(func->function_name(), args, false);
+    var_ = p.as<FunctionCallVar>();
 }
 
 ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *parent)

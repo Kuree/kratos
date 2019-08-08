@@ -807,7 +807,8 @@ std::shared_ptr<AssignStmt> EnumVar::assign(const std::shared_ptr<Var> &var,
 }
 
 FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStmtBlock> &func_def,
-                                 const std::map<std::string, std::shared_ptr<Var>> &args)
+                                 const std::map<std::string, std::shared_ptr<Var>> &args,
+                                 bool has_return)
     : Var(m, "", 0, 0, false), func_def_(func_def.get()), args_(args) {
     // check the function call types
     auto ports = func_def->ports();
@@ -826,17 +827,19 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
     }
     // compute the width and sign
     auto handle = func_def->function_handler();
-    if (!handle)
+    if (!handle && has_return)
         throw StmtException(::format("{0} doesn't have return value", func_def->function_name()),
                             {func_def.get()});
-    width = handle->width;
-    var_width = handle->width;
-    size = handle->size;
-    is_signed = handle->is_signed;
+    if (has_return) {
+        width = handle->width;
+        var_width = handle->width;
+        size = handle->size;
+        is_signed = handle->is_signed;
+    }
 }
 
 void FunctionCallVar::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    for (auto const &iter: args_) {
+    for (auto const &iter : args_) {
         iter.second->add_sink(stmt);
     }
 }
@@ -845,7 +848,19 @@ std::string FunctionCallVar::to_string() const {
     std::string result = func_def_->function_name() + " (";
     std::vector<std::string> names;
     names.reserve(args_.size());
-    for (auto const& iter : args_) names.emplace_back(iter.second->to_string());
+    for (auto const &iter : args_) names.emplace_back(iter.second->to_string());
+    // calling ordering
+    if (!func_def_->port_ordering().empty()) {
+        auto ordering = func_def_->port_ordering();
+        std::unordered_map<std::string, uint32_t> indexing;
+        indexing.reserve(ordering.size());
+        for (auto const &[var_name, var]: args_) {
+            indexing.emplace(var->to_string(), ordering.at(var_name));
+        }
+        std::sort(names.begin(), names.end(), [&](auto const &lhs, auto const &rhs) {
+            return indexing.at(lhs) < indexing.at(rhs);
+        });
+    }
     result.append(join(names.begin(), names.end(), ", "));
     result.append(")");
     return result;

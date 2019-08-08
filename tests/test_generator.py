@@ -951,4 +951,4 @@ def test_function():
 
 
 if __name__ == "__main__":
-    test_function()
+    test_fsm_mealy()

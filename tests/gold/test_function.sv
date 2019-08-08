@@ -5,8 +5,8 @@ module mod (
 );
 
 function update_out(
-  input logic  predicate,
-  input logic [1:0] value
+  input logic [1:0] value,
+  input logic  predicate
 );
 begin
   out2 = value;
@@ -17,7 +17,7 @@ begin
 end
 endfunction
 always_comb begin
-  out = update_out (1'h1, in);
+  out = update_out (in, 1'h1);
 end
 endmodule   // mod
 
