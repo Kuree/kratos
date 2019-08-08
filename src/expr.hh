@@ -129,6 +129,7 @@ public:
 
     virtual bool inline is_packed() const { return false; }
     virtual bool inline is_enum() const { return false; }
+    virtual bool inline is_function() const { return false; }
     virtual std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) { return var; }
 
     virtual std::string to_string() const;
@@ -338,7 +339,7 @@ public:
     std::string value_string() { return Const::to_string(); }
 
     bool inline is_enum() const override { return true; }
-    const inline Enum* enum_def() const { return parent_; }
+    const inline Enum *enum_def() const { return parent_; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
@@ -347,8 +348,7 @@ private:
     std::string name_;
 };
 
-
-struct Enum: std::enable_shared_from_this<Enum> {
+struct Enum : std::enable_shared_from_this<Enum> {
 public:
     Enum(Generator *generator, std::string name, const std::map<std::string, uint64_t> &values,
          uint32_t width);
@@ -358,7 +358,8 @@ public:
     uint32_t inline width() { return width_; }
 
     std::shared_ptr<EnumConst> get_enum(const std::string &name);
-    void add_debug_info(const std::string &enum_name, const std::pair<std::string, uint32_t> &debug);
+    void add_debug_info(const std::string &enum_name,
+                        const std::pair<std::string, uint32_t> &debug);
 
 private:
     uint32_t width_;
@@ -374,11 +375,36 @@ public:
     std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
                                        AssignmentType type) override;
 
-    const inline Enum*  enum_type() const { return enum_type_; }
+    const inline Enum *enum_type() const { return enum_type_; }
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
     Enum *enum_type_;
+};
+
+struct FunctionCallVar : public Var {
+public:
+    FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStmtBlock> &func_def,
+                    const std::map<std::string, std::shared_ptr<Var>> &args);
+    bool is_function() const override { return true; }
+
+    VarSlice &operator[](std::pair<uint32_t, uint32_t>) override {
+        throw std::runtime_error("Slice a function call is not allowed");
+    };
+    VarSlice &operator[](uint32_t) override {
+        throw std::runtime_error("Slice a function call is not allowed");
+    };
+
+    std::string to_string() const override;
+
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void add_source(const std::shared_ptr<AssignStmt> &) override {
+        throw std::runtime_error("Slice a function call is not allowed");
+    }
+
+private:
+    FunctionStmtBlock *func_def_;
+    std::map<std::string, std::shared_ptr<Var>> args_;
 };
 
 }  // namespace kratos

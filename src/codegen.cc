@@ -182,6 +182,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         stmt_code(reinterpret_cast<SwitchStmt*>(node));
     } else if (stmt_ptr->type() == StatementType ::FunctionalCall) {
         stmt_code(reinterpret_cast<FunctionCallStmt*>(node));
+    } else if (stmt_ptr->type() == StatementType::Return) {
+        stmt_code(reinterpret_cast<ReturnStmt*>(node));
     } else {
         throw ::runtime_error("Not implemented");
     }
@@ -199,6 +201,11 @@ void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
         }
     }
     stream_ << stmt;
+}
+
+void SystemVerilogCodeGen::stmt_code(kratos::ReturnStmt* stmt) {
+    stream_ << indent() << stmt->func_def()->function_name() << "=" << stmt->value()->to_string()
+            << ";" << stream_.endl();
 }
 
 void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
@@ -280,7 +287,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
     }
-    std::string return_str = stmt->return_value() ? "" : "void ";
+    std::string return_str = stmt->has_return_value() ? "" : "void ";
     stream_ << "function " << return_str << stmt->function_name() << "(" << stream_.endl();
     indent_++;
     uint64_t count = 0;
@@ -300,8 +307,6 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     for (uint64_t i = 0; i < stmt->child_count(); i++) {
         dispatch_node(stmt->get_child(i));
     }
-    if (stmt->return_value())
-        stream_ << indent() << stmt->function_name() << " = " << stmt->return_value()->to_string();
     indent_--;
     stream_ << indent() << "end" << stream_.endl() << "endfunction" << stream_.endl();
 }
@@ -420,8 +425,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionCallStmt* stmt) {
     if (stmt->parent()->ir_node_kind() != IRNodeKind::StmtKind) {
         throw StmtException("Function call statement cannot be used in top level", {stmt});
     }
-    if (generator_->debug)
-        stmt->verilog_ln = stream_.line_no();
+    if (generator_->debug) stmt->verilog_ln = stream_.line_no();
     stream_ << indent() << stmt->func()->function_name() << " (";
     std::vector<std::string> names;
     names.reserve(stmt->args().size());

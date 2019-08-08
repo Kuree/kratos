@@ -83,6 +83,7 @@ public:
     virtual inline void visit(SequentialStmtBlock *) {}
     virtual inline void visit(FunctionStmtBlock *) {}
     virtual inline void visit(FunctionCallStmt *) {}
+    virtual inline void visit(ReturnStmt *) {}
     virtual inline void visit(ModuleInstantiationStmt *) {}
 
     // generator specific traversal

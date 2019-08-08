@@ -80,4 +80,6 @@ void init_stmt(py::module &m) {
     py::class_<ModuleInstantiationStmt, ::shared_ptr<ModuleInstantiationStmt>, Stmt>(
         m, "ModuleInstantiationStmt")
         .def(py::init<Generator *, Generator *>());
+
+    py::class_<ReturnStmt, std::shared_ptr<ReturnStmt>, Stmt>(m, "ReturnStmt");
 }

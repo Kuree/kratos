@@ -80,6 +80,8 @@ private:
 
     void stmt_code(AssignStmt* stmt);
 
+    void stmt_code(ReturnStmt* stmt);
+
     void stmt_code(StmtBlock* stmt);
 
     void stmt_code(SequentialStmtBlock* stmt);

@@ -48,6 +48,8 @@ public:
     FSM &fsm(const std::string &fsm_name);
     FSM &fsm(const std::string &fsm_name, const std::shared_ptr<Var> &clk,
              const std::shared_ptr<Var> &reset);
+    FunctionCallVar &call(const std::string &func_name,
+                          const std::map<std::string, std::shared_ptr<Var>> &args);
 
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 
@@ -207,6 +209,8 @@ private:
     std::map<std::string, std::shared_ptr<FSM>> fsms_;
     // functions
     std::map<std::string, std::shared_ptr<FunctionStmtBlock>> funcs_;
+    // function_calls
+    std::set<std::shared_ptr<FunctionCallVar>> calls_;
 };
 
 }  // namespace kratos

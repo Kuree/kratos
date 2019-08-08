@@ -161,6 +161,15 @@ FSM& Generator::fsm(const std::string &fsm_name, const std::shared_ptr<Var> &clk
     return *p;
 }
 
+FunctionCallVar& Generator::call(const std::string &func_name,
+                                 const std::map<std::string, std::shared_ptr<Var>> &args) {
+    if (funcs_.find(func_name) == funcs_.end())
+        throw ::runtime_error(::format("{0} not found", func_name));
+    auto func_def = funcs_.at(func_name);
+    auto p = std::make_shared<FunctionCallVar>(this, func_def, args);
+    return *p;
+}
+
 std::shared_ptr<FunctionStmtBlock> Generator::function(const std::string &func_name) {
     if (funcs_.find(func_name) != funcs_.end())
         throw ::runtime_error(::format("function {0} already exists", func_name));

@@ -806,4 +806,49 @@ std::shared_ptr<AssignStmt> EnumVar::assign(const std::shared_ptr<Var> &var,
     return Var::assign(var, type);
 }
 
+FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStmtBlock> &func_def,
+                                 const std::map<std::string, std::shared_ptr<Var>> &args)
+    : Var(m, "", 0, 0, false), func_def_(func_def.get()), args_(args) {
+    // check the function call types
+    auto ports = func_def->ports();
+    for (auto const &[port_name, func_port] : ports) {
+        if (args.find(port_name) == args.end()) {
+            throw VarException(::format("{0} is not connected", port_name), {func_port.get()});
+        }
+        // check the port types
+        auto &arg_port = args.at(port_name);
+        if (func_port->width != arg_port->width)
+            throw VarException(::format("{0}'s width doesn't match", port_name),
+                               {func_port.get(), arg_port.get()});
+        if (func_port->is_signed != arg_port->is_signed)
+            throw VarException(::format("{0}'s sign doesn't match", port_name),
+                               {func_port.get(), arg_port.get()});
+    }
+    // compute the width and sign
+    auto handle = func_def->function_handler();
+    if (!handle)
+        throw StmtException(::format("{0} doesn't have return value", func_def->function_name()),
+                            {func_def.get()});
+    width = handle->width;
+    var_width = handle->width;
+    size = handle->size;
+    is_signed = handle->is_signed;
+}
+
+void FunctionCallVar::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    for (auto const &iter: args_) {
+        iter.second->add_sink(stmt);
+    }
+}
+
+std::string FunctionCallVar::to_string() const {
+    std::string result = func_def_->function_name() + " (";
+    std::vector<std::string> names;
+    names.reserve(args_.size());
+    for (auto const& iter : args_) names.emplace_back(iter.second->to_string());
+    result.append(join(names.begin(), names.end(), ", "));
+    result.append(")");
+    return result;
+}
+
 }

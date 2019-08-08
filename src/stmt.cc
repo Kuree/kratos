@@ -289,6 +289,21 @@ std::set<std::shared_ptr<VarSlice>> filter_slice_pairs_with_target(
     return result;
 }
 
+FunctionStmtBlock::FunctionStmtBlock(kratos::Generator *parent, std::string function_name)
+    : StmtBlock(StatementBlockType::Function),
+      parent_(parent),
+      function_name_(std::move(function_name)) {}
+
+void FunctionStmtBlock::create_function_handler(uint32_t width, bool is_signed) {
+    if (function_handler_) {
+        throw VarException(::format("{0} already has a function handler", function_name_),
+                           {function_handler_.get()});
+    }
+    function_handler_ =
+        std::make_shared<Port>(parent_, PortDirection::In, function_name_ + "_return", width, 1,
+                               PortType::Data, is_signed);
+}
+
 std::shared_ptr<Port> FunctionStmtBlock::input(const std::string &name, uint32_t width,
                                                bool is_signed) {
     auto p = std::make_shared<Port>(parent_, PortDirection::In, name, width, 1, PortType::Data,
@@ -307,6 +322,31 @@ void FunctionStmtBlock::set_parent(kratos::IRNode *parent) {
     // the parent is preset already
     if (parent != parent_)
         throw StmtException("Function statement cannot change its parent", {this});
+}
+
+std::shared_ptr<ReturnStmt> FunctionStmtBlock::return_stmt(const std::shared_ptr<Var> &var) {
+    return std::make_shared<ReturnStmt>(this, var);
+}
+
+ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def,
+                       std::shared_ptr<Var> value)
+    : Stmt(StatementType::Return), func_def_(func_def), value_(std::move(value)) {}
+
+void ReturnStmt::set_parent(kratos::IRNode *parent) {
+    Stmt::set_parent(parent);
+    auto stmt = dynamic_cast<FunctionStmtBlock *>(parent);
+    if (!stmt) {
+        throw ::runtime_error("Can only add return statement to function block");
+    }
+    stmt->set_has_return_value(true);
+    // need to handle the assignments
+    if (!func_def_->function_handler()) {
+        // create a function handler
+        func_def_->create_function_handler(value_->width, value_->is_signed);
+    }
+    auto p = func_def_->function_handler();
+    auto s = p->assign(value_, AssignmentType::Blocking);
+    s->set_parent(this);
 }
 
 FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &func,

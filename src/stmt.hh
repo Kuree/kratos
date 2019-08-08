@@ -6,7 +6,7 @@
 
 namespace kratos {
 
-enum StatementType { If, Switch, Assign, Block, ModuleInstantiation, FunctionalCall };
+enum StatementType { If, Switch, Assign, Block, ModuleInstantiation, FunctionalCall, Return };
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
 enum StatementBlockType { Combinational, Sequential, Scope, Function };
 enum BlockEdgeType { Posedge, Negedge };
@@ -193,17 +193,17 @@ private:
 
 class FunctionStmtBlock : public StmtBlock {
 public:
-    FunctionStmtBlock(Generator *parent, std::string function_name)
-        : StmtBlock(StatementBlockType::Function),
-          parent_(parent),
-          function_name_(std::move(function_name)) {}
+    FunctionStmtBlock(Generator *parent, std::string function_name);
 
     std::shared_ptr<Port> input(const std::string &name, uint32_t width, bool is_signed);
     const std::map<std::string, std::shared_ptr<Port>> &ports() const { return ports_; }
     std::shared_ptr<Port> get_port(const std::string &port_name);
-    void return_(const std::shared_ptr<Var> &expr) { return_value_  = expr; }
-    std::shared_ptr<Var> return_value() { return return_value_; }
-    std::string function_name() { return function_name_; }
+    bool has_return_value() const { return has_return_value_; }
+    void set_has_return_value(bool value) { has_return_value_ = value; }
+    std::string function_name() const { return function_name_; }
+    std::shared_ptr<Var> function_handler() { return function_handler_; };
+    void create_function_handler(uint32_t width, bool is_signed);
+    std::shared_ptr<ReturnStmt> return_stmt(const std::shared_ptr<Var> &var);
 
     void set_parent(IRNode *parent) override;
 
@@ -214,7 +214,23 @@ private:
     std::string function_name_;
 
     std::map<std::string, std::shared_ptr<Port>> ports_;
-    std::shared_ptr<Var> return_value_ = nullptr;
+    bool has_return_value_ = false;
+    std::shared_ptr<Var> function_handler_ = nullptr;
+};
+
+class ReturnStmt : public Stmt {
+public:
+    ReturnStmt(FunctionStmtBlock *func_def, std::shared_ptr<Var> value);
+    void set_parent(IRNode *parent) override;
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+    const FunctionStmtBlock *func_def() const { return func_def_; }
+    std::shared_ptr<Var> value() const { return value_; }
+
+private:
+    FunctionStmtBlock *func_def_;
+    std::shared_ptr<Var> value_;
 };
 
 class FunctionCallStmt : public Stmt {
