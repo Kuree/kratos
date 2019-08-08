@@ -204,7 +204,7 @@ void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(kratos::ReturnStmt* stmt) {
-    stream_ << indent() << stmt->func_def()->function_name() << " = " << stmt->value()->to_string()
+    stream_ << indent() << "return " << stmt->value()->to_string()
             << ";" << stream_.endl();
 }
 

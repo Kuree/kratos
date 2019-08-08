@@ -11,9 +11,9 @@ function update_out(
 begin
   out2 = value;
   if (predicate) begin
-    update_out = value + in;
+    return value + in;
   end
-  else update_out = value;
+  else return value;
 end
 endfunction
 always_comb begin
