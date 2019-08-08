@@ -167,6 +167,7 @@ FunctionCallVar& Generator::call(const std::string &func_name,
         throw ::runtime_error(::format("{0} not found", func_name));
     auto func_def = funcs_.at(func_name);
     auto p = std::make_shared<FunctionCallVar>(this, func_def, args);
+    calls_.emplace(p);
     return *p;
 }
 
@@ -174,6 +175,7 @@ std::shared_ptr<FunctionStmtBlock> Generator::function(const std::string &func_n
     if (funcs_.find(func_name) != funcs_.end())
         throw ::runtime_error(::format("function {0} already exists", func_name));
     auto p = std::make_shared<FunctionStmtBlock>(this, func_name);
+    func_index_.emplace(static_cast<uint32_t>(funcs_.size()), func_name);
     funcs_.emplace(func_name, p);
     return p;
 }
@@ -187,8 +189,12 @@ std::shared_ptr<FunctionStmtBlock> Generator::get_function(const std::string &fu
 IRNode *Generator::get_child(uint64_t index) {
     if (index < stmts_count()) {
         return stmts_[index].get();
-    } else if (index < stmts_count() + get_child_generator_size()) {
-        auto n = child_names_[index - stmts_count()];
+    } else if (index < stmts_count() + funcs_.size()) {
+        auto i = index - stmts_count();
+        auto func_name = func_index_.at(i);
+        return funcs_.at(func_name).get();
+    } else if (index < stmts_count() + funcs_.size() + get_child_generator_size()) {
+        auto n = child_names_[index - stmts_count() - funcs_.size()];
         return children_.at(n).get();
     } else {
         return nullptr;

@@ -102,6 +102,7 @@ void init_generator(py::module &m) {
              py::overload_cast<const std::string &, const std::shared_ptr<Var> &,
                                const std::shared_ptr<Var> &>(&Generator::fsm),
              py::return_value_policy::reference)
+        // there is a bug in pybind that returns the base class, instead of the child class
         .def("call", &Generator::call, py::return_value_policy::reference)
         .def("function", &Generator::function)
         .def("has_function", &Generator::has_function)

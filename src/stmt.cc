@@ -334,11 +334,31 @@ ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def,
 
 void ReturnStmt::set_parent(kratos::IRNode *parent) {
     Stmt::set_parent(parent);
-    auto stmt = dynamic_cast<FunctionStmtBlock *>(parent);
-    if (!stmt) {
+    // looping to make sure there is a function statement block
+    // it will never be 10k deep. this is to avoid infinite loop when construction failed
+    /* comment this out because can only be determined after every statements has been set
+     * TODO:
+     * add a pass to analysis returns
+    IRNode *ir_p = parent;
+    bool found = false;
+    FunctionStmtBlock *stmt = nullptr;
+    for (uint32_t i = 0; i < 10000; i++) {
+        if (!ir_p)
+            break;
+        auto ptr = dynamic_cast<FunctionStmtBlock *>(ir_p);
+        if (ptr) {
+            found = true;
+            stmt = ptr;
+            break;
+        }
+        ir_p = ir_p->parent();
+    }
+
+    if (!found) {
         throw ::runtime_error("Can only add return statement to function block");
     }
-    stmt->set_has_return_value(true);
+     */
+    func_def_->set_has_return_value(true);
     // need to handle the assignments
     if (!func_def_->function_handler()) {
         // create a function handler

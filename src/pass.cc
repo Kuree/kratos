@@ -43,6 +43,11 @@ class AssignmentTypeBlockVisitor : public IRVisitor {
         AssignmentTypeVisitor visitor(AssignmentType::NonBlocking, true);
         visitor.visit_root(block->ast_node());
     }
+
+    void visit(FunctionStmtBlock* block) override  {
+        AssignmentTypeVisitor visitor(AssignmentType::Blocking, true);
+        visitor.visit_root(block->ast_node());
+    }
 };
 
 void fix_assignment_type(Generator* top) {

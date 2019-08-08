@@ -193,33 +193,6 @@ class ReturnNodeVisitor(ast.NodeTransformer):
             keywords=[]))
 
 
-class ExtractVarDefVisitor(ast.NodeTransformer):
-    def __init__(self):
-        self.var_def = {}
-
-    def visit_Expr(self, node: ast.Expr):
-        if not isinstance(node.value, ast.Call):
-            return node
-        if isinstance(node.value.func, ast.Attribute):
-            func = node.value.func
-            if isinstance(func.value,
-                          ast.Name) and func.value.id == "func_scope" and \
-                    func.attr == "input":
-                # this is it
-                var_name = node.value.args[0]
-                assert isinstance(var_name, ast.Name)
-                var_name = var_name.id
-                width = node.value.args[1]
-                assert isinstance(width, ast.Num)
-                width = width.n
-                is_signed = False
-                if len(node.value.args) > 2:
-                    raise NotImplementedError()
-                self.var_def[var_name] = width, is_signed
-                return None
-        return node
-
-
 class Scope:
     def __init__(self, generator, filename, ln):
         self.stmt_list = []
@@ -287,20 +260,8 @@ class FuncScope(Scope):
 
         self.__var_ordering = {}
 
-    def input(self, var, width, is_signed=False) -> _kratos.Var:
-        # this one won't do anything. but it's useful for type checking
-        pass
-
-    def output(self, var, width, is_singed=False) -> _kratos.Var:
-        pass
-
-    def input_var(self, var_name, width, is_signed=False):
-        # the real one
+    def input(self, var_name, width, is_signed=False) -> _kratos.Var:
         return self.__func.input(var_name, width, is_signed)
-
-    def add_stmt(self, stmt):
-        if stmt is not None:
-            self.stmt_list.append(stmt)
 
     def return_(self, value):
         return self.__func.return_stmt(value)
@@ -320,7 +281,7 @@ def add_stmt_to_scope(fn_body):
 
 
 def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
-                           transform_return=False, transform_var=False):
+                           transform_return=False, pre_locals=None):
     if insert_self:
         _locals = {}
     else:
@@ -328,6 +289,8 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
         # we have 3 frames back
         f = inspect.currentframe().f_back.f_back.f_back
         _locals = f.f_locals.copy()
+    if pre_locals is not None:
+        _locals.update(pre_locals)
 
     # transform assign
     debug = generator.debug
@@ -340,13 +303,6 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     if transform_return:
         return_visitor = ReturnNodeVisitor("scope")
         return_visitor.visit(fn_body)
-
-    if transform_var:
-        var_visitor = ExtractVarDefVisitor()
-        var_visitor.visit(fn_body)
-        var_def = var_visitor.var_def
-    else:
-        var_def = None
 
     assign_visitor = AssignNodeVisitor(generator, debug)
     fn_body = assign_visitor.visit(fn_body)
@@ -376,10 +332,7 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
                          ctx=ast.Load
                          )
     func_tree.body.append(ast.Expr(value=call_node))
-    if transform_var:
-        return var_def, _locals
-    else:
-        return _locals
+    return _locals
 
 
 def transform_stmt_block(generator, fn):
@@ -422,7 +375,7 @@ def transform_stmt_block(generator, fn):
     return sensitivity, stmts
 
 
-def transform_function_block(generator, fn):
+def transform_function_block(generator, fn, arg_types):
     fn_src = inspect.getsource(fn)
     fn_name = fn.__name__
     func_tree = ast.parse(textwrap.dedent(fn_src))
@@ -435,23 +388,10 @@ def transform_function_block(generator, fn):
 
     # check the function args. it should only has one self now
     func_args = fn_body.args.args
-    assert len(func_args) <= 2, \
-        "function block {0} has ".format(fn_name) + \
-        "to be defined as def {0}(self, scope) or {0}(scope)".format(fn_name)
-    insert_self = len(func_args) == 2
+    insert_self = func_args[0].arg == "self"
     # only keep self
     fn_body.args.args = [func_args[0]]
-    var_defs, _locals = __ast_transform_blocks(generator, func_tree, fn_src,
-                                               fn_name,
-                                               insert_self,
-                                               transform_return=True,
-                                               transform_var=True)
-    # add var creations
-    var_body = declare_var_definition(var_defs)
-    for node in var_body:
-        func_tree.body = [node] + func_tree.body
-    src = astor.to_source(func_tree)
-    code_obj = compile(src, "<ast>", "exec")
+    # add function args now
     if debug:
         filename, _ = get_fn_ln(3)
         ln = get_ln(fn)
@@ -459,22 +399,36 @@ def transform_function_block(generator, fn):
         filename = ""
         ln = 0
     scope = FuncScope(generator, fn_name, filename, ln)
+    # add var creations
+    arg_order = extract_arg_name_order(func_args)
+    var_body = declare_var_definition(arg_types, arg_order)
+    var_src = astor.to_source(ast.Module(body=var_body))
+    pre_locals = {"_scope": scope}
+    var_code_obj = compile(var_src, "<ast>", "exec")
+    exec(var_code_obj, pre_locals)
+    _locals = __ast_transform_blocks(generator, func_tree, fn_src,
+                                     fn_name, insert_self,
+                                     transform_return=True,
+                                     pre_locals=pre_locals)
+
+    src = astor.to_source(func_tree)
+    code_obj = compile(src, "<ast>", "exec")
+
     _locals.update({"_self": generator, "_scope": scope})
     exec(code_obj, _locals)
     stmts = scope.statements()
-    arg_order = extract_arg_name_order(func_args, var_defs)
     return arg_order, stmts
 
 
-def declare_var_definition(var_def):
+def declare_var_definition(var_def, arg_order):
     body = []
-    for name in var_def:
-        width, is_signed = var_def[name]
+    for idx, name in arg_order.items():
+        width, is_signed = var_def[idx]
         body.append(ast.Assign(targets=[ast.Name(id=name)],
                                value=ast.Call(func=ast.Attribute(
                                    value=ast.Name(id="_scope",
                                                   ctx=ast.Load()),
-                                   attr="input_var",
+                                   attr="input",
                                    cts=ast.Load()),
                                    args=[ast.Str(s=name), ast.Num(n=width),
                                          ast.NameConstant(value=is_signed)],
@@ -482,11 +436,11 @@ def declare_var_definition(var_def):
     return body
 
 
-def extract_arg_name_order(func_args, var_def):
+def extract_arg_name_order(func_args):
     result = {}
     for idx, arg in enumerate(func_args):
         if arg.arg != "self":
-            result[len(result)] = arg.arg, *var_def[arg.arg]
+            result[len(result)] = arg.arg
     return result
 
 

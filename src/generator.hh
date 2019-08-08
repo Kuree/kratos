@@ -106,7 +106,9 @@ public:
 
     // AST stuff
     void accept(IRVisitor *visitor) override;
-    uint64_t inline child_count() override { return stmts_count() + get_child_generator_size(); }
+    uint64_t inline child_count() override {
+        return stmts_count() + funcs_.size() + get_child_generator_size();
+    }
     IRNode *get_child(uint64_t index) override;
 
     std::vector<std::string> get_vars();
@@ -213,6 +215,7 @@ private:
     std::map<std::string, std::shared_ptr<FSM>> fsms_;
     // functions
     std::map<std::string, std::shared_ptr<FunctionStmtBlock>> funcs_;
+    std::map<uint32_t, std::string> func_index_;
     // function_calls
     std::set<std::shared_ptr<FunctionCallVar>> calls_;
 };

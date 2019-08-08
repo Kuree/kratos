@@ -927,21 +927,27 @@ def test_function():
     class Mod(Generator):
         def __init__(self):
             super().__init__("mod")
-            self._in = self.input("in", 1)
-            self._out = self.output("out", 1)
+            self._in = self.input("in", 2)
+            self._out = self.output("out", 2)
+            self._out2 = self.output("out2", 2)
 
             self.add_code(self.code)
 
         @function
-        def update_out(self, value):
-            # need to set arg information
-            func_scope.input(value, 1)
-            return value + self._in
+        def update_out(self, value, predicate):
+            self._out2 = value
+            if predicate:
+                return value + self._in
+            else:
+                return value
 
         def code(self):
-            self._out = self.update_out(self._in)
+            # because the types are inferred
+            # implicit const conversion doesn't work here
+            self._out = self.update_out(self._in, self.const(1, 1))
 
-    # mod = Mod()
+    mod = Mod()
+    check_gold(mod, "test_function")
 
 
 if __name__ == "__main__":

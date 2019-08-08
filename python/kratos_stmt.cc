@@ -1,6 +1,6 @@
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/functional.h>
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
@@ -43,12 +43,12 @@ void init_stmt(py::module &m) {
              py::overload_cast<const std::shared_ptr<Const> &, const std::shared_ptr<Stmt> &>(
                  &SwitchStmt::add_switch_case))
         .def("add_switch_case", py::overload_cast<const std::shared_ptr<Const> &,
-            const std::vector<std::shared_ptr<Stmt>> &>(
-            &SwitchStmt::add_switch_case))
+                                                  const std::vector<std::shared_ptr<Stmt>> &>(
+                                    &SwitchStmt::add_switch_case))
         .def("target", &SwitchStmt::target, py::return_value_policy::reference)
         .def("body", &SwitchStmt::body)
         .def("remove_switch_case", py::overload_cast<const std::shared_ptr<kratos::Const> &>(
-            &SwitchStmt::remove_switch_case))
+                                       &SwitchStmt::remove_switch_case))
         .def("remove_switch_case",
              py::overload_cast<const std::shared_ptr<Const> &, const std::shared_ptr<Stmt> &>(
                  &SwitchStmt::remove_switch_case));
@@ -61,15 +61,14 @@ void init_stmt(py::module &m) {
              py::overload_cast<const ::shared_ptr<Stmt> &>(&CombinationalStmtBlock::add_stmt))
         .def("remove_stmt", &CombinationalStmtBlock::remove_stmt);
 
-    py::class_<StmtBlock, ::shared_ptr<StmtBlock>, Stmt>(m, "StmtBlock");   // NOLINT
+    py::class_<StmtBlock, ::shared_ptr<StmtBlock>, Stmt>(m, "StmtBlock");  // NOLINT
 
     py::class_<ScopedStmtBlock, ::shared_ptr<ScopedStmtBlock>, StmtBlock>(m, "ScopedStmtBlock")
         .def(py::init<>())
-        .def("add_stmt",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&ScopedStmtBlock::add_stmt));
+        .def("add_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&ScopedStmtBlock::add_stmt));
 
-    py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, StmtBlock>(m,
-                                                                             "SequentialStmtBlock")
+    py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, StmtBlock>(
+        m, "SequentialStmtBlock")
         .def(py::init<>())
         .def("get_conditions", &SequentialStmtBlock::get_conditions)
         .def("add_condition", &SequentialStmtBlock::add_condition)
@@ -82,9 +81,11 @@ void init_stmt(py::module &m) {
         .def(py::init<Generator *, Generator *>());
 
     py::class_<ReturnStmt, std::shared_ptr<ReturnStmt>, Stmt>(m, "ReturnStmt");
-    py::class_<FunctionStmtBlock, std::shared_ptr<FunctionStmtBlock>, StmtBlock>(m, "FunctionStmtBlock")
+    py::class_<FunctionStmtBlock, std::shared_ptr<FunctionStmtBlock>, StmtBlock>(
+        m, "FunctionStmtBlock")
         .def("input", &FunctionStmtBlock::input)
         .def("return_stmt", &FunctionStmtBlock::return_stmt)
         .def("add_stmt",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&FunctionStmtBlock::add_stmt));
+             py::overload_cast<const ::shared_ptr<Stmt> &>(&FunctionStmtBlock::add_stmt))
+        .def("get_port", &FunctionStmtBlock::get_port);
 }
