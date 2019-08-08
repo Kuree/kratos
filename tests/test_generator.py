@@ -922,7 +922,7 @@ def test_fsm_mealy():
 
 
 def test_function():
-    from kratos.func import function, func_scope
+    from kratos.func import function
 
     class Mod(Generator):
         def __init__(self):

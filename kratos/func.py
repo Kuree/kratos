@@ -1,10 +1,6 @@
-from .pyast import FuncScope, transform_function_block
+from .pyast import transform_function_block
 import inspect
 import _kratos
-
-
-# for type checking tools
-func_scope = FuncScope(None, "", "", 0)
 
 
 class FunctionCall:
