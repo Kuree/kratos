@@ -71,6 +71,9 @@ void init_expr(py::module &m) {
         py::class_<FunctionCallVar, ::shared_ptr<FunctionCallVar>, Var>(m, "FunctionCallVar");
     def_trace<py::class_<FunctionCallVar, ::shared_ptr<FunctionCallVar>, Var>, FunctionCallVar>(
         call_Var);
+
+    // constant
+    m.def("constant", &constant, py::return_value_policy::reference);
 }
 
 void init_enum_type(py::module &m) {

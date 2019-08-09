@@ -1,6 +1,6 @@
 from kratos import Generator, PortDirection, PortType, always, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute, zext, posedge, PortBundle
+    PackedStruct, Port, Attribute, zext, posedge, PortBundle, const
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
@@ -145,9 +145,9 @@ def test_else_if():
             self.add_code(self.else_if)
 
         def else_if(self):
-            if self._in0 == self.const(1, 1):
+            if self._in0 == const(1, 1):
                 self._out = 1
-            elif self._in1 == self.const(1, 1):
+            elif self._in1 == const(1, 1):
                 self._out = 0
             else:
                 self._out = 1
@@ -207,9 +207,9 @@ def test_switch():
             self.add_code(self.logic)
 
         def logic(self):
-            if self._in == self.const(0, 3):
+            if self._in == const(0, 3):
                 self._out = 0
-            elif self._in == self.const(1, 3):
+            elif self._in == const(1, 3):
                 self._out = 1
             else:
                 self._out = 2
@@ -235,8 +235,8 @@ def test_nested_if():
             self.add_code(self.nested_if)
 
         def nested_if(self):
-            if self.in_ < self.const(1, 2):
-                if self.in_ < self.const(2, 2):
+            if self.in_ < const(1, 2):
+                if self.in_ < const(2, 2):
                     self.out_ = 1
                 else:
                     self.out_ = 3
@@ -316,10 +316,10 @@ def test_illegal_assignment_width():
             self.add_code(self.code)
 
         def code(self):
-            if self.in_ == self.const(1, 1):
-                self.out_ = self.const(1, 4)
+            if self.in_ == const(1, 1):
+                self.out_ = const(1, 4)
             else:
-                self.out_ = self.const(1, 1)
+                self.out_ = const(1, 1)
 
     try:
         Mod()
@@ -366,12 +366,12 @@ def test_data_if():
 
         def code(self):
             if self.bool_flag:
-                if self.in_ == self.const(1, 1):
+                if self.in_ == const(1, 1):
                     self.out_ = 1
                 else:
                     self.out_ = 0
             else:
-                if self.in_ == self.const(0, 1):
+                if self.in_ == const(0, 1):
                     self.out_ = 0
                 else:
                     self.out_ = 1
@@ -395,7 +395,7 @@ def test_static_eval_for_loop():
             self.add_code(self.code)
 
         def code(self):
-            if self.in_ == self.const(1, 1):
+            if self.in_ == const(1, 1):
                 for i in range(self.num_loop):
                     self.out_[i] = 1
             else:
@@ -450,7 +450,7 @@ def test_const_port():
 
             self.child = PassThroughMod()
             self.add_child_generator("child", self.child)
-            self.wire(self.child.in_, self.const(0, 1))
+            self.wire(self.child.in_, const(0, 1))
             self.wire(self.out_[0], self.child.out_)
             self.wire(self.out_[1], self.in_)
 
@@ -944,7 +944,7 @@ def test_function():
         def code(self):
             # because the types are inferred
             # implicit const conversion doesn't work here
-            self._out = self.update_out(self._in, self.const(1, 1))
+            self._out = self.update_out(self._in, const(1, 1))
 
     mod = Mod()
     check_gold(mod, "test_function")
@@ -970,7 +970,7 @@ def test_function_missing_return():
         def code(self):
             # because the types are inferred
             # implicit const conversion doesn't work here
-            self._out = self.update_out(self._in, self.const(1, 1))
+            self._out = self.update_out(self._in, const(1, 1))
 
     mod = Mod()
     try:
@@ -981,4 +981,4 @@ def test_function_missing_return():
 
 
 if __name__ == "__main__":
-    test_function_missing_return()
+    test_else_if()

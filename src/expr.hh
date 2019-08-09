@@ -240,14 +240,27 @@ public:
     int64_t value() { return value_; }
     void set_value(int64_t new_value);
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
     std::string to_string() const override;
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
+    static Const &constant(int64_t value, uint32_t width, bool is_signed);
+    Const(int64_t value, uint32_t width, bool is_signed);
+
 private:
     int64_t value_;
+    // created without a generator holder
+    static std::unordered_set<std::shared_ptr<Const>> consts_;
+    static std::unique_ptr<Generator> const_generator_;
+
 };
+
+// helper function
+inline Const &constant(int64_t value, uint32_t width, bool is_signed = false) {
+    return Const::constant(value, width, is_signed);
+}
 
 struct Param : public Const {
 public:

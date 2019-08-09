@@ -23,16 +23,14 @@ template <typename T>
 kratos::Const &convert_int_to_const(T &var, int64_t value) {
     bool is_signed = var.is_signed;
     uint32_t width = var.width;
-    auto gen = var.generator;
-    return gen->constant(value, width, is_signed);
+    return kratos::constant(value, width, is_signed);
 }
 
 template <typename T>
 kratos::Const &convert_int_to_const(int64_t value, T &var) {
     bool is_signed = var.is_signed;
     uint32_t width = var.width;
-    auto gen = var.generator;
-    return gen->constant(value, width, is_signed);
+    return kratos::constant(value, width, is_signed);
 }
 
 template <typename T, typename K>

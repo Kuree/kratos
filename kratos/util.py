@@ -4,6 +4,8 @@ import os
 import math
 import inspect
 from _kratos import ConditionalExpr
+import _kratos
+import enum
 import functools
 import operator
 
@@ -98,11 +100,26 @@ def zext(var, width):
         return var
     else:
         diff = width - var.width
-        return var.generator.constant(0, diff, var.signed).concat(var)
+        return const(0, diff, var.signed).concat(var)
 
 
 def mux(cond, left, right):
     return ConditionalExpr(cond, left, right)
+
+
+class VarCastType(enum.Enum):
+    Signed = _kratos.VarCastType.Signed
+    Clock = _kratos.VarCastType.Clock
+    AsyncReset = _kratos.VarCastType.AsyncReset
+
+
+def signed(var):
+    assert isinstance(var, _kratos.Var)
+    return var.cast(VarCastType.Signed.value)
+
+
+def const(value: int, width: int, is_signed: bool = False):
+    return _kratos.constant(value, width, is_signed)
 
 
 # also create an alias

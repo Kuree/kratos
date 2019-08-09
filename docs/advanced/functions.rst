@@ -46,7 +46,7 @@ free-style code blocks and procedural code generation.)
         def code(self):
             # because the types are inferred
             # implicit const conversion doesn't work here
-            self._out = self.update_out(self._in, self.const(1, 1))
+            self._out = self.update_out(self._in, const(1, 1))
 
 Notice that we can directly call the function as ``self.update_out()``
 in the code block. This is the same semantics as normal Python function
@@ -96,5 +96,5 @@ will inspect the arguments in the function invocation and inspect the
 types of each arguments and use that to construct the function
 interface. This is convenient for users in most cases. However, that
 also requires to to specify the type for constants as well. As shown
-in the example above, you have to call ``self.const()`` to construct
+in the example above, you have to call ``const()`` to construct
 a constant.

@@ -40,8 +40,8 @@ TEST(ir, visit_if) {  // NOLINT
     auto &var2 = mod.var("b", 2);
 
     auto if_stmt = IfStmt(var1.eq(var2));
-    if_stmt.add_then_stmt(var1.assign(mod.constant(2, 2)));
-    if_stmt.add_else_stmt(var2.assign(mod.constant(2, 2)));
+    if_stmt.add_then_stmt(var1.assign(constant(2, 2)));
+    if_stmt.add_else_stmt(var2.assign(constant(2, 2)));
 
     VarVisitor visitor;
     visitor.visit_root(if_stmt.ast_node());

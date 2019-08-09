@@ -3,7 +3,7 @@ import textwrap
 import inspect
 import astor
 import _kratos
-from .util import print_src, get_fn_ln
+from .util import print_src, signed, const
 import copy
 import os
 
@@ -293,6 +293,10 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
         # we have 3 frames back
         f = inspect.currentframe().f_back.f_back.f_back
         _locals = f.f_locals.copy()
+    # import helper functions
+    funcs = {"const": const, "signed": signed}
+    for name, func in funcs.items():
+        _locals[name] = func
     if pre_locals is not None:
         _locals.update(pre_locals)
 
@@ -339,6 +343,12 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     return _locals
 
 
+def inject_import_code(code_src):
+    line1 = "import kratos"
+    line2 = "from kratos import *"
+    return "\n".join([line1, line2, code_src])
+
+
 def transform_stmt_block(generator, fn):
     fn_src = inspect.getsource(fn)
     fn_name = fn.__name__
@@ -362,6 +372,7 @@ def transform_stmt_block(generator, fn):
                                      insert_self)
 
     src = astor.to_source(func_tree)
+    src = inject_import_code(src)
     code_obj = compile(src, "<ast>", "exec")
     # transform the statement list
     # if in debug mode, we trace the filename
@@ -416,6 +427,7 @@ def transform_function_block(generator, fn, arg_types):
                                      pre_locals=pre_locals)
 
     src = astor.to_source(func_tree)
+    src = inject_import_code(src)
     code_obj = compile(src, "<ast>", "exec")
 
     _locals.update({"_self": generator, "_scope": scope})

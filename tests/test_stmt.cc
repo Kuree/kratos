@@ -72,8 +72,8 @@ TEST(stmt, switch_) {  // NOLINT
     auto &var4 = mod.var("d", 4);
 
     auto switch_block = SwitchStmt(var1.shared_from_this());
-    auto &condition1 = mod.constant(0, 3);
-    auto &condition2 = mod.constant(1, 3);
+    auto &condition1 = constant(0, 3);
+    auto &condition2 = constant(1, 3);
     auto stmt = var1.assign(var2);
     switch_block.add_switch_case(condition1.as<Const>(), stmt);
     switch_block.add_switch_case(condition2.as<Const>(), var3.assign(var4));

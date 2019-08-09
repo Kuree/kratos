@@ -109,14 +109,6 @@ Expr &Generator::expr(ExprOp op, const std::shared_ptr<Var> &left,
     return *expr;
 }
 
-Const &Generator::constant(int64_t value, uint32_t width) { return constant(value, width, false); }
-
-Const &Generator::constant(int64_t value, uint32_t width, bool is_signed) {
-    auto ptr = std::make_shared<Const>(this, value, width, is_signed);
-    consts_.emplace(ptr);
-    return *ptr;
-}
-
 Param &Generator::parameter(const std::string &parameter_name, uint32_t width) {
     return parameter(parameter_name, width, false);
 }

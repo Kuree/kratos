@@ -38,8 +38,6 @@ public:
     PortPacked &port_packed(PortDirection direction, const std::string &port_name,
                             const PackedStruct &packed_struct_);
     VarPacked &var_packed(const std::string &var_name, const PackedStruct &packed_struct_);
-    Const &constant(int64_t value, uint32_t width);
-    Const &constant(int64_t value, uint32_t width, bool is_signed);
     Param &parameter(const std::string &parameter_name, uint32_t width);
     Param &parameter(const std::string &parameter_name, uint32_t width, bool is_signed);
     Enum &enum_(const std::string &enum_name, const std::map<std::string, uint64_t> &definition,
@@ -199,8 +197,6 @@ private:
     std::unordered_map<std::string, std::pair<std::string, uint32_t>> children_debug_;
 
     Generator *parent_generator_ = nullptr;
-
-    std::unordered_set<std::shared_ptr<Const>> consts_;
 
     bool is_stub_ = false;
     bool is_external_ = false;

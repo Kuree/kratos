@@ -434,7 +434,7 @@ void FSMState::output(const std::shared_ptr<Var>& output_var,
 }
 
 void FSMState::output(const std::shared_ptr<Var>& output_var, int64_t value) {
-    auto& c = parent_->generator()->constant(value, output_var->width, output_var->is_signed);
+    auto& c = constant(value, output_var->width, output_var->is_signed);
     output(output_var, c.shared_from_this());
 }
 

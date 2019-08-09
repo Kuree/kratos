@@ -75,7 +75,7 @@ public:
                 auto old_value = right->as<Const>();
                 try {
                     auto& new_const =
-                        generator_->constant(old_value->value(), left->width, old_value->is_signed);
+                        constant(old_value->value(), left->width, old_value->is_signed);
                     stmt->set_right(new_const.shared_from_this());
                     right = new_const.shared_from_this();
                 } catch (::runtime_error&) {
@@ -350,10 +350,10 @@ public:
                             std::shared_ptr<AssignStmt> stmt;
                             // a special case is that the port is not connected at all!
                             if (ll == 0 && hh == (port->width - 1)) {
-                                stmt = port->assign(gen->constant(0, port->width, port->is_signed));
+                                stmt = port->assign(constant(0, port->width, port->is_signed));
                             } else {
                                 auto& slice = port->operator[]({hh, ll});
-                                stmt = slice.assign(gen->constant(0, slice.width, slice.is_signed));
+                                stmt = slice.assign(constant(0, slice.width, slice.is_signed));
                             }
                             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                             gen->add_stmt(stmt);
@@ -619,7 +619,7 @@ public:
                     throw ::runtime_error(
                         fmt::format("{0}.{1} is driven by a net, but {0} is declared as a stub",
                                     generator->name, port_name));
-                generator->add_stmt(port->assign(generator->constant(0, port->width)));
+                generator->add_stmt(port->assign(constant(0, port->width)));
             }
         }
     }

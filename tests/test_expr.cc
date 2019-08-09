@@ -95,9 +95,9 @@ TEST(expr, assign) {  // NOLINT
 TEST(expr, const_val) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
-    auto &c0 = mod.constant(10, 4);
-    EXPECT_ANY_THROW(mod.constant(10, 4, true));
-    auto &c1 = mod.constant(-4, 4, true);
+    auto &c0 = constant(10, 4);
+    EXPECT_ANY_THROW(constant(10, 4, true));
+    auto &c1 = constant(-4, 4, true);
     EXPECT_EQ(c0.to_string(), "4'hA");
     EXPECT_EQ(c1.to_string(), "-4'h4");
 }

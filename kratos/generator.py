@@ -1,5 +1,6 @@
 import enum
-from .pyast import transform_stmt_block, get_fn_ln
+from .pyast import transform_stmt_block
+from .util import get_fn_ln
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
@@ -43,12 +44,6 @@ class BlockEdgeType(enum.Enum):
 class StatementBlockType(enum.Enum):
     Combinational = _kratos.StatementBlockType.Combinational
     Sequential = _kratos.StatementBlockType.Sequential
-
-
-class VarCastType(enum.Enum):
-    Signed = _kratos.VarCastType.Signed
-    Clock = _kratos.VarCastType.Clock
-    AsyncReset = _kratos.VarCastType.AsyncReset
 
 
 class CodeBlock:
@@ -398,9 +393,6 @@ class Generator(metaclass=GeneratorMeta):
         assert self.__generator.has_var(var_name)
         self.__generator.remove_var(var_name)
 
-    def const(self, value: int, width: int, signed: bool = False):
-        return self.__generator.constant(value, width, signed)
-
     def add_attribute(self, attr):
         self.__generator.add_attribute(attr)
 
@@ -718,7 +710,3 @@ def always(*sensitivity):
 
     return wrapper
 
-
-def signed(var):
-    assert isinstance(var, _kratos.Var)
-    return var.cast(VarCastType.Signed.value)

@@ -1,9 +1,9 @@
 from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
-    always, signed, CombinationalCodeBlock, SequentialCodeBlock
+    always, CombinationalCodeBlock, SequentialCodeBlock
 
 from .passes import Attribute, verilog
 from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
-    concat, zext, mux, ternary
+    concat, zext, mux, ternary, signed, const
 
 from .ports import PortBundle
 
@@ -21,7 +21,7 @@ posedge = BlockEdgeType.Posedge
 negedge = BlockEdgeType.Negedge
 
 __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
-           "verilog", "signed", "is_valid_verilog", "VarException",
+           "verilog", "signed", "const", "is_valid_verilog", "VarException",
            "StmtException", "IRVisitor", "FSM", "FSMState"]
 
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",

@@ -282,7 +282,9 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, uint32_t si
       is_signed(is_signed),
       generator(module),
       type_(type) {
-    if (module == nullptr) throw ::runtime_error(::format("module is null for {0}", name));
+    // only constant allows to be null generator
+    if (module == nullptr && type != VarType::ConstValue)
+        throw ::runtime_error(::format("module is null for {0}", name));
 }
 
 IRNode *Var::parent() { return generator; }
@@ -346,6 +348,22 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
     value_ = value;
 }
 
+Const::Const(int64_t value, uint32_t width, bool is_signed)
+    : Const(nullptr, value, width, is_signed) {
+    if (!const_generator_)
+        const_generator_ = std::make_unique<Generator>(nullptr, "");
+    generator = const_generator_.get();
+}
+
+Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
+    auto p = std::make_shared<Const>(value, width, is_signed);
+    consts_.emplace(p);
+    return *p;
+}
+
+std::unordered_set<std::shared_ptr<Const>> Const::consts_ = {};
+std::unique_ptr<Generator> Const::const_generator_ = nullptr;
+
 VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     : Var(parent->generator, "", parent->width, true, parent->type()),
       parent_var_(parent),
@@ -391,6 +409,20 @@ void Const::set_value(int64_t new_value) {
 void Const::add_source(const std::shared_ptr<AssignStmt> &) {
     throw VarException(::format("const {0} is not allowed to be driven by a net", to_string()),
                        {this});
+}
+
+void Const::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    auto left = stmt->left();
+    // if it's a port, we change the constant's generator to that of port
+    auto generator = left->generator;
+    if (!generator)
+        throw StmtException(::format("Unable to find left hand side generator"), {stmt.get()});
+    auto parent = generator->parent();
+    if (parent && parent->ir_node_kind() == GeneratorKind) {
+        auto gen = dynamic_cast<Generator*>(parent);
+        this->generator = gen;
+    }
+
 }
 
 Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
@@ -854,7 +886,7 @@ std::string FunctionCallVar::to_string() const {
         auto ordering = func_def_->port_ordering();
         std::unordered_map<std::string, uint32_t> indexing;
         indexing.reserve(ordering.size());
-        for (auto const &[var_name, var]: args_) {
+        for (auto const &[var_name, var] : args_) {
             indexing.emplace(var->to_string(), ordering.at(var_name));
         }
         std::sort(names.begin(), names.end(), [&](auto const &lhs, auto const &rhs) {

@@ -163,7 +163,7 @@ TEST(pass, generator_hash) {  // NOLINT
     auto &mod3 = c.generator("module1");
     auto &port3_1 = mod3.port(PortDirection::In, "in", 1);
     auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
-    mod3.add_stmt(port3_2.assign(port3_1 + mod3.constant(1, 1), AssignmentType::Blocking));
+    mod3.add_stmt(port3_2.assign(port3_1 + constant(1, 1), AssignmentType::Blocking));
 
     hash_generators(&mod1, HashStrategy::SequentialHash);
     auto mod1_hash = c.get_hash(&mod1);
@@ -272,10 +272,10 @@ TEST(pass, if_case) {  // NOLINT
     auto &mod = c.generator("module1");
     auto &in = mod.port(PortDirection::In, "in", 3);
     auto &out = mod.port(PortDirection::Out, "out", 3);
-    auto if_stmt = std::make_shared<IfStmt>(in.eq(mod.constant(0, 3)));
-    if_stmt->add_then_stmt(out.assign(mod.constant(0, 3)));
-    auto if_stmt2 = std::make_shared<IfStmt>(in.eq(mod.constant(1, 3)));
-    if_stmt2->add_then_stmt(out.assign(mod.constant(1, 3)));
+    auto if_stmt = std::make_shared<IfStmt>(in.eq(constant(0, 3)));
+    if_stmt->add_then_stmt(out.assign(constant(0, 3)));
+    auto if_stmt2 = std::make_shared<IfStmt>(in.eq(constant(1, 3)));
+    if_stmt2->add_then_stmt(out.assign(constant(1, 3)));
     if_stmt->add_else_stmt(if_stmt2);
     auto stmt_list = std::make_shared<CombinationalStmtBlock>();
     stmt_list->add_stmt(if_stmt);
@@ -583,14 +583,14 @@ TEST(generator, fsm) {  // NOLINT
 
     auto red = fsm.add_state("Red");
     auto blue = fsm.add_state("Blue");
-    auto expr1 = in_.eq(mod.constant(0, 2)).shared_from_this();
+    auto expr1 = in_.eq(constant(0, 2)).shared_from_this();
     red->next(red, expr1);
-    auto expr2 = in_.eq(mod.constant(1, 2)).shared_from_this();
+    auto expr2 = in_.eq(constant(1, 2)).shared_from_this();
     red->next(blue, expr2);
     blue->next(red, expr2);
 
-    red->output(out_.shared_from_this(), mod.constant(2, 2).shared_from_this());
-    blue->output(out_.shared_from_this(), mod.constant(1, 2).shared_from_this());
+    red->output(out_.shared_from_this(), constant(2, 2).shared_from_this());
+    blue->output(out_.shared_from_this(), constant(1, 2).shared_from_this());
     fsm.set_start_state(red);
 
     realize_fsm(&mod);
@@ -636,7 +636,7 @@ TEST(generator, function_return) {  // NOLINT
     EXPECT_NO_THROW(check_function_return(&mod));
     // clear the statements
     func->clear();
-    func->add_stmt(a->assign(mod.constant(1, 1)));
+    func->add_stmt(a->assign(constant(1, 1)));
     func->add_stmt(func->return_stmt(b));
     EXPECT_NO_THROW(check_function_return(&mod));
 }
