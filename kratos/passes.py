@@ -47,6 +47,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("verify_assignments")
     pass_manager.add_pass("verify_generator_connectivity")
     pass_manager.add_pass("check_mixed_assignment")
+    pass_manager.add_pass("check_function_return")
     pass_manager.add_pass("merge_wire_assignments")
     if use_parallel:
         pass_manager.add_pass("hash_generators_parallel")

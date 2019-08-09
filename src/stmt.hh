@@ -131,13 +131,14 @@ private:
     std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> body_;
 };
 
-/// this is for always block
+
 class StmtBlock : public Stmt {
 public:
     StatementBlockType block_type() const { return block_type_; }
     void add_stmt(const std::shared_ptr<Stmt> &stmt);
     void add_stmt(Stmt &stmt) { add_stmt(stmt.shared_from_this()); }
     void remove_stmt(const std::shared_ptr<Stmt> &stmt);
+    void inline clear() { stmts_.clear(); }
 
     uint64_t child_count() override { return stmts_.size(); }
     IRNode *get_child(uint64_t index) override {

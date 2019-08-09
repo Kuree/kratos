@@ -29,5 +29,23 @@ private:
     Generator *root_;
 };
 
+struct StmtNode {
+    StmtNode *parent = nullptr;
+    Stmt *stmt;
+    std::set<StmtNode*> children;
+};
+
+class StatementGraph {
+public:
+    explicit StatementGraph(StmtBlock *stmt);
+
+private:
+    std::unordered_map<Stmt*, StmtNode> nodes_;
+    StmtNode *root_;
+
+    void build_graph();
+    void add_stmt_child(Stmt* stmt);
+};
+
 }  // namespace kratos
 #endif  // KRATOS_GRAPH_HH

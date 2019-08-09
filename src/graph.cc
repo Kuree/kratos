@@ -3,6 +3,8 @@
 #include "fmt/format.h"
 #include "generator.hh"
 #include "ir.hh"
+#include "stmt.hh"
+#include "except.hh"
 
 using fmt::format;
 
@@ -136,6 +138,34 @@ std::vector<std::vector<Generator *>> GeneratorGraph::get_leveled_generators() {
         result[level].emplace_back(generator_node->generator);
     }
     return result;
+}
+
+StatementGraph::StatementGraph(StmtBlock *stmt) {
+    nodes_.emplace(stmt, StmtNode{nullptr, stmt, {}});
+    root_ = &nodes_.at(stmt);
+    // build the control flow graph
+    build_graph();
+}
+
+void StatementGraph::add_stmt_child(Stmt* stmt) {
+    auto child_count = stmt->child_count();
+    auto parent_node = &nodes_.at(stmt);
+    for (uint64_t i = 0; i < child_count; i++) {
+        auto s = dynamic_cast<Stmt*>(stmt->get_child(i));
+        if (!s)
+            throw StmtException("Non statement in statement block", {stmt});
+        if (nodes_.find(s) != nodes_.end())
+            throw StmtException("Duplicated statement detected", {stmt, s});
+        StmtNode node_value{parent_node, s, {}};
+        nodes_.emplace(s, node_value);
+        auto node = &nodes_.at(s);
+        parent_node->children.emplace(node);
+    }
+}
+
+void StatementGraph::build_graph() {
+    auto stmt = root_->stmt;
+    add_stmt_child(stmt);
 }
 
 }

@@ -950,5 +950,35 @@ def test_function():
     check_gold(mod, "test_function")
 
 
+def test_function_missing_return():
+    from kratos.func import function
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod", debug=True)
+            self._in = self.input("in", 2)
+            self._out = self.output("out", 2)
+
+            self.add_code(self.code)
+
+        @function
+        def update_out(self, value, predicate):
+            self._out = value
+            if predicate:
+                return value + self._in
+
+        def code(self):
+            # because the types are inferred
+            # implicit const conversion doesn't work here
+            self._out = self.update_out(self._in, self.const(1, 1))
+
+    mod = Mod()
+    try:
+        verilog(mod)
+        assert False
+    except StmtException:
+        assert True
+
+
 if __name__ == "__main__":
-    test_enum()
+    test_function_missing_return()

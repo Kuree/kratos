@@ -1,11 +1,12 @@
 #include "../src/codegen.hh"
+#include "../src/except.hh"
 #include "../src/expr.hh"
+#include "../src/fsm.hh"
 #include "../src/generator.hh"
 #include "../src/pass.hh"
 #include "../src/port.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
-#include "../src/fsm.hh"
 #include "gtest/gtest.h"
 
 using namespace kratos;
@@ -162,8 +163,7 @@ TEST(pass, generator_hash) {  // NOLINT
     auto &mod3 = c.generator("module1");
     auto &port3_1 = mod3.port(PortDirection::In, "in", 1);
     auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
-    mod3.add_stmt(
-        port3_2.assign(port3_1 + mod3.constant(1, 1), AssignmentType::Blocking));
+    mod3.add_stmt(port3_2.assign(port3_1 + mod3.constant(1, 1), AssignmentType::Blocking));
 
     hash_generators(&mod1, HashStrategy::SequentialHash);
     auto mod1_hash = c.get_hash(&mod1);
@@ -444,7 +444,7 @@ TEST(pass, module_hash) {  // NOLINT
     hash_generators(&mod1, HashStrategy::ParallelHash);
 }
 
-TEST(pass, zero_input_port1) {   // NOLINT
+TEST(pass, zero_input_port1) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("module1");
     auto &in1 = mod1.port(PortDirection::In, "in", 2);
@@ -524,7 +524,7 @@ TEST(generator, replace) {  // NOLINT
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 }
 
-TEST(generator, bundle_to_struct) { // NOLINT
+TEST(generator, bundle_to_struct) {  // NOLINT
     Context c;
     auto def = std::make_shared<PortBundleDefinition>("bundle");
     def->add_definition("a", 1, 1, false, PortDirection::In, PortType::Data);
@@ -561,7 +561,7 @@ TEST(generator, bundle_to_struct) { // NOLINT
     // run bundle to pack pass
     fix_assignment_type(&mod1);
     verify_generator_connectivity(&mod1);
-    //remove_pass_through_modules(&mod1);
+    // remove_pass_through_modules(&mod1);
     change_port_bundle_struct(&mod1);
     verify_generator_connectivity(&mod1);
     decouple_generator_ports(&mod1);
@@ -573,8 +573,8 @@ TEST(generator, bundle_to_struct) { // NOLINT
 TEST(generator, fsm) {  // NOLINT
     Context c;
     auto mod = c.generator("mod");
-    auto& out_ = mod.port(PortDirection::Out, "out", 2);
-    auto& in_ = mod.port(PortDirection::In, "in", 2);
+    auto &out_ = mod.port(PortDirection::Out, "out", 2);
+    auto &in_ = mod.port(PortDirection::In, "in", 2);
     mod.port(PortDirection::In, "clk", 1, 1, PortType::Clock, false);
     mod.port(PortDirection::In, "rst", 1, 1, PortType::AsyncReset, false);
 
@@ -589,7 +589,6 @@ TEST(generator, fsm) {  // NOLINT
     red->next(blue, expr2);
     blue->next(red, expr2);
 
-
     red->output(out_.shared_from_this(), mod.constant(2, 2).shared_from_this());
     blue->output(out_.shared_from_this(), mod.constant(1, 2).shared_from_this());
     fsm.set_start_state(red);
@@ -601,12 +600,12 @@ TEST(generator, fsm) {  // NOLINT
     is_valid_verilog(mod_src);
 }
 
-TEST(generator, function_call_stmt) {   // NOLINT
+TEST(generator, function_call_stmt) {  // NOLINT
     Context c;
-    auto& mod = c.generator("mod");
+    auto &mod = c.generator("mod");
     mod.fn_name_ln.emplace_back("", 1);
-    auto& in_ = mod.port(PortDirection::In, "in", 2);
-    auto& out_ = mod.port(PortDirection::Out, "out", 2);
+    auto &in_ = mod.port(PortDirection::In, "in", 2);
+    auto &out_ = mod.port(PortDirection::Out, "out", 2);
     auto func = mod.function("test");
     auto func_in = func->input("in_arg", 2, false);
     func->add_stmt(out_.assign(func_in, AssignmentType::Blocking));
@@ -619,4 +618,25 @@ TEST(generator, function_call_stmt) {   // NOLINT
     extract_debug_info(&mod);
     auto mod_src = generate_verilog(&mod);
     is_valid_verilog(mod_src);
+}
+
+TEST(generator, function_return) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto func = mod.function("test_func");
+    auto a = func->input("a", 1, false);
+    auto b = func->input("b", 1, false);
+    func->add_stmt(func->return_stmt(a));
+    func->add_stmt(func->return_stmt(b));
+
+    EXPECT_THROW(check_function_return(&mod), StmtException);
+    // clear the statements
+    func->clear();
+    func->add_stmt(func->return_stmt(a));
+    EXPECT_NO_THROW(check_function_return(&mod));
+    // clear the statements
+    func->clear();
+    func->add_stmt(a->assign(mod.constant(1, 1)));
+    func->add_stmt(func->return_stmt(b));
+    EXPECT_NO_THROW(check_function_return(&mod));
 }

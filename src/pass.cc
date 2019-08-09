@@ -7,6 +7,7 @@
 #include "fmt/format.h"
 #include "fsm.hh"
 #include "generator.hh"
+#include "graph.hh"
 #include "port.hh"
 #include "util.hh"
 
@@ -1413,6 +1414,72 @@ void realize_fsm(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
+bool check_return(Stmt* stmt) {
+    if (stmt->type() == StatementType::Return) {
+        return true;
+    } else if (stmt->type() == StatementType::Block) {
+        // it has to be the last block
+        uint64_t index;
+        bool found = false;
+        auto block = dynamic_cast<StmtBlock*>(stmt);
+        auto child_count = block->child_count();
+        for (index = 0; index < child_count; index++) {
+            auto s = dynamic_cast<Stmt*>(block->get_child(index));
+            if (check_return(s)) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            if (index != block->child_count() - 1) {
+                // we have unreachable state
+                std::vector<Stmt*> stmts;
+                for (uint64_t i = index + 1; i < block->child_count(); i++)
+                    stmts.emplace_back(dynamic_cast<Stmt*>(block->get_child(i)));
+                throw StmtException("Unreachable code block", {stmts});
+            }
+        }
+        return found;
+    } else if (stmt->type() == StatementType::Switch) {
+        auto stmt_ = dynamic_cast<SwitchStmt*>(stmt);
+        auto cases = stmt_->body();
+        if (cases.empty()) return false;
+        for (auto const& iter : cases) {
+            auto scope_stmt = iter.second.get();
+            if (!check_return(scope_stmt)) return false;
+        }
+        return true;
+    } else if (stmt->type() == StatementType::If) {
+        auto stmt_ = dynamic_cast<IfStmt*>(stmt);
+        auto const& then = stmt_->then_body();
+        auto const& else_ = stmt_->else_body();
+        return check_return(then.get()) && check_return(else_.get());
+    }
+    return false;
+}
+
+void check_function_return(Generator* top) {
+    // check all the function definitions
+    auto functions = top->functions();
+    for (auto const& iter : functions) {
+        auto func = iter.second;
+        // check if the function has a return
+        if (!func->has_return_value()) continue;
+        // build statement graph
+        bool has_return = check_return(func.get());
+        if (!has_return) {
+            std::vector<Stmt*> stmts;
+            stmts.reserve(func->child_count());
+            for (uint64_t i = 0; i < func->child_count(); i++) {
+                stmts.emplace_back(dynamic_cast<Stmt*>(func->get_child(i)));
+            }
+            throw StmtException(::format("{0} does not have return statement in all control flows",
+                                         func->function_name()),
+                                stmts);
+        }
+    }
+}
+
 void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));
@@ -1469,6 +1536,8 @@ void PassManager::register_builtin_passes() {
     register_pass("change_port_bundle_struct", &change_port_bundle_struct);
 
     register_pass("realize_fsm", &realize_fsm);
+
+    register_pass("check_function_return", &check_function_return);
 
     // TODO:
     //  add inline pass
