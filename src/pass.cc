@@ -1458,26 +1458,35 @@ bool check_return(Stmt* stmt) {
     return false;
 }
 
-void check_function_return(Generator* top) {
-    // check all the function definitions
-    auto functions = top->functions();
-    for (auto const& iter : functions) {
-        auto func = iter.second;
-        // check if the function has a return
-        if (!func->has_return_value()) continue;
-        // build statement graph
-        bool has_return = check_return(func.get());
-        if (!has_return) {
-            std::vector<Stmt*> stmts;
-            stmts.reserve(func->child_count());
-            for (uint64_t i = 0; i < func->child_count(); i++) {
-                stmts.emplace_back(dynamic_cast<Stmt*>(func->get_child(i)));
+class FunctionReturnVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        // check all the function definitions
+        auto functions = generator->functions();
+        for (auto const& iter : functions) {
+            auto func = iter.second;
+            // check if the function has a return
+            if (!func->has_return_value()) continue;
+            // build statement graph
+            bool has_return = check_return(func.get());
+            if (!has_return) {
+                std::vector<Stmt*> stmts;
+                stmts.reserve(func->child_count());
+                for (uint64_t i = 0; i < func->child_count(); i++) {
+                    stmts.emplace_back(dynamic_cast<Stmt*>(func->get_child(i)));
+                }
+                throw StmtException(
+                    ::format("{0} does not have return statement in all control flows",
+                             func->function_name()),
+                    stmts);
             }
-            throw StmtException(::format("{0} does not have return statement in all control flows",
-                                         func->function_name()),
-                                stmts);
         }
     }
+};
+
+void check_function_return(Generator* top) {
+    FunctionReturnVisitor visitor;
+    visitor.visit_generator_root_p(top);
 }
 
 void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {

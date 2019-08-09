@@ -89,6 +89,10 @@ readable and your life easier:
 - ``change_port_bundle_struct``: automatically change the port bundle into
   packed struct whenever possible
 - ``realize_fsm``: realize finite state machine into more basic primitives.
+- ``check_function_return``: check return statement related bugs, such as
+  missing return in some code blocks or unreachable code due to early
+  return.
+
 
 Write your own Pass
 ===================
