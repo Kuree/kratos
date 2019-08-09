@@ -16,6 +16,8 @@ public:
     StmtException(const std::string &message, const std::vector<Stmt *> &stmts) noexcept;
 };
 
+void print_ast_node(const IRNode* node);
+
 }  // namespace kratos
 
 #endif  // KRATOS_EXCEPT_HH

@@ -10,6 +10,7 @@
 
 namespace kratos {
 
+struct IRNode;
 struct Port;
 class Generator;
 struct Expr;

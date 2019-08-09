@@ -614,8 +614,8 @@ def test_remove_child():
 
 def test_syntax_sugar():
     mod = Generator("mod", debug=True)
-    out_ = mod.var("out", 1)
-    in_ = mod.port("in", 1, PortDirection.In)
+    out_ = mod.output("out", 1)
+    in_ = mod.input("in", 1)
     comb = mod.combinational()
     comb.if_(in_ == 1).then_(out_(0)).else_(out_(1))
 
@@ -624,8 +624,8 @@ def test_syntax_sugar():
 
     Generator.clear_context()
     mod = Generator("mod", debug=True)
-    out_ = mod.var("out", 1)
-    in_ = mod.port("in", 1, PortDirection.In)
+    out_ = mod.output("out", 1)
+    in_ = mod.input("in", 1)
     comb = mod.combinational()
     comb.switch_(in_).case_(1, out_(1)).case_(0, out_(0))
 
@@ -848,7 +848,7 @@ def test_bundle_pack():
 
 def test_named_block():
     mod = Generator("mod", debug=True)
-    out_ = mod.var("out", 1)
+    out_ = mod.output("out", 1)
     in_ = mod.port("in", 1, PortDirection.In)
     comb = mod.combinational()
     if_ = comb.if_(in_ == 1)
@@ -860,8 +860,8 @@ def test_named_block():
 
 def test_enum():
     mod = Generator("mod", debug=True)
-    out_ = mod.var("out", 1)
-    in_ = mod.port("in", 1, PortDirection.In)
+    out_ = mod.output("out", 1)
+    in_ = mod.input("in", 1)
     mod.enum("color", {"red": 1, "green": 2}, 2)
     mod.wire(out_, in_)
 
@@ -951,4 +951,4 @@ def test_function():
 
 
 if __name__ == "__main__":
-    test_function()
+    test_enum()

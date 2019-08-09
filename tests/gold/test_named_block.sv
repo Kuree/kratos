@@ -1,8 +1,8 @@
 module mod (
-  input logic  in
+  input logic  in,
+  output logic  out
 );
 
-logic   out;
 always_comb begin
   if (in == 1'h1) begin :TEST
     out = 1'h0;

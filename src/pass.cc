@@ -152,7 +152,15 @@ public:
         auto vars = generator->vars();
         for (auto const& [var_name, var] : vars) {
             if (var->type() != VarType::Base) continue;
-            if (var->sinks().empty() && var->sources().empty()) vars_to_remove.emplace(var_name);
+            if (var->sinks().empty()) {
+                if (var->sources().empty()) {
+                    vars_to_remove.emplace(var_name);
+                } else {
+                    // print out warnings
+                    std::cerr << "Variable: " << var->to_string() << " has no sink" << std::endl;
+                    print_ast_node(var.get());
+                }
+            }
         }
 
         // rmeove unused vars

@@ -25,7 +25,7 @@ std::string inline blue_line() {
     return result;
 }
 
-void inline print_ast_node(const IRNode* node) {
+void print_ast_node(const IRNode* node) {
     // we only support unix for now
 #ifdef __unix__
     if (!node->fn_name_ln.empty()) {
