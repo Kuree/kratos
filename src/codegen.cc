@@ -204,6 +204,8 @@ void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(kratos::ReturnStmt* stmt) {
+    if (generator_->debug)
+        stmt->verilog_ln = stream_.line_no();
     stream_ << indent() << "return " << stmt->value()->to_string()
             << ";" << stream_.endl();
 }
@@ -308,6 +310,8 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     }
     for (auto const& port_name : port_names) {
         auto port = ports.at(port_name).get();
+        if (generator_->debug)
+            port->verilog_ln = stream_.line_no();
         stream_ << indent() << get_port_str(port);
         if (++count != ports.size())
             stream_ << "," << stream_.endl();

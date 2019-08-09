@@ -77,6 +77,13 @@ calls. Below is the generated SystemVerilog.
   end
   endmodule   // mod
 
+Debug
+=====
+
+Kratos will produce source map for debugging function definitions, the
+same way as free-style code blocks. You can use ``kratos-debug`` to view
+the source mapping.
+
 
 Type Deduction and limitations
 ==============================

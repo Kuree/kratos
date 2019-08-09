@@ -604,6 +604,7 @@ TEST(generator, fsm) {  // NOLINT
 TEST(generator, function_call_stmt) {   // NOLINT
     Context c;
     auto& mod = c.generator("mod");
+    mod.fn_name_ln.emplace_back("", 1);
     auto& in_ = mod.port(PortDirection::In, "in", 2);
     auto& out_ = mod.port(PortDirection::Out, "out", 2);
     auto func = mod.function("test");
@@ -615,6 +616,7 @@ TEST(generator, function_call_stmt) {   // NOLINT
     comb->add_stmt(stmt);
 
     verify_generator_connectivity(&mod);
+    extract_debug_info(&mod);
     auto mod_src = generate_verilog(&mod);
     is_valid_verilog(mod_src);
 }

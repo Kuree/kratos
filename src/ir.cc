@@ -70,6 +70,17 @@ void IRVisitor::visit_content(Generator *generator) {
             visit(var.get());
         }
     }
+    // visit the functions
+    // TODO: refactor this
+    auto functions = generator->functions();
+    for (auto const &iter: functions) {
+        auto ptr = iter.second.get();
+        if (visited_.find(ptr) == visited_.end()) {
+            visited_.emplace(ptr);
+            visit_root(ptr);
+        }
+    }
+
     level--;
 }
 }

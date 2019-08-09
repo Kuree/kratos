@@ -926,7 +926,7 @@ def test_function():
 
     class Mod(Generator):
         def __init__(self):
-            super().__init__("mod")
+            super().__init__("mod", debug=True)
             self._in = self.input("in", 2)
             self._out = self.output("out", 2)
             self._out2 = self.output("out2", 2)
@@ -951,4 +951,4 @@ def test_function():
 
 
 if __name__ == "__main__":
-    test_fsm_mealy()
+    test_function()

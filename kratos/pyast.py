@@ -5,6 +5,7 @@ import astor
 import _kratos
 from .util import print_src, get_fn_ln
 import copy
+import os
 
 
 class ForNodeVisitor(ast.NodeTransformer):
@@ -158,38 +159,36 @@ class AssignNodeVisitor(ast.NodeTransformer):
         if len(node.targets) > 1:
             raise Exception("tuple unpacking not allowed. got " +
                             astor.to_source(node))
+        args = node.targets[:] + [node.value]
         if self.debug:
-            return ast.Expr(
-                value=ast.Call(func=ast.Attribute(
-                    value=ast.Name(id="scope",
-                                   ctx=ast.Load()),
-                    attr="assign",
-                    cts=ast.Load()),
-                    args=node.targets + [node.value, ast.Num(n=node.lineno)],
-                    keywords=[]))
-        else:
-            return ast.Expr(
-                value=ast.Call(func=ast.Attribute(
-                    value=ast.Name(id="scope",
-                                   ctx=ast.Load()),
-                    attr="assign",
-                    cts=ast.Load()),
-                    args=node.targets + [node.value],
-                    keywords=[]))
+            args.append(ast.Num(n=node.lineno))
+        return ast.Expr(
+            value=ast.Call(func=ast.Attribute(
+                value=ast.Name(id="scope",
+                               ctx=ast.Load()),
+                attr="assign",
+                cts=ast.Load()),
+                args=args,
+                keywords=[]))
 
 
 class ReturnNodeVisitor(ast.NodeTransformer):
-    def __init__(self, scope_name):
+    def __init__(self, scope_name, debug=False):
         self.scope_name = scope_name
+        self.debug = debug
 
     def visit_Return(self, node: ast.Return):
         value = node.value
+        args = [value]
+        if self.debug:
+            args.append(ast.Num(n=node.lineno))
+
         return ast.Expr(value=ast.Call(func=ast.Attribute(
             value=ast.Name(id=self.scope_name,
                            ctx=ast.Load()),
             attr="return_",
             cts=ast.Load()),
-            args=[value],
+            args=args,
             keywords=[]))
 
 
@@ -198,6 +197,8 @@ class Scope:
         self.stmt_list = []
         self.generator = generator
         self.filename = filename
+        if self.filename:
+            assert os.path.isfile(self.filename)
         self.ln = ln
 
         self._level = 0
@@ -263,8 +264,11 @@ class FuncScope(Scope):
     def input(self, var_name, width, is_signed=False) -> _kratos.Var:
         return self.__func.input(var_name, width, is_signed)
 
-    def return_(self, value):
-        return self.__func.return_stmt(value)
+    def return_(self, value, f_ln=None):
+        stmt = self.__func.return_stmt(value)
+        if f_ln is not None:
+            stmt.add_fn_ln((self.filename, f_ln + self.ln - 1))
+        return stmt
 
 
 def add_stmt_to_scope(fn_body):
@@ -301,7 +305,7 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     func_args.append(ast.arg(arg="scope", annotation=None))
 
     if transform_return:
-        return_visitor = ReturnNodeVisitor("scope")
+        return_visitor = ReturnNodeVisitor("scope", generator.debug)
         return_visitor.visit(fn_body)
 
     assign_visitor = AssignNodeVisitor(generator, debug)
@@ -362,7 +366,7 @@ def transform_stmt_block(generator, fn):
     # transform the statement list
     # if in debug mode, we trace the filename
     if debug:
-        filename, _ = get_fn_ln(3)
+        filename = get_fn(fn)
         ln = get_ln(fn)
     else:
         filename = ""
@@ -393,7 +397,7 @@ def transform_function_block(generator, fn, arg_types):
     fn_body.args.args = [func_args[0]]
     # add function args now
     if debug:
-        filename, _ = get_fn_ln(3)
+        filename = get_fn(fn)
         ln = get_ln(fn)
     else:
         filename = ""
@@ -474,3 +478,7 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
 def get_ln(fn):
     info = inspect.getsourcelines(fn)
     return info[1]
+
+
+def get_fn(fn):
+    return os.path.abspath(inspect.getsourcefile(fn))

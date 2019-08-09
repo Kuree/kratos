@@ -44,7 +44,7 @@ class AssignmentTypeBlockVisitor : public IRVisitor {
         visitor.visit_root(block->ast_node());
     }
 
-    void visit(FunctionStmtBlock* block) override  {
+    void visit(FunctionStmtBlock* block) override {
         AssignmentTypeVisitor visitor(AssignmentType::Blocking, true);
         visitor.visit_root(block->ast_node());
     }
@@ -911,6 +911,10 @@ public:
     void inline visit(IfStmt* stmt) override { add_info(stmt); }
 
     void inline visit(FunctionCallStmt* stmt) override { add_info(stmt); }
+
+    void inline visit(FunctionStmtBlock* stmt) override { add_info(stmt); }
+
+    void inline visit(ReturnStmt* stmt) override { add_info(stmt); }
 
     std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result;
 

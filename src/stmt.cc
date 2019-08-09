@@ -313,7 +313,7 @@ std::shared_ptr<Port> FunctionStmtBlock::input(const std::string &name, uint32_t
 }
 
 std::shared_ptr<Port> FunctionStmtBlock::get_port(const std::string &port_name) {
-    if (ports_.find(port_name) != ports_.end())
+    if (ports_.find(port_name) == ports_.end())
         throw ::runtime_error(::format("cannot find {0}", port_name));
     return ports_.at(port_name);
 }

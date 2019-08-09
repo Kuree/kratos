@@ -1,4 +1,4 @@
-from .pyast import transform_function_block
+from .pyast import transform_function_block, get_fn, get_ln
 import inspect
 import _kratos
 
@@ -33,6 +33,11 @@ class FunctionCall:
             # set ordering
             func.set_port_ordering(args_order)
             self.__cache_ordering[generator.name, fn_name] = args_order
+            if generator.debug:
+                fn, ln = get_fn(self.__fn), get_ln(self.__fn)
+                for _, var_name in args_order.items():
+                    port = func.get_port(var_name)
+                    port.add_fn_ln((fn, ln + 1))
         else:
             args_order = self.__cache_ordering[generator.name, fn_name]
         mapping = {}
