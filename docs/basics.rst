@@ -80,8 +80,8 @@ used to provide `single-source-of-truth` in hardware design.
     class PassThroughMod(Generator):
         def __init__(self):
             super().__init__("PassThrough", False)
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", 1, PortDirection.Out)
+            self.in_ = self.input("in", 1)
+            self.out_ = self.output("out", 1)
             self.wire(self.out_, self.in_)
 
 
@@ -153,8 +153,8 @@ Here is an example that prints out the pass through module
     class PassThroughMod(kratos.Generator):
         def __init__(self):
             super().__init__("PassThrough", False)
-            self.in_ = self.port("in", 1, kratos.PortDirection.In)
-            self.out_ = self.port("out", 1, kratos.PortDirection.Out)
+            self.in_ = self.input("in", 1)
+            self.out_ = self.output("out", 1)
             self.wire(self.out_, self.in_)
 
 

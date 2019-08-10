@@ -57,7 +57,10 @@ kratos also has some helper functions to help you create commonly used ports:
 .. code-block:: Python
 
     def input(self, name, width, port_type: PortType = PortType.Data,
-                  is_signed: bool = False, size: int = 1)
+              is_signed: bool = False, size: int = 1)
+
+    def output(self, name, width, port_type: PortType = PortType.Data,
+               is_signed: bool = False, size: int = 1)
 
     def clock(self, name, is_input=True)
 
@@ -131,7 +134,7 @@ function definition
 
 .. code-block:: Python
 
-  def const(self, value: int, width: int, signed: bool = False)
+  def const(value: int, width: int, signed: bool = False)
 
 .. note::
 
