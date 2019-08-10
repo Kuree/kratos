@@ -22,11 +22,12 @@ class ForNodeVisitor(ast.NodeTransformer):
                     return ast.Str(s=self.value, lineno=node.lineno)
             return node
 
-    def __init__(self, generator, fn_src, local):
+    def __init__(self, generator, fn_src, local, global_):
         super().__init__()
         self.generator = generator
         self.fn_src = fn_src
         self.local = local.copy()
+        self.global_ = global_.copy()
         self.local["self"] = self.generator
 
     def visit_For(self, node: ast.For):
@@ -41,7 +42,7 @@ class ForNodeVisitor(ast.NodeTransformer):
         iter_ = node.iter
         iter_src = astor.to_source(iter_)
         try:
-            iter_obj = eval(iter_src, self.local)
+            iter_obj = eval(iter_src, self.global_, self.local)
             iter_ = list(iter_obj)
         except RuntimeError:
             print_src(self.fn_src, node.iter.lineno)
@@ -68,11 +69,12 @@ class ForNodeVisitor(ast.NodeTransformer):
 
 
 class IfNodeVisitor(ast.NodeTransformer):
-    def __init__(self, generator, fn_src, local):
+    def __init__(self, generator, fn_src, local, global_):
         super().__init__()
         self.generator = generator
         self.fn_src = fn_src
         self.local = local.copy()
+        self.global_ = global_
         self.local["self"] = self.generator
 
     def __change_if_predicate(self, node):
@@ -100,7 +102,7 @@ class IfNodeVisitor(ast.NodeTransformer):
         # we only replace stuff if the predicate has something to do with the
         # verilog variable
         predicate_src = astor.to_source(predicate)
-        predicate_value = eval(predicate_src, self.local)
+        predicate_value = eval(predicate_src, self.global_, self.local)
         # if's a kratos var, we continue
         if not isinstance(predicate_value, _kratos.Var):
             if not isinstance(predicate_value, bool):
@@ -109,13 +111,13 @@ class IfNodeVisitor(ast.NodeTransformer):
             if predicate_value:
                 for i, n in enumerate(node.body):
                     if_exp = IfNodeVisitor(self.generator, self.fn_src,
-                                           self.local)
+                                           self.local, self.global_)
                     node.body[i] = if_exp.visit(n)
                 return node.body
             else:
                 for i, n in enumerate(node.orelse):
                     if_exp = IfNodeVisitor(self.generator, self.fn_src,
-                                           self.local)
+                                           self.local, self.global_)
                     node.orelse[i] = if_exp.visit(n)
                 return node.orelse
 
@@ -124,10 +126,12 @@ class IfNodeVisitor(ast.NodeTransformer):
 
         # recursive call
         for idx, node in enumerate(expression):
-            if_exp = IfNodeVisitor(self.generator, self.fn_src, self.local)
+            if_exp = IfNodeVisitor(self.generator, self.fn_src, self.local,
+                                   self.global_)
             expression[idx] = if_exp.visit(node)
         for idx, node in enumerate(else_expression):
-            else_exp = IfNodeVisitor(self.generator, self.fn_src, self.local)
+            else_exp = IfNodeVisitor(self.generator, self.fn_src, self.local,
+                                     self.global_)
             else_expression[idx] = else_exp.visit(node)
 
         if self.generator.debug:
@@ -286,17 +290,12 @@ def add_stmt_to_scope(fn_body):
 
 def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
                            transform_return=False, pre_locals=None):
-    if insert_self:
-        _locals = {}
-    else:
-        # pre-compute the frames
-        # we have 3 frames back
-        f = inspect.currentframe().f_back.f_back.f_back
-        _locals = f.f_locals.copy()
-    # import helper functions
-    funcs = {"const": const, "signed": signed}
-    for name, func in funcs.items():
-        _locals[name] = func
+    # pre-compute the frames
+    # we have 3 frames back
+    f = inspect.currentframe().f_back.f_back.f_back
+    _locals = f.f_locals.copy()
+    _globals = f.f_globals.copy()
+
     if pre_locals is not None:
         _locals.update(pre_locals)
 
@@ -317,11 +316,11 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     ast.fix_missing_locations(fn_body)
 
     # static eval for loop
-    for_visitor = ForNodeVisitor(generator, fn_src, _locals)
+    for_visitor = ForNodeVisitor(generator, fn_src, _locals, _globals)
     fn_body = for_visitor.visit(fn_body)
 
     # transform if and static eval any for loop
-    if_visitor = IfNodeVisitor(generator, fn_src, _locals)
+    if_visitor = IfNodeVisitor(generator, fn_src, _locals, _globals)
     fn_body = if_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
 

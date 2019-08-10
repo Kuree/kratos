@@ -122,5 +122,16 @@ def const(value: int, width: int, is_signed: bool = False):
     return _kratos.constant(value, width, is_signed)
 
 
+# bit vector style syntax
+class ConstConstructor:
+    def __getitem__(self, width):
+        class ConstWidth:
+            def __call__(self, value, is_signed=False):
+                return _kratos.constant(value, width, is_signed)
+        return ConstWidth()
+
+
+Const = ConstConstructor()
+
 # also create an alias
 ternary = mux

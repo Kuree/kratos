@@ -1,5 +1,5 @@
 from kratos import Generator, signed
-from kratos.util import reduce_or
+from kratos.util import reduce_or, Const, const
 
 
 def test_expr():
@@ -43,3 +43,10 @@ def test_reduce_or():
     expr = reduce_or(a, b)
     assert str(expr) == "a | b"
     assert str(reduce_or(a)) == "a"
+
+
+def test_const():
+    a = Const[4](2)
+    b = const(2, 4)
+    assert str(a) == str(b)
+    assert str(a) == "4'h2"
