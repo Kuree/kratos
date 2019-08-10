@@ -64,8 +64,6 @@ void fix_assignment_type(Generator* top) {
 
 class VerifyAssignmentVisitor : public IRVisitor {
 public:
-    explicit VerifyAssignmentVisitor(Generator* generator) : generator_(generator) {}
-
     void visit(AssignStmt* stmt) override {
         const auto left = stmt->left();
         auto right = stmt->right();
@@ -104,7 +102,6 @@ public:
     }
 
 private:
-    Generator* generator_;
 
     void inline static check_var(Var* var) {
         bool is_top_level = false;
@@ -142,7 +139,7 @@ private:
 
 void verify_assignments(Generator* top) {
     // verify the assignment width match, and sign as well
-    VerifyAssignmentVisitor visitor(top);
+    VerifyAssignmentVisitor visitor;
     visitor.visit_root(top);
 }
 
