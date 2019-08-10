@@ -5,6 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.0.12] - 2019-08-09
+### Added
+- Automatic Moore -> Mealy FSM conversion (#69)
+- Combinational function block from Python. The argument order are the same
+  as in Python (#70)
+- Function calls as expr or stmt
+- A pass to analyze return statements inside function block
+
+### Changed
+- Constant creation no longer tied to Generator object itself.
+- `const(value, width)` and `Const[width](value)` syntax sugar to create constant in Python (#70).
+- `pyast` now evaluates based on the caller's `locals` and `globals`.
+- Use `Var` as a base-class to reduce binary size
+- helper function such as `signed` is moved to `util` submodule.
+
 ## [0.0.11] - 2019-08-03
 ### Added
 - Port bundles and a pass to convert port bundle to packed struct
