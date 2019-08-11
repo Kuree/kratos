@@ -981,4 +981,4 @@ def test_function_missing_return():
 
 
 if __name__ == "__main__":
-    test_else_if()
+    test_function_missing_return()

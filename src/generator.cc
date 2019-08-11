@@ -5,9 +5,9 @@
 #include <unordered_set>
 #include "except.hh"
 #include "fmt/format.h"
+#include "fsm.hh"
 #include "stmt.hh"
 #include "util.hh"
-#include "fsm.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -121,14 +121,14 @@ Param &Generator::parameter(const std::string &parameter_name, uint32_t width, b
     return *ptr;
 }
 
-Enum& Generator::enum_(const std::string &enum_name,
+Enum &Generator::enum_(const std::string &enum_name,
                        const std::map<std::string, uint64_t> &definition, uint32_t width) {
     auto p = std::make_shared<Enum>(this, enum_name, definition, width);
     enums_.emplace(enum_name, p);
     return *p;
 }
 
-EnumVar& Generator::enum_var(const std::string& var_name, const std::shared_ptr<Enum>& enum_def) {
+EnumVar &Generator::enum_var(const std::string &var_name, const std::shared_ptr<Enum> &enum_def) {
     if (has_var(var_name))
         throw VarException(::format("{0} already exists", var_name), {get_var(var_name).get()});
     auto p = std::make_shared<EnumVar>(this, var_name, enum_def);
@@ -136,7 +136,7 @@ EnumVar& Generator::enum_var(const std::string& var_name, const std::shared_ptr<
     return *p;
 }
 
-FSM& Generator::fsm(const std::string &fsm_name) {
+FSM &Generator::fsm(const std::string &fsm_name) {
     if (fsms_.find(fsm_name) != fsms_.end())
         throw ::runtime_error(::format("FSM {0} already exists in {1}", fsm_name, name));
     auto p = std::make_shared<FSM>(fsm_name, this);
@@ -144,7 +144,7 @@ FSM& Generator::fsm(const std::string &fsm_name) {
     return *p;
 }
 
-FSM& Generator::fsm(const std::string &fsm_name, const std::shared_ptr<Var> &clk,
+FSM &Generator::fsm(const std::string &fsm_name, const std::shared_ptr<Var> &clk,
                     const std::shared_ptr<Var> &reset) {
     if (fsms_.find(fsm_name) != fsms_.end())
         throw ::runtime_error(::format("FSM {0} already exists in {1}", fsm_name, name));
@@ -153,7 +153,7 @@ FSM& Generator::fsm(const std::string &fsm_name, const std::shared_ptr<Var> &clk
     return *p;
 }
 
-FunctionCallVar& Generator::call(const std::string &func_name,
+FunctionCallVar &Generator::call(const std::string &func_name,
                                  const std::map<std::string, std::shared_ptr<Var>> &args,
                                  bool has_return) {
     if (funcs_.find(func_name) == funcs_.end())
@@ -164,7 +164,7 @@ FunctionCallVar& Generator::call(const std::string &func_name,
     return *p;
 }
 
-FunctionCallVar& Generator::call(const std::string &func_name,
+FunctionCallVar &Generator::call(const std::string &func_name,
                                  const std::map<std::string, std::shared_ptr<Var>> &args) {
     return call(func_name, args, true);
 }
@@ -179,8 +179,7 @@ std::shared_ptr<FunctionStmtBlock> Generator::function(const std::string &func_n
 }
 
 std::shared_ptr<FunctionStmtBlock> Generator::get_function(const std::string &func_name) const {
-    if (!has_function(func_name))
-        throw ::runtime_error(::format("{0} does not exist", func_name));
+    if (!has_function(func_name)) throw ::runtime_error(::format("{0} does not exist", func_name));
     return funcs_.at(func_name);
 }
 
@@ -422,7 +421,7 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
     parent_generator->remove_child_generator(target);
 }
 
-void inline check_direction(const std::shared_ptr<Port> &port1, const std::shared_ptr<Port> &port2,
+void inline check_direction(const Port *port1, Port* port2,
                             bool same_direction = false) {
     auto port1_dir = port1->port_direction();
     PortDirection correct_dir;
@@ -438,42 +437,94 @@ void inline check_direction(const std::shared_ptr<Port> &port1, const std::share
     }
 }
 
-std::shared_ptr<Stmt> Generator::wire_ports(std::shared_ptr<Port> &port1,
-                                            std::shared_ptr<Port> &port2) {
+std::pair<bool, bool> correct_port_direction(Port* port1, Port* port2, Generator* top) {
     auto parent1 = port1->generator;
     auto parent2 = port2->generator;
-    std::shared_ptr<Stmt> stmt;
-    if (parent1 == parent2 && parent1 == this) {
+    std::shared_ptr<AssignStmt> stmt;
+    if (parent1 == parent2 && parent1 == top) {
         // it's the same module
         check_direction(port1, port2);
-        if (port1->port_direction() == PortDirection::In) {
-            stmt = port2->assign(port1);
-        } else {
-            stmt = port1->assign(port2);
-        }
+        return {(!(port1->port_direction() == PortDirection::In)), true};
     } else {
-        if (parent1 == this && has_child_generator(parent2->shared_from_this())) {
+        if (parent1 == top && top->has_child_generator(parent2->shared_from_this())) {
             check_direction(port1, port2, true);
-            if (port1->port_direction() == PortDirection::In)
-                stmt = port2->assign(port1);
-            else
-                stmt = port1->assign(port2);
-        } else if (parent2 == this && has_child_generator(parent1->shared_from_this())) {
+            return {(!(port1->port_direction() == PortDirection::In)), true};
+        } else if (parent2 == top && top->has_child_generator(parent1->shared_from_this())) {
             check_direction(port1, port2, true);
-            if (port1->port_direction() == PortDirection::In)
-                stmt = port1->assign(port2);
-            else
-                stmt = port2->assign(port1);
+            return {(port1->port_direction() == PortDirection::In), true};
         } else {
-            throw ::runtime_error(
-                ::format("Cannot wire {0} and {1}. Please make sure they belong to the same module "
-                         "or parent",
-                         port1->to_string(), port2->to_string()));
+            return {false, false};
         }
     }
+}
 
+std::shared_ptr<Stmt> Generator::wire_ports(std::shared_ptr<Port> &port1,
+                                            std::shared_ptr<Port> &port2) {
+    auto [dir, no_error] = correct_port_direction(port1.get(), port2.get(), this);
+    if (!no_error) {
+        throw ::runtime_error(
+            ::format("Cannot wire {0} and {1}. Please make sure they belong to the same module "
+                     "or parent",
+                     port1->to_string(), port2->to_string()));
+    }
+    std::shared_ptr<AssignStmt> stmt;
+    if (dir)
+        stmt = port1->assign(port2);
+    else
+        stmt = port2->assign(port1);
     add_stmt(stmt);
     return stmt;
+}
+
+std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Var> &var1,
+                                       const std::shared_ptr<Var> &var2) {
+    Var *root1 = var1.get();
+    while (root1->type() == VarType::Slice) {
+        auto var = dynamic_cast<VarSlice*>(root1);
+        root1 = var->parent_var;
+    }
+    Var *root2 = var2.get();
+    while (root2->type() == VarType::Slice) {
+        auto var = dynamic_cast<VarSlice*>(root2);
+        root2 = var->parent_var;
+    }
+    if (root1->type() != VarType::PortIO && root2->type() != VarType::PortIO) {
+        // there is nothing we can do
+        return {true, true};
+    } else if (root1->type() == VarType::PortIO && root2->type() != VarType::PortIO) {
+        // var1 is port and var2 is not
+        auto port1 = dynamic_cast<Port *>(root1);
+        if (port1->generator == this) {
+            return {port1->port_direction() == PortDirection::Out, true};
+        } else {
+            if (!has_child_generator(port1->generator->shared_from_this())) {
+                throw VarException(::format("{0}.{1} is not part of {2}", port1->generator->name,
+                                            var1->to_string(), name),
+                                   {port1});
+            }
+            // child generator, reverse order
+            return {port1->port_direction() == PortDirection::In, true};
+        }
+    } else if (root2->type() == VarType::PortIO && root1->type() != VarType::PortIO) {
+        // var2 is port and var1 is not
+        auto port2 = dynamic_cast<Port *>(root2);
+        if (port2->generator == this) {
+            return {port2->port_direction() == PortDirection::In, true};
+        } else {
+            if (!has_child_generator(port2->generator->shared_from_this())) {
+                throw VarException(::format("{0}.{1} is not part of {2}", port2->generator->name,
+                                            var1->to_string(), name),
+                                   {port2});
+            }
+            // child generator, reverse order
+            return {port2->port_direction() == PortDirection::Out, true};
+        }
+    } else {
+        // both are ports
+        auto port1 = dynamic_cast<Port *>(root1);
+        auto port2 = dynamic_cast<Port *>(root2);
+        return correct_port_direction(port1, port2, this);
+    }
 }
 
 std::shared_ptr<Generator> Generator::clone() {
@@ -690,8 +741,7 @@ void Generator::add_named_block(const std::string &block_name,
 std::unordered_set<std::string> Generator::named_blocks_labels() const {
     std::unordered_set<std::string> result;
     result.reserve(named_blocks_.size());
-    for (auto const &iter: named_blocks_)
-        result.emplace(iter.first);
+    for (auto const &iter : named_blocks_) result.emplace(iter.first);
     return result;
 }
 

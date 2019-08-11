@@ -49,8 +49,7 @@ public:
     FunctionCallVar &call(const std::string &func_name,
                           const std::map<std::string, std::shared_ptr<Var>> &args);
     FunctionCallVar &call(const std::string &func_name,
-                          const std::map<std::string, std::shared_ptr<Var>> &args,
-                          bool has_return);
+                          const std::map<std::string, std::shared_ptr<Var>> &args, bool has_return);
 
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
 
@@ -131,6 +130,8 @@ public:
     void set_external(bool value) { is_external_ = value; }
 
     std::shared_ptr<Stmt> wire_ports(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &port2);
+    std::pair<bool, bool> correct_wire_direction(const std::shared_ptr<Var> &var1,
+                                                 const std::shared_ptr<Var> &var2);
 
     bool debug = false;
 

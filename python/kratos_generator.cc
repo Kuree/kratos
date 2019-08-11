@@ -65,6 +65,17 @@ void init_generator(py::module &m) {
         .def("is_stub", &Generator::is_stub)
         .def("set_is_stub", &Generator::set_is_stub)
         .def("wire_ports", &Generator::wire_ports)
+        .def("correct_wire_direction", &Generator::correct_wire_direction)
+        .def("correct_wire_direction",
+             [](Generator &gen, const std::shared_ptr<Var> &var1, int64_t var2) {
+                 auto &var = constant(var2, var1->width, var1->is_signed);
+                 return gen.correct_wire_direction(var1, var.shared_from_this());
+             })
+        .def("correct_wire_direction",
+             [](Generator &gen, int64_t var1, const std::shared_ptr<Var> &var2) {
+                 auto &var = constant(var1, var2->width, var2->is_signed);
+                 return gen.correct_wire_direction(var.shared_from_this(), var2);
+             })
         .def("get_unique_variable_name", &Generator::get_unique_variable_name)
         .def("context", &Generator::context, py::return_value_policy::reference)
         .def_readwrite("instance_name", &Generator::instance_name)

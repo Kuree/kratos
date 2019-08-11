@@ -421,7 +421,16 @@ class Generator(metaclass=GeneratorMeta):
                 seq.add_stmt(stmt)
 
     def __assign(self, var_from, var_to):
-        stmt = var_from.assign(var_to)
+        correct_dir, correct_assign = self.__generator.correct_wire_direction(
+            var_from, var_to)
+        if not correct_assign:
+            raise ValueError(str(var_from) + " cannot be assign to " +
+                             str(var_to) +
+                             ". Please check your module hierarchy")
+        if correct_dir:
+            stmt = var_from.assign(var_to)
+        else:
+            stmt = var_to.assign(var_from)
         self.add_stmt(stmt)
         return stmt
 
@@ -709,4 +718,3 @@ def always(*sensitivity):
         return fn
 
     return wrapper
-
