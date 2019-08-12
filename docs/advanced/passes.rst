@@ -92,6 +92,8 @@ readable and your life easier:
 - ``check_function_return``: check return statement related bugs, such as
   missing return in some code blocks or unreachable code due to early
   return.
+- ``sort_stmts``: sort the statements in the order of assignment, module
+  instantiation, combinational, and sequential logic. This is off by default.
 
 
 Write your own Pass

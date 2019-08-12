@@ -31,3 +31,12 @@ code that's responsible for that particular line.
     is the target system source file. The function will also produce
     ``[src.sv.].debug`` in the same directory as ``[src.sv]``. You
     need that file for ``kratos-debug``.
+
+    You can slo turn the debug mode on on a global scale. You can think
+    global debug as ``-g`` in C/C++ compilers.
+
+    To do so, simply do
+
+    .. code-block:: Python
+
+        kratos.generator.set_global_debug(True)
