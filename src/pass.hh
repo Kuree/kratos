@@ -71,6 +71,8 @@ void change_port_bundle_struct(Generator* top);
 
 void realize_fsm(Generator* top);
 
+void sort_stmts(Generator* top);
+
 class PassManager {
 public:
     PassManager() = default;

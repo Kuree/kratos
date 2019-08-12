@@ -13,6 +13,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             optimize_passthrough: bool = True,
             optimize_fanout: bool = True,
             optimize_bundle: bool = True,
+            reorder_stmts: bool = False,
             debug: bool = False,
             additional_passes: Dict = None,
             extra_struct: bool = False,
@@ -56,6 +57,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("uniquify_generators")
     pass_manager.add_pass("create_module_instantiation")
     pass_manager.add_pass("insert_pipeline_stages")
+    if reorder_stmts:
+        pass_manager.add_pass("sort_stmts")
 
     code_gen.run_passes()
     src = code_gen.verilog_src()

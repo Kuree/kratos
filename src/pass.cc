@@ -1,7 +1,7 @@
 #include "pass.hh"
-#include <algorithm>
 #include <functional>
 #include <iostream>
+#include <numeric>
 #include "codegen.hh"
 #include "except.hh"
 #include "fmt/format.h"
@@ -1495,6 +1495,55 @@ void check_function_return(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
+class SortStmtVisitor : public IRVisitor {
+public:
+    void visit(Generator* top) override {
+        auto stmts = top->get_all_stmts();
+        std::vector<std::shared_ptr<Stmt>> var_assignments;
+        std::vector<std::shared_ptr<Stmt>> module_inst_assignments;
+        std::vector<std::shared_ptr<Stmt>> combinational_assignments;
+        std::vector<std::shared_ptr<Stmt>> sequential_assignments;
+        auto lists = {&var_assignments, &module_inst_assignments, &combinational_assignments,
+                      &sequential_assignments};
+        for (auto assign : lists) assign->reserve(stmts.size());
+
+        for (auto const& stmt : stmts) {
+            if (stmt->type() == StatementType::Assign) {
+                var_assignments.emplace_back(stmt);
+            } else if (stmt->type() == StatementType::Block) {
+                auto block = stmt->as<StmtBlock>();
+                if (block->block_type() == StatementBlockType::Combinational) {
+                    combinational_assignments.emplace_back(stmt);
+                } else if (block->block_type() == StatementBlockType::Sequential) {
+                    sequential_assignments.emplace_back(stmt);
+                } else {
+                    throw StmtException("Unrecognized statement block in top level", {stmt.get()});
+                }
+            } else if (stmt->type() == StatementType::ModuleInstantiation) {
+                module_inst_assignments.emplace_back(stmt);
+            } else {
+                throw StmtException("Statement cannot be in the top level", {stmt.get()});
+            }
+        }
+
+        uint64_t size = std::accumulate(lists.begin(), lists.end(), 0,
+                                        [](uint64_t s, auto lst) { return s + lst->size(); });
+        if (size != stmts.size())
+            throw ::runtime_error("Internal error: unable to sort all the statements");
+        std::vector<std::shared_ptr<Stmt>> result;
+        result.reserve(stmts.size());
+        for (auto assign : lists) result.insert(result.end(), assign->begin(), assign->end());
+        if (result.size() != stmts.size())
+            throw ::runtime_error("Internal error: unable to sort all the statements");
+        top->set_stmts(result);
+    }
+};
+
+void sort_stmts(Generator* top) {
+    SortStmtVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
 void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
         throw ::runtime_error(::format("{0} already exists in the pass manager", name));
@@ -1553,6 +1602,8 @@ void PassManager::register_builtin_passes() {
     register_pass("realize_fsm", &realize_fsm);
 
     register_pass("check_function_return", &check_function_return);
+
+    register_pass("sort_stmts", &sort_stmts);
 
     // TODO:
     //  add inline pass
