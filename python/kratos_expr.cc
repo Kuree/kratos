@@ -6,12 +6,332 @@
 namespace py = pybind11;
 using std::shared_ptr;
 
+void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_) {
+    namespace py = pybind11;
+    using std::shared_ptr;
+    using namespace kratos;
+    // see how available object overloads here: https://docs.python.org/3/reference/datamodel.html
+    class_.def("__repr__", &Var::to_string)
+        .def(
+            "__invert__", [](const Var &var) -> Expr & { return ~var; },
+            py::return_value_policy::reference)
+        .def(
+            "__neg__", [](const Var &var) -> Expr & { return -var; },
+            py::return_value_policy::reference)
+        .def(
+            "__pos__", [](const Var &var) -> Expr & { return +var; },
+            py::return_value_policy::reference)
+        .def(
+            "__add__", [](const Var &left, const Var &right) -> Expr & { return left + right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__add__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left + convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__add__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) + right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__sub__", [](const Var &left, const Var &right) -> Expr & { return left - right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__sub__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left - convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__sub__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) - right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__mul__", [](const Var &left, const Var &right) -> Expr & { return left * right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__mul__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left * convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__mul__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) * right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__mod__", [](const Var &left, const Var &right) -> Expr & { return left % right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__mod__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left % convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__mod__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) % right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__div__", [](const Var &left, const Var &right) -> Expr & { return left / right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__div__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left / convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__div__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) / right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__rshift__", [](const Var &left, const Var &right) -> Expr & { return left >> right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__rshift__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left >> convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__rshift__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) >> right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__or__", [](const Var &left, const Var &right) -> Expr & { return left | right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__or__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left | convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__or__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) | right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__and__", [](const Var &left, const Var &right) -> Expr & { return left & right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__and__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left & convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__and__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) & right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__xor__", [](const Var &left, const Var &right) -> Expr & { return left ^ right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__xor__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left ^ convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__xor__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) ^ right;
+            },
+            py::return_value_policy::reference)                       // NOLINT
+        .def("ashr", &Var::ashr, py::return_value_policy::reference)  // NOLINT
+        .def(
+            "ashr",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left.ashr(convert_int_to_const(left, right));
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "ashr",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right).ashr(right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__lt__", [](const Var &left, const Var &right) -> Expr & { return left < right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__lt__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left < convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__lt__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) < right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__gt__", [](const Var &left, const Var &right) -> Expr & { return left > right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__gt__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left > convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__gt__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) > right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__le__", [](const Var &left, const Var &right) -> Expr & { return left <= right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__le__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left <= convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__le__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) <= right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__ge__", [](const Var &left, const Var &right) -> Expr & { return left >= right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__ge__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left >= convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__ge__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) >= right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def("__eq__", &Var::eq, py::return_value_policy::reference)
+        .def(
+            "__eq__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left.eq(convert_int_to_const(left, right));
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__eq__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right).eq(right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def("eq", &Var::eq, py::return_value_policy::reference)
+        .def(
+            "eq",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left.eq(convert_int_to_const(left, right));
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "eq",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right).eq(right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__neq__", [](const Var &left, const Var &right) -> Expr & { return left != right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__neq__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left != convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__neq__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) != right;
+            },
+            py::return_value_policy::reference)
+        .def("r_or", &Var::r_or, py::return_value_policy::reference)
+        .def("r_xor", &Var::r_xor, py::return_value_policy::reference)
+        .def("r_not", &Var::r_not, py::return_value_policy::reference)
+        .def("r_and", &Var::r_and, py::return_value_policy::reference)
+        .def("assign", py::overload_cast<const shared_ptr<Var> &>(&Var::assign))
+        .def("assign",
+             [](Var &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
+                 return left.assign(convert_int_to_const(left, right));
+             })
+        .def("assign", py::overload_cast<const shared_ptr<Var> &>(&Var::assign))
+        .def("__call__",
+             [](Var &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
+                 return left.assign(convert_int_to_const(left, right));
+             })
+        .def("__call__", py::overload_cast<const shared_ptr<Var> &>(&Var::assign))
+        .def("type", &Var::type)
+        .def("concat", &Var::concat, py::return_value_policy::reference)
+        .def_readwrite("name", &Var::name)
+        .def_property(
+            "width", [](Var &var) { return var.var_width; },
+            [](Var &var, uint32_t width) {
+                var.var_width = width;
+                if (var.size == 1) {
+                    var.width = width;
+                } else {
+                    var.width = var.size * width;
+                }
+            })
+        .def_readwrite("signed", &Var::is_signed)
+        .def_property_readonly("size", [](const Var &var) { return var.size; })
+        .def("sources", &Var::sources, py::return_value_policy::reference)
+        .def("sinks", &Var::sinks, py::return_value_policy::reference)
+        .def("cast", &Var::cast)
+        .def_property_readonly("generator", [](const Var &var) { return var.generator; })
+        .def_static("move_src_to", &Var::move_src_to)
+        .def_static("move_sink_to", &Var::move_sink_to);
+
+    def_attributes<py::class_<Var, ::shared_ptr<Var>>, Var>(class_);
+}
+
+void init_getitem(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_) {
+    namespace py = pybind11;
+    using namespace kratos;
+    class_
+        .def(
+            "__getitem__", [](Var & k, std::pair<uint32_t, uint32_t> v) -> auto & { return k[v]; },
+            py::return_value_policy::reference)
+        .def(
+            "__getitem__", [](Var & k, uint32_t idx) -> auto & { return k[idx]; },
+            py::return_value_policy::reference)
+        .def(
+            "__getitem__",
+            [](Var & k, const std::shared_ptr<Var> &var) -> auto & { return k[var]; },
+            py::return_value_policy::reference);
+}
+
 // deal with all the expr/var stuff
 void init_expr(py::module &m) {
     using namespace kratos;
     auto var = py::class_<Var, ::shared_ptr<Var>>(m, "Var");
-    init_var_base(var);
-    init_getitem<py::class_<Var, ::shared_ptr<Var>>, Var>(var);
+    init_common_expr(var);
+    init_getitem(var);
     def_trace<py::class_<Var, ::shared_ptr<Var>>, Var>(var);
 
     auto expr = py::class_<Expr, ::shared_ptr<Expr>, Var>(m, "Expr");

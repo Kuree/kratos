@@ -12,9 +12,4 @@ void def_trace(T &class_) {
     });
 }
 
-template <typename T>
-void init_var_base(pybind11::class_<T, std::shared_ptr<T>> &class_) {
-    init_common_expr<pybind11::class_<T, std::shared_ptr<T>>, kratos::Var>(class_);
-}
-
 #endif  // KRATOS_KRATOS_DEBUG_HH

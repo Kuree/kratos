@@ -93,6 +93,7 @@ public:
     // slice
     virtual VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
     virtual VarSlice &operator[](uint32_t bit);
+    virtual VarSlice &operator[](const std::shared_ptr<Var> &var);
     // concat
     virtual VarConcat &concat(Var &var);
 
@@ -204,11 +205,34 @@ public:
         return var->operator[](op_).shared_from_this();
     }
 
+    Var *get_var_root_parent() const;
+    virtual bool sliced_by_var() const { return false; }
+
 protected:
     uint32_t var_high_ = 0;
     uint32_t var_low_ = 0;
 
     std::pair<uint32_t, uint32_t> op_;
+};
+
+struct VarVarSlice : public VarSlice {
+    // the name is a little bit funny
+public:
+    VarVarSlice(Var *parent, Var *slice);
+
+    std::string to_string() const override;
+
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+
+    std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override {
+        return var->operator[](sliced_var_->shared_from_this()).shared_from_this();
+    }
+
+    bool sliced_by_var() const override { return true; }
+
+private:
+    Var *sliced_var_;
 };
 
 struct VarConcat : public Var {
@@ -254,7 +278,6 @@ private:
     // created without a generator holder
     static std::unordered_set<std::shared_ptr<Const>> consts_;
     static std::unique_ptr<Generator> const_generator_;
-
 };
 
 // helper function

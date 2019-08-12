@@ -980,5 +980,25 @@ def test_function_missing_return():
         assert True
 
 
+def test_reg_file():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            self._in = self.input("in", 4)
+            self._out = self.output("out", 4)
+            self.waddr = self.input("warr", 2)
+            self.raddr = self.input("raddr", 2)
+            self.reg = self.var("reg_file", 4, size=4)
+
+            self.add_code(self.code)
+
+        def code(self):
+            self.reg[self.waddr] = self._in
+            self._out = self.reg[self.raddr]
+
+    mod = Mod()
+    check_gold(mod, "test_reg_file")
+
+
 if __name__ == "__main__":
-    test_function_missing_return()
+    test_reg_file()

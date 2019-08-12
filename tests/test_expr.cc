@@ -173,3 +173,12 @@ TEST(expr, unary) {  // NOLINT
     EXPECT_EQ(a.r_not().to_string(), "!a");
     EXPECT_EQ((b + a.r_or()).to_string(), "b + (|a)");
 }
+
+TEST(expr, slice_by_var) {  // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+    auto &a = mod.var("a", 16, 4);
+    auto &b = mod.var("b", 2);
+    auto &slice = a[b.shared_from_this()];
+    EXPECT_EQ(slice.to_string(), "a[b]");
+}

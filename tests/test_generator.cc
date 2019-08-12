@@ -39,7 +39,7 @@ TEST(generator, rename_var) {  // NOLINT
     auto &b = mod.var("b", 2);
     auto &d = mod.var("d", 1);
     auto stmt1 = a.assign(b);
-    auto stmt2 = d.assign(a[{0, 0}]);
+    auto stmt2 = d.assign(a[std::make_pair(0, 0)]);
     mod.rename_var("a", "c");
     EXPECT_EQ(a.name, "c");
     EXPECT_EQ(stmt1->left()->to_string(), "c");
@@ -639,4 +639,16 @@ TEST(generator, function_return) {  // NOLINT
     func->add_stmt(a->assign(constant(1, 1)));
     func->add_stmt(func->return_stmt(b));
     EXPECT_NO_THROW(check_function_return(&mod));
+}
+
+TEST(generator, var_var_slicing) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 16, 4);
+    auto &in = mod.port(PortDirection::In, "in", 2);
+    auto &out = mod.port(PortDirection::Out, "out", 16);
+    mod.add_stmt(out.assign(a[in.shared_from_this()], AssignmentType::Blocking));
+
+    check_mixed_assignment(&mod);
+    verify_generator_connectivity(&mod);
 }

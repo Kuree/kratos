@@ -102,7 +102,6 @@ public:
     }
 
 private:
-
     void inline static check_var(Var* var) {
         bool is_top_level = false;
         auto sources = var->sources();
@@ -209,8 +208,18 @@ bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& 
             auto src = stmt->left();
             if (src->type() == VarType::Slice) {
                 auto ptr = src->as<VarSlice>();
-                auto low = ptr->var_low();
-                auto high = ptr->var_high();
+                auto ptr_parent = ptr->get_var_root_parent();
+                uint32_t high, low;
+                if (ptr_parent != port.get()) {
+                    // it got be a sliced by var
+                    if (!ptr->sliced_by_var())
+                        throw ::runtime_error("Internal error. Variable has un-related sources");
+                    // it's actually not driven by the current net
+                    continue;
+                } else {
+                    low = ptr->var_low();
+                    high = ptr->var_high();
+                }
                 for (uint32_t i = low; i <= high; i++) {
                     bits.emplace(i);
                 }

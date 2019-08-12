@@ -172,6 +172,12 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     return *var_slice;
 }
 
+VarSlice &Var::operator[](const std::shared_ptr<Var> &var) {
+    auto var_slice = ::make_shared<VarVarSlice>(this, var.get());
+    slices_.emplace(var_slice);
+    return *var_slice;
+}
+
 VarConcat &Var::concat(Var &var) {
     auto ptr = var.shared_from_this();
     // notice that we effectively created an implicit sink->sink by creating a concat
@@ -241,6 +247,61 @@ std::string VarSlice::get_slice_name(const std::string &parent_name, uint32_t hi
 
 std::string VarSlice::to_string() const {
     return get_slice_name(parent_var->to_string(), high, low);
+}
+
+Var *VarSlice::get_var_root_parent() const {
+    Var *parent = parent_var;
+    while (parent->type() == VarType::Slice) {
+        parent = parent->as<VarSlice>()->parent_var;
+    }
+    return parent;
+}
+
+VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
+    : VarSlice(parent, 0, 0), sliced_var_(slice) {
+    // check the size or width
+    // we need to re-compute var_high, var_low, width, and other stuff by ourselves here
+    // there is an issue about the var_high and var_low; the problem will only show up during
+    // the connectivity check
+    // TODO: fix this
+    if (parent->size == 1) {
+        // slice through the 1D array
+        // so the width will be 1
+        width = 1;
+        var_width = 1;
+        size = 1;
+        var_high_ = 0;
+        var_low_ = 0;
+    } else {
+        var_width = parent->var_width;
+        width = var_width;
+        size = 1;
+        var_high_ = var_width - 1;
+        var_low_ = 0;
+        // we need to compute the clog2 here
+        uint32_t required_width = std::ceil(std::log2(parent->size));
+        if (required_width != sliced_var_->width) {
+            // error message copied from verilator
+            throw VarException(
+                ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
+                         parent->size - 1, required_width, sliced_var_->width),
+                {parent, slice});
+        }
+    }
+}
+
+void VarVarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    VarSlice::add_sink(stmt);
+    sliced_var_->add_sink(stmt);
+}
+
+void VarVarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
+    VarSlice::add_source(stmt);
+    sliced_var_->add_source(stmt);
+}
+
+std::string VarVarSlice::to_string() const {
+    return ::format("{0}[{1}]", parent_var->to_string(), sliced_var_->to_string());
 }
 
 Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
@@ -350,8 +411,7 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
 
 Const::Const(int64_t value, uint32_t width, bool is_signed)
     : Const(nullptr, value, width, is_signed) {
-    if (!const_generator_)
-        const_generator_ = std::make_unique<Generator>(nullptr, "");
+    if (!const_generator_) const_generator_ = std::make_unique<Generator>(nullptr, "");
     generator = const_generator_.get();
 }
 
@@ -419,10 +479,9 @@ void Const::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
         throw StmtException(::format("Unable to find left hand side generator"), {stmt.get()});
     auto parent = generator->parent();
     if (parent && parent->ir_node_kind() == GeneratorKind) {
-        auto gen = dynamic_cast<Generator*>(parent);
+        auto gen = dynamic_cast<Generator *>(parent);
         this->generator = gen;
     }
-
 }
 
 Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
