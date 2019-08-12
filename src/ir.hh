@@ -41,8 +41,12 @@ public:
 
     uint32_t verilog_ln = 0;
 
+    std::string comment;
+
     // attributes for passes
-    const std::vector<std::shared_ptr<Attribute>> &get_attributes() const { return attributes_; }
+    [[nodiscard]] const std::vector<std::shared_ptr<Attribute>> &get_attributes() const {
+        return attributes_;
+    }
     void add_attribute(const std::shared_ptr<Attribute> &attribute) {
         attributes_.emplace_back(attribute);
     }

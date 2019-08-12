@@ -34,6 +34,8 @@ std::string port_dir_to_str(PortDirection direction);
 
 std::string port_type_to_str(PortType type);
 
+std::string strip_newline(std::string &str);
+
 bool is_valid_verilog(const std::string &src);
 
 bool is_valid_verilog(const std::map<std::string, std::string> &src);

@@ -172,6 +172,8 @@ public:
         const {
         return children_debug_;
     }
+    std::string get_child_comment(const std::string &child_name) const;
+    void set_child_comment(const std::string &child_name, const std::string &comment);
 
     ~Generator() override = default;
 
@@ -197,8 +199,9 @@ private:
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
     std::unordered_map<std::string, std::shared_ptr<Generator>> children_;
-    std::vector<std::string> child_names_;
+    std::vector<std::string> children_names_;
     std::unordered_map<std::string, std::pair<std::string, uint32_t>> children_debug_;
+    std::unordered_map<std::string, std::string> children_comments_;
 
     Generator *parent_generator_ = nullptr;
 

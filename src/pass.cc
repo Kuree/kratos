@@ -405,6 +405,9 @@ public:
                 }
                 stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
             }
+            auto comment = generator->get_child_comment(child->instance_name);
+            if (!comment.empty())
+                stmt->comment = comment;
             generator->add_stmt(stmt);
         }
     }

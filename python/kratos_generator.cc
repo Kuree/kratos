@@ -121,7 +121,8 @@ void init_generator(py::module &m) {
              py::return_value_policy::reference)
         .def("function", &Generator::function)
         .def("has_function", &Generator::has_function)
-        .def("get_function", &Generator::get_function);
+        .def("get_function", &Generator::get_function)
+        .def("set_child_comment", &Generator::set_child_comment);
 
     generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
         var.fn_name_ln.emplace_back(info);

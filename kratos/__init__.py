@@ -3,7 +3,7 @@ from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
 
 from .passes import Attribute, verilog
 from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
-    concat, zext, mux, ternary, signed, const
+    concat, zext, mux, ternary, signed, const, comment
 
 from .ports import PortBundle
 
@@ -30,7 +30,7 @@ __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
 
 # utils
 __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",
-            "concat", "zext"]
+            "concat", "zext", "comment"]
 
 # type aliasing
 __all__ += ["BlockEdgeType", "posedge", "negedge", "mux", "ternary"]

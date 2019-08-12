@@ -56,7 +56,7 @@ parameter to ``42``.
             self.port("out", width, kratos.PortDirection.Out)
             adder = ParameterModule(width)
             adder.value_param.set_value(42)
-            self.add_child_generator("adder", adder)
+            self.add_child("adder", adder)
             self.wire(adder.ports["in"], self.ports["in"])
             self.wire(self.ports["out"], adder.ports["out"])
 

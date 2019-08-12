@@ -9,7 +9,8 @@ template <typename T, typename K>
 void def_trace(T &class_) {
     class_.def("add_fn_ln", [](K &var, const std::pair<std::string, uint32_t> &info) {
       var.fn_name_ln.emplace_back(info);
-    });
+    })
+    .def_readwrite("comment", &K::comment);
 }
 
 #endif  // KRATOS_KRATOS_DEBUG_HH

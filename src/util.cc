@@ -184,6 +184,13 @@ std::string port_type_to_str(PortType type) {
     }
 }
 
+std::string strip_newline(std::string &str) {
+    std::string::size_type  pos = 0;
+    while ((pos = str.find('\n', pos) != std::string::npos))
+        str.erase(pos, 1);
+    return str;
+}
+
 void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt) {
     auto parent = stmt->parent();
     if (!parent) return;

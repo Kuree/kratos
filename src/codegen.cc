@@ -18,6 +18,11 @@ Stream::Stream(Generator* generator, SystemVerilogCodeGen* codegen)
 Stream& Stream::operator<<(AssignStmt* stmt) {
     const auto& left = stmt->left()->to_string();
     const auto& right = stmt->right()->to_string();
+    if (!stmt->comment.empty()) {
+        (*this) << "// " << strip_newline(stmt->comment) << endl();
+        (*this) << codegen_->indent();
+    }
+
     if (generator_->debug) {
         stmt->verilog_ln = line_no_;
     }
@@ -41,6 +46,8 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
 
 Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
     auto& [p, end] = port;
+    if (!p->comment.empty())
+        (*this) << codegen_->indent() << "// " << strip_newline(p->comment) << endl();
     if (generator_->debug) {
         p->verilog_ln = line_no_;
     }
@@ -51,6 +58,9 @@ Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
 }
 
 Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
+    if (!var->comment.empty())
+        (*this) << "// " << strip_newline(var->comment) << endl();
+
     if (generator_->debug) {
         var->verilog_ln = line_no_;
     }
@@ -232,6 +242,10 @@ void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
+    // comment
+    if (!stmt->comment.empty()) {
+        stream_ << indent() << "// " << strip_newline(stmt->comment) << stream_.endl();
+    }
     // produce the sensitive list
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
@@ -255,6 +269,10 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
+    // comment
+    if (!stmt->comment.empty()) {
+        stream_ << indent() << "// " << strip_newline(stmt->comment) << stream_.endl();
+    }
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
     }
@@ -355,6 +373,10 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
+    // comment
+    if (!stmt->comment.empty()) {
+        stream_ << indent() << "// " << strip_newline(stmt->comment) << stream_.endl();
+    }
     stmt->verilog_ln = stream_.line_no();
     stream_ << indent() << stmt->target()->name;
     auto& params = stmt->target()->get_params();

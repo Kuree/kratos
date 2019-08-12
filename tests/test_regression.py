@@ -31,22 +31,21 @@ def check_gold(mod, gold_name, **kargs):
 
 def test_regression_1():
     class Mod(Generator):
-        def __init__(self, width):
+        def __init__(self):
             super().__init__("Top")
-            self.in_ = self.input("i_data_in", width)
-            self.out_ = self.output("o_data_out", width)
+            self.in_ = self.input("i_data_in", 2)
+            self.out_ = self.output("o_data_out", 2)
 
             child1 = PassThroughMod()
-            self.add_child_generator("child1", child1)
+            self.add_child("child1", child1)
             self.wire(child1.in_, self.in_[0])
             self.wire(self.out_[0], child1.out_)
 
-            if width == 2:
-                child2 = PassThroughMod()
-                self.add_child_generator("child2", child2)
-                self.wire(self.in_[1], child2.in_)
-                self.wire(self.out_[1], child2.out_)
+            child2 = PassThroughMod()
+            self.add_child("child2", child2)
+            self.wire(self.in_[1], child2.in_)
+            self.wire(self.out_[1], child2.out_)
 
-    mod = Mod(2)
+    mod = Mod()
     check_gold(mod, "test_regression_1", optimize_passthrough=False)
 

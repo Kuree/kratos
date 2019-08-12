@@ -1,6 +1,6 @@
 from kratos import Generator, PortDirection, PortType, always, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute, zext, posedge, PortBundle, const
+    PackedStruct, Port, Attribute, zext, posedge, PortBundle, const, comment
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
@@ -23,7 +23,7 @@ class PassThroughTop(Generator):
         self.output("out", 1)
 
         pass_through = PassThroughMod()
-        self.add_child_generator("pass", pass_through)
+        self.add_child("pass", pass_through)
         self.wire(self["pass"].ports["in"], self.ports["in"], )
 
         self.wire(self.ports.out, self["pass"].ports.out)
@@ -111,8 +111,8 @@ def test_module_unique():
     reg2 = AsyncReg(1)
     reg2.instance_name = "test"
     parent = Generator("top")
-    parent.add_child_generator("reg1", reg1)
-    parent.add_child_generator("reg2", reg2)
+    parent.add_child("reg1", reg1)
+    parent.add_child("reg2", reg2)
 
     hash_generators_parallel(parent.internal_generator)
     c = Generator.get_context()
@@ -257,8 +257,8 @@ def test_fanout_mod_inst():
             self.mod_1 = PassThroughMod()
             self.mod_2 = PassThroughMod()
 
-            self.add_child_generator("mod1", self.mod_1)
-            self.add_child_generator("mod3", self.mod_2)
+            self.add_child("mod1", self.mod_1)
+            self.add_child("mod3", self.mod_2)
 
             self.wire(self.in_, self.mod_1.in_)
             self.wire(self.in_, self.mod_2.in_)
@@ -449,7 +449,7 @@ def test_const_port():
             self.out_ = self.port("out", 2, PortDirection.Out)
 
             self.child = PassThroughMod()
-            self.add_child_generator("child", self.child)
+            self.add_child("child", self.child)
             self.wire(self.child.in_, const(0, 1))
             self.wire(self.out_[0], self.child.out_)
             self.wire(self.out_[1], self.in_)
@@ -493,8 +493,8 @@ def test_clone():
 
             self.child1 = PassThroughMod.clone()
             self.child2 = PassThroughMod.clone()
-            self.add_child_generator("child1", self.child1)
-            self.add_child_generator("child2", self.child2)
+            self.add_child("child1", self.child1)
+            self.add_child("child2", self.child2)
 
             self.add_code(self.code)
 
@@ -544,7 +544,7 @@ def test_more_debug2():
             self.port("out", 1, PortDirection.Out)
 
             pass_through = PassThroughMod()
-            self.add_child_generator("pass", pass_through)
+            self.add_child("pass", pass_through)
             self.wire(self["pass"].ports["in"], self.ports["in"], )
 
             self.add_code(self.code_block)
@@ -832,8 +832,8 @@ def test_bundle_pack():
             mod1 = Mod1()
             mod2 = Mod2()
 
-            self.add_child_generator("m1", mod1)
-            self.add_child_generator("m2", mod2)
+            self.add_child("m1", mod1)
+            self.add_child("m2", mod2)
 
             self.wire(mod1.p.a, in_)
             self.wire(mod1.p.b, in_)
@@ -1000,5 +1000,26 @@ def test_reg_file():
     check_gold(mod, "test_reg_file")
 
 
+def test_comment():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            self._in = self.input("in", 1)
+            self._out = self.output("out", 1)
+            self._out2 = self.output("out2", 1)
+            self.var = self.var("v", 1)
+
+            child = PassThroughMod()
+            self.add_child("child", child, "This is a comment")
+            self.wire(self._in, child.in_)
+            self.wire(self._out, child.out_)
+            self.wire(self._out2, self.var)
+
+            comment(self._in, "Input port")
+            comment(self.var, "variable comment")
+    mod = Mod()
+    check_gold(mod, "test_comment", optimize_passthrough=False)
+
+
 if __name__ == "__main__":
-    test_reg_file()
+    test_comment()

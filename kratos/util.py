@@ -122,6 +122,11 @@ def const(value: int, width: int, is_signed: bool = False):
     return _kratos.constant(value, width, is_signed)
 
 
+def comment(node, comment_str):
+    if comment:
+        node.comment = comment_str
+
+
 # bit vector style syntax
 class ConstConstructor:
     def __getitem__(self, width):

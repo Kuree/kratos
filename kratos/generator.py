@@ -1,6 +1,6 @@
 import enum
 from .pyast import transform_stmt_block
-from .util import get_fn_ln
+from .util import get_fn_ln, comment as comment_node
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
@@ -400,7 +400,7 @@ class Generator(metaclass=GeneratorMeta):
     def internal_generator(self):
         return self.__generator
 
-    def add_code(self, fn):
+    def add_code(self, fn, comment_str=""):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_code, [fn]))
             return
@@ -410,6 +410,7 @@ class Generator(metaclass=GeneratorMeta):
             comb = CombinationalCodeBlock(self)
             for stmt in stmts:
                 comb.add_stmt(stmt)
+            node = comb
         else:
             sensitivity_list = []
             for edge, var_name in raw_sensitives:
@@ -419,6 +420,9 @@ class Generator(metaclass=GeneratorMeta):
             seq = SequentialCodeBlock(self, sensitivity_list)
             for stmt in stmts:
                 seq.add_stmt(stmt)
+            node = seq
+        if comment_str:
+            comment_node(node, comment_str)
 
     def __assign(self, var_from, var_to):
         correct_dir, correct_assign = self.__generator.correct_wire_direction(
@@ -436,10 +440,12 @@ class Generator(metaclass=GeneratorMeta):
 
     def wire(self, var_to, var_from,
              attributes: Union[List[_kratos.passes.Attribute],
-                               _kratos.passes.Attribute] = None):
+                               _kratos.passes.Attribute] = None,
+             comment_str=""):
         if self.is_cloned:
             self.__cached_initialization.append((self.wire, [var_to, var_from,
-                                                             attributes]))
+                                                             attributes,
+                                                             comment_str]))
             return
         # this is a top level direct wire assignment
         # notice that we can figure out the direction automatically if
@@ -468,6 +474,9 @@ class Generator(metaclass=GeneratorMeta):
             for attr in attributes:
                 stmt.add_attribute(attr)
 
+        if comment_str:
+            comment_node(stmt, comment_str)
+
     def add_fsm(self, fsm_name: str, clk_name=None, reset_name=None):
         if clk_name is not None and reset_name is not None:
             clk = self.__generator.get_var(clk_name)
@@ -488,7 +497,8 @@ class Generator(metaclass=GeneratorMeta):
             return
         self.__generator.remove_stmt(stmt)
 
-    def add_child_generator(self, instance_name: str, generator: "Generator"):
+    def add_child_generator(self, instance_name: str, generator: "Generator",
+                            comment=""):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_child_generator,
                                                  (instance_name, generator)))
@@ -510,6 +520,11 @@ class Generator(metaclass=GeneratorMeta):
         else:
             self.__generator.add_child_generator(instance_name,
                                                  generator.__generator)
+        if comment:
+            self.__generator.set_child_comment(instance_name, comment)
+
+    # alias
+    add_child = add_child_generator
 
     def remove_child_generator(self, generator):
         if self.is_cloned:

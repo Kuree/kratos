@@ -161,14 +161,20 @@ function call and set the ``size`` to the array size that's greater than
 Child generators
 ================
 
-You can use ``add_child_generator(inst_name, child)`` to add a child
-generator. The ``inst_name`` is the instance name for that child
-generator and has to be unique within the parent scope. After adding
+You can use ``add_child(inst_name, child)`` or ``add_child_generator``
+to add a child generator. The ``inst_name`` is the instance name for that
+child generator and has to be unique within the parent scope. After adding
 the child generator to the parent scope, you can access the child
 generator through `self[inst_name]` method. ``__getitem__()``
 has been overloaded to get the child.
 
 This is a required step to properly instantiate the sub modules.
+
+.. note::
+
+  You can pass comment to the ``add_child`` as additional argument. The
+  comment will show up in the generated SystemVerilog to help you
+  debug.
 
 External Modules
 ================

@@ -191,7 +191,7 @@ IRNode *Generator::get_child(uint64_t index) {
         auto func_name = func_index_.at(i);
         return funcs_.at(func_name).get();
     } else if (index < stmts_count() + funcs_.size() + get_child_generator_size()) {
-        auto n = child_names_[index - stmts_count() - funcs_.size()];
+        auto n = children_names_[index - stmts_count() - funcs_.size()];
         return children_.at(n).get();
     } else {
         return nullptr;
@@ -204,7 +204,7 @@ void Generator::add_child_generator(const std::string &instance_name_,
     if (children_.find(child->instance_name) == children_.end()) {
         children_.emplace(child->instance_name, child);
         child->parent_generator_ = this;
-        child_names_.emplace_back(child->instance_name);
+        children_names_.emplace_back(child->instance_name);
     } else {
         throw std::runtime_error(
             ::format("{0} already exists  in {1}", child->instance_name, instance_name));
@@ -222,10 +222,11 @@ void Generator::add_child_generator(const std::string &instance_name_,
 
 void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) {
     auto child_name = child->instance_name;
-    auto pos = std::find(child_names_.begin(), child_names_.end(), child_name);
-    if (pos != child_names_.end()) {
-        child_names_.erase(pos);
+    auto pos = std::find(children_names_.begin(), children_names_.end(), child_name);
+    if (pos != children_names_.end()) {
+        children_names_.erase(pos);
         children_.erase(child_name);
+        children_comments_.erase(child_name);
         // need to remove every connected ports
         auto port_names = child->get_port_names();
         for (auto const &port_name : port_names) {
@@ -254,7 +255,7 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
 std::vector<std::shared_ptr<Generator>> Generator::get_child_generators() {
     std::vector<std::shared_ptr<Generator>> result;
     result.reserve(children_.size());
-    for (auto const &n : child_names_) {
+    for (auto const &n : children_names_) {
         result.emplace_back(children_.at(n));
     }
     return result;
@@ -705,6 +706,16 @@ std::shared_ptr<PortBundleRef> Generator::get_bundle_ref(const std::string &port
         throw ::runtime_error(port_name + " not found in " + name);
     }
     return port_bundle_mapping_.at(port_name);
+}
+
+std::string Generator::get_child_comment(const std::string &child_name) const {
+    if (children_comments_.find(child_name) != children_comments_.end())
+        return children_comments_.at(child_name);
+    return "";
+}
+
+void Generator::set_child_comment(const std::string &child_name, const std::string &comment) {
+    children_comments_.emplace(child_name, comment);
 }
 
 void Generator::remove_var(const std::string &var_name) {
