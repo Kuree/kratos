@@ -40,3 +40,21 @@ code that's responsible for that particular line.
     .. code-block:: Python
 
         kratos.generator.set_global_debug(True)
+
+
+Commenting SystemVerilog
+========================
+
+Kratos provides a way to let users comment on on high-level constructs
+that will be turned into SystemVerilog comments. In most cases, you can
+call ``kratos.comment(node, comment_str)`` to comment any IR node.
+
+In some helper functions where obtaining the node is impossible, these
+helper functions typically have optional arguments called ``comemnt_str``
+that can help you to comment things.
+
+.. note::
+
+    Notice that not all the node being commented will appear in
+    SystemVerilog right now. We are actively working on refactoring codebase
+    to completely support this feature.

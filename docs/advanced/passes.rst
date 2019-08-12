@@ -50,7 +50,7 @@ readable and your life easier:
 - ``verify_generator_connectivity``: verify that each generator is
   connected properly.
 - ``create_module_instantiation``: create module instantiation
-  statement after user calls ``add_child_generator``.
+  statement after user calls ``add_child``.
 - ``zero_out_stubs``: zero out the stub outputs.
 - ``check_mixed_assignment``: check if there is any mixed
   blocking/non-blocking assignments in code blocks.
