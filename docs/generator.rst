@@ -31,7 +31,8 @@ describe the circuit logic. To declare a port, you can call the
 
     def port(self, name: str, width: int, direction: PortDirection,
              port_type: PortType = PortType.Data,
-             is_signed: bool = False, size: int = 1)
+             is_signed: bool = False, size: int = 1,
+             packed: bool = False)
 
 ``PortDirection`` and ``PortType`` are enums to specify the types of
 the port we're creating. The definitions for these enum are:
@@ -57,10 +58,10 @@ kratos also has some helper functions to help you create commonly used ports:
 .. code-block:: Python
 
     def input(self, name, width, port_type: PortType = PortType.Data,
-              is_signed: bool = False, size: int = 1)
+              is_signed: bool = False, size: int = 1, packed: bool = False)
 
     def output(self, name, width, port_type: PortType = PortType.Data,
-               is_signed: bool = False, size: int = 1)
+               is_signed: bool = False, size: int = 1, packed: bool = False)
 
     def clock(self, name, is_input=True)
 
@@ -156,7 +157,13 @@ function call and set the ``size`` to the array size that's greater than
 .. code-block:: Python
 
       def var(self, name: str, width: int,
-             is_signed: bool = False, size: int = 1)
+             is_signed: bool = False, size: int = 1, packed: bool = False)
+
+.. note::
+
+  By default, kratos creates unpacked array to allow better error/warning
+  checking in downstream tools. However, users can override this by setting
+  ``packed=True`` during the variable or port construction.
 
 Child generators
 ================

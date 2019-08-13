@@ -288,12 +288,13 @@ class Generator(metaclass=GeneratorMeta):
     def get_stmt_by_index(self, index):
         return self.__generator.get_stmt(index)
 
-    def var(self, name: str, width: int,
-            is_signed: bool = False, size: int = 1) -> _kratos.Var:
+    def var(self, name: str, width: int, is_signed: bool = False,
+            size: int = 1, packed: bool = False) -> _kratos.Var:
 
         v = self.__generator.var(name, width, size, is_signed)
         if self.debug:
             v.add_fn_ln(get_fn_ln())
+        v.packed_array = packed
         return v
 
     def combinational(self):
@@ -312,19 +313,22 @@ class Generator(metaclass=GeneratorMeta):
 
     def port(self, name: str, width: int, direction: PortDirection,
              port_type: PortType = PortType.Data,
-             is_signed: bool = False, size: int = 1) -> _kratos.Port:
+             is_signed: bool = False, size: int = 1,
+             packed: bool = False) -> _kratos.Port:
         p = self.__generator.port(direction.value, name, width, size,
                                   port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
+        p.packed_array = packed
         return p
 
     def input(self, name, width, port_type: PortType = PortType.Data,
-              is_signed: bool = False, size: int = 1):
+              is_signed: bool = False, size: int = 1, packed: bool = False):
         p = self.__generator.port(PortDirection.In.value, name, width, size,
                                   port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
+        p.packed_array = packed
         return p
 
     def clock(self, name, is_input=True):
@@ -345,11 +349,12 @@ class Generator(metaclass=GeneratorMeta):
         return p
 
     def output(self, name, width, port_type: PortType = PortType.Data,
-               is_signed: bool = False, size: int = 1):
+               is_signed: bool = False, size: int = 1, packed: bool = False):
         p = self.__generator.port(PortDirection.Out.value, name, width, size,
                                   port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
+        p.packed_array = packed
         return p
 
     def port_packed(self, name: str, direction: PortDirection,

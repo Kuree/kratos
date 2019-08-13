@@ -140,6 +140,10 @@ public:
     uint64_t child_count() override { return 0; }
     IRNode *get_child(uint64_t) override { return nullptr; }
 
+    // meta info
+    // packed is only relevant when the size is larger than 1, by default it's false
+    bool packed_array = false;
+
     Var(const Var &var) = delete;
     Var() = delete;
 

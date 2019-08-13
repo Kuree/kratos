@@ -1026,5 +1026,17 @@ def test_comment():
     check_gold(mod, "test_comment", optimize_passthrough=False)
 
 
+def test_packed_array():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            self._in = self.input("in", 4, size=6, packed=True)
+            self._out = self.output("out", 4, size=6, packed=True)
+            self.wire(self._in, self._out)
+
+    mod = Mod()
+    check_gold(mod, "test_packed_array")
+
+
 if __name__ == "__main__":
-    test_named_block()
+    test_packed_array()

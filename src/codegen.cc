@@ -78,8 +78,12 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
     } else {
         type = "logic";
     }
-
-    (*this) << ::format("{0} {1} {2} {3}{4};", type, var->is_signed ? "signed" : "",
+    std::string format_str;
+    if (var->size > 1 && var->packed_array)
+        format_str = "{0} {1} {4}{2} {3};";
+    else
+        format_str = "{0} {1} {2} {3}{4};";
+    (*this) << ::format(format_str, type, var->is_signed ? "signed" : "",
                         SystemVerilogCodeGen::get_var_width_str(var.get()), var->name,
                         var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
             << endl();
@@ -485,10 +489,13 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         strs.emplace_back(ptr->packed_struct().struct_name);
     }
     if (port->is_signed) strs.emplace_back("signed");
+    if (port->size > 1 && port->packed_array) {
+        strs.emplace_back(::format("[{0}:0]", port->size - 1));
+    }
     if (!port->is_packed()) strs.emplace_back(get_var_width_str(port));
     strs.emplace_back(port->name);
 
-    if (port->size > 1) {
+    if (port->size > 1 && !port->packed_array) {
         strs.emplace_back(::format("[{0}:0]", port->size - 1));
     }
     return join(strs.begin(), strs.end(), " ");
