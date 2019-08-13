@@ -400,7 +400,7 @@ class Generator(metaclass=GeneratorMeta):
     def internal_generator(self):
         return self.__generator
 
-    def add_code(self, fn, comment_str=""):
+    def add_code(self, fn, comment_str="", label=""):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_code, [fn]))
             return
@@ -423,6 +423,8 @@ class Generator(metaclass=GeneratorMeta):
             node = seq
         if comment_str:
             comment_node(node, comment_str)
+        if label:
+            self.mark_stmt(label, node)
 
     def __assign(self, var_from, var_to):
         correct_dir, correct_assign = self.__generator.correct_wire_direction(

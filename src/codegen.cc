@@ -267,7 +267,7 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
     }
 
     indent_--;
-    stream_ << indent() << "end" << stream_.endl();
+    stream_ << indent() << "end" << block_label(stmt) << stream_.endl();
 }
 
 void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
@@ -286,7 +286,7 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
     }
 
     indent_--;
-    stream_ << indent() << "end" << stream_.endl();
+    stream_ << indent() << "end" << block_label(stmt) << stream_.endl();
 }
 
 void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
@@ -302,7 +302,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
     }
 
     indent_--;
-    stream_ << indent() << "end" << stream_.endl();
+    stream_ << indent() << "end" << block_label(stmt) << stream_.endl();
 }
 
 void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {

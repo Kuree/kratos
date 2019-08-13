@@ -855,6 +855,11 @@ def test_named_block():
     if_.then_(out_(0)).else_(out_(1))
     mod.mark_stmt("TEST", if_.then_body())
 
+    def code():
+        out_ = 1
+
+    mod.add_code(code, label="TEST2")
+
     check_gold(mod, "test_named_block")
 
 
@@ -1022,4 +1027,4 @@ def test_comment():
 
 
 if __name__ == "__main__":
-    test_comment()
+    test_named_block()
