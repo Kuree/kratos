@@ -22,19 +22,17 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     fi
 
 elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
-    chmod +x miniconda.sh
-    ./miniconda.sh -b -p $TRAVIS_BUILD_DIR/miniconda
-    export PATH=$TRAVIS_BUILD_DIR/miniconda/bin:$PATH
-    hash -r
-    conda config --set always_yes yes --set changeps1 no
-    conda update -q conda
-    conda create -q -n env python=3.7.0
-    source activate env
+    export PYTHON=3.7.0
+    brew install verilator
+    brew install pyenv-virtualenv
+    pyenv install ${PYTHON}
+    export PYENV_VERSION=$PYTHON
+    export PATH="/Users/travis/.pyenv/shims:${PATH}"
+    pyenv virtualenv venv37
+    source /Users/travis/.pyenv/versions/${PYTHON}/envs/venv37/bin/activate
     python --version
-    conda install pip
 
-    pip install cmake twine wheel pytest
+    python -m pip install cmake twine wheel pytest
     python setup.py bdist_wheel
     pip install dist/*.whl
     pytest tests/
