@@ -114,7 +114,7 @@ TEST(pass, connectivity) {  // NOLINT
     auto &port1 = mod1.port(PortDirection::In, "in", 1);
     auto &port2 = mod1.port(PortDirection::Out, "out", 1);
 
-    EXPECT_ANY_THROW(verify_generator_connectivity(&mod1));
+    EXPECT_THROW(verify_generator_connectivity(&mod1), StmtException);
     mod1.add_stmt(port2.assign(port1));
 
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
@@ -123,13 +123,13 @@ TEST(pass, connectivity) {  // NOLINT
     EXPECT_NE(&mod1, &mod2);
 
     mod1.add_child_generator("inst", mod2.shared_from_this());
-    EXPECT_ANY_THROW(mod1.port(PortDirection::In, "in", 1));
+    EXPECT_THROW(mod1.port(PortDirection::In, "in", 1), VarException);
     auto &port3 = mod2.port(PortDirection::In, "in", 1);
     mod1.add_stmt(port3.assign(port1));
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
 
     auto &port4 = mod2.port(PortDirection::Out, "out", 1);
-    EXPECT_ANY_THROW(verify_generator_connectivity(&mod1));
+    EXPECT_THROW(verify_generator_connectivity(&mod1), StmtException);
     mod2.add_stmt(port4.assign(port3));
 
     EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
@@ -369,8 +369,8 @@ TEST(pass, replace) {  // NOLINT
     mod1.add_stmt(in2.assign(in1));
     mod1.add_stmt(out1.assign(out2));
 
-    EXPECT_ANY_THROW(
-        mod1.replace_child_generator(mod2.shared_from_this(), mod3.shared_from_this()));
+    EXPECT_THROW(mod1.replace_child_generator(mod2.shared_from_this(), mod3.shared_from_this()),
+                 VarException);
     in3.width = 1;
     out3.width = 1;
     EXPECT_NO_THROW(mod1.replace_child_generator(mod2.shared_from_this(), mod3.shared_from_this()));
@@ -465,7 +465,7 @@ TEST(pass, zero_input_port1) {  // NOLINT
     mod2.add_attribute(attr);
 
     // this one won't pass
-    EXPECT_ANY_THROW(verify_generator_connectivity(&mod2));
+    EXPECT_THROW(verify_generator_connectivity(&mod2), StmtException);
     // now fix the connections
     zero_generator_inputs(&mod2);
     EXPECT_NO_THROW(verify_generator_connectivity(&mod2));
@@ -493,7 +493,7 @@ TEST(pass, zero_input_port2) {  // NOLINT
     mod2.add_attribute(attr);
 
     // this one won't pass
-    EXPECT_ANY_THROW(verify_generator_connectivity(&mod2));
+    EXPECT_THROW(verify_generator_connectivity(&mod2), StmtException);
     // now fix the connections
     zero_generator_inputs(&mod2);
     EXPECT_NO_THROW(verify_generator_connectivity(&mod2));

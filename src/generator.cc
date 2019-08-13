@@ -374,8 +374,9 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
             ::format("{0} is not in {1}", target->instance_name, instance_name),
             {target.get(), this});
     if (!has_child_generator(target))
-        throw ::runtime_error(
-            ::format("{0} doesn't belong to {1}", target->instance_name, instance_name));
+        throw GeneratorException(
+            ::format("{0} doesn't belong to {1}", target->instance_name, instance_name),
+            {target.get(), this});
     // checking for the same interface, for now
     auto target_port_names = target->get_port_names();
     auto new_port_names = target->get_port_names();

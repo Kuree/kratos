@@ -2,6 +2,7 @@
 #include "../src/generator.hh"
 #include "../src/stmt.hh"
 #include "gtest/gtest.h"
+#include "../src/except.hh"
 
 using namespace kratos;
 
@@ -12,8 +13,8 @@ TEST(stmt, assign) {  // NOLINT
     auto &var2 = mod.var("b", 2, 1, true);
     auto &var3 = mod.var("c", 4);
     auto &var4 = mod.var("d", 4);
-    EXPECT_ANY_THROW(var1.assign(var2));
-    EXPECT_ANY_THROW(var1.assign(var3));
+    EXPECT_THROW(var1.assign(var2), VarException);
+    EXPECT_THROW(var1.assign(var3), VarException);
     auto stmt = var4.assign(var3);
     mod.add_stmt(stmt);
     EXPECT_EQ(mod.stmts_count(), 1);
@@ -52,14 +53,14 @@ TEST(stmt, block) {  // NOLINT
     auto seq_block = SequentialStmtBlock();
     seq_block.add_stmt(var1.assign(var2));
     // error checking
-    EXPECT_ANY_THROW(seq_block.add_stmt(var1.assign(var2, AssignmentType::Blocking)));
+    EXPECT_THROW(seq_block.add_stmt(var1.assign(var2, AssignmentType::Blocking)), StmtException);
     auto stmt = var3.assign(var4, AssignmentType::Blocking);
-    EXPECT_ANY_THROW(seq_block.add_stmt(stmt));
+    EXPECT_THROW(seq_block.add_stmt(stmt), StmtException);
     auto comb_block = CombinationalStmtBlock();
     comb_block.add_stmt(var3.assign(var4));
     EXPECT_EQ(stmt->assign_type(), AssignmentType::Blocking);
     EXPECT_NO_THROW(seq_block.add_condition({BlockEdgeType::Posedge, clk.shared_from_this()}));
-    EXPECT_ANY_THROW(seq_block.add_condition({BlockEdgeType::Negedge, var1.shared_from_this()}));
+    EXPECT_THROW(seq_block.add_condition({BlockEdgeType::Negedge, var1.shared_from_this()}), VarException);
     EXPECT_EQ(seq_block.get_conditions().size(), 1);
 }
 
@@ -80,5 +81,5 @@ TEST(stmt, switch_) {  // NOLINT
 
     EXPECT_EQ(switch_block.body().size(), 2);
     EXPECT_EQ(switch_block.target(), var1.shared_from_this());
-    EXPECT_ANY_THROW(switch_block.add_switch_case(condition1.as<Const>(), stmt));
+    EXPECT_THROW(switch_block.add_switch_case(condition1.as<Const>(), stmt), StmtException);
 }
