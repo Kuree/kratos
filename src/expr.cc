@@ -7,6 +7,7 @@
 #include "generator.hh"
 #include "stmt.hh"
 #include "util.hh"
+#include "syntax.hh"
 
 using fmt::format;
 using std::make_shared;
@@ -346,6 +347,8 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, uint32_t si
     // only constant allows to be null generator
     if (module == nullptr && type != VarType::ConstValue)
         throw UserException(::format("module is null for {0}", name));
+    if (!is_valid_variable_name(name))
+        throw UserException(::format("{0} is a SystemVerilog keyward", name));
 }
 
 IRNode *Var::parent() { return generator; }

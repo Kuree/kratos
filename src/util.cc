@@ -5,13 +5,13 @@
 #endif
 #include <fstream>
 #include <regex>
+#include <thread>
 #include "except.hh"
 #include "expr.hh"
 #include "fmt/format.h"
 #include "generator.hh"
 #include "port.hh"
 #include "stmt.hh"
-#include <thread>
 
 using fmt::format;
 
@@ -27,9 +27,7 @@ uint32_t get_num_cpus() {
     }
     return static_cast<uint32_t>(_num_cpu);
 }
-void set_num_cpus(int num_cpu) {
-    _num_cpu = num_cpu;
-}
+void set_num_cpus(int num_cpu) { _num_cpu = num_cpu; }
 
 std::string ExprOpStr(ExprOp op) {
     switch (op) {
@@ -185,9 +183,8 @@ std::string port_type_to_str(PortType type) {
 }
 
 std::string strip_newline(std::string &str) {
-    std::string::size_type  pos = 0;
-    while ((pos = str.find('\n', pos) != std::string::npos))
-        str.erase(pos, 1);
+    std::string::size_type pos = 0;
+    while ((pos = str.find('\n', pos) != std::string::npos)) str.erase(pos, 1);
     return str;
 }
 
@@ -287,6 +284,19 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *ge
                 } else {
                     if (token[0] == '[')
                         throw std::runtime_error(::format("unable to parse {}", port_declaration));
+                    if (token == "input") {
+                        direction = PortDirection::In;
+                        i++;
+                        continue;
+                    } else if (token == "output") {
+                        direction = PortDirection::Out;
+                        i++;
+                        continue;
+                    } else if (token == "inout") {
+                        direction = PortDirection ::InOut;
+                        i++;
+                        continue;
+                    }
                     const auto &port_name = token;
                     uint32_t width = high - low + 1;
                     auto p = std::make_shared<Port>(generator, direction, port_name, width, 1,

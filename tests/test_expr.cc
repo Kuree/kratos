@@ -2,6 +2,7 @@
 #include "../src/generator.hh"
 #include "../src/stmt.hh"
 #include "gtest/gtest.h"
+#include "../src/except.hh"
 
 using namespace kratos;
 
@@ -181,4 +182,11 @@ TEST(expr, slice_by_var) {  // NOLINT
     auto &b = mod.var("b", 2);
     auto &slice = a[b.shared_from_this()];
     EXPECT_EQ(slice.to_string(), "a[b]");
+}
+
+TEST(expr, keyword) {   // NOLINT
+    Context c;
+    auto mod = c.generator("module");
+
+    EXPECT_THROW(mod.var("var", 1), UserException);
 }
