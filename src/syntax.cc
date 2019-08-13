@@ -1,4 +1,5 @@
 #include "syntax.hh"
+#include <string>
 
 namespace kratos {
 
