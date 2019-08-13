@@ -1,4 +1,6 @@
 #include "syntax.hh"
+#include <string>
+#include <unordered_set>
 
 namespace kratos {
 
