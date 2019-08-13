@@ -185,6 +185,8 @@ public:
     std::shared_ptr<StmtBlock> get_named_block(const std::string &block_name) const;
     void add_named_block(const std::string &block_name, const std::shared_ptr<StmtBlock> &block);
     std::unordered_set<std::string> named_blocks_labels() const;
+    Generator *def_instance() const { return def_instance_; }
+    void set_def_instance(Generator *def) { def_instance_ = def; }
 
 private:
     std::vector<std::string> lib_files_;
@@ -224,6 +226,8 @@ private:
     std::map<uint32_t, std::string> func_index_;
     // function_calls
     std::set<std::shared_ptr<FunctionCallVar>> calls_;
+    // cloned ref
+    Generator *def_instance_ = nullptr;
 };
 
 }  // namespace kratos

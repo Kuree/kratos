@@ -628,6 +628,7 @@ class Generator(metaclass=GeneratorMeta):
             kargs["is_clone"] = True
             g = cls(**kargs)
             g.__def_instance = gen
+            g.__generator.def_instance = gen.internal_generator
             return g
 
     # list of helper functions similar to chisel, but force good naming

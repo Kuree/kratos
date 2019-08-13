@@ -847,6 +847,9 @@ public:
             if (is_pass_through(child.get())) {
                 // need to remove it
                 child_to_remove.emplace_back(child);
+                // add it to the set
+                if (!child->is_cloned())
+                    pass_through_.emplace(child.get());
             }
         }
 
@@ -881,7 +884,16 @@ public:
     }
 
 private:
-    bool static is_pass_through(Generator* generator) {
+    bool is_pass_through(Generator* generator) {
+        if (generator->is_cloned()) {
+            auto ref_gen = generator->def_instance();
+            if (!ref_gen) {
+                throw GeneratorException(::format("{0} is cloned but doesn't have def instance",
+                                                  generator->instance_name),
+                                         {generator});
+            }
+            return pass_through_.find(ref_gen) != pass_through_.end();
+        }
         const auto vars = generator->get_vars();
         // has to be empty
         if (!vars.empty()) return false;
@@ -908,6 +920,8 @@ private:
         }
         return true;
     }
+
+    std::unordered_set<Generator*> pass_through_;
 };
 
 void remove_pass_through_modules(Generator* top) {
@@ -1541,8 +1555,7 @@ public:
 
         uint64_t size = std::accumulate(lists.begin(), lists.end(), 0,
                                         [](uint64_t s, auto lst) { return s + lst->size(); });
-        if (size != stmts.size())
-            throw InternalException("Unable to sort all the statements");
+        if (size != stmts.size()) throw InternalException("Unable to sort all the statements");
         std::vector<std::shared_ptr<Stmt>> result;
         result.reserve(stmts.size());
         for (auto assign : lists) result.insert(result.end(), assign->begin(), assign->end());
