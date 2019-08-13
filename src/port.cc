@@ -20,7 +20,7 @@ Port::Port(Generator* module, PortDirection direction, const ::string& name, uin
     if ((type == PortType::AsyncReset || type == PortType::Clock || type == PortType::ClockEnable ||
          type == PortType::Reset) &&
         width > 1) {
-        throw ::runtime_error(::format("{0}'s width has be 1, got {1}", name, width));
+        throw UserException(::format("{0}'s width has be 1, got {1}", name, width));
     }
 }
 
@@ -39,7 +39,7 @@ PortPacked::PortPacked(Generator* module, PortDirection direction, const std::st
 }
 
 void PortPacked::set_port_type(PortType) {
-    throw ::runtime_error("Cannot set port type for packed struct");
+    throw UserException("Cannot set port type for packed struct");
 }
 
 PackedSlice& PortPacked::operator[](const std::string& member_name) {
@@ -53,7 +53,7 @@ void PortBundleDefinition::add_definition(const std::string& name, uint32_t widt
                                           bool is_signed, kratos::PortDirection direction,
                                           kratos::PortType type) {
     if (definitions_.find(name) != definitions_.end())
-        throw ::runtime_error(name + " already exists");
+        throw UserException(name + " already exists");
     definitions_.emplace(name, std::make_tuple(width, size, is_signed, direction, type));
     PortDirection dir;
     if (direction == PortDirection::In) {
@@ -61,7 +61,7 @@ void PortBundleDefinition::add_definition(const std::string& name, uint32_t widt
     } else if (direction == PortDirection::Out) {
         dir = PortDirection::In;
     } else {
-        throw ::runtime_error("PortBundle doesn't allow inout");
+        throw UserException("PortBundle doesn't allow inout");
     }
     flipped_definitions_.emplace(name, std::make_tuple(width, size, is_signed, dir, type));
 }
@@ -78,7 +78,7 @@ std::shared_ptr<PortBundleDefinition> PortBundleDefinition::flip() {
 
 Port& PortBundleRef::get_port(const std::string& name) {
     if (name_mappings_.find(name) == name_mappings_.end())
-        throw ::runtime_error(::format("Unable to find {0} in port bundle", name));
+        throw UserException(::format("Unable to find {0} in port bundle", name));
     auto const& port_name = name_mappings_.at(name);
     return *generator->get_port(port_name);
 }
@@ -89,7 +89,7 @@ void PortBundleRef::assign(const std::shared_ptr<PortBundleRef>& other, Generato
     auto self_def = definition_->definition();
     auto other_def = other->definition_->definition();
     if (self_def.size() != other_def.size()) {
-        throw ::runtime_error("PortBundle definition doesn't match");
+        throw UserException("PortBundle definition doesn't match");
     }
     for (auto const& iter : self_def) {
         auto attr_name = iter.first;

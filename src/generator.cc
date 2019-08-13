@@ -20,7 +20,7 @@ Generator Generator::from_verilog(Context *context, const std::string &src_file,
                                   const std::string &top_name,
                                   const std::vector<std::string> &lib_files,
                                   const std::map<std::string, PortType> &port_types) {
-    if (!fs::exists(src_file)) throw ::runtime_error(::format("{0} does not exist", src_file));
+    if (!fs::exists(src_file)) throw UserException(::format("{0} does not exist", src_file));
 
     Generator mod(context, top_name);
     // the src file will be treated a a lib file as well
@@ -44,13 +44,13 @@ Generator Generator::from_verilog(Context *context, const std::string &src_file,
     }
     // verify the existence of each lib files
     for (auto const &filename : mod.lib_files_) {
-        if (!fs::exists(filename)) throw ::runtime_error(::format("{0} does not exist", filename));
+        if (!fs::exists(filename)) throw UserException(::format("{0} does not exist", filename));
     }
 
     // assign port types
     for (auto const &[port_name, port_type] : port_types) {
         if (mod.ports_.find(port_name) == mod.ports_.end())
-            throw ::runtime_error(::format("unable to find port {0}", port_name));
+            throw UserException(::format("unable to find port {0}", port_name));
         std::shared_ptr<Var> &var_p = mod.vars_.at(port_name);
         std::shared_ptr<Port> port_p = std::static_pointer_cast<Port>(var_p);
         port_p->set_port_type(port_type);
@@ -67,8 +67,8 @@ Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size, 
     if (vars_.find(var_name) != vars_.end()) {
         auto v_p = get_var(var_name);
         if (v_p->width != width || v_p->is_signed != is_signed)
-            throw std::runtime_error(
-                ::format("redefinition of {0} with different width/sign", var_name));
+            throw VarException(::format("redefinition of {0} with different width/sign", var_name),
+                               {v_p.get()});
         return *v_p;
     }
     auto p = std::make_shared<Var>(this, var_name, width, size, is_signed);
@@ -89,7 +89,8 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
 Port &Generator::port(PortDirection direction, const std::string &port_name, uint32_t width,
                       uint32_t size, PortType type, bool is_signed) {
     if (ports_.find(port_name) != ports_.end())
-        throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
+        throw VarException(::format("{0} already exists in {1}", port_name, name),
+                           {vars_.at(port_name).get()});
     auto p = std::make_shared<Port>(this, direction, port_name, width, size, type, is_signed);
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
@@ -115,7 +116,8 @@ Param &Generator::parameter(const std::string &parameter_name, uint32_t width) {
 
 Param &Generator::parameter(const std::string &parameter_name, uint32_t width, bool is_signed) {
     if (params_.find(parameter_name) != params_.end())
-        throw runtime_error(::format("parameter {0} already exists", parameter_name));
+        throw VarException(::format("parameter {0} already exists", parameter_name),
+                           {params_.at(parameter_name).get()});
     auto ptr = std::make_shared<Param>(this, parameter_name, width, is_signed);
     params_.emplace(parameter_name, ptr);
     return *ptr;
@@ -138,7 +140,7 @@ EnumVar &Generator::enum_var(const std::string &var_name, const std::shared_ptr<
 
 FSM &Generator::fsm(const std::string &fsm_name) {
     if (fsms_.find(fsm_name) != fsms_.end())
-        throw ::runtime_error(::format("FSM {0} already exists in {1}", fsm_name, name));
+        throw UserException(::format("FSM {0} already exists in {1}", fsm_name, name));
     auto p = std::make_shared<FSM>(fsm_name, this);
     fsms_.emplace(fsm_name, p);
     return *p;
@@ -147,7 +149,7 @@ FSM &Generator::fsm(const std::string &fsm_name) {
 FSM &Generator::fsm(const std::string &fsm_name, const std::shared_ptr<Var> &clk,
                     const std::shared_ptr<Var> &reset) {
     if (fsms_.find(fsm_name) != fsms_.end())
-        throw ::runtime_error(::format("FSM {0} already exists in {1}", fsm_name, name));
+        throw UserException(::format("FSM {0} already exists in {1}", fsm_name, name));
     auto p = std::make_shared<FSM>(fsm_name, this, clk, reset);
     fsms_.emplace(fsm_name, p);
     return *p;
@@ -157,7 +159,7 @@ FunctionCallVar &Generator::call(const std::string &func_name,
                                  const std::map<std::string, std::shared_ptr<Var>> &args,
                                  bool has_return) {
     if (funcs_.find(func_name) == funcs_.end())
-        throw ::runtime_error(::format("{0} not found", func_name));
+        throw UserException(::format("{0} not found", func_name));
     auto func_def = funcs_.at(func_name);
     auto p = std::make_shared<FunctionCallVar>(this, func_def, args, has_return);
     calls_.emplace(p);
@@ -171,7 +173,7 @@ FunctionCallVar &Generator::call(const std::string &func_name,
 
 std::shared_ptr<FunctionStmtBlock> Generator::function(const std::string &func_name) {
     if (funcs_.find(func_name) != funcs_.end())
-        throw ::runtime_error(::format("function {0} already exists", func_name));
+        throw UserException(::format("function {0} already exists", func_name));
     auto p = std::make_shared<FunctionStmtBlock>(this, func_name);
     func_index_.emplace(static_cast<uint32_t>(funcs_.size()), func_name);
     funcs_.emplace(func_name, p);
@@ -206,8 +208,9 @@ void Generator::add_child_generator(const std::string &instance_name_,
         child->parent_generator_ = this;
         children_names_.emplace_back(child->instance_name);
     } else {
-        throw std::runtime_error(
-            ::format("{0} already exists  in {1}", child->instance_name, instance_name));
+        throw GeneratorException(
+            ::format("{0} already exists  in {1}", child->instance_name, instance_name),
+            {children_.at(instance_name_).get()});
     }
 }
 
@@ -362,11 +365,14 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
                                         const std::shared_ptr<Generator> &new_generator) {
     auto parent = target->parent();
     if (parent->ir_node_kind() != IRNodeKind::GeneratorKind)
-        throw ::runtime_error(::format("{0} is a top level module and thus cannot be replaced",
-                                       target->instance_name));
+        throw GeneratorException(::format("{0} is a top level module and thus cannot be replaced",
+                                          target->instance_name),
+                                 {target.get()});
     auto parent_generator = reinterpret_cast<Generator *>(parent);
     if (parent_generator != this)
-        throw ::runtime_error(::format("{0} is not in {1}", target->instance_name, instance_name));
+        throw GeneratorException(
+            ::format("{0} is not in {1}", target->instance_name, instance_name),
+            {target.get(), this});
     if (!has_child_generator(target))
         throw ::runtime_error(
             ::format("{0} doesn't belong to {1}", target->instance_name, instance_name));
@@ -374,7 +380,7 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
     auto target_port_names = target->get_port_names();
     auto new_port_names = target->get_port_names();
     if (target_port_names.size() != new_port_names.size())
-        throw ::runtime_error(
+        throw UserException(
             ::format("{0}'s number of ports don't match with {1}'s. Got {2}, need {3}",
                      new_generator->instance_name, target->instance_name, new_port_names.size(),
                      target_port_names.size()));
@@ -383,32 +389,37 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
         auto target_port = target->get_port(port_name);
         auto new_port = new_generator->get_port(port_name);
         if (!new_port) {
-            throw ::runtime_error(::format("Could not find {0} from {1}, which is required by {2}",
-                                           port_name, new_generator->instance_name,
-                                           target->instance_name));
+            throw VarException(
+                ::format("Could not find {0} from {1}, which is required by {2}", port_name,
+                         new_generator->instance_name, target->instance_name),
+                {target_port.get(), new_generator.get(), target.get()});
         }
         if (target_port->width != new_port->width)
-            throw ::runtime_error(
+            throw VarException(
                 ::format("{0}'s port ({1}) width doesn't match with {2}. Got {3}, need {4}",
                          new_generator->instance_name, port_name, target->instance_name,
-                         new_port->width, target_port->width));
+                         new_port->width, target_port->width),
+                {target_port.get(), new_generator.get(), target.get()});
         if (target_port->is_signed != new_port->is_signed)
-            throw ::runtime_error(
+            throw VarException(
                 ::format("{0}'s port ({1}) sign doesn't match with {2}. Got {3}, need {4}",
                          new_generator->instance_name, port_name, target->instance_name,
-                         new_port->is_signed, target_port->is_signed));
+                         new_port->is_signed, target_port->is_signed),
+                {target_port.get(), new_generator.get(), target.get()});
         if (target_port->port_type() != new_port->port_type())
-            throw ::runtime_error(
+            throw VarException(
                 ::format("{0}'s port ({1}) type doesn't match with {2}. Got {3}, need {4}",
                          new_generator->instance_name, port_name, target->instance_name,
                          port_type_to_str(new_port->port_type()),
-                         port_type_to_str(target_port->port_type())));
+                         port_type_to_str(target_port->port_type())),
+                {target_port.get(), new_generator.get(), target.get()});
         if (target_port->port_direction() != new_port->port_direction())
-            throw ::runtime_error(
+            throw VarException(
                 ::format("{0}'s port ({1}) direction doesn't match with {2}. Got {3}, need {4}",
                          new_generator->instance_name, port_name, target->instance_name,
                          port_dir_to_str(new_port->port_direction()),
-                         port_dir_to_str(target_port->port_direction())));
+                         port_dir_to_str(target_port->port_direction())),
+                {target_port.get(), new_generator.get(), target.get()});
         // the actual replacement
         if (target_port->port_direction() == PortDirection::In) {
             Var::move_src_to(target_port.get(), new_port.get(), parent_generator, false);
@@ -422,8 +433,7 @@ void Generator::replace_child_generator(const std::shared_ptr<Generator> &target
     parent_generator->remove_child_generator(target);
 }
 
-void inline check_direction(const Port *port1, Port* port2,
-                            bool same_direction = false) {
+void inline check_direction(const Port *port1, Port *port2, bool same_direction = false) {
     auto port1_dir = port1->port_direction();
     PortDirection correct_dir;
     if (same_direction)
@@ -433,12 +443,13 @@ void inline check_direction(const Port *port1, Port* port2,
     else
         correct_dir = PortDirection ::In;
     if (port2->port_direction() != correct_dir) {
-        throw ::runtime_error(::format("Port {0} and port {1} doesn't match port direction",
-                                       port1->to_string(), port2->to_string()));
+        throw VarException(::format("Port {0} and port {1} doesn't match port direction",
+                                    port1->to_string(), port2->to_string()),
+                           {port1, port2});
     }
 }
 
-std::pair<bool, bool> correct_port_direction(Port* port1, Port* port2, Generator* top) {
+std::pair<bool, bool> correct_port_direction(Port *port1, Port *port2, Generator *top) {
     auto parent1 = port1->generator;
     auto parent2 = port2->generator;
     std::shared_ptr<AssignStmt> stmt;
@@ -463,10 +474,11 @@ std::shared_ptr<Stmt> Generator::wire_ports(std::shared_ptr<Port> &port1,
                                             std::shared_ptr<Port> &port2) {
     auto [dir, no_error] = correct_port_direction(port1.get(), port2.get(), this);
     if (!no_error) {
-        throw ::runtime_error(
+        throw VarException(
             ::format("Cannot wire {0} and {1}. Please make sure they belong to the same module "
                      "or parent",
-                     port1->to_string(), port2->to_string()));
+                     port1->to_string(), port2->to_string()),
+            {port1.get(), port2.get()});
     }
     std::shared_ptr<AssignStmt> stmt;
     if (dir)
@@ -478,15 +490,15 @@ std::shared_ptr<Stmt> Generator::wire_ports(std::shared_ptr<Port> &port1,
 }
 
 std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Var> &var1,
-                                       const std::shared_ptr<Var> &var2) {
+                                                        const std::shared_ptr<Var> &var2) {
     Var *root1 = var1.get();
     while (root1->type() == VarType::Slice) {
-        auto var = dynamic_cast<VarSlice*>(root1);
+        auto var = dynamic_cast<VarSlice *>(root1);
         root1 = var->parent_var;
     }
     Var *root2 = var2.get();
     while (root2->type() == VarType::Slice) {
-        auto var = dynamic_cast<VarSlice*>(root2);
+        auto var = dynamic_cast<VarSlice *>(root2);
         root2 = var->parent_var;
     }
     if (root1->type() != VarType::PortIO && root2->type() != VarType::PortIO) {
@@ -557,7 +569,8 @@ void Generator::accept(IRVisitor *visitor) {
 PortPacked &Generator::port_packed(PortDirection direction, const std::string &port_name,
                                    const PackedStruct &packed_struct_) {
     if (ports_.find(port_name) != ports_.end())
-        throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
+        throw VarException(::format("{0} already exists in {1}", port_name, name),
+                           {vars_.at(port_name).get()});
     auto p = std::make_shared<PortPacked>(this, direction, port_name, packed_struct_);
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
@@ -567,7 +580,8 @@ PortPacked &Generator::port_packed(PortDirection direction, const std::string &p
 VarPacked &Generator::var_packed(const std::string &var_name,
                                  const kratos::PackedStruct &packed_struct_) {
     if (vars_.find(var_name) != vars_.end())
-        throw ::runtime_error(::format("{0} already exists in {1}", var_name, name));
+        throw VarException(::format("{0} already exists in {1}", var_name, name),
+                           {vars_.at(var_name).get()});
     auto v = std::make_shared<VarPacked>(this, var_name, packed_struct_);
     vars_.emplace(var_name, v);
     return *v;
@@ -577,7 +591,8 @@ void Generator::replace(const std::string &child_name,
                         const std::shared_ptr<Generator> &new_child) {
     // obtained the generator
     if (children_.find(child_name) == children_.end()) {
-        throw ::runtime_error(::format("Unable to find {0} from {1}", child_name, instance_name));
+        throw GeneratorException(::format("Unable to find {0} from {1}", child_name, instance_name),
+                                 {this, new_child.get()});
     }
     auto old_child = children_.at(child_name);
     new_child->instance_name = child_name;
@@ -597,7 +612,7 @@ void Generator::replace(const std::string &child_name,
         }
         throw VarException(::format("{0}'s port interface doesn't match with {1}", old_child->name,
                                     new_child->name),
-                           ports);
+                           ports.begin(), ports.end());
     }
     // check the name, type, and size
     for (const auto &port_name : old_port_names) {
@@ -668,7 +683,7 @@ std::vector<std::string> Generator::get_ports(kratos::PortType type) const {
 std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(
     const std::string &port_name, const std::shared_ptr<PortBundleDefinition> &def) {
     if (port_bundle_mapping_.find(port_name) != port_bundle_mapping_.end())
-        throw ::runtime_error(::format("{0} already exists in {1}", port_name, name));
+        throw UserException(::format("{0} already exists in {1}", port_name, name));
     auto definition = def->definition();
     auto ref = std::make_shared<PortBundleRef>(this, def);
     auto const &debug_info = def->debug_info();
@@ -703,7 +718,7 @@ std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(
 
 std::shared_ptr<PortBundleRef> Generator::get_bundle_ref(const std::string &port_name) {
     if (!has_port_bundle(port_name)) {
-        throw ::runtime_error(port_name + " not found in " + name);
+        throw UserException(port_name + " not found in " + name);
     }
     return port_bundle_mapping_.at(port_name);
 }
@@ -720,14 +735,14 @@ void Generator::set_child_comment(const std::string &child_name, const std::stri
 
 void Generator::remove_var(const std::string &var_name) {
     if (vars_.find(var_name) == vars_.end()) {
-        throw ::runtime_error(::format("Cannot find {0} from {1}", var_name, name));
+        throw UserException(::format("Cannot find {0} from {1}", var_name, name));
     }
     auto var = vars_.at(var_name);
     if (!var->sources().empty()) {
-        throw ::runtime_error(::format("{0} still has source connection(s)"));
+        throw UserException(::format("{0} still has source connection(s)"));
     }
     if (!var->sinks().empty()) {
-        throw ::runtime_error(::format("{0} still has sink connection(s)"));
+        throw UserException(::format("{0} still has sink connection(s)"));
     }
 
     vars_.erase(var_name);

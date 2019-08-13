@@ -1,10 +1,10 @@
 #include "graph.hh"
 #include <unordered_set>
+#include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
 #include "ir.hh"
 #include "stmt.hh"
-#include "except.hh"
 
 using fmt::format;
 
@@ -27,8 +27,8 @@ public:
         for (auto const &child : generator->get_child_generators()) {
             auto child_node = g_->get_node(child.get());
             if (child_node->parent != nullptr)
-                throw std::runtime_error(::format("{0} already has a parent",
-                                                  child_node->parent->generator->instance_name));
+                throw InternalException(::format("{0} already has a parent",
+                                                 child_node->parent->generator->instance_name));
             child_node->parent = parent_node;
             parent_node->children.emplace(child_node->generator);
         }
@@ -49,8 +49,9 @@ GeneratorGraph::GeneratorGraph(Generator *generator) : root_(generator) {
 
 GeneratorNode *GeneratorGraph::add_node(Generator *generator) {
     if (nodes_.find(generator) != nodes_.end()) {
-        throw std::runtime_error(
-            ::format("{0} was used in another generator!", generator->instance_name));
+        throw GeneratorException(
+            ::format("{0} was used in another generator!", generator->instance_name),
+            {generator, nodes_.at(generator).generator});
     }
     GeneratorNode node;
     node.generator = generator;
@@ -61,7 +62,7 @@ GeneratorNode *GeneratorGraph::add_node(Generator *generator) {
 
 GeneratorNode *GeneratorGraph::get_node(Generator *generator) {
     if (nodes_.find(generator) == nodes_.end()) {
-        throw std::runtime_error(::format("{0} not found in graph!", generator->instance_name));
+        throw InternalException(::format("{0} not found in graph!", generator->instance_name));
     }
     return &nodes_.at(generator);
 }
@@ -147,13 +148,12 @@ StatementGraph::StatementGraph(StmtBlock *stmt) {
     build_graph();
 }
 
-void StatementGraph::add_stmt_child(Stmt* stmt) {
+void StatementGraph::add_stmt_child(Stmt *stmt) {
     auto child_count = stmt->child_count();
     auto parent_node = &nodes_.at(stmt);
     for (uint64_t i = 0; i < child_count; i++) {
-        auto s = dynamic_cast<Stmt*>(stmt->get_child(i));
-        if (!s)
-            throw StmtException("Non statement in statement block", {stmt});
+        auto s = dynamic_cast<Stmt *>(stmt->get_child(i));
+        if (!s) throw StmtException("Non statement in statement block", {stmt});
         if (nodes_.find(s) != nodes_.end())
             throw StmtException("Duplicated statement detected", {stmt, s});
         StmtNode node_value{parent_node, s, {}};

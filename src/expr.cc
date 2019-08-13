@@ -309,7 +309,7 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
       op(op),
       left(left),
       right(right) {
-    if (left == nullptr) throw std::runtime_error("left operand is null");
+    if (left == nullptr) throw UserException("left operand is null");
     generator = left->generator;
     if (right != nullptr && left->width != right->width)
         throw VarException(
@@ -345,7 +345,7 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, uint32_t si
       type_(type) {
     // only constant allows to be null generator
     if (module == nullptr && type != VarType::ConstValue)
-        throw ::runtime_error(::format("module is null for {0}", name));
+        throw UserException(::format("module is null for {0}", name));
 }
 
 IRNode *Var::parent() { return generator; }
@@ -390,20 +390,20 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
         int64_t min = 0;
         std::memcpy(&min, &temp, sizeof(min));
         if (value < min)
-            throw ::runtime_error(::format(
+            throw UserException(::format(
                 "{0} is smaller than the minimum value ({1}) given width {2}", value, min, width));
         temp = (1ull << (width - 1)) - 1;
         int64_t max;
         std::memcpy(&max, &temp, sizeof(max));
         if (value > max)
-            throw ::runtime_error(::format(
+            throw UserException(::format(
                 "{0} is larger than the maximum value ({1}) given width {2}", value, max, width));
     } else {
         uint64_t max = (1ull << width) - 1;
         uint64_t unsigned_value;
         std::memcpy(&unsigned_value, &value, sizeof(unsigned_value));
         if (unsigned_value > max)
-            throw ::runtime_error(::format(
+            throw UserException(::format(
                 "{0} is larger than the maximum value ({1}) given width {2}", value, max, width));
     }
     value_ = value;
@@ -603,11 +603,11 @@ void set_var_parent(std::shared_ptr<Var> &var, Var *target, Var *new_var, bool c
     }
     if (parent_var.get() != target) {
         if (check_target)
-            throw ::runtime_error("target not found");
+            throw InternalException("Target not found");
         else
             return;
     }
-    if (!slice) throw ::runtime_error("Internal Error: slice cannot be null");
+    if (!slice) throw InternalException("Slice cannot be null");
 
     auto new_var_ptr = new_var->as<Var>();
     std::reverse(slices.begin(), slices.end());
@@ -646,7 +646,7 @@ void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
         if (right.get() == target)
             stmt->set_right(new_var->shared_from_this());
         else
-            throw ::runtime_error("target not found");
+            throw InternalException("Target not found");
     } else if (right->type() == VarType::Slice) {
         set_var_parent(right, target, new_var, true);
     } else if (right->type() == VarType::Expression) {
@@ -661,7 +661,7 @@ void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
         if (left.get() == target)
             stmt->set_left(new_var->shared_from_this());
         else
-            throw ::runtime_error("target not found");
+            throw InternalException("Target not found");
     } else if (left->type() == VarType::Slice) {
         set_var_parent(left, target, new_var, true);
     } else if (left->type() == VarType::Expression) {
@@ -672,7 +672,7 @@ void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
 void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_connection) {
     // only base and port vars are allowed
     if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
-        throw ::runtime_error("Only base or port variables are allowed.");
+        throw VarException("Only base or port variables are allowed.", {var, new_var});
 
     for (auto &stmt : var->sources_) {
         if (stmt->generator_parent() != parent) continue;
@@ -698,7 +698,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
 void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_connection) {
     // only base and port vars are allowed
     if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
-        throw ::runtime_error("Only base or port variables are allowed.");
+        throw VarException("Only base or port variables are allowed.", {var, new_var});
 
     for (auto &stmt : var->sinks_) {
         if (stmt->generator_parent() != parent) {
@@ -813,7 +813,7 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
     }
 
     if (!found) {
-        throw ::runtime_error(
+        throw InternalException(
             ::format("{0} does not exist in {1}", member_name, struct_.struct_name));
     }
 }
@@ -859,7 +859,7 @@ Enum::Enum(kratos::Generator *generator, std::string name,
 
 std::shared_ptr<EnumConst> Enum::get_enum(const std::string &enum_name) {
     if (values.find(enum_name) == values.end())
-        throw ::runtime_error(::format("Cannot find {0} in {1}", enum_name, name));
+        throw UserException(::format("Cannot find {0} in {1}", enum_name, name));
     return values.at(enum_name);
 }
 

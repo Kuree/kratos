@@ -30,8 +30,9 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
     if (stmt->parent() == generator_) {
         // top level
         if (stmt->assign_type() != AssignmentType::Blocking)
-            throw ::runtime_error(
-                ::format("Top level assignment for {0} <- {1} has to be blocking", left, right));
+            throw StmtException(
+                ::format("Top level assignment for {0} <- {1} has to be blocking", left, right),
+                {stmt->left().get(), stmt->right().get(), stmt});
         (*this) << ::format("assign {0} = {1};", left, right) << endl();
     } else {
         if (stmt->assign_type() == AssignmentType::Blocking)
@@ -39,7 +40,9 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
         else if (stmt->assign_type() == AssignmentType::NonBlocking)
             (*this) << ::format("{0}{1} <= {2};", codegen_->indent(), left, right) << endl();
         else
-            throw ::runtime_error(::format("Undefined assignment for {0} <- {1}", left, right));
+            throw StmtException(
+                ::format("Top level assignment for {0} <- {1} has to be blocking", left, right),
+                {stmt->left().get(), stmt->right().get(), stmt});
     }
     return *this;
 }
@@ -58,8 +61,7 @@ Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
 }
 
 Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
-    if (!var->comment.empty())
-        (*this) << "// " << strip_newline(var->comment) << endl();
+    if (!var->comment.empty()) (*this) << "// " << strip_newline(var->comment) << endl();
 
     if (generator_->debug) {
         var->verilog_ln = line_no_;
@@ -177,8 +179,9 @@ std::string SystemVerilogCodeGen::indent() {
 
 void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
     if (node->ir_node_kind() != IRNodeKind::StmtKind)
-        throw ::runtime_error(::format("Cannot codegen non-statement node. Got {0}",
-                                       ast_type_to_string(node->ir_node_kind())));
+        throw StmtException(::format("Cannot codegen non-statement node. Got {0}",
+                                     ast_type_to_string(node->ir_node_kind())),
+                            {node});
     auto stmt_ptr = reinterpret_cast<Stmt*>(node);
     if (stmt_ptr->type() == StatementType::Assign) {
         stmt_code(reinterpret_cast<AssignStmt*>(node));
@@ -195,7 +198,7 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
     } else if (stmt_ptr->type() == StatementType::Return) {
         stmt_code(reinterpret_cast<ReturnStmt*>(node));
     } else {
-        throw ::runtime_error("Not implemented");
+        throw StmtException("Not implemented", {node});
     }
 }
 
@@ -207,17 +210,16 @@ void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
     if (stmt->left()->type() == VarType::PortIO) {
         auto port = stmt->left()->as<Port>();
         if (port->port_direction() == PortDirection::In && stmt->left()->generator == generator_) {
-            throw StmtException("Cannot drive a module's input from itself", {stmt});
+            throw StmtException("Cannot drive a module's input from itself",
+                                {stmt, stmt->left().get(), stmt->right().get()});
         }
     }
     stream_ << stmt;
 }
 
 void SystemVerilogCodeGen::stmt_code(kratos::ReturnStmt* stmt) {
-    if (generator_->debug)
-        stmt->verilog_ln = stream_.line_no();
-    stream_ << indent() << "return " << stmt->value()->to_string()
-            << ";" << stream_.endl();
+    if (generator_->debug) stmt->verilog_ln = stream_.line_no();
+    stream_ << indent() << "return " << stmt->value()->to_string() << ";" << stream_.endl();
 }
 
 void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
@@ -320,7 +322,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     for (auto const& iter : ports) port_names.emplace_back(iter.first);
     if (!ordering.empty()) {
         if (ordering.size() != ports.size())
-            throw ::runtime_error("Port ordering size mismatches ports");
+            throw InternalException("Port ordering size mismatches ports");
         // sort the list
         std::sort(port_names.begin(), port_names.end(), [&](auto const& lhs, auto const& rhs) {
             return ordering.at(lhs) < ordering.at(rhs);
@@ -328,8 +330,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     }
     for (auto const& port_name : port_names) {
         auto port = ports.at(port_name).get();
-        if (generator_->debug)
-            port->verilog_ln = stream_.line_no();
+        if (generator_->debug) port->verilog_ln = stream_.line_no();
         stream_ << indent() << get_port_str(port);
         if (++count != ports.size())
             stream_ << "," << stream_.endl();
@@ -440,8 +441,9 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
         auto& stmt_blk = body.at(cond);
         stream_ << indent() << (cond ? cond->to_string() : "default") << ": ";
         if (stmt_blk->empty()) {
-            throw ::runtime_error(
-                ::format("Switch statement condition {0} is empty!", cond->to_string()));
+            throw VarException(
+                ::format("Switch statement condition {0} is empty!", cond->to_string()),
+                {stmt, cond.get()});
         } else {
             // directly output the code if the block only has 1 element
             if (stmt_blk->size() == 1 && label_index_.find(stmt_blk.get()) == label_index_.end()) {

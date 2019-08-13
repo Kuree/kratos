@@ -1,5 +1,5 @@
 #include "context.hh"
-#include "expr.hh"
+#include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
 
@@ -36,7 +36,7 @@ void Context::remove(Generator *generator) {
 
 void Context::add_hash(const Generator *generator, uint64_t hash) {
     if (generator_hash_.find(generator) != generator_hash_.end())
-        throw ::runtime_error(::format("{0}'s hash has already been computed", generator->name));
+        throw InternalException(::format("{0}'s hash has already been computed", generator->name));
     generator_hash_[generator] = hash;
 }
 
@@ -54,15 +54,15 @@ void Context::change_generator_name(Generator *generator, const std::string &new
     // first we need to make sure that the generator is within the context
     auto const &old_name = generator->name;
     if (generator->context() != this)
-        throw ::runtime_error(::format("{0}'s context is different", old_name));
+        throw UserException(::format("{0}'s context is different", old_name));
     // remove it from the list
     auto shared_ptr = generator->shared_from_this();
     if (modules_.find(generator->name) == modules_.end())
-        throw ::runtime_error(::format("cannot find generator {0} in context", old_name));
+        throw UserException(::format("cannot find generator {0} in context", old_name));
     auto &list = modules_.at(generator->name);
     auto pos = std::find(list.begin(), list.end(), shared_ptr);
     if (pos == list.end())
-        throw ::runtime_error(::format("unable to find generator {0} in context", old_name));
+        throw UserException(::format("unable to find generator {0} in context", old_name));
     // we need to erase it
     list.erase(pos);
     // change it's name and put it to a new list

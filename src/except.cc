@@ -58,18 +58,42 @@ void print_ast_node(const IRNode* node) {
 #endif
 }
 
-VarException::VarException(const std::string& message, const std::vector<const Var*>& vars) noexcept
+VarException::VarException(const std::string& message,
+                           const std::vector<const IRNode*>& nodes) noexcept
     : std::runtime_error(message) {
-    for (auto const& var : vars) {
-        print_ast_node(var);
+    print_nodes(nodes);
+}
+
+VarException::VarException(const std::string& message, std::vector<const Var*>::iterator begin,
+                           std::vector<const Var*>::iterator end) noexcept
+    : std::runtime_error(message) {
+    for (auto it = begin; it != end; it++) {
+        print_ast_node(*it);
     }
 }
 
-StmtException::StmtException(const std::string& message, const std::vector<Stmt*>& stmts) noexcept
+StmtException::StmtException(const std::string& message, const std::vector<IRNode*>& nodes) noexcept
     : std::runtime_error(message) {
-    for (auto const& stmt : stmts) {
-        print_ast_node(stmt);
+    print_nodes(nodes);
+}
+
+StmtException::StmtException(const std::string& message, std::vector<Stmt*>::iterator begin,
+                             std::vector<Stmt*>::iterator end) noexcept
+    : std::runtime_error(message) {
+    for (auto it = begin; it != end; it++) {
+        print_ast_node(*it);
     }
 }
+
+GeneratorException::GeneratorException(const std::string& message,
+                                       const std::vector<IRNode*>& nodes) noexcept
+    : std::runtime_error(message) {
+    print_nodes(nodes);
+}
+
+InternalException::InternalException(const std::string& message) noexcept
+    : std::runtime_error(message) {}
+
+UserException::UserException(const std::string& message) noexcept : std::runtime_error(message) {}
 
 }

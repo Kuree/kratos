@@ -36,8 +36,8 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right,
                        AssignmentType type)
     : Stmt(StatementType ::Assign), left_(left), right_(right), assign_type_(type) {
-    if (left == nullptr) throw ::runtime_error("left hand side is empty");
-    if (right == nullptr) throw ::runtime_error("right hand side is empty");
+    if (left == nullptr) throw UserException("left hand side is empty");
+    if (right == nullptr) throw UserException("right hand side is empty");
     // check for sign
     if (left->is_signed != right->is_signed) {
         throw VarException(::format("left ({0})'s sign does not match with right ({1}). {2} <- {3}",
@@ -92,14 +92,14 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
 
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
-        throw ::runtime_error("cannot add statement block to the if statement body");
+        throw StmtException("cannot add statement block to the if statement body", {this});
     stmt->set_parent(this);
     then_body_->add_stmt(stmt);
 }
 
 void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
-        throw ::runtime_error("cannot add statement block to the if statement body");
+        throw StmtException("cannot add statement block to the if statement body", {this});
     stmt->set_parent(this);
     else_body_->add_stmt(stmt);
 }
@@ -143,10 +143,11 @@ StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), bloc
 void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
     // it cannot add another block stmt
     if (stmt->type() == StatementType::Block) {
-        throw ::runtime_error("cannot add statement block to another statement block");
+        throw StmtException("cannot add statement block to another statement block",
+                            {this, stmt.get()});
     }
     if (std::find(stmts_.begin(), stmts_.end(), stmt) != stmts_.end()) {
-        throw ::runtime_error("cannot add the same block to the block list");
+        throw StmtException("Cannot add the same block to the block list", {this, stmt.get()});
     }
     // if it is an assign statement, check the assignment as well
     if (stmt->type() == StatementType::Assign) {
@@ -155,10 +156,12 @@ void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
             // let the passes to figure this out
         } else if (assign_stmt->assign_type() == AssignmentType::NonBlocking &&
                    block_type_ == StatementBlockType::Combinational) {
-            throw ::runtime_error("cannot add blocking assignment to a sequential block");
+            throw StmtException("cannot add blocking assignment to a sequential block",
+                                {this, stmt.get()});
         } else if (assign_stmt->assign_type() == AssignmentType::Blocking &&
                    block_type_ == StatementBlockType::Sequential) {
-            throw ::runtime_error("cannot add non-blocking assignment to a combinational block");
+            throw StmtException("cannot add non-blocking assignment to a combinational block",
+                                {this, stmt.get()});
         }
     }
     stmt->set_parent(this);
@@ -198,7 +201,8 @@ SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
     : Stmt(StatementType::Switch), target_(target) {
     // we don't allow const target
     if (target->type() == VarType::ConstValue)
-        throw ::runtime_error(::format("switch target cannot be const value {0}", target->name));
+        throw StmtException(::format("switch target cannot be const value {0}", target->name),
+                            {this, target.get()});
     auto stmt = target_->generator->get_null_var(target_)->assign(target_);
     stmt->set_parent(this);
 }
@@ -314,7 +318,7 @@ std::shared_ptr<Port> FunctionStmtBlock::input(const std::string &name, uint32_t
 
 std::shared_ptr<Port> FunctionStmtBlock::get_port(const std::string &port_name) {
     if (ports_.find(port_name) == ports_.end())
-        throw ::runtime_error(::format("cannot find {0}", port_name));
+        throw UserException(::format("cannot find {0}", port_name));
     return ports_.at(port_name);
 }
 
@@ -330,24 +334,23 @@ std::shared_ptr<ReturnStmt> FunctionStmtBlock::return_stmt(const std::shared_ptr
 
 void FunctionStmtBlock::set_port_ordering(const std::map<std::string, uint32_t> &ordering) {
     if (ordering.size() != ports_.size())
-        throw ::runtime_error("Port ordering size does not match with declared outputs");
-    for (auto const &iter: ordering) {
+        throw UserException("Port ordering size does not match with declared outputs");
+    for (auto const &iter : ordering) {
         if (ports_.find(iter.first) == ports_.end())
-            throw ::runtime_error(::format("{0} does not exist"));
+            throw UserException(::format("{0} does not exist"));
     }
     port_ordering_ = ordering;
 }
 
 void FunctionStmtBlock::set_port_ordering(const std::map<uint32_t, std::string> &ordering) {
     std::map<std::string, uint32_t> result;
-    for (auto const &[index, name]: ordering) {
+    for (auto const &[index, name] : ordering) {
         result.emplace(name, index);
     }
     set_port_ordering(result);
 }
 
-ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def,
-                       std::shared_ptr<Var> value)
+ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def, std::shared_ptr<Var> value)
     : Stmt(StatementType::Return), func_def_(func_def), value_(std::move(value)) {}
 
 void ReturnStmt::set_parent(kratos::IRNode *parent) {
@@ -424,11 +427,13 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
             // source (all bits combined)
             if (slices.empty()) {
                 if (sources.empty())
-                    throw ::runtime_error(
-                        ::format("{0}.{1} is not connected", target->name, port_name));
+                    throw VarException(
+                        ::format("{0}.{1} is not connected", target->name, port_name),
+                        {port.get()});
                 if (sources.size() > 1)
-                    throw ::runtime_error(
-                        ::format("{0}.{1} is driven by multiple nets", target->name, port_name));
+                    throw VarException(
+                        ::format("{0}.{1} is driven by multiple nets", target->name, port_name),
+                        {port.get()});
                 // add it to the port mapping and we are good to go
                 auto const &stmt = *sources.begin();
                 port_mapping_.emplace(port, stmt->right());
@@ -437,7 +442,7 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                 }
             } else {
                 // you need to run a de-slice pass on the module references first
-                throw ::runtime_error(
+                throw InternalException(
                     "Input slices not supported in the statement. "
                     "Please run a de-couple pass first");
             }
@@ -453,13 +458,13 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                         port_debug_.emplace(port, stmt);
                     }
                 } else if (!sinks.empty() && sinks.size() > 1) {
-                    throw ::runtime_error(
+                    throw InternalException(
                         "Output slices not supported in the statement. "
                         "Please run a de-couple pass first");
                 }
             }
         } else {
-            throw ::runtime_error("Inout port type not implemented");
+            throw InternalException("Inout port type not implemented");
         }
     }
 }

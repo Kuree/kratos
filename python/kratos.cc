@@ -21,6 +21,7 @@ void init_expr(py::module &m);
 void init_stmt(py::module &m);
 void init_enum_type(py::module &m);
 void init_fsm(py::module &m);
+void init_except(py::module &m);
 
 // bind all the enums
 void init_enum(py::module &m) {
@@ -79,12 +80,7 @@ void init_enum(py::module &m) {
         .value("Clock", VarCastType::Clock);
 }
 
-// exception module
-void init_except(py::module &m) {
-    auto except_m = m.def_submodule("exception");
-    py::register_exception<VarException>(except_m, "VarException");
-    py::register_exception<StmtException>(except_m, "StmtException");
-}
+
 
 // util submodule
 void init_util(py::module &m) {

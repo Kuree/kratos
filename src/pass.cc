@@ -24,9 +24,10 @@ public:
         if (stmt->assign_type() == AssignmentType::Undefined) {
             stmt->set_assign_type(type_);
         } else if (check_type_ && stmt->assign_type() != type_) {
-            throw ::runtime_error(::format("mismatch in assignment type. should be {0}, got {1}",
-                                           assign_type_to_str(type_),
-                                           assign_type_to_str(stmt->assign_type())));
+            throw VarException(
+                ::format("mismatch in assignment type. should be {0}, got {1}",
+                         assign_type_to_str(type_), assign_type_to_str(stmt->assign_type())),
+                {stmt->left().get(), stmt->right().get()});
         }
     }
 
@@ -124,14 +125,15 @@ private:
         }
 
         if (has_error) {
-            std::vector<Stmt*> stmt_list{};
+            std::vector<Stmt*> stmt_list;
+            stmt_list.reserve(sources.size());
             // prepare the error
             for (auto const& stmt : sources) {
                 stmt_list.emplace_back(stmt.get());
             }
             throw StmtException(::format("{0} has wire assignment yet is also used in always block",
                                          var->to_string()),
-                                stmt_list);
+                                stmt_list.begin(), stmt_list.end());
         }
     }
 };
@@ -213,7 +215,8 @@ bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& 
                 if (ptr_parent != port.get()) {
                     // it got be a sliced by var
                     if (!ptr->sliced_by_var())
-                        throw ::runtime_error("Internal error. Variable has un-related sources");
+                        throw VarException("Internal error. Variable has un-related sources",
+                                           {port.get()});
                     // it's actually not driven by the current net
                     continue;
                 } else {
@@ -264,7 +267,7 @@ public:
                         throw StmtException(
                             ::format("{0}[{1}] is a floating net. Please check your connections",
                                      port_name, i),
-                            stmt_list);
+                            stmt_list.begin(), stmt_list.end());
                     }
                 }
             }
@@ -347,7 +350,7 @@ public:
                                     }
                                     throw StmtException(
                                         "Cannot fix up unpacked array due to irregular slicing",
-                                        stmts);
+                                        stmts.begin(), stmts.end());
                                 }
                                 // compute the low and high
                                 ll = l / port->var_width;
@@ -406,8 +409,7 @@ public:
                 stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
             }
             auto comment = generator->get_child_comment(child->instance_name);
-            if (!comment.empty())
-                stmt->comment = comment;
+            if (!comment.empty()) stmt->comment = comment;
             generator->add_stmt(stmt);
         }
     }
@@ -525,8 +527,10 @@ public:
                 // create a new variable
                 auto ast_parent = generator->parent();
                 if (!ast_parent)
-                    throw ::runtime_error(::format(
-                        "{0}'s parent is empty but it's not a top module", generator->name));
+                    throw GeneratorException(
+                        ::format("{0}'s parent is empty but it's not a top module",
+                                 generator->name),
+                        {generator});
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
@@ -566,8 +570,10 @@ public:
                 // create a new variable
                 auto ast_parent = generator->parent();
                 if (!ast_parent)
-                    throw ::runtime_error(::format(
-                        "{0}'s parent is empty but it's not a top module", generator->name));
+                    throw GeneratorException(
+                        ::format("{0}'s parent is empty but it's not a top module",
+                                 generator->name),
+                        {generator});
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
@@ -587,7 +593,7 @@ public:
                 // replace all the sources
                 Var::move_sink_to(port.get(), var.get(), parent, true);
             } else {
-                throw ::runtime_error("Not implement yet");
+                throw InternalException("Not implement yet");
             }
         }
     }
@@ -612,22 +618,25 @@ public:
         auto vars = generator->get_vars();
         auto ports = generator->get_port_names();
         if (!vars.empty()) {
-            throw ::runtime_error(
-                fmt::format("{0} is declared as stub but has declared variables", generator->name));
+            throw GeneratorException(
+                fmt::format("{0} is declared as stub but has declared variables", generator->name),
+                {generator});
         }
 
         for (auto const& port_name : ports) {
             auto port = generator->get_port(port_name);
             if (port->port_direction() == PortDirection::In) {
                 if (!port->sinks().empty())
-                    throw ::runtime_error(
+                    throw VarException(
                         fmt::format("{0}.{1} is driving a net, but {0} is declared as a stub",
-                                    generator->name, port_name));
+                                    generator->name, port_name),
+                        {port.get(), generator});
             } else {
                 if (!port->sources().empty())
-                    throw ::runtime_error(
+                    throw VarException(
                         fmt::format("{0}.{1} is driven by a net, but {0} is declared as a stub",
-                                    generator->name, port_name));
+                                    generator->name, port_name),
+                        {port.get(), generator});
                 generator->add_stmt(port->assign(constant(0, port->width)));
             }
         }
@@ -663,7 +672,7 @@ public:
                 for (const auto& st : var->sources()) stmt_list.emplace_back(st.get());
                 throw StmtException(::format("Mixed assignment detected for variable {0}.{1}",
                                              generator->name, name),
-                                    stmt_list);
+                                    stmt_list.begin(), stmt_list.end());
             }
         }
     }
@@ -1219,8 +1228,9 @@ public:
                 if (!clock_names.empty()) clock_name = clock_names[0];
             }
             if (clock_name.empty()) {
-                throw std::runtime_error(
-                    ::format("Unable to find clock signal for generator {0}", generator->name));
+                throw GeneratorException(
+                    ::format("Unable to find clock signal for generator {0}", generator->name),
+                    {generator});
             }
             auto clock_port = generator->get_port(clock_name);
             // we need to create all the registers based on the posedge of the clock
@@ -1334,7 +1344,7 @@ void merge_bundle_mapping(
             uint64_t hash = hash_64_fnv1a(base_str.c_str(), base_str.size());
             if (bundle_hashs.find(generator) != bundle_hashs.end()) {
                 if (bundle_hashs.at(generator) != hash)
-                    throw ::runtime_error(::format(
+                    throw UserException(::format(
                         "Port bundle with same name {0} have different definition", bundle_name));
             }
             bundle_hashs.emplace(generator, hash);
@@ -1352,12 +1362,12 @@ void merge_bundle_mapping(
                 base_hash = hash;
             } else {
                 if (base_hash != hash) {
-                    throw ::runtime_error(::format(
+                    throw UserException(::format(
                         "Port bundle with same name {0} have different definition", bundle_name));
                 }
             }
         }
-        if (!ref_generator) throw ::runtime_error("Internal error. ref generator cannot be null");
+        if (!ref_generator) throw InternalException("ref generator cannot be null");
         // create a packed struct
         std::vector<std::tuple<std::string, uint32_t, bool>> def;
         auto const& mapping = ref_port_ref->name_mappings();
@@ -1378,7 +1388,7 @@ void merge_bundle_mapping(
                 auto target = generator->get_port(real_name);
                 auto& slice = packed[attr];
                 if (dir != target->port_direction())
-                    throw ::runtime_error("Internal error: direction doesn't match");
+                    throw InternalException("Direction doesn't match");
                 // depends on the direction, the parent can change;
                 if (dir == PortDirection::In) {
                     if (p) {
@@ -1445,7 +1455,7 @@ bool check_return(Stmt* stmt) {
                 std::vector<Stmt*> stmts;
                 for (uint64_t i = index + 1; i < block->child_count(); i++)
                     stmts.emplace_back(dynamic_cast<Stmt*>(block->get_child(i)));
-                throw StmtException("Unreachable code block", {stmts});
+                throw StmtException("Unreachable code block", stmts.begin(), stmts.end());
             }
         }
         return found;
@@ -1487,7 +1497,7 @@ public:
                 throw StmtException(
                     ::format("{0} does not have return statement in all control flows",
                              func->function_name()),
-                    stmts);
+                    stmts.begin(), stmts.end());
             }
         }
     }
@@ -1532,12 +1542,12 @@ public:
         uint64_t size = std::accumulate(lists.begin(), lists.end(), 0,
                                         [](uint64_t s, auto lst) { return s + lst->size(); });
         if (size != stmts.size())
-            throw ::runtime_error("Internal error: unable to sort all the statements");
+            throw InternalException("Unable to sort all the statements");
         std::vector<std::shared_ptr<Stmt>> result;
         result.reserve(stmts.size());
         for (auto assign : lists) result.insert(result.end(), assign->begin(), assign->end());
         if (result.size() != stmts.size())
-            throw ::runtime_error("Internal error: unable to sort all the statements");
+            throw InternalException("Unable to sort all the statements");
         top->set_stmts(result);
     }
 };
@@ -1549,20 +1559,20 @@ void sort_stmts(Generator* top) {
 
 void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
-        throw ::runtime_error(::format("{0} already exists in the pass manager", name));
+        throw UserException(::format("{0} already exists in the pass manager", name));
     passes_.emplace(name, std::move(fn));
 }
 
 void PassManager::register_pass(const std::string& name, void(fn)(Generator*)) {
     if (has_pass(name))
-        throw ::runtime_error(::format("{0} already exists in the pass manager", name));
+        throw UserException(::format("{0} already exists in the pass manager", name));
     auto func = [=](Generator* generator) { (*fn)(generator); };
     passes_.emplace(name, func);
 }
 
 void PassManager::add_pass(const std::string& name) {
     if (!has_pass(name))
-        throw ::runtime_error(::format("{0} doesn't exists in the pass manager", name));
+        throw UserException(::format("{0} doesn't exists in the pass manager", name));
     passes_order_.emplace_back(name);
 }
 

@@ -18,13 +18,13 @@ FSM::FSM(std::string name, kratos::Generator* generator)
     // find the first clock signal
     auto vars = generator->get_ports(PortType::Clock);
     if (vars.empty()) {
-        throw ::runtime_error("Unable to find any clock signal in " + generator->instance_name);
+        throw UserException("Unable to find any clock signal in " + generator->instance_name);
     }
     clk_ = generator_->get_port(vars[0]);
     // find the reset signal
     vars = generator->get_ports(PortType::AsyncReset);
     if (vars.empty()) {
-        throw ::runtime_error("Unable to find any reset signal in " + generator->instance_name);
+        throw UserException("Unable to find any reset signal in " + generator->instance_name);
     }
     reset_ = generator_->get_port(vars[0]);
 }
@@ -41,7 +41,7 @@ void FSM::realize() {
     // first, get state and next state variable
     // compute number of states
     uint64_t num_states = states_.size();
-    if (!num_states) throw ::runtime_error(::format("FSM {0} is empty", fsm_name()));
+    if (!num_states) throw UserException(::format("FSM {0} is empty", fsm_name()));
     uint32_t width = std::ceil(std::log2(num_states));
     // define a enum type
     std::map<std::string, uint64_t> raw_def;
@@ -206,7 +206,7 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
                 if_ = new_if;
             }
         }
-        if (!top_if) throw ::runtime_error("Unable to find any state transition");
+        if (!top_if) throw InternalException("Unable to find any state transition");
         case_state_comb->add_switch_case(enum_def.get_enum(state_name), top_if);
     }
 
@@ -270,7 +270,7 @@ void FSM::output(const std::string& var_name) {
 }
 
 void FSM::output(const std::shared_ptr<Var>& var) {
-    if (!var) throw ::runtime_error(::format("var not found in {0}", generator_->instance_name));
+    if (!var) throw UserException(::format("var not found in {0}", generator_->instance_name));
     // very strict checking of ownership
     if (var->parent() != generator_) {
         if (var->parent()->parent() != generator_)
@@ -282,7 +282,7 @@ void FSM::output(const std::shared_ptr<Var>& var) {
 
 std::shared_ptr<FSMState> FSM::add_state(const std::string& name) {
     if (states_.find(name) != states_.end())
-        throw ::runtime_error(::format("{0} already exists in the FSM", name));
+        throw UserException(::format("{0} already exists in the FSM", name));
     auto ptr = std::make_shared<FSMState>(name, this);
     states_.emplace(name, ptr);
     state_names_.emplace_back(name);
@@ -298,7 +298,7 @@ std::shared_ptr<FSMState> FSM::add_state(const std::string& name,
 
 std::shared_ptr<FSMState> FSM::get_state(const std::string& name) {
     if (states_.find(name) == states_.end())
-        throw ::runtime_error(::format("Cannot find {0} in the FSM", name));
+        throw UserException(::format("Cannot find {0} in the FSM", name));
     return states_.at(name);
 }
 
