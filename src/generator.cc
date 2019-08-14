@@ -361,79 +361,6 @@ std::shared_ptr<CombinationalStmtBlock> Generator::combinational() {
     return stmt;
 }
 
-void Generator::replace_child_generator(const std::shared_ptr<Generator> &target,
-                                        const std::shared_ptr<Generator> &new_generator) {
-    auto parent = target->parent();
-    if (parent->ir_node_kind() != IRNodeKind::GeneratorKind)
-        throw GeneratorException(::format("{0} is a top level module and thus cannot be replaced",
-                                          target->instance_name),
-                                 {target.get()});
-    auto parent_generator = reinterpret_cast<Generator *>(parent);
-    if (parent_generator != this)
-        throw GeneratorException(
-            ::format("{0} is not in {1}", target->instance_name, instance_name),
-            {target.get(), this});
-    if (!has_child_generator(target))
-        throw GeneratorException(
-            ::format("{0} doesn't belong to {1}", target->instance_name, instance_name),
-            {target.get(), this});
-    // checking for the same interface, for now
-    auto target_port_names = target->get_port_names();
-    auto new_port_names = target->get_port_names();
-    if (target_port_names.size() != new_port_names.size())
-        throw UserException(
-            ::format("{0}'s number of ports don't match with {1}'s. Got {2}, need {3}",
-                     new_generator->instance_name, target->instance_name, new_port_names.size(),
-                     target_port_names.size()));
-    // checking
-    for (auto const &port_name : target_port_names) {
-        auto target_port = target->get_port(port_name);
-        auto new_port = new_generator->get_port(port_name);
-        if (!new_port) {
-            throw VarException(
-                ::format("Could not find {0} from {1}, which is required by {2}", port_name,
-                         new_generator->instance_name, target->instance_name),
-                {target_port.get(), new_generator.get(), target.get()});
-        }
-        if (target_port->width != new_port->width)
-            throw VarException(
-                ::format("{0}'s port ({1}) width doesn't match with {2}. Got {3}, need {4}",
-                         new_generator->instance_name, port_name, target->instance_name,
-                         new_port->width, target_port->width),
-                {target_port.get(), new_generator.get(), target.get()});
-        if (target_port->is_signed != new_port->is_signed)
-            throw VarException(
-                ::format("{0}'s port ({1}) sign doesn't match with {2}. Got {3}, need {4}",
-                         new_generator->instance_name, port_name, target->instance_name,
-                         new_port->is_signed, target_port->is_signed),
-                {target_port.get(), new_generator.get(), target.get()});
-        if (target_port->port_type() != new_port->port_type())
-            throw VarException(
-                ::format("{0}'s port ({1}) type doesn't match with {2}. Got {3}, need {4}",
-                         new_generator->instance_name, port_name, target->instance_name,
-                         port_type_to_str(new_port->port_type()),
-                         port_type_to_str(target_port->port_type())),
-                {target_port.get(), new_generator.get(), target.get()});
-        if (target_port->port_direction() != new_port->port_direction())
-            throw VarException(
-                ::format("{0}'s port ({1}) direction doesn't match with {2}. Got {3}, need {4}",
-                         new_generator->instance_name, port_name, target->instance_name,
-                         port_dir_to_str(new_port->port_direction()),
-                         port_dir_to_str(target_port->port_direction())),
-                {target_port.get(), new_generator.get(), target.get()});
-        // the actual replacement
-        if (target_port->port_direction() == PortDirection::In) {
-            Var::move_src_to(target_port.get(), new_port.get(), parent_generator, false);
-        } else {
-            Var::move_sink_to(target_port.get(), new_port.get(), parent_generator, false);
-        }
-    }
-
-    if (!parent_generator->has_child_generator(new_generator))
-        parent_generator->add_child_generator(new_generator->instance_name, new_generator);
-    parent_generator->remove_child_generator(target);
-}
-
 void inline check_direction(const Port *port1, Port *port2, bool same_direction = false) {
     auto port1_dir = port1->port_direction();
     PortDirection correct_dir;
@@ -661,8 +588,8 @@ void Generator::replace(const std::string &child_name,
     }
 
     // update other meta data info
-    children_[child_name] = new_child;
-    children_debug_.erase(child_name);
+    remove_child_generator(old_child);
+    add_child_generator(child_name, new_child);
 }
 
 void Generator::replace(const std::string &child_name, const std::shared_ptr<Generator> &new_child,

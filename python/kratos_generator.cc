@@ -58,7 +58,6 @@ void init_generator(py::module &m) {
         .def("remove_child_generator", &Generator::remove_child_generator)
         .def("get_child_generators", &Generator::get_child_generators)
         .def("get_child_generator_size", &Generator::get_child_generator_size)
-        .def("replace_child_generator", &Generator::replace_child_generator)
         .def("external", &Generator::external)
         .def("set_external", &Generator::set_external)
         .def("external_filename", &Generator::external_filename)

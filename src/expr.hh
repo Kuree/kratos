@@ -42,7 +42,10 @@ enum ExprOp : uint64_t {
     Neq,
 
     // ternary
-    Conditional
+    Conditional,
+
+    // special
+    Concat
 };
 
 bool is_relational_op(ExprOp op);
@@ -239,27 +242,6 @@ private:
     Var *sliced_var_;
 };
 
-struct VarConcat : public Var {
-public:
-    VarConcat(Generator *m, const std::shared_ptr<Var> &first, const std::shared_ptr<Var> &second);
-    VarConcat(VarConcat *first, const std::shared_ptr<Var> &second);
-
-    // we tie it to the parent
-    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
-    void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
-
-    std::vector<std::shared_ptr<Var>> &vars() { return vars_; }
-
-    VarConcat &concat(Var &var) override;
-
-    void accept(IRVisitor *visitor) override { visitor->visit(this); }
-
-    std::string to_string() const override;
-
-private:
-    std::vector<std::shared_ptr<Var>> vars_;
-};
-
 struct Const : public Var {
     // need to rewrite the const backend since the biggest number is uint64_t, which may not
 public:
@@ -277,11 +259,13 @@ public:
     static Const &constant(int64_t value, uint32_t width, bool is_signed);
     Const(int64_t value, uint32_t width, bool is_signed);
 
+    static const Generator *const_gen() { return const_generator_.get(); }
+
 private:
     int64_t value_;
     // created without a generator holder
     static std::unordered_set<std::shared_ptr<Const>> consts_;
-    static std::unique_ptr<Generator> const_generator_;
+    static std::shared_ptr<Generator> const_generator_;
 };
 
 // helper function
@@ -347,6 +331,7 @@ private:
 };
 
 struct Expr : public Var {
+public:
     ExprOp op;
     std::shared_ptr<Var> left;
     std::shared_ptr<Var> right;
@@ -359,6 +344,31 @@ struct Expr : public Var {
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return right ? 2 : 1; }
     IRNode *get_child(uint64_t index) override;
+
+protected:
+    Expr(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right);
+};
+
+
+struct VarConcat : public Expr {
+public:
+    VarConcat(const std::shared_ptr<Var> &first, const std::shared_ptr<Var> &second);
+    VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_ptr<Var> &second);
+
+    // we tie it to the parent
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+
+    std::vector<std::shared_ptr<Var>> &vars() { return vars_; }
+
+    VarConcat &concat(Var &var) override;
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+    std::string to_string() const override;
+
+private:
+    std::vector<std::shared_ptr<Var>> vars_;
 };
 
 struct ConditionalExpr : public Expr {

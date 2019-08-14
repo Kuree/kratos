@@ -6,8 +6,8 @@
 #include "fmt/format.h"
 #include "generator.hh"
 #include "stmt.hh"
-#include "util.hh"
 #include "syntax.hh"
+#include "util.hh"
 
 using fmt::format;
 using std::make_shared;
@@ -190,7 +190,7 @@ VarConcat &Var::concat(Var &var) {
             return *exist_var;
         }
     }
-    auto concat_ptr = std::make_shared<VarConcat>(generator, shared_from_this(), ptr);
+    auto concat_ptr = std::make_shared<VarConcat>(shared_from_this(), ptr);
     concat_vars_.emplace(concat_ptr);
     return *concat_ptr;
 }
@@ -311,7 +311,7 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
       left(left),
       right(right) {
     if (left == nullptr) throw UserException("left operand is null");
-    generator = left->generator;
+
     if (right != nullptr && left->width != right->width)
         throw VarException(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
@@ -329,7 +329,13 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
     else
         is_signed = left->is_signed;
     type_ = VarType::Expression;
+    if (left->generator == Const::const_gen() && right) generator = right->generator;
 }
+
+Expr::Expr(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right)
+    : Var(left->generator, "", left->width / left->size, left->size, left->is_signed),
+      left(left),
+      right(std::move(right)) {}
 
 Var::Var(Generator *module, const std::string &name, uint32_t width, uint32_t size, bool is_signed)
     : Var(module, name, width, size, is_signed, VarType::Base) {}
@@ -414,7 +420,7 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
 
 Const::Const(int64_t value, uint32_t width, bool is_signed)
     : Const(nullptr, value, width, is_signed) {
-    if (!const_generator_) const_generator_ = std::make_unique<Generator>(nullptr, "");
+    if (!const_generator_) const_generator_ = std::make_shared<Generator>(nullptr, "");
     generator = const_generator_.get();
 }
 
@@ -425,7 +431,7 @@ Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
 }
 
 std::unordered_set<std::shared_ptr<Const>> Const::consts_ = {};
-std::unique_ptr<Generator> Const::const_generator_ = nullptr;
+std::shared_ptr<Generator> Const::const_generator_ = nullptr;
 
 VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     : Var(parent->generator, "", parent->width, true, parent->type()),
@@ -493,18 +499,6 @@ Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
     type_ = VarType::Parameter;
 }
 
-VarConcat::VarConcat(Generator *m, const std::shared_ptr<Var> &first,
-                     const std::shared_ptr<Var> &second)
-    : Var(m, "", first->width + second->width, 1, first->is_signed && second->is_signed,
-          VarType::Expression) {
-    if (first->is_signed != second->is_signed)
-        throw VarException(
-            ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
-            {first.get(), second.get()});
-    vars_.emplace_back(first);
-    vars_.emplace_back(second);
-}
-
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
     for (auto &var : vars_) {
         var->add_source(stmt);
@@ -526,19 +520,31 @@ std::string VarConcat::to_string() const {
     return ::format("{{{0}}}", content);
 }
 
-VarConcat::VarConcat(VarConcat *first, const std::shared_ptr<Var> &second)
-    : Var(first->generator, "", first->width + second->width, 1,
-          first->is_signed && second->is_signed, VarType::Expression) {
+VarConcat::VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_ptr<Var> &second)
+    : Expr(first, second) {
     if (first->is_signed != second->is_signed)
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
-            {first, second.get()});
+            {first.get(), second.get()});
     vars_ = std::vector<std::shared_ptr<Var>>(first->vars_.begin(), first->vars_.end());
     vars_.emplace_back(second);
+    width = first->width + second->width;
+    op = ExprOp::Concat;
+}
+
+VarConcat::VarConcat(const std::shared_ptr<Var> &first, const std::shared_ptr<Var> &second)
+    : Expr(first, second) {
+    if (first->is_signed != second->is_signed)
+        throw VarException(
+            ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
+            {first.get(), second.get()});
+    vars_ = {first, second};
+    width = first->width + second->width;
+    op = ExprOp::Concat;
 }
 
 VarConcat &VarConcat::concat(kratos::Var &var) {
-    auto result = std::make_shared<VarConcat>(this, var.shared_from_this());
+    auto result = std::make_shared<VarConcat>(as<VarConcat>(), var.shared_from_this());
     // add it to the first one
     vars_[0]->add_concat_var(result);
     return *result;

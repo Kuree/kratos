@@ -1039,4 +1039,4 @@ def test_packed_array():
 
 
 if __name__ == "__main__":
-    test_packed_array()
+    test_replace()

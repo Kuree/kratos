@@ -369,11 +369,11 @@ TEST(pass, replace) {  // NOLINT
     mod1.add_stmt(in2.assign(in1));
     mod1.add_stmt(out1.assign(out2));
 
-    EXPECT_THROW(mod1.replace_child_generator(mod2.shared_from_this(), mod3.shared_from_this()),
+    EXPECT_THROW(mod1.replace(mod2.instance_name, mod3.shared_from_this()),
                  VarException);
     in3.width = 1;
     out3.width = 1;
-    EXPECT_NO_THROW(mod1.replace_child_generator(mod2.shared_from_this(), mod3.shared_from_this()));
+    EXPECT_NO_THROW(mod1.replace(mod2.instance_name, mod3.shared_from_this()));
     EXPECT_EQ(mod1.get_child_generator_size(), 1);
     fix_assignment_type(&mod1);
     create_module_instantiation(&mod1);
@@ -651,4 +651,14 @@ TEST(generator, var_var_slicing) {  // NOLINT
 
     check_mixed_assignment(&mod);
     verify_generator_connectivity(&mod);
+}
+
+TEST(generator, var_concat_check) { // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &in = mod.port(PortDirection::In, "in", 1);
+    auto &out = mod.port(PortDirection::Out, "out", 2);
+    mod.add_stmt(out.assign(constant(0, 1).concat(in), Blocking));
+
+    EXPECT_NO_THROW(check_mixed_assignment(&mod));
 }

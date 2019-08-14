@@ -113,7 +113,7 @@ TEST(expr, concat) {  // NOLINT
     EXPECT_EQ(var3_.to_string(), "{a, b, b}");
 
     // test raw constructor
-    const auto &concat = VarConcat(&mod, var1.shared_from_this(), var2.shared_from_this());
+    const auto &concat = VarConcat(var1.shared_from_this(), var2.shared_from_this());
     EXPECT_EQ(concat.to_string(), var3.to_string());
 }
 

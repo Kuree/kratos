@@ -76,6 +76,8 @@ std::string ExprOpStr(ExprOp op) {
             return "!=";
         case Conditional:
             return ":";
+        case Concat:
+            return ",";
         default:
             throw std::runtime_error("unable to find op");
     }

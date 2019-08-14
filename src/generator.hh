@@ -104,9 +104,6 @@ public:
     bool has_child_generator(const std::shared_ptr<Generator> &child);
     void accept_generator(IRVisitor *visitor) { visitor->visit(this); }
 
-    void replace_child_generator(const std::shared_ptr<Generator> &target,
-                                 const std::shared_ptr<Generator> &new_generator);
-
     // AST stuff
     void accept(IRVisitor *visitor) override;
     uint64_t inline child_count() override {
