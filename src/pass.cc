@@ -682,43 +682,36 @@ private:
     }
 
     void check_var_parent(Generator* generator, Var* dst_var, Var* var) const {
-        if (!var || !dst_var) return;
-        if (var->type() == VarType::Expression) {
-            auto expr = var->as<Expr>();
-            check_var_parent(generator, dst_var, expr->left.get());
-            check_var_parent(generator, dst_var, expr->right.get());
-        } else {
-            auto gen = var->generator;
-            if (gen == Const::const_gen()) return;
-            if (generator != gen) {
-                // if it's an input port, the parent context is different
-                if (dst_var->type() == VarType::Slice) {
-                    auto slice = dynamic_cast<VarSlice*>(dst_var);
-                    dst_var = slice->get_var_root_parent();
-                }
-                if (dst_var->type() == VarType::PortIO) {
-                    auto port = dynamic_cast<Port*>(dst_var);
-                    if (port->port_direction() == PortDirection::In) {
-                        auto context_g = dst_var->generator->parent();
-                        if (gen != context_g && gen->parent() != context_g) {
-                            throw VarException(
-                                ::format("{0}.{1} cannot be wired to {2}.{3} because {0} is "
-                                         "not a child generator of {2}",
-                                         generator->instance_name, dst_var->to_string(),
-                                         gen->instance_name, var->to_string()),
-                                {generator, gen, dst_var, var});
-                        }
-                        return;
+        auto gen = var->generator;
+        if (gen == Const::const_gen()) return;
+        if (generator != gen) {
+            // if it's an input port, the parent context is different
+            if (dst_var->type() == VarType::Slice) {
+                auto slice = dynamic_cast<VarSlice*>(dst_var);
+                dst_var = slice->get_var_root_parent();
+            }
+            if (dst_var->type() == VarType::PortIO) {
+                auto port = dynamic_cast<Port*>(dst_var);
+                if (port->port_direction() == PortDirection::In) {
+                    auto context_g = dst_var->generator->parent();
+                    if (gen != context_g && gen->parent() != context_g) {
+                        throw VarException(
+                            ::format("{0}.{1} cannot be wired to {2}.{3} because {0} is "
+                                     "not a child generator of {2}",
+                                     generator->instance_name, dst_var->to_string(),
+                                     gen->instance_name, var->to_string()),
+                            {generator, gen, dst_var, var});
                     }
+                    return;
                 }
-                if (gen->parent() != generator) {
-                    printf("%p\n", (void*)gen->parent());
-                    throw VarException(::format("{0}.{1} cannot be wired to {2}.{3} because {2} is "
-                                                "not a child generator of {0}",
-                                                generator->instance_name, dst_var->to_string(),
-                                                gen->instance_name, var->to_string()),
-                                       {generator, gen, dst_var, var});
-                }
+            }
+            if (gen->parent() != generator) {
+                printf("%p\n", (void*)gen->parent());
+                throw VarException(::format("{0}.{1} cannot be wired to {2}.{3} because {2} is "
+                                            "not a child generator of {0}",
+                                            generator->instance_name, dst_var->to_string(),
+                                            gen->instance_name, var->to_string()),
+                                   {generator, gen, dst_var, var});
             }
         }
     }

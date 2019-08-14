@@ -346,7 +346,11 @@ public:
     IRNode *get_child(uint64_t index) override;
 
 protected:
+    // caller is responsible for the op
     Expr(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right);
+
+private:
+    void set_parent();
 };
 
 

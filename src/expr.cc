@@ -329,14 +329,41 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
     else
         is_signed = left->is_signed;
     type_ = VarType::Expression;
-    if (left->generator == Const::const_gen() && right) generator = right->generator;
+    set_parent();
 }
 
 Expr::Expr(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right)
     : Var(left->generator, "", left->width / left->size, left->size, left->is_signed),
+      op(ExprOp::Add),
       left(left),
       right(std::move(right)) {
     type_ = VarType::Expression;
+    set_parent();
+}
+
+void Expr::set_parent() {
+    // compute the right parent for the expr
+    // it can only go up
+    if (!right) {
+        generator = left->generator;
+    } else {
+        auto left_gen = left->generator;
+        auto right_gen = right->generator;
+        if (left_gen == Const::const_gen()) {
+            generator = right_gen;
+        } else if (right_gen == Const::const_gen()) {
+            generator = left_gen;
+        } else if (left_gen == right_gen) {
+            generator = left->generator;
+        } else {
+            // choose the top one
+            if (left_gen == right_gen->parent()) {
+                generator = left_gen;
+            } else {
+                generator = right_gen;
+            }
+        }
+    }
 }
 
 Var::Var(Generator *module, const std::string &name, uint32_t width, uint32_t size, bool is_signed)
