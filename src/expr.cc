@@ -335,7 +335,9 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
 Expr::Expr(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right)
     : Var(left->generator, "", left->width / left->size, left->size, left->is_signed),
       left(left),
-      right(std::move(right)) {}
+      right(std::move(right)) {
+    type_ = VarType::Expression;
+}
 
 Var::Var(Generator *module, const std::string &name, uint32_t width, uint32_t size, bool is_signed)
     : Var(module, name, width, size, is_signed, VarType::Base) {}
