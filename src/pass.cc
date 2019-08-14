@@ -788,7 +788,7 @@ public:
 
 void check_active_high(Generator* top) {
     ActiveVisitor visitor;
-    visitor.visit_generator_root_p(top);
+    visitor.visit_root(top);
 }
 
 class TransformIfCase : public IRVisitor {

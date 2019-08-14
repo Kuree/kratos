@@ -369,8 +369,7 @@ TEST(pass, replace) {  // NOLINT
     mod1.add_stmt(in2.assign(in1));
     mod1.add_stmt(out1.assign(out2));
 
-    EXPECT_THROW(mod1.replace(mod2.instance_name, mod3.shared_from_this()),
-                 VarException);
+    EXPECT_THROW(mod1.replace(mod2.instance_name, mod3.shared_from_this()), VarException);
     in3.width = 1;
     out3.width = 1;
     EXPECT_NO_THROW(mod1.replace(mod2.instance_name, mod3.shared_from_this()));
@@ -653,7 +652,7 @@ TEST(generator, var_var_slicing) {  // NOLINT
     verify_generator_connectivity(&mod);
 }
 
-TEST(generator, var_concat_check) { // NOLINT
+TEST(generator, var_concat_check) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &in = mod.port(PortDirection::In, "in", 1);
@@ -663,7 +662,7 @@ TEST(generator, var_concat_check) { // NOLINT
     EXPECT_NO_THROW(check_mixed_assignment(&mod));
 }
 
-TEST(generator, mixed_assignment) { // NOLINT
+TEST(generator, mixed_assignment) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("mod1");
     auto &in1 = mod1.port(PortDirection::In, "in", 1);
@@ -676,4 +675,13 @@ TEST(generator, mixed_assignment) { // NOLINT
     mod1.add_stmt(out2.assign(in1 + var, Blocking));
 
     EXPECT_THROW(check_mixed_assignment(&mod1), VarException);
+}
+
+TEST(generator, active_low) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &rst = mod.port(PortDirection::In, "reset", 1, 1, PortType::AsyncReset, false);
+    auto seq = mod.sequential();
+    seq->add_condition({BlockEdgeType::Negedge, rst.shared_from_this()});
+    EXPECT_THROW(check_active_high(&mod), VarException);
 }
