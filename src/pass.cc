@@ -696,7 +696,7 @@ private:
         }
     }
 
-    void check_var_parent(Generator* generator, Var* dst_var, Var* var, Stmt *stmt) const {
+    void check_var_parent(Generator* generator, Var* dst_var, Var* var, Stmt* stmt) const {
         auto gen = var->generator;
         if (gen == Const::const_gen()) return;
         if (generator != gen) {
@@ -734,6 +734,61 @@ private:
 void check_mixed_assignment(Generator* top) {
     MixedAssignmentVisitor visitor;
     visitor.visit_generator_root(top);
+}
+
+class ActiveVisitor : public IRVisitor {
+public:
+    void visit(IfStmt* stmt) override {
+        auto predicate = stmt->predicate();
+        // notice this just catch some simple mistakes
+        // thus is designed to be zero false negative
+        if (predicate->type() == VarType::PortIO) {
+            auto port = predicate->as<Port>();
+            if (!port->active_high()) {
+                throw VarException(
+                    ::format("Active low signal should be used as if (~{0})", port->to_string()),
+                    {port.get(), stmt});
+            }
+        } else if (predicate->type() == VarType::Expression) {
+            auto expr = predicate->as<Expr>();
+            if (expr->op == ExprOp::UNot) {
+                auto var = expr->left->as<Var>();
+                if (var->type() == VarType::PortIO) {
+                    auto port = var->as<Port>();
+                    if (port->active_high())
+                        throw VarException(
+                            ::format("Active high signal shouldn't be used as if (~{0})",
+                                     port->to_string()),
+                            {port.get(), stmt});
+                }
+            }
+        }
+    }
+
+    void visit(SequentialStmtBlock* stmt) override {
+        auto const& sensitivity = stmt->get_conditions();
+        for (auto const& [t, v] : sensitivity) {
+            if (v->type() == VarType::PortIO) {
+                auto port = v->as<Port>();
+                if (port->active_high() && t == BlockEdgeType::Negedge) {
+                    throw VarException(
+                        ::format("{0}.{1} is declared as active high, but is used as active low",
+                                 v->generator->instance_name, port->to_string()),
+                        {port.get(), stmt});
+                } else if (!port->active_high() && t == BlockEdgeType::Posedge) {
+                    throw VarException(
+                        ::format("{0}.{1} is declared as active low, but is used as active high",
+                                 v->generator->instance_name, port->to_string()),
+                        {port.get(), stmt});
+                }
+            }
+        }
+    }
+};
+
+void check_active_high(Generator* top) {
+    ActiveVisitor visitor;
+    visitor.visit_generator_root_p(top);
 }
 
 class TransformIfCase : public IRVisitor {
@@ -1682,6 +1737,8 @@ void PassManager::register_builtin_passes() {
     register_pass("check_function_return", &check_function_return);
 
     register_pass("sort_stmts", &sort_stmts);
+
+    register_pass("check_active_high", &check_active_high);
 
     // TODO:
     //  add inline pass

@@ -14,6 +14,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             optimize_fanout: bool = True,
             optimize_bundle: bool = True,
             reorder_stmts: bool = False,
+            check_active_high: bool = True,
             debug: bool = False,
             additional_passes: Dict = None,
             extra_struct: bool = False,
@@ -48,6 +49,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("verify_assignments")
     pass_manager.add_pass("verify_generator_connectivity")
     pass_manager.add_pass("check_mixed_assignment")
+    if check_active_high:
+        pass_manager.add_pass("check_active_high")
     pass_manager.add_pass("check_function_return")
     pass_manager.add_pass("merge_wire_assignments")
     if use_parallel:

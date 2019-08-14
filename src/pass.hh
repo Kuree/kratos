@@ -27,6 +27,8 @@ void zero_generator_inputs(Generator *top);
 
 void check_mixed_assignment(Generator* top);
 
+void check_active_high(Generator* top);
+
 void create_module_instantiation(Generator* top);
 
 void hash_generators(Generator* top, HashStrategy strategy);

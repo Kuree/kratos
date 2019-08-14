@@ -77,7 +77,10 @@ void FSM::realize() {
     //   current_state <= next_state
     auto seq = generator_->sequential();
     seq->add_condition({BlockEdgeType::Posedge, clk_});
-    seq->add_condition({BlockEdgeType ::Posedge, reset_});
+    if (reset_->type() == VarType::PortIO && !reset_->as<Port>()->active_high())
+        seq->add_condition({BlockEdgeType::Negedge, reset_});
+    else
+        seq->add_condition({BlockEdgeType::Posedge, reset_});
     if (!start_state_) {
         // pick a random one?
         start_state_ = get_state(start_state_name);

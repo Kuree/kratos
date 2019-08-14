@@ -26,6 +26,14 @@ Port::Port(Generator* module, PortDirection direction, const ::string& name, uin
 
 void Port::set_port_type(PortType type) { type_ = type; }
 
+void Port::set_active_high(bool value) {
+    if (width != 1)
+        throw VarException(
+            ::format("{0}'s width is not 1, which can not be set as active high/low", name),
+            {this});
+    active_high_ = value;
+}
+
 PortPacked::PortPacked(Generator* module, PortDirection direction, const std::string& name,
                        PackedStruct packed_struct_)
     : Port(module, direction, name, 0, 1, PortType::Data, false),
@@ -47,7 +55,6 @@ PackedSlice& PortPacked::operator[](const std::string& member_name) {
     slices_.emplace(ptr);
     return *ptr;
 }
-
 
 void PortBundleDefinition::add_definition(const std::string& name, uint32_t width, uint32_t size,
                                           bool is_signed, kratos::PortDirection direction,

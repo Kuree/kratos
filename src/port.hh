@@ -31,9 +31,15 @@ public:
     uint64_t child_count() override { return 0; }
     IRNode *get_child(uint64_t) override { return nullptr; }
 
+    // coding convention
+    bool active_high() const { return active_high_; }
+    void set_active_high(bool value);
+
 private:
     PortDirection direction_;
     PortType type_;
+
+    bool active_high_ = true;
 };
 
 struct PortPacked : public Port {
