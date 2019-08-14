@@ -356,11 +356,11 @@ void Expr::set_parent() {
         } else if (left_gen == right_gen) {
             generator = left->generator;
         } else {
-            // choose the top one
+            // choose the lower one
             if (left_gen == right_gen->parent()) {
-                generator = left_gen;
-            } else {
                 generator = right_gen;
+            } else {
+                generator = left_gen;
             }
         }
     }

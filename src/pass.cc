@@ -677,11 +677,26 @@ private:
                                     stmt_list.begin(), stmt_list.end());
             }
             // check assignment
-            check_var_parent(generator, stmt->left().get(), stmt->right().get());
+            check_var_parent(generator, stmt->left().get(), stmt->right().get(), stmt.get());
         }
     }
 
-    void check_var_parent(Generator* generator, Var* dst_var, Var* var) const {
+    static bool has_non_port(Generator* context, Var* var) {
+        if (!var) return false;
+        if (var->type() == VarType::Expression) {
+            auto expr = dynamic_cast<Expr*>(var);
+            return has_non_port(context, expr->left.get()) ||
+                   has_non_port(context, expr->right.get());
+        } else if (var->type() == VarType::Slice) {
+            auto slice = dynamic_cast<VarSlice*>(var);
+            return has_non_port(context, slice->parent_var);
+        } else {
+            return var->generator != context && var->type() != VarType::PortIO &&
+                   var->type() != VarType ::ConstValue;
+        }
+    }
+
+    void check_var_parent(Generator* generator, Var* dst_var, Var* var, Stmt *stmt) const {
         auto gen = var->generator;
         if (gen == Const::const_gen()) return;
         if (generator != gen) {
@@ -705,13 +720,12 @@ private:
                     return;
                 }
             }
-            if (gen->parent() != generator) {
-                printf("%p\n", (void*)gen->parent());
+            if (gen->parent() != generator || has_non_port(generator, var)) {
                 throw VarException(::format("{0}.{1} cannot be wired to {2}.{3} because {2} is "
                                             "not a child generator of {0}",
                                             generator->instance_name, dst_var->to_string(),
                                             gen->instance_name, var->to_string()),
-                                   {generator, gen, dst_var, var});
+                                   {generator, gen, dst_var, var, stmt});
             }
         }
     }

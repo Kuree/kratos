@@ -662,3 +662,18 @@ TEST(generator, var_concat_check) { // NOLINT
 
     EXPECT_NO_THROW(check_mixed_assignment(&mod));
 }
+
+TEST(generator, mixed_assignment) { // NOLINT
+    Context c;
+    auto &mod1 = c.generator("mod1");
+    auto &in1 = mod1.port(PortDirection::In, "in", 1);
+    auto &out2 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("mod2");
+    auto &var = mod2.var("a", 1);
+    mod1.add_child_generator("test", mod2.shared_from_this());
+
+    mod1.add_stmt(out2.assign(in1 + var, Blocking));
+
+    EXPECT_THROW(check_mixed_assignment(&mod1), VarException);
+}
