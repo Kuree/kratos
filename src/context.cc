@@ -51,6 +51,11 @@ uint64_t Context::get_hash(const Generator *generator) const {
 }
 
 void Context::change_generator_name(Generator *generator, const std::string &new_name) {
+    if (new_name.empty() || generator->name.empty()) {
+        // don't care names
+        generator->name = new_name;
+        return;
+    }
     // first we need to make sure that the generator is within the context
     auto const &old_name = generator->name;
     if (generator->context() != this)
