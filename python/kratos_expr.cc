@@ -336,27 +336,21 @@ void init_expr(py::module &m) {
     def_trace<py::class_<Var, ::shared_ptr<Var>>, Var>(var);
 
     auto expr = py::class_<Expr, ::shared_ptr<Expr>, Var>(m, "Expr");
-    def_trace<py::class_<Expr, ::shared_ptr<Expr>, Var>, Expr>(expr);
 
     auto port = py::class_<Port, ::shared_ptr<Port>, Var>(m, "Port");
     port.def("port_direction", &Port::port_direction)
         .def("port_type", &Port::port_type)
         .def_property("active_high", &Port::active_high, &Port::set_active_high);
-    def_trace<py::class_<Port, ::shared_ptr<Port>, Var>, Port>(port);
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
     const_.def("value", &Const::value).def("set_value", &Const::set_value);
-    def_trace<py::class_<Const, ::shared_ptr<Const>, Var>, Const>(const_);
 
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
-    def_trace<py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>, VarSlice>(slice);
 
     auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
-    def_trace<py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>, VarConcat>(concat);
 
     auto param = py::class_<Param, ::shared_ptr<Param>, Var>(m, "Param");
     param.def("value", &Param::value).def("set_value", &Param::set_value);
-    def_trace<py::class_<Param, ::shared_ptr<Param>, Var>, Param>(param);
 
     auto port_packed = py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>(m, "PortPacked");
     port_packed.def("port_direction", &PortPacked::port_direction)
@@ -365,14 +359,12 @@ void init_expr(py::module &m) {
             "__getitem__",
             [](PortPacked & port, const std::string &name) -> auto & { return port[name]; },
             py::return_value_policy::reference);
-    def_trace<py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>, PortPacked>(port_packed);
 
     auto var_packed = py::class_<VarPacked, ::shared_ptr<VarPacked>, Var>(m, "VarPacked");
     var_packed.def(
         "__getitem__",
         [](VarPacked & port, const std::string &name) -> auto & { return port[name]; },
         py::return_value_policy::reference);
-    def_trace<py::class_<VarPacked, ::shared_ptr<VarPacked>, Var>, VarPacked>(var_packed);
 
     // struct info for packed
     auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");
@@ -382,7 +374,6 @@ void init_expr(py::module &m) {
 
     auto port_packed_slice =
         py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>(m, "PackedSlice");
-    def_trace<py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>, VarSlice>(port_packed_slice);
 
     // ternary op
     auto ternary_exp =
@@ -392,8 +383,6 @@ void init_expr(py::module &m) {
     // function call expr
     auto call_Var =
         py::class_<FunctionCallVar, ::shared_ptr<FunctionCallVar>, Var>(m, "FunctionCallVar");
-    def_trace<py::class_<FunctionCallVar, ::shared_ptr<FunctionCallVar>, Var>, FunctionCallVar>(
-        call_Var);
 
     // constant
     m.def("constant", &constant, py::return_value_policy::reference);
