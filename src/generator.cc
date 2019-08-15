@@ -268,6 +268,46 @@ bool Generator::has_child_generator(const std::shared_ptr<Generator> &child) {
     return children_.find(child->instance_name) != children_.end();
 }
 
+bool Generator::has_child_generator(const std::string &child_name) {
+    return children_.find(child_name) != children_.end();
+}
+
+void Generator::rename_child_generator(const std::shared_ptr<Generator>& child,
+                                       const std::string &new_name) {
+    if (!has_child_generator(child))
+        throw GeneratorException(
+            ::format("{0} doesn't belong to {1}", child->instance_name, instance_name),
+            {this, child.get()});
+    if (children_.find(new_name) != children_.end())
+        throw GeneratorException(
+            ::format("Child instance with name {0} already exists in {1}", new_name, instance_name),
+            {this, child.get()});
+    auto child_name = child->instance_name;
+    auto child_handler = children_.extract(child_name);
+    child_handler.key() = new_name;
+    children_.insert(std::move(child_handler));
+    // the commend
+    if (children_comments_.find(child_name) != children_comments_.end()) {
+        auto child_comment_handler = children_comments_.extract(child_name);
+        child_comment_handler.key() = new_name;
+        children_comments_.insert(std::move(child_comment_handler));
+    }
+    // the position holder
+    auto pos = std::find(children_names_.begin(), children_names_.end(), child_name);
+    if (pos == children_names_.end())
+        throw InternalException(::format("Unable to find {0}", child_name));
+    *pos = new_name;
+    // debug info
+    if (children_debug_.find(child_name) != children_debug_.end()) {
+        auto child_debug_handler = children_debug_.extract(child_name);
+        child_debug_handler.key() = new_name;
+        children_debug_.insert(std::move(child_debug_handler));
+    }
+
+    // finally change the instance name of a child
+    child->instance_name = new_name;
+}
+
 std::vector<std::string> Generator::get_vars() {
     std::vector<std::string> result;
     result.reserve(vars_.size());

@@ -102,6 +102,8 @@ public:
     std::vector<std::shared_ptr<Generator>> get_child_generators();
     uint64_t inline get_child_generator_size() const { return children_.size(); }
     bool has_child_generator(const std::shared_ptr<Generator> &child);
+    bool has_child_generator(const std::string &child_name);
+    void rename_child_generator(const std::shared_ptr<Generator>& child, const std::string &new_name);
     void accept_generator(IRVisitor *visitor) { visitor->visit(this); }
 
     // AST stuff

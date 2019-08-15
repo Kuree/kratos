@@ -1038,5 +1038,15 @@ def test_packed_array():
     check_gold(mod, "test_packed_array")
 
 
+def test_rename():
+    mod = PassThroughTop()
+    child = mod["pass"]
+    child.instance_name = "test"
+    assert child == mod["test"]
+    assert mod.internal_generator.has_child_generator("test")
+    child.name = "test2"
+    assert mod["test"].internal_generator.name == "test2"
+
+
 if __name__ == "__main__":
-    test_replace()
+    test_rename()

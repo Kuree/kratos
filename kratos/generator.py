@@ -194,6 +194,7 @@ class Generator(metaclass=GeneratorMeta):
 
         # meta data
         self.__stmt_label_mapping = {}
+        self.__parent = None
 
     def __getitem__(self, instance_name: str):
         """
@@ -239,6 +240,11 @@ class Generator(metaclass=GeneratorMeta):
 
     @instance_name.setter
     def instance_name(self, name: str):
+        if self.__parent is not None:
+            old_name = self.__generator.instance_name
+            ref = self.__parent.__child_generator.pop(old_name)
+            assert ref == self
+            self.__parent.__child_generator[name] = self
         self.__generator.instance_name = name
 
     @property
@@ -519,6 +525,7 @@ class Generator(metaclass=GeneratorMeta):
                           Generator), "generator is not a Generator instance"
 
         self.__child_generator[instance_name] = generator
+        generator.__parent = self
         if self.debug:
             fn, ln = get_fn_ln()
             self.__generator.add_child_generator(instance_name,

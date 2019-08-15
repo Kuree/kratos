@@ -57,6 +57,10 @@ void init_generator(py::module &m) {
                  &Generator::add_child_generator))
         .def("remove_child_generator", &Generator::remove_child_generator)
         .def("get_child_generators", &Generator::get_child_generators)
+        .def("has_child_generator",
+             py::overload_cast<const std::shared_ptr<Generator> &>(&Generator::has_child_generator))
+        .def("has_child_generator",
+             py::overload_cast<const std::string &>(&Generator::has_child_generator))
         .def("get_child_generator_size", &Generator::get_child_generator_size)
         .def("external", &Generator::external)
         .def("set_external", &Generator::set_external)
@@ -77,12 +81,27 @@ void init_generator(py::module &m) {
              })
         .def("get_unique_variable_name", &Generator::get_unique_variable_name)
         .def("context", &Generator::context, py::return_value_policy::reference)
-        .def_readwrite("instance_name", &Generator::instance_name)
-        .def_readwrite("name", &Generator::name)
+        .def_property(
+            "instance_name", [](Generator &m) { return m.instance_name; },
+            [](Generator &m, const std::string &name) {
+                if (!m.parent() || m.parent()->ir_node_kind() != GeneratorKind) {
+                    // top level instance name
+                    m.instance_name = name;
+                } else {
+                    auto p = dynamic_cast<Generator *>(m.parent());
+                    p->rename_child_generator(m.shared_from_this(), name);
+                }
+            })
+        .def_property(
+            "name", [](Generator &m) { return m.name; },
+            [](Generator &m, const std::string &name) {
+                m.context()->change_generator_name(&m, name);
+            })
         .def_readwrite("debug", &Generator::debug)
         .def("clone", &Generator::clone)
         .def_property("is_cloned", &Generator::is_cloned, &Generator::set_is_cloned)
-        .def("__contains__", &Generator::has_child_generator)
+        .def("__contains__",
+             py::overload_cast<const std::shared_ptr<Generator> &>(&Generator::has_child_generator))
         .def("add_attribute", &Generator::add_attribute)
         .def("replace", py::overload_cast<const std::string &, const std::shared_ptr<Generator> &>(
                             &Generator::replace))
