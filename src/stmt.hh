@@ -131,7 +131,6 @@ private:
     std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> body_;
 };
 
-
 class StmtBlock : public Stmt {
 public:
     StatementBlockType block_type() const { return block_type_; }
@@ -196,7 +195,7 @@ class FunctionStmtBlock : public StmtBlock {
 public:
     FunctionStmtBlock(Generator *parent, std::string function_name);
 
-    std::shared_ptr<Port> input(const std::string &name, uint32_t width, bool is_signed);
+    virtual std::shared_ptr<Port> input(const std::string &name, uint32_t width, bool is_signed);
     const std::map<std::string, std::shared_ptr<Port>> &ports() const { return ports_; }
     std::shared_ptr<Port> get_port(const std::string &port_name);
     bool has_return_value() const { return has_return_value_; }
@@ -214,7 +213,10 @@ public:
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
-private:
+    // to distinguish from dpi function
+    virtual bool is_dpi() { return false; }
+
+protected:
     Generator *parent_;
     std::string function_name_;
 
@@ -222,6 +224,22 @@ private:
     bool has_return_value_ = false;
     std::shared_ptr<Var> function_handler_ = nullptr;
     std::map<std::string, uint32_t> port_ordering_;
+};
+
+class DPIFunctionStmtBlock : public FunctionStmtBlock {
+public:
+    DPIFunctionStmtBlock(Generator *parent, const std::string &function_name)
+        : FunctionStmtBlock(parent, function_name) {}
+    std::shared_ptr<Port> output(const std::string &name, uint32_t width, bool is_signed);
+    std::shared_ptr<Port> input(const std::string &name, uint32_t width, bool is_signed) override;
+
+    uint32_t return_width() { return return_width_; }
+    void set_return_width(uint32_t value) { return_width_ = value; }
+
+    bool is_dpi() override { return true; }
+
+protected:
+    uint32_t return_width_ = 0;
 };
 
 class ReturnStmt : public Stmt {

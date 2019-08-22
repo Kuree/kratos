@@ -1164,6 +1164,92 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
     return result;
 }
 
+class DPIVisitor : public IRVisitor {
+public:
+    void visit(FunctionStmtBlock* stmt) override {
+        if (!stmt->is_dpi()) return;
+        // collect all the dpi information and then make sure they are declared in the same
+        // name and spec
+        // this can be an issue if the files are going to split into multiple files
+        auto const& func_name = stmt->function_name();
+        if (dpi_funcs.find(func_name) == dpi_funcs.end()) {
+            // new one
+            dpi_funcs.emplace(func_name, dynamic_cast<DPIFunctionStmtBlock*>(stmt));
+        } else {
+            auto ref_stmt = dpi_funcs.at(func_name);
+            auto const& ref_ports = ref_stmt->ports();
+            auto const& ports = stmt->ports();
+            if (ref_ports.size() != ports.size())
+                throw StmtException("DPI function " + func_name + " has different interface",
+                                    {stmt, ref_stmt});
+            // check the return width
+            auto dpi_stmt = dynamic_cast<DPIFunctionStmtBlock*>(stmt);
+            if (dpi_stmt->return_width() != ref_stmt->return_width()) {
+                if (ref_ports.size() != ports.size())
+                    throw StmtException("DPI function " + func_name + " has different interface",
+                                        {stmt, ref_stmt});
+            }
+            for (auto const& [port_name, port_ref] : ref_ports) {
+                if (ports.find(port_name) == ports.end()) {
+                    throw VarException(
+                        ::format("DPI function with the same name ({0}) have different interface",
+                                 func_name),
+                        {port_ref.get()});
+                }
+                auto const& port = ports.at(port_name);
+                if (port->size != port_ref->size || port->is_signed != port_ref->is_signed ||
+                    port->port_direction() != port_ref->port_direction()) {
+                    throw VarException(
+                        ::format("DPI function with the same name ({0}) have different interface",
+                                 func_name),
+                        {port_ref.get(), port.get()});
+                }
+            }
+        }
+    }
+
+    std::map<std::string, DPIFunctionStmtBlock*> dpi_funcs;
+};
+
+std::map<std::string, std::string> extract_dpi_function(Generator* top) {
+    DPIVisitor visitor;
+    visitor.visit_generator_root(top);
+    // code gen these dpi info
+    std::map<std::string, std::string> result;
+
+    for (auto const& [func_name, stmt] : visitor.dpi_funcs) {
+        std::stringstream stream;
+        // dpi-c
+        stream << "import \"DPI-C\" function ";
+        if (stmt->return_width() == 0)
+            stream << "void ";
+        else
+            stream << ::format("logic [{0}:0] ", stmt->return_width() - 1);
+        stream << stmt->function_name() << "(";
+        auto ports = stmt->ports();
+        std::vector<std::string> port_str;
+        port_str.reserve(ports.size());
+        std::vector<std::string> port_names;
+        port_names.reserve(ports.size());
+        for (auto const& iter : ports) port_names.emplace_back(iter.first);
+
+        // sort based on ordering
+        auto const& ordering = stmt->port_ordering();
+        std::sort(port_names.begin(), port_names.end(), [&](const auto& lhs, const auto& rhs) {
+            return ordering.at(lhs) < ordering.at(rhs);
+        });
+
+        for (auto const& port_name : port_names) {
+            port_str.emplace_back(SystemVerilogCodeGen::get_port_str(ports.at(port_name).get()));
+        }
+        stream << join(port_str.begin(), port_str.end(), ", ");
+        stream << ");";
+
+        result.emplace(func_name, stream.str());
+    }
+    return result;
+}
+
 class MergeWireAssignmentsVisitor : public IRVisitor {
 public:
     void visit(ScopedStmtBlock* block) override { process_stmt_block(block); }

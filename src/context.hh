@@ -37,6 +37,7 @@ class ScopedStmtBlock;
 class CombinationalStmtBlock;
 class SequentialStmtBlock;
 class FunctionStmtBlock;
+class DPIFunctionStmtBlock;
 class FunctionCallStmt;
 class ReturnStmt;
 class ModuleInstantiationStmt;

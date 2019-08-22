@@ -80,16 +80,22 @@ def verilog(generator: Generator, optimize_if: bool = True,
     else:
         struct_info = {}
 
+    # dpi info
+    dpi_func = _kratos.passes.extract_dpi_function(generator.internal_generator)
+
     if filename is not None:
-        output_verilog(filename, src, info, struct_info)
+        output_verilog(filename, src, info, struct_info, dpi_func)
 
     return result[0] if len(result) == 1 else result
 
 
-def output_verilog(filename, mod_src, info, struct_info):
+def output_verilog(filename, mod_src, info, struct_info, dpi_func):
     line_no = 1
     debug_info = {}
     with open(filename, "w+") as f:
+        for func_name in dpi_func:
+            def_ = dpi_func[func_name]
+            f.write(def_ + "\n")
         for struct_name in struct_info:
             def_ = struct_info[struct_name]
             f.write(def_ + "\n")

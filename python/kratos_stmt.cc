@@ -53,11 +53,9 @@ void init_stmt(py::module &m) {
              py::overload_cast<const std::shared_ptr<Const> &, const std::shared_ptr<Stmt> &>(
                  &SwitchStmt::remove_switch_case));
 
-
     py::class_<StmtBlock, ::shared_ptr<StmtBlock>, Stmt>(m, "StmtBlock")
         .def("block_type", &StmtBlock::block_type)
-        .def("add_stmt",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&StmtBlock::add_stmt))
+        .def("add_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&StmtBlock::add_stmt))
         .def("remove_stmt", &StmtBlock::remove_stmt);  // NOLINT
 
     py::class_<CombinationalStmtBlock, ::shared_ptr<CombinationalStmtBlock>, StmtBlock>(
@@ -90,4 +88,9 @@ void init_stmt(py::module &m) {
                                       &FunctionStmtBlock::set_port_ordering))
         .def("set_port_ordering", py::overload_cast<const std::map<uint32_t, std::string> &>(
                                       &FunctionStmtBlock::set_port_ordering));
+    py::class_<DPIFunctionStmtBlock, std::shared_ptr<DPIFunctionStmtBlock>, FunctionStmtBlock>(
+        m, "DPIFunctionStmtBlock")
+        .def("input", &DPIFunctionStmtBlock::input)
+        .def("output", &DPIFunctionStmtBlock::output)
+        .def("set_return_width", &DPIFunctionStmtBlock::set_return_width);
 }

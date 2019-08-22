@@ -350,6 +350,23 @@ void FunctionStmtBlock::set_port_ordering(const std::map<uint32_t, std::string> 
     set_port_ordering(result);
 }
 
+std::shared_ptr<Port> DPIFunctionStmtBlock::output(const std::string &name, uint32_t width,
+                                                   bool is_signed) {
+    // record the ordering
+    port_ordering_.emplace(name, port_ordering_.size());
+    auto p = std::make_shared<Port>(parent_, PortDirection::Out, name, width, 1, PortType::Data,
+                                    is_signed);
+    ports_.emplace(name, p);
+    return p;
+}
+
+std::shared_ptr<Port> DPIFunctionStmtBlock::input(const std::string &name, uint32_t width,
+                                                  bool is_signed) {
+    // record the ordering
+    port_ordering_.emplace(name, port_ordering_.size());
+    return FunctionStmtBlock::input(name, width, is_signed);
+}
+
 ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def, std::shared_ptr<Var> value)
     : Stmt(StatementType::Return), func_def_(func_def), value_(std::move(value)) {}
 

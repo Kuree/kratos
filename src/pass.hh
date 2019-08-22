@@ -52,6 +52,8 @@ extract_debug_info(Generator* top);
 
 std::map<std::string, std::string> extract_struct_info(Generator* top);
 
+std::map<std::string, std::string> extract_dpi_function(Generator* top);
+
 // TODO: add following passes to improve the code efficiency
 //  1. check module hierarchy
 //  2. remove an assignment

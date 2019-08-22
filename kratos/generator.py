@@ -673,6 +673,9 @@ class Generator(metaclass=GeneratorMeta):
             stmt.add_fn_ln(get_fn_ln())
         block.add_stmt(stmt)
 
+    def dpi(self, func_name):
+        return self.__generator.dpi_function(func_name)
+
     def reg_next(self, var_name, var, clk=None):
         clk_name = self.__get_port_name_type(clk, PortType.Clock)
         clk = self.ports[clk_name]

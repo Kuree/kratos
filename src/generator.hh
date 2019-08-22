@@ -70,6 +70,7 @@ public:
     std::shared_ptr<Param> get_param(const std::string &param_name) const;
     const std::map<std::string, std::shared_ptr<FSM>> &fsms() const { return fsms_; }
     std::shared_ptr<FunctionStmtBlock> function(const std::string &func_name);
+    std::shared_ptr<DPIFunctionStmtBlock> dpi_function(const std::string &func_name);
     const std::map<std::string, std::shared_ptr<FunctionStmtBlock>> &functions() const {
         return funcs_;
     }
