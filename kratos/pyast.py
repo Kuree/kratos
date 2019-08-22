@@ -293,7 +293,12 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     # pre-compute the frames
     # we have 3 frames back
     f = inspect.currentframe().f_back.f_back.f_back
-    _locals = f.f_locals.copy()
+    # will go one above to get the locals as well?
+    if f.f_back is not None:
+        _locals = f.f_back.f_locals.copy()
+    else:
+        _locals = {}
+    _locals.update(f.f_locals)
     _globals = f.f_globals.copy()
 
     if pre_locals is not None:
@@ -414,7 +419,7 @@ def transform_function_block(generator, fn, arg_types):
         ln = 0
     scope = FuncScope(generator, fn_name, filename, ln)
     # add var creations
-    arg_order = extract_arg_name_order(func_args)
+    arg_order = extract_arg_name_order_from_ast(func_args)
     var_body = declare_var_definition(arg_types, arg_order)
     var_src = astor.to_source(ast.Module(body=var_body))
     pre_locals = {"_scope": scope}
@@ -451,12 +456,20 @@ def declare_var_definition(var_def, arg_order):
     return body
 
 
-def extract_arg_name_order(func_args):
+def extract_arg_name_order_from_ast(func_args):
     result = {}
     for idx, arg in enumerate(func_args):
         if arg.arg != "self":
             result[len(result)] = arg.arg
     return result
+
+
+def extract_arg_name_order_from_fn(fn):
+    fn_src = inspect.getsource(fn)
+    func_tree = ast.parse(textwrap.dedent(fn_src))
+    fn_body = func_tree.body[0]
+    func_args = fn_body.args.args
+    return extract_arg_name_order_from_ast(func_args)
 
 
 def extract_sensitivity_from_dec(deco_list, fn_name):

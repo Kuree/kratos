@@ -1048,5 +1048,31 @@ def test_rename():
     assert mod["test"].internal_generator.name == "test2"
 
 
+def test_c_dpi_function():
+    from kratos.func import dpi_function
+
+    @dpi_function(2)
+    def add(arg0, arg1):
+        pass
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod", debug=True)
+            self._in = self.input("in", 2)
+            self._out = self.output("out", 2)
+
+            self.add_code(self.code)
+
+        def code(self):
+            # because the types are inferred
+            # implicit const conversion doesn't work here
+            self._out = add(self._in, const(1, 2))
+
+    mod = Mod()
+    # notice that verilator has different dpi import logic than other commercial
+    # simulators. I think verilator is correct about the width mismatch
+    check_gold(mod, "test_dpi", verilator_dpi=True)
+
+
 if __name__ == "__main__":
-    test_rename()
+    test_c_dpi_function()

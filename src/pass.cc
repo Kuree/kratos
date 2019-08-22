@@ -1211,9 +1211,9 @@ public:
     std::map<std::string, DPIFunctionStmtBlock*> dpi_funcs;
 };
 
-std::map<std::string, std::string> extract_dpi_function(Generator* top) {
+std::map<std::string, std::string> extract_dpi_function(Generator* top, bool verialtor_dpi) {
     DPIVisitor visitor;
-    visitor.visit_generator_root(top);
+    visitor.visit_root(top);
     // code gen these dpi info
     std::map<std::string, std::string> result;
 
@@ -1221,10 +1221,14 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top) {
         std::stringstream stream;
         // dpi-c
         stream << "import \"DPI-C\" function ";
-        if (stmt->return_width() == 0)
+        if (stmt->return_width() == 0) {
             stream << "void ";
-        else
-            stream << ::format("logic [{0}:0] ", stmt->return_width() - 1);
+        } else {
+            if (verialtor_dpi)
+                stream << ::format("logic [{0}:0] ", stmt->return_width() - 1);
+            else
+                stream << "int ";
+        }
         stream << stmt->function_name() << "(";
         auto ports = stmt->ports();
         std::vector<std::string> port_str;
@@ -1240,7 +1244,17 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top) {
         });
 
         for (auto const& port_name : port_names) {
-            port_str.emplace_back(SystemVerilogCodeGen::get_port_str(ports.at(port_name).get()));
+            if (verialtor_dpi) {
+                port_str.emplace_back(
+                    SystemVerilogCodeGen::get_port_str(ports.at(port_name).get()));
+            } else {
+                auto port = ports.at(port_name);
+                auto s = ::format("{0} {1} {2} {3}",
+                                  port->port_direction() == PortDirection::In ? "input" : "output",
+                                  port->is_signed ? "signed" : "",
+                                  port->width > 32 ? "longint" : "int", port_name);
+                port_str.emplace_back(s);
+            }
         }
         stream << join(port_str.begin(), port_str.end(), ", ");
         stream << ");";

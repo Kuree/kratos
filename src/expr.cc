@@ -956,14 +956,22 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
     }
     // compute the width and sign
     auto handle = func_def->function_handler();
-    if (!handle && has_return)
+    if (!handle && has_return && !func_def->is_dpi())
         throw StmtException(::format("{0} doesn't have return value", func_def->function_name()),
                             {func_def.get()});
-    if (has_return) {
+    if (has_return && !func_def->is_dpi()) {
         width = handle->width;
         var_width = handle->width;
         size = handle->size;
         is_signed = handle->is_signed;
+    } else if (has_return && func_def->is_dpi()) {
+        auto dpi = func_def->as<DPIFunctionStmtBlock>();
+        if (dpi->return_width()) {
+            width = dpi->return_width();
+            var_width = width;
+            size = width;
+            is_signed = false;
+        }
     }
 }
 
