@@ -80,8 +80,30 @@ You need to provide a working directory for kratos-dpi to compile objects.
 The function call returns the path for the shared object.
 
 
-TODO
-----
+SystemVerilog Types
+-------------------
 
-1. Unify verilator and commercial simulator interface
-2. Integrate with simulators to load the shared library.
+Kratos follows the SystemVerilog spec about the types. Currently it offers
+two different ways to deal with function argument types:
+
+1. Logic based type interface.
+2. Native C types.
+
+You can choose which one to have by using ``int_dpi_interface=True`` in
+``verilog()`` function. If the option is set to ``True``, native C types
+will be used. It will perform a ceiling on each argument and output
+``char``, ``short int``, ``int``, and ``long int`` as the C interface.
+If the option is set to ``False``, ``logic`` will be used and users are
+responsible to handle the ``svLogic`` type conversion by themselves.
+You can refer to ``svdpi.h`` header to see how to conversion works.
+
+.. note::
+
+    If you are using Python interface, you're required to use
+    ``int_dpi_interface=True``.
+
+
+Work in Progress
+----------------
+
+1. Integrate with simulators to load the shared library.
