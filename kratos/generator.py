@@ -568,6 +568,9 @@ class Generator(metaclass=GeneratorMeta):
         clses = Generator.__subclasses__()
         for cls in clses:  # type: Generator
             cls._cache.clear()
+        # clean the function calls
+        from .func import clear_context
+        clear_context()
 
     @staticmethod
     def get_context():

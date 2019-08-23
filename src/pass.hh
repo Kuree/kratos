@@ -52,7 +52,7 @@ extract_debug_info(Generator* top);
 
 std::map<std::string, std::string> extract_struct_info(Generator* top);
 
-std::map<std::string, std::string> extract_dpi_function(Generator* top, bool verilator_dpi);
+std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int_interface);
 
 // TODO: add following passes to improve the code efficiency
 //  1. check module hierarchy

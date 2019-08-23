@@ -1051,7 +1051,7 @@ def test_rename():
 def test_c_dpi_function():
     from kratos.func import dpi_function
 
-    @dpi_function(2)
+    @dpi_function(8)
     def add(arg0, arg1):
         pass
 
@@ -1059,7 +1059,7 @@ def test_c_dpi_function():
         def __init__(self):
             super().__init__("mod", debug=True)
             self._in = self.input("in", 2)
-            self._out = self.output("out", 2)
+            self._out = self.output("out", 8)
 
             self.add_code(self.code)
 
@@ -1069,9 +1069,9 @@ def test_c_dpi_function():
             self._out = add(self._in, const(1, 2))
 
     mod = Mod()
-    # notice that verilator has different dpi import logic than other commercial
-    # simulators. I think verilator is correct about the width mismatch
-    check_gold(mod, "test_dpi", verilator_dpi=True)
+    # once it's turned off, user has to handle sv logic themselves in the
+    # c interface
+    check_gold(mod, "test_dpi", int_dpi_interface=False)
 
 
 if __name__ == "__main__":

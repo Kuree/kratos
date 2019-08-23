@@ -18,7 +18,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             debug: bool = False,
             additional_passes: Dict = None,
             extra_struct: bool = False,
-            verilator_dpi: bool = False,
+            int_dpi_interface: bool = True,
             filename: str = None,
             use_parallel: bool = True):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
@@ -83,7 +83,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
 
     # dpi info
     dpi_func = _kratos.passes.extract_dpi_function(generator.internal_generator,
-                                                   verilator_dpi)
+                                                   int_dpi_interface)
 
     if filename is not None:
         output_verilog(filename, src, info, struct_info, dpi_func)

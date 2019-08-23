@@ -1211,7 +1211,7 @@ public:
     std::map<std::string, DPIFunctionStmtBlock*> dpi_funcs;
 };
 
-std::map<std::string, std::string> extract_dpi_function(Generator* top, bool verialtor_dpi) {
+std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int_interface) {
     DPIVisitor visitor;
     visitor.visit_root(top);
     // code gen these dpi info
@@ -1221,13 +1221,19 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool ver
         std::stringstream stream;
         // dpi-c
         stream << "import \"DPI-C\" function ";
+        // based on the return width, we choose the closest one
         if (stmt->return_width() == 0) {
             stream << "void ";
+        } else if (stmt->return_width() == 1) {
+            stream << "bit ";
+        } else if (stmt->return_width() <= 8) {
+            stream << "byte ";
+        } else if (stmt->return_width() <= 16) {
+            stream << "shortint ";
+        } else if (stmt->return_width() <= 32) {
+            stream << "int ";
         } else {
-            if (verialtor_dpi)
-                stream << ::format("logic [{0}:0] ", stmt->return_width() - 1);
-            else
-                stream << "int ";
+            stream << "longint ";
         }
         stream << stmt->function_name() << "(";
         auto ports = stmt->ports();
@@ -1244,16 +1250,26 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool ver
         });
 
         for (auto const& port_name : port_names) {
-            if (verialtor_dpi) {
-                port_str.emplace_back(
-                    SystemVerilogCodeGen::get_port_str(ports.at(port_name).get()));
-            } else {
+            if (int_interface) {
                 auto port = ports.at(port_name);
+                // compute the closest width
+                std::string type_str;
+                if (port->width <= 8) {
+                    type_str = "byte";
+                } else if (port->width <= 16) {
+                    type_str = "shortint";
+                } else if (port->width <= 32) {
+                    type_str = "int";
+                } else {
+                    type_str = "longint";
+                }
                 auto s = ::format("{0} {1} {2} {3}",
                                   port->port_direction() == PortDirection::In ? "input" : "output",
-                                  port->is_signed ? "signed" : "",
-                                  port->width > 32 ? "longint" : "int", port_name);
+                                  type_str, port->is_signed ? "signed" : "", port_name);
                 port_str.emplace_back(s);
+            } else {
+                port_str.emplace_back(
+                    SystemVerilogCodeGen::get_port_str(ports.at(port_name).get()));
             }
         }
         stream << join(port_str.begin(), port_str.end(), ", ");

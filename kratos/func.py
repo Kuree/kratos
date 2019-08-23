@@ -5,7 +5,7 @@ import _kratos
 
 
 class FunctionCall:
-    __cache_ordering = {}
+    cache_ordering = {}
 
     def __init__(self, fn):
         self.__fn = fn
@@ -33,14 +33,14 @@ class FunctionCall:
                 func.add_stmt(stmt)
             # set ordering
             func.set_port_ordering(args_order)
-            self.__cache_ordering[generator.name, fn_name] = args_order
+            self.cache_ordering[generator.name, fn_name] = args_order
             if generator.debug:
                 fn, ln = get_fn(self.__fn), get_ln(self.__fn)
                 for _, var_name in args_order.items():
                     port = func.get_port(var_name)
                     port.add_fn_ln((fn, ln + 1))
         else:
-            args_order = self.__cache_ordering[generator.name, fn_name]
+            args_order = self.cache_ordering[generator.name, fn_name]
         mapping = {}
         for idx, value in enumerate(args):
             var_name = args_order[idx]
@@ -104,3 +104,8 @@ class DPIFunctionCall:
 # name alias
 function = FunctionCall
 dpi_function = DPIFunctionCall
+
+
+def clear_context():
+    FunctionCall.cache_ordering.clear()
+    DPIFunctionCall.cache_ordering.clear()
