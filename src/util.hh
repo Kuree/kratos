@@ -48,6 +48,17 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *ge
                                                                    const std::string &src,
                                                                    const std::string &top_name);
 
+namespace color {
+struct Color {
+    unsigned char R;
+    unsigned char G;
+    unsigned char B;
+};
+
+Color hsv_to_rgb(double h, double s, double v);
+
+}
+
 namespace fs {
 std::string join(const std::string &path1, const std::string &path2);
 std::string which(const std::string &name);

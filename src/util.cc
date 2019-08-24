@@ -336,6 +336,32 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *ge
     return get_port_from_mod_def(generator, module_def);
 }
 
+namespace color {
+Color hsv_to_rgb(double h, double s, double v) {
+    double c = v * s;
+    double x = c * (1 - std::abs((static_cast<int>(h / 60)) % 2 - 1));
+    double m = v - c;
+    double r_, g_, b_;
+    if (h < 60) {
+        r_ = c; g_ = x, b_ = 0;
+    } else if (h < 120) {
+        r_ = x; g_ = c; b_ = 0;
+    } else if (h < 180) {
+        r_ = 0; g_ = c; b_ = x;
+    } else if (h < 240) {
+        r_ = 0; g_ = x; b_ = c;
+    } else if (h < 300) {
+        r_ = x; g_ = 0; b_ = c;
+    } else {
+        r_ = c; g_ = 0; b_ = x;
+    }
+    auto r = static_cast<unsigned char>((r_ + m) * 255);
+    auto g = static_cast<unsigned char>((g_ + m) * 255);
+    auto b = static_cast<unsigned char>((b_ + m) * 255);
+    return {r, g, b};
+}
+}
+
 namespace fs {
 std::string which(const std::string &name) {
     std::string env_path = std::getenv("PATH");

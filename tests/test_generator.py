@@ -1075,4 +1075,4 @@ def test_c_dpi_function():
 
 
 if __name__ == "__main__":
-    test_c_dpi_function()
+    test_fsm()

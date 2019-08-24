@@ -2,16 +2,21 @@
 #include <fmt/format.h>
 #include <cmath>
 #include <fstream>
+#include <queue>
+#include <random>
 #include <sstream>
 #include <utility>
 #include "except.hh"
 #include "generator.hh"
+#include "util.hh"
 
 using fmt::format;
 using std::endl;
 using std::runtime_error;
 
 namespace kratos {
+
+std::map<FSMState*, color::Color> get_state_color(const std::vector<FSMState*>& states);
 
 FSM::FSM(std::string name, kratos::Generator* generator)
     : fsm_name_(std::move(name)), generator_(generator) {
@@ -35,6 +40,48 @@ FSM::FSM(std::string name, kratos::Generator* generator, std::shared_ptr<Var> cl
       generator_(generator),
       clk_(std::move(clk)),
       reset_(std::move(reset)) {}
+
+void FSM::add_child_fsm(FSM* fsm) {
+    if (fsm->generator_ != generator_)
+        throw UserException(::format("FSM {0} doesn't have the same generator parent as {1}",
+                                     fsm->fsm_name_, fsm_name_));
+    child_fsms_.emplace(fsm->fsm_name_, fsm);
+    fsm->parent_fsm_ = this;
+    // erase the start from the child generator
+    fsm->start_state_ = nullptr;
+}
+
+std::vector<FSMState*> FSM::get_all_child_states(bool include_extra_state) const {
+    // this is a BFS search
+    std::queue<FSMState*> queue;
+    std::vector<FSMState*> result;
+    std::unordered_set<FSMState*> visited;
+
+    for (auto const& iter : states_) {
+        queue.emplace(iter.second.get());
+    }
+    while (!queue.empty()) {
+        auto state = queue.front();
+        queue.pop();
+        if (visited.find(state) != visited.end()) continue;
+        visited.emplace(state);
+        result.emplace_back(state);
+        auto next_states = state->transitions();
+        for (auto const& iter : next_states) {
+            auto const next_state = iter.second;
+            auto fsm = next_state->parent();
+            while (fsm && fsm != this) {
+                fsm = fsm->parent_fsm();
+            }
+            if (fsm == this) {
+                queue.emplace(next_state);
+            } else if (include_extra_state) {
+                result.emplace_back(next_state);
+            }
+        }
+    }
+    return result;
+}
 
 void FSM::realize() {
     // generate the statements to the generator
@@ -331,15 +378,29 @@ std::string FSM::dot_graph() {
     // start state is double circle
     std::string start_state_name;
     if (start_state_) start_state_name = start_state_->name();
-    if (!start_state_name.empty())
-        stream << indent
-               << ::format("node [shape = doublecircle, label=\"{0}\"] {0};", start_state_->name())
-               << ::endl;
+    // we include extra states to draw the extra state transition diagram
+    auto states = get_all_child_states(true);
+    auto state_colors = get_state_color(states);
+    if (!start_state_name.empty()) {
+        auto color = state_colors.at(start_state_.get());
+        auto color_str = ::format("#{0:02X}{1:02X}{2:02X}", color.R, color.G, color.B);
+        stream
+            << indent
+            << ::format(
+                   R"(node [shape=doublecircle, label="{0}", style=filled, fillcolor="{1}"] {0};)",
+                   start_state_->name(), color_str)
+            << ::endl;
+    }
     // the rest of the states
-    for (auto const& iter : states_) {
-        auto state_name = iter.first;
+    for (auto const& iter : states) {
+        auto state_name = iter->name();
         if (state_name == start_state_name) continue;
-        stream << indent << ::format("node [shape = circle, label=\"{0}\"] {0};", state_name)
+        auto color = state_colors.at(iter);
+        auto color_str = ::format("#{0:02X}{1:02X}{2:02X}", color.R, color.G, color.B);
+        stream << indent
+               << ::format(
+                      R"(node [shape=circle, label="{0}", style=filled, fillcolor="{1}"] {0};)",
+                      state_name, color_str)
                << ::endl;
     }
 
@@ -406,6 +467,35 @@ void FSM::output_table(const std::string& filename) {
     stream.close();
 }
 
+std::map<FSMState*, color::Color> get_state_color(const std::vector<FSMState*>& states) {
+    std::map<FSMState*, color::Color> result;
+    std::map<const FSM*, color::Color> state_color;
+    // set seed to 0
+    std::mt19937 gen(1);    // NOLINT
+    std::uniform_real_distribution<double> dis(0, 1.0);
+    for (auto const& state : states) {
+        auto fsm = state->parent();
+        if (state_color.find(fsm) == state_color.end()) {
+            // get a new color
+            double h = dis(gen);
+            // use golden ratio
+            // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+            h += 0.618033988749895;
+            h = std::fmod(h, 1.0);
+            auto color = color::hsv_to_rgb(h * 360, 0.5, 0.95);
+            state_color.emplace(fsm, color);
+        }
+    }
+
+    // second pass the assign colors
+    for (auto& state : states) {
+        auto fsm = state->parent();
+        result.emplace(state, state_color.at(fsm));
+    }
+
+    return result;
+}
+
 FSMState::FSMState(std::string name, FSM* parent) : name_(std::move(name)), parent_(parent) {}
 
 void FSMState::next(const std::shared_ptr<FSMState>& next_state, std::shared_ptr<Var>& cond) {
@@ -415,6 +505,15 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, std::shared_ptr
     if (transitions_.find(ptr) != transitions_.end()) {
         throw ::runtime_error(::format("{0} has been added to FSM {1}-{2} already",
                                        ptr->to_string(), parent_->fsm_name(), name_));
+    }
+    // making sure that it's part of the same fsm state
+    auto fsm = next_state->parent_;
+    while (fsm && fsm != parent_) {
+        fsm = fsm->parent_fsm();
+    }
+    if (fsm != parent_) {
+        throw UserException(::format("FSM state {0} belongs to a different FSM {1}",
+                                     next_state->name_, next_state->parent_->fsm_name()));
     }
     transitions_.emplace(ptr, state_ptr);
 }

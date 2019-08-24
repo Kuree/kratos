@@ -46,6 +46,11 @@ public:
     void set_moore(bool is_moore) { moore_ = is_moore; }
     bool is_moore() const { return moore_; }
 
+    // nested FSM
+    FSM *parent_fsm() const { return parent_fsm_; }
+    void add_child_fsm(FSM *fsm);
+    std::vector<FSMState *> get_all_child_states(bool include_extra_state = false) const;
+
 private:
     std::string fsm_name_;
     Generator *generator_;
@@ -63,13 +68,15 @@ private:
     bool realized_ = false;
     bool moore_ = true;
 
-    void generate_state_transition(Enum &enum_def, EnumVar &current_state,
-                                   EnumVar &next_state);
+    void generate_state_transition(Enum &enum_def, EnumVar &current_state, EnumVar &next_state);
     void generate_output(Enum &enum_def, EnumVar &current_state);
     std::shared_ptr<FunctionStmtBlock> get_func_def();
     std::shared_ptr<FunctionCallStmt> &get_func_call_stmt(
         const std::shared_ptr<FunctionStmtBlock> &func_def, const FSMState *fsm_state,
         std::shared_ptr<FunctionCallStmt> &func_stmt) const;
+
+    FSM *parent_fsm_ = nullptr;
+    std::map<std::string, FSM *> child_fsms_;
 };
 
 class FSMState : public std::enable_shared_from_this<FSMState> {
@@ -99,6 +106,8 @@ public:
     const inline std::unordered_map<Var *, std::pair<std::string, uint32_t>> &output_fn_ln() const {
         return output_fn_ln_;
     }
+
+    const FSM *parent() const { return parent_; }
 
 private:
     std::string name_;
