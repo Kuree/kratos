@@ -40,10 +40,12 @@ void init_fsm(py::module &m) {
         .def("add_child_fsm", &FSM::add_child_fsm);
 
     py::class_<FSMState, std::shared_ptr<FSMState>>(m, "FSMState")
-        .def("next", py::overload_cast<const std::shared_ptr<FSMState> &, std::shared_ptr<Var> &>(
-                         &FSMState::next))
-        .def("next", py::overload_cast<const std::shared_ptr<FSMState> &, std::shared_ptr<Var> &,
-                                       const std::pair<std::string, uint32_t> &>(&FSMState::next))
+        .def("next",
+             py::overload_cast<const std::shared_ptr<FSMState> &, const std::shared_ptr<Var> &>(
+                 &FSMState::next))
+        .def("next",
+             py::overload_cast<const std::shared_ptr<FSMState> &, const std::shared_ptr<Var> &,
+                               const std::pair<std::string, uint32_t> &>(&FSMState::next))
         .def("output",
              py::overload_cast<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &>(
                  &FSMState::output))

@@ -204,11 +204,31 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
         auto transitions = state->transitions();
         vars.reserve(transitions.size());
         for (auto const& iter : transitions) vars.emplace_back(iter.first);
-        std::sort(vars.begin(), vars.end(), [=](const auto& lhs, const auto& rhs) {
-            return transitions.at(lhs)->name() < transitions.at(rhs)->name();
-        });
+        // slide through condition
+        bool has_slide_through = false;
+        if (vars.size() != 1 || vars[0] != nullptr) {
+            std::sort(vars.begin(), vars.end(), [=](const auto& lhs, const auto& rhs) {
+              return transitions.at(lhs)->name() < transitions.at(rhs)->name();
+            });
+        } else {
+            has_slide_through = true;
+        }
         for (auto const& cond : vars) {
             auto next_fsm_state = transitions.at(cond);
+            if (!cond) {
+                // direct transition
+                auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking);
+                auto debug_info = state->next_state_fn_ln();
+                if (generator_->debug) {
+                    if (debug_info.find(next_fsm_state) != debug_info.end()) {
+                        auto info = debug_info.at(next_fsm_state);
+                        stmt->fn_name_ln.emplace_back(info);
+                    }
+                    stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                }
+                case_state_comb->add_switch_case(enum_def.get_enum(state_name), stmt);
+                break;
+            }
             if (!if_) {
                 if_ = std::make_shared<IfStmt>(cond->shared_from_this());
                 auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking);
@@ -256,8 +276,10 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
                 if_ = new_if;
             }
         }
-        if (!top_if) throw InternalException("Unable to find any state transition");
-        case_state_comb->add_switch_case(enum_def.get_enum(state_name), top_if);
+        if (!has_slide_through) {
+            if (!top_if) throw InternalException("Unable to find any state transition");
+            case_state_comb->add_switch_case(enum_def.get_enum(state_name), top_if);
+        }
     }
 
     // add it to the state_comb
@@ -469,7 +491,7 @@ void FSM::output_table(const std::string& filename) {
 }
 
 std::map<FSMState*, color::Color> get_state_color(const std::vector<FSMState*>& states) {
-    std::map<FSMState*, color::Color> result;
+    std::map<FSMState*, color::Color> result = {};
     std::map<const FSM*, color::Color> state_color;
     // set seed to 0
     std::mt19937 gen(1);  // NOLINT
@@ -499,16 +521,10 @@ std::map<FSMState*, color::Color> get_state_color(const std::vector<FSMState*>& 
 
 FSMState::FSMState(std::string name, FSM* parent) : name_(std::move(name)), parent_(parent) {}
 
-void FSMState::next(const std::shared_ptr<FSMState>& next_state, std::shared_ptr<Var>& cond) {
-    auto ptr = cond.get();
-    if (cond->width != 1) throw VarException("Condition has to be a boolean value", {ptr});
-    auto state_ptr = next_state.get();
-    if (transitions_.find(ptr) != transitions_.end()) {
-        throw ::runtime_error(::format("{0} has been added to FSM {1}-{2} already",
-                                       ptr->to_string(), parent_->fsm_name(), name_));
-    }
+void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shared_ptr<Var>& cond) {
     // making sure that it's part of the same fsm state
     auto parent = parent_;
+    auto state_ptr = next_state.get();
     while (parent->parent_fsm()) parent = parent->parent_fsm();
     auto fsm = next_state->parent_;
     while (fsm && fsm != parent) {
@@ -519,10 +535,27 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, std::shared_ptr
                                      next_state->name_, next_state->parent_->fsm_name(),
                                      parent->fsm_name()));
     }
-    transitions_.emplace(ptr, state_ptr);
+
+    if (!cond) {
+        transitions_.emplace(nullptr, state_ptr);
+    } else {
+        if (transitions_.find(nullptr) != transitions_.end()) {
+            // we have a slide through
+            throw UserException("Unconditional transition has been assign to " + name_);
+        }
+        auto ptr = cond.get();
+        if (cond->width != 1) throw VarException("Condition has to be a boolean value", {ptr});
+
+        if (transitions_.find(ptr) != transitions_.end()) {
+            throw ::runtime_error(::format("{0} has been added to FSM {1}-{2} already",
+                                           ptr->to_string(), parent_->fsm_name(), name_));
+        }
+        transitions_.emplace(ptr, state_ptr);
+    }
+
 }
 
-void FSMState::next(const std::shared_ptr<FSMState>& next_state, std::shared_ptr<Var>& cond,
+void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shared_ptr<Var>& cond,
                     const std::pair<std::string, uint32_t>& debug_info) {
     next(next_state, cond);
     next_state_fn_ln_.emplace(next_state.get(), debug_info);

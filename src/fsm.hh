@@ -83,8 +83,8 @@ class FSMState : public std::enable_shared_from_this<FSMState> {
 public:
     FSMState(std::string name, FSM *parent);
 
-    void next(const std::shared_ptr<FSMState> &next_state, std::shared_ptr<Var> &cond);
-    void next(const std::shared_ptr<FSMState> &next_state, std::shared_ptr<Var> &cond,
+    void next(const std::shared_ptr<FSMState> &next_state, const std::shared_ptr<Var> &cond);
+    void next(const std::shared_ptr<FSMState> &next_state, const std::shared_ptr<Var> &cond,
               const std::pair<std::string, uint32_t> &debug_info);
     void output(const std::shared_ptr<Var> &output_var, const std::shared_ptr<Var> &value_var);
     void output(const std::shared_ptr<Var> &output_var, int64_t value);

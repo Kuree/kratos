@@ -718,3 +718,26 @@ TEST(generator, nested_fsm) {   // NOLINT
     auto states = fsm.get_all_child_states(false);
     EXPECT_EQ(states.size(), 3);
 }
+
+TEST(generator, slide_through_fsm) {    // NOLINT
+    Context c;
+    auto mod = c.generator("mod");
+    auto &out_ = mod.port(PortDirection::Out, "out", 2);
+    mod.port(PortDirection::In, "clk", 1, 1, PortType::Clock, false);
+    mod.port(PortDirection::In, "rst", 1, 1, PortType::AsyncReset, false);
+
+    auto &fsm = mod.fsm("Color");
+    fsm.output(out_.shared_from_this());
+
+    auto red = fsm.add_state("Red");
+    auto blue = fsm.add_state("Blue");
+    red->next(blue, nullptr);
+    blue->next(red, nullptr);
+    auto &output_value = constant(1, 2);
+    red->output(out_.shared_from_this(), output_value.shared_from_this());
+    blue->output(out_.shared_from_this(), output_value.shared_from_this());
+
+    realize_fsm(&mod);
+    fix_assignment_type(&mod);
+    generate_verilog(&mod);
+}
