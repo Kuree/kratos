@@ -711,12 +711,16 @@ TEST(generator, nested_fsm) {   // NOLINT
 
     auto &second_state = mod.fsm("Idle");
     fsm.add_child_fsm(&second_state);
+    second_state.output(out_.shared_from_this());
     auto idle = second_state.add_state("idle");
+    idle->output(out_.shared_from_this(), nullptr);
+    idle->next(idle, nullptr);
     auto expr3 = in_.eq(constant(2, 2)).shared_from_this();
     red->next(idle, expr3);
 
     auto states = fsm.get_all_child_states(false);
     EXPECT_EQ(states.size(), 3);
+    realize_fsm(&mod);
 }
 
 TEST(generator, slide_through_fsm) {    // NOLINT

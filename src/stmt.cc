@@ -228,7 +228,7 @@ ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switc
 ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                                              const std::vector<std::shared_ptr<Stmt>> &stmts) {
     for (auto &stmt : stmts) add_switch_case(switch_case, stmt);
-    return *body_[switch_case];
+    return *body_.at(switch_case);
 }
 
 void SwitchStmt::remove_switch_case(const std::shared_ptr<kratos::Const> &switch_case) {

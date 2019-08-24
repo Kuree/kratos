@@ -87,24 +87,50 @@ void FSM::realize() {
     // generate the statements to the generator
     // first, get state and next state variable
     // compute number of states
-    uint64_t num_states = states_.size();
+    auto states = get_all_child_states(false);
+    uint64_t num_states = states.size();
     if (!num_states) throw UserException(::format("FSM {0} is empty", fsm_name()));
     uint32_t width = std::ceil(std::log2(num_states));
     // define a enum type
     std::map<std::string, uint64_t> raw_def;
     uint64_t count = 0;
-    std::string start_state_name;
-    for (auto const& iter : states_) {
-        if (start_state_name.empty()) start_state_name = iter.first;
-        raw_def.emplace(iter.first, count++);
+    if (!start_state_)
+        throw UserException(::format("FSM {0} doesn't have a start state", fsm_name_));
+    // name mapping
+    std::unordered_map<FSMState*, std::string> state_name_mapping;
+    bool has_child_state = !child_fsms_.empty();
+    for (auto const& state : states) {
+        // notice that we need to do an additional mapping if it's a nested fsm
+        // to avoid any name conflicts
+        std::string state_name;
+        if (has_child_state) {
+            state_name = state->parent()->fsm_name() + "_" + state->name();
+        } else {
+            state_name = state->name();
+        }
+        raw_def.emplace(state_name, count++);
+        state_name_mapping.emplace(state, state_name);
         // check states
-        iter.second->check_outputs();
+        state->check_outputs();
     }
     auto& enum_def = generator_->enum_(fsm_name_ + "_state", raw_def, width);
     // add debug info
     if (generator_->debug) {
-        for (auto const& [name, info] : fn_name_ln_) {
-            enum_def.add_debug_info(name, info);
+        std::unordered_set<const FSM*> visited;
+        for (auto const& state : states) {
+            auto fsm = state->parent();
+            if (visited.find(fsm) != visited.end()) continue;
+            auto fn_ln = fsm->fn_name_ln_;
+            for (auto const& [name, info] : fn_ln) {
+                auto s = fsm->get_state(name).get();
+                if (state_name_mapping.find(state) == state_name_mapping.end()) {
+                    throw UserException(::format(
+                        "Unable to find state name {0} from FSM {1}. Is it a disconnected state?",
+                        s->name(), fsm_name_));
+                }
+                auto state_name = state_name_mapping.at(state);
+                enum_def.add_debug_info(state_name, info);
+            }
         }
     }
     // create two state variable, current_state, and next_state
@@ -128,14 +154,12 @@ void FSM::realize() {
         seq->add_condition({BlockEdgeType::Negedge, reset_});
     else
         seq->add_condition({BlockEdgeType::Posedge, reset_});
-    if (!start_state_) {
-        // pick a random one?
-        start_state_ = get_state(start_state_name);
-    }
+
     auto seq_if = std::make_shared<IfStmt>(reset_);
     {
-        auto stmt = current_state.assign(enum_def.get_enum(start_state_->name()),
-                                         AssignmentType::NonBlocking);
+        auto start_state_name = state_name_mapping.at(start_state_.get());
+        auto stmt =
+            current_state.assign(enum_def.get_enum(start_state_name), AssignmentType::NonBlocking);
         seq_if->add_then_stmt(stmt);
         if (generator_->debug) {
             if (!start_state_debug_.first.empty()) {
@@ -153,14 +177,16 @@ void FSM::realize() {
     seq->add_stmt(seq_if);
 
     // combination logic to compute next state
-    generate_state_transition(enum_def, current_state, next_state);
+    generate_state_transition(enum_def, current_state, next_state, state_name_mapping);
 
     // now the output logic
     // only generate output state block in moore machine. in mealy machine, the output
     // is fused inside the state transition.
-    if (moore_) generate_output(enum_def, current_state);
+    if (moore_) generate_output(enum_def, current_state, state_name_mapping);
 
-    // set to realized
+    // set to realized for all states
+    auto fsms = get_all_child_fsm();
+    for (auto& fsm : fsms) fsm->realized_ = true;
     realized_ = true;
 }
 
@@ -183,20 +209,23 @@ std::shared_ptr<FunctionStmtBlock> FSM::get_func_def() {
     return func;
 }
 
-void add_debug_info(const std::shared_ptr<FSMState>& state,
-                    const std::shared_ptr<FunctionCallStmt>& func_stmt) {
+void add_debug_info(const FSMState* state, const std::shared_ptr<FunctionCallStmt>& func_stmt) {
     auto fn_ln = state->output_fn_ln();
     for (auto const& iter : fn_ln) {
         func_stmt->fn_name_ln.emplace_back(iter.second);
     }
 }
 
-void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, EnumVar& next_state) {
+void FSM::generate_state_transition(
+    Enum& enum_def, EnumVar& current_state, EnumVar& next_state,
+    const std::unordered_map<FSMState*, std::string>& state_name_mapping) {
     auto state_comb = generator_->combinational();
     std::shared_ptr<FunctionStmtBlock> func_def = nullptr;
     if (!moore_) func_def = get_func_def();
     auto case_state_comb = std::make_shared<SwitchStmt>(current_state.shared_from_this());
-    for (auto const& [state_name, state] : states_) {
+    auto states = get_all_child_states(false);
+    for (auto const& state : states) {
+        auto const& state_name = state_name_mapping.at(state);
         // a list of if statements
         std::shared_ptr<IfStmt> if_ = nullptr;
         std::shared_ptr<IfStmt> top_if = nullptr;
@@ -208,7 +237,7 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
         bool has_slide_through = false;
         if (vars.size() != 1 || vars[0] != nullptr) {
             std::sort(vars.begin(), vars.end(), [=](const auto& lhs, const auto& rhs) {
-              return transitions.at(lhs)->name() < transitions.at(rhs)->name();
+                return transitions.at(lhs)->name() < transitions.at(rhs)->name();
             });
         } else {
             has_slide_through = true;
@@ -217,21 +246,15 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
             auto next_fsm_state = transitions.at(cond);
             if (!cond) {
                 // direct transition
-                auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking);
-                auto debug_info = state->next_state_fn_ln();
-                if (generator_->debug) {
-                    if (debug_info.find(next_fsm_state) != debug_info.end()) {
-                        auto info = debug_info.at(next_fsm_state);
-                        stmt->fn_name_ln.emplace_back(info);
-                    }
-                    stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
-                }
+                auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
+                                                state_name_mapping);
                 case_state_comb->add_switch_case(enum_def.get_enum(state_name), stmt);
                 break;
             }
             if (!if_) {
                 if_ = std::make_shared<IfStmt>(cond->shared_from_this());
-                auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking);
+                auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
+                                                state_name_mapping);
                 if_->add_then_stmt(stmt);
                 // mealy machine need to add extra state transition outputs
                 std::shared_ptr<FunctionCallStmt> func_stmt = nullptr;
@@ -241,11 +264,6 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
                 }
                 top_if = if_;
                 if (generator_->debug) {
-                    auto debug_info = state->next_state_fn_ln();
-                    if (debug_info.find(next_fsm_state) != debug_info.end()) {
-                        auto info = debug_info.at(next_fsm_state);
-                        stmt->fn_name_ln.emplace_back(info);
-                    }
                     if (func_stmt) {
                         add_debug_info(state, func_stmt);
                         func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
@@ -253,7 +271,8 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
                 }
             } else {
                 auto new_if = std::make_shared<IfStmt>(cond->shared_from_this());
-                auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state->name()), Blocking);
+                auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
+                                                state_name_mapping);
                 // mealy machine need to add extra state transition outputs
                 std::shared_ptr<FunctionCallStmt> func_stmt = nullptr;
                 new_if->add_then_stmt(stmt);
@@ -262,11 +281,6 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
                     new_if->add_then_stmt(func_stmt);
                 }
                 if (generator_->debug) {
-                    auto debug_info = state->next_state_fn_ln();
-                    if (debug_info.find(next_fsm_state) != debug_info.end()) {
-                        auto info = debug_info.at(next_fsm_state);
-                        stmt->fn_name_ln.emplace_back(info);
-                    }
                     if (func_stmt) {
                         add_debug_info(state, func_stmt);
                         func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
@@ -277,13 +291,31 @@ void FSM::generate_state_transition(Enum& enum_def, EnumVar& current_state, Enum
             }
         }
         if (!has_slide_through) {
-            if (!top_if) throw InternalException("Unable to find any state transition");
+            if (!top_if)
+                throw InternalException(
+                    ::format("Unable to find any state transition for state {0}", state->name()));
             case_state_comb->add_switch_case(enum_def.get_enum(state_name), top_if);
         }
     }
 
     // add it to the state_comb
     state_comb->add_stmt(case_state_comb);
+}
+
+std::shared_ptr<AssignStmt> FSM::get_next_state_stmt(
+    Enum& enum_def, EnumVar& next_state, const FSMState* state, FSMState* next_fsm_state,
+    const std::unordered_map<FSMState*, std::string>& state_name_mapping) const {
+    auto const& next_fsm_state_name = state_name_mapping.at(next_fsm_state);
+    auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state_name), Blocking);
+    auto debug_info = state->next_state_fn_ln();
+    if (generator_->debug) {
+        if (debug_info.find(next_fsm_state) != debug_info.end()) {
+            auto info = debug_info.at(next_fsm_state);
+            stmt->fn_name_ln.emplace_back(info);
+        }
+        stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+    }
+    return stmt;
 }
 std::shared_ptr<FunctionCallStmt>& FSM::get_func_call_stmt(
     const std::shared_ptr<FunctionStmtBlock>& func_def, const FSMState* fsm_state,
@@ -299,10 +331,13 @@ std::shared_ptr<FunctionCallStmt>& FSM::get_func_call_stmt(
     return func_stmt;
 }
 
-void FSM::generate_output(Enum& enum_def, EnumVar& current_state) {
+void FSM::generate_output(Enum& enum_def, EnumVar& current_state,
+                          const std::unordered_map<FSMState*, std::string>& state_name_mapping) {
     auto output_comb = generator_->combinational();
     auto output_case_comb = std::make_shared<SwitchStmt>(current_state.shared_from_this());
-    for (auto const& [state_name, state] : states_) {
+    auto states = get_all_child_states(false);
+    for (auto const& state : states) {
+        auto const& state_name = state_name_mapping.at(state);
         std::vector<std::shared_ptr<Stmt>> stmts;
         auto const& output_values = state->output_values();
         stmts.reserve(output_values.size());
@@ -328,8 +363,9 @@ void FSM::generate_output(Enum& enum_def, EnumVar& current_state) {
         }
         // add it to the case
         auto& case_stmt = output_case_comb->add_switch_case(enum_def.get_enum(state_name), stmts);
-        generator_->add_named_block(::fmt::v5::format("{0}_{1}_Output", fsm_name_, state_name),
-                                    case_stmt.as<ScopedStmtBlock>());
+        if (!stmts.empty())
+            generator_->add_named_block(::format("{0}_{1}_Output", fsm_name_, state_name),
+                                        case_stmt.as<ScopedStmtBlock>());
     }
 
     // add it to the output_comb
@@ -368,7 +404,7 @@ std::shared_ptr<FSMState> FSM::add_state(const std::string& name,
     return add_state(name);
 }
 
-std::shared_ptr<FSMState> FSM::get_state(const std::string& name) {
+std::shared_ptr<FSMState> FSM::get_state(const std::string& name) const {
     if (states_.find(name) == states_.end())
         throw UserException(::format("Cannot find {0} in the FSM", name));
     return states_.at(name);
@@ -428,7 +464,7 @@ std::string FSM::dot_graph() {
 
     stream << ::endl;
     // state transition
-    for (auto const& state: states) {
+    for (auto const& state : states) {
         auto transitions = state->transitions();
         auto state_name = state->name();
         // deterministic sorting
@@ -488,6 +524,25 @@ void FSM::output_table(const std::string& filename) {
     std::ofstream stream(filename);
     stream << output_table();
     stream.close();
+}
+
+std::vector<FSM*> FSM::get_all_child_fsm() const {
+    std::vector<FSM*> result;
+    std::queue<FSM*> queue;
+    std::unordered_set<const FSM*> visited;
+    queue.emplace(const_cast<FSM*>(this));
+    while (!queue.empty()) {
+        auto fsm = queue.front();
+        queue.pop();
+        result.emplace_back(fsm);
+        if (visited.find(fsm) != visited.end())
+            throw UserException(::format("FSM {0} has circular dependency", fsm_name_));
+
+        visited.emplace(fsm);
+        auto children = fsm->child_fsms_;
+        for (auto const& iter : children) queue.emplace(iter.second);
+    }
+    return result;
 }
 
 std::map<FSMState*, color::Color> get_state_color(const std::vector<FSMState*>& states) {
@@ -552,7 +607,6 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shar
         }
         transitions_.emplace(ptr, state_ptr);
     }
-
 }
 
 void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shared_ptr<Var>& cond,

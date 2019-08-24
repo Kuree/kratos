@@ -15,7 +15,7 @@ public:
     std::shared_ptr<FSMState> add_state(const std::string &name);
     std::shared_ptr<FSMState> add_state(const std::string &name,
                                         const std::pair<std::string, uint32_t> &debug_info);
-    std::shared_ptr<FSMState> get_state(const std::string &name);
+    std::shared_ptr<FSMState> get_state(const std::string &name) const;
     void set_start_state(const std::string &name);
     void set_start_state(const std::shared_ptr<FSMState> &state);
     void set_start_state(const std::string &name, const std::pair<std::string, uint32_t> &debug);
@@ -50,6 +50,7 @@ public:
     FSM *parent_fsm() const { return parent_fsm_; }
     void add_child_fsm(FSM *fsm);
     std::vector<FSMState *> get_all_child_states(bool include_extra_state = false) const;
+    std::vector<FSM *> get_all_child_fsm() const;
 
 private:
     std::string fsm_name_;
@@ -68,8 +69,11 @@ private:
     bool realized_ = false;
     bool moore_ = true;
 
-    void generate_state_transition(Enum &enum_def, EnumVar &current_state, EnumVar &next_state);
-    void generate_output(Enum &enum_def, EnumVar &current_state);
+    void generate_state_transition(
+        Enum &enum_def, EnumVar &current_state, EnumVar &next_state,
+        const std::unordered_map<FSMState *, std::string> &state_name_mapping);
+    void generate_output(Enum &enum_def, EnumVar &current_state,
+                         const std::unordered_map<FSMState *, std::string> &state_name_mapping);
     std::shared_ptr<FunctionStmtBlock> get_func_def();
     std::shared_ptr<FunctionCallStmt> &get_func_call_stmt(
         const std::shared_ptr<FunctionStmtBlock> &func_def, const FSMState *fsm_state,
@@ -77,6 +81,9 @@ private:
 
     FSM *parent_fsm_ = nullptr;
     std::map<std::string, FSM *> child_fsms_;
+    std::shared_ptr<AssignStmt> get_next_state_stmt(
+        Enum &enum_def, EnumVar &next_state, const FSMState *state, FSMState *next_fsm_state,
+        const std::unordered_map<FSMState *, std::string> &state_name_mapping) const;
 };
 
 class FSMState : public std::enable_shared_from_this<FSMState> {

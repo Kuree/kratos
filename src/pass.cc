@@ -1660,7 +1660,7 @@ public:
     void visit(Generator* generator) override {
         if (generator->is_cloned()) return;
         for (auto const& iter : generator->fsms()) {
-            if (!iter.second->realized()) iter.second->realize();
+            if (!iter.second->realized() && !iter.second->parent_fsm()) iter.second->realize();
         }
     }
 };

@@ -37,7 +37,8 @@ void init_fsm(py::module &m) {
         .def("output_table", py::overload_cast<const std::string &>(&FSM::output_table))
         .def("set_moore", &FSM::set_moore)
         .def("is_moore", &FSM::is_moore)
-        .def("add_child_fsm", &FSM::add_child_fsm);
+        .def("add_child_fsm", &FSM::add_child_fsm)
+        .def("get_all_child_fsm", &FSM::get_all_child_fsm);
 
     py::class_<FSMState, std::shared_ptr<FSMState>>(m, "FSMState")
         .def("next",
