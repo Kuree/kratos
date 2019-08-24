@@ -1092,7 +1092,8 @@ def test_nested_fsm():
     second_fsm.output(out_)
     idle.output(out_, 2)
 
-    fsm.dot_graph("test.dot")
+    dot = fsm.dot_graph()
+    check_file(dot, "test_nested_fsm.dot")
 
 
 if __name__ == "__main__":
