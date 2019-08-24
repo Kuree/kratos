@@ -84,8 +84,8 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
     else
         format_str = "{0} {1} {2} {3}{4};";
     (*this) << ::format(format_str, type, var->is_signed ? "signed" : "",
-                        SystemVerilogCodeGen::get_var_width_str(var.get()), var->name,
-                        var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
+                        var->is_enum() ? "" : SystemVerilogCodeGen::get_var_width_str(var.get()),
+                        var->name, var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
             << endl();
     return *this;
 }
@@ -311,8 +311,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
 
 void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     // dpi is external module
-    if (stmt->is_dpi())
-        return;
+    if (stmt->is_dpi()) return;
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
     }
