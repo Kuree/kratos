@@ -1074,5 +1074,26 @@ def test_c_dpi_function():
     check_gold(mod, "test_dpi", int_dpi_interface=False)
 
 
+def test_nested_fsm():
+    mod = Generator("mod", debug=True)
+    out_ = mod.output("out", 2)
+    in_ = mod.input("in", 2)
+    # fsm requires a clk and async rst
+    mod.clock("clk")
+    mod.reset("rst")
+    # add a dummy fsm
+    fsm = mod.add_fsm("Color")
+    setup_fsm(fsm, out_, in_)
+    second_fsm = mod.add_fsm("HSV")
+    fsm.add_child_fsm(second_fsm)
+    idle = second_fsm.add_state("idle")
+    idle.next(fsm["Red"], in_ == 0)
+    fsm["Red"].next(idle, in_ == 2)
+    second_fsm.output(out_)
+    idle.output(out_, 2)
+
+    fsm.dot_graph("test.dot")
+
+
 if __name__ == "__main__":
-    test_fsm()
+    test_nested_fsm()

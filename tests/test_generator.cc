@@ -685,3 +685,36 @@ TEST(generator, active_low) {  // NOLINT
     seq->add_condition({BlockEdgeType::Negedge, rst.shared_from_this()});
     EXPECT_THROW(check_active_high(&mod), VarException);
 }
+
+TEST(generator, nested_fsm) {   // NOLINT
+    Context c;
+    auto mod = c.generator("mod");
+    auto &out_ = mod.port(PortDirection::Out, "out", 2);
+    auto &in_ = mod.port(PortDirection::In, "in", 2);
+    mod.port(PortDirection::In, "clk", 1, 1, PortType::Clock, false);
+    mod.port(PortDirection::In, "rst", 1, 1, PortType::AsyncReset, false);
+
+    auto &fsm = mod.fsm("Color");
+    fsm.output(out_.shared_from_this());
+
+    auto red = fsm.add_state("Red");
+    auto blue = fsm.add_state("Blue");
+    auto expr1 = in_.eq(constant(0, 2)).shared_from_this();
+    red->next(red, expr1);
+    auto expr2 = in_.eq(constant(1, 2)).shared_from_this();
+    red->next(blue, expr2);
+    blue->next(red, expr2);
+
+    red->output(out_.shared_from_this(), constant(2, 2).shared_from_this());
+    blue->output(out_.shared_from_this(), constant(1, 2).shared_from_this());
+    fsm.set_start_state(red);
+
+    auto &second_state = mod.fsm("Idle");
+    fsm.add_child_fsm(&second_state);
+    auto idle = second_state.add_state("idle");
+    auto expr3 = in_.eq(constant(2, 2)).shared_from_this();
+    red->next(idle, expr3);
+
+    auto states = fsm.get_all_child_states(false);
+    EXPECT_EQ(states.size(), 3);
+}

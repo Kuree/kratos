@@ -1,8 +1,8 @@
 digraph Color {
     rankdir=LR;
 
-    node [shape=doublecircle, label="Red", style=filled, fillcolor="#79F2F2"] Red;
-    node [shape=circle, label="Blue", style=filled, fillcolor="#79F2F2"] Blue;
+    node [shape=doublecircle, label="Red", style=filled, fillcolor="#799EF2"] Red;
+    node [shape=circle, label="Blue", style=filled, fillcolor="#799EF2"] Blue;
 
     Blue    ->  Red [ label = "in == 2'h1" ];
     Red    ->  Red [ label = "in == 2'h0" ];

@@ -338,26 +338,44 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *ge
 
 namespace color {
 Color hsv_to_rgb(double h, double s, double v) {
-    double c = v * s;
-    double x = c * (1 - std::abs((static_cast<int>(h / 60)) % 2 - 1));
-    double m = v - c;
+    auto h_i = static_cast<int>(h * 6);
+    auto f = h * 6 - h_i;
+    auto p = v * (1 - s);
+    auto q = v * (1 - f * s);
+    auto t = v * (1 - (1 - f ) * s);
     double r_, g_, b_;
-    if (h < 60) {
-        r_ = c; g_ = x, b_ = 0;
-    } else if (h < 120) {
-        r_ = x; g_ = c; b_ = 0;
-    } else if (h < 180) {
-        r_ = 0; g_ = c; b_ = x;
-    } else if (h < 240) {
-        r_ = 0; g_ = x; b_ = c;
-    } else if (h < 300) {
-        r_ = x; g_ = 0; b_ = c;
-    } else {
-        r_ = c; g_ = 0; b_ = x;
+
+    switch(h_i) {
+        case 0: {
+            r_ = v; g_ = t; b_ = p;
+            break;
+        }
+        case 1: {
+            r_ = q; g_ = v; b_ = p;
+            break;
+        }
+        case 2: {
+            r_ = p; g_ = v; b_ = t;
+            break;
+        }
+        case 3: {
+            r_ = p; g_ = q; b_ = v;
+            break;
+        }
+        case 4: {
+            r_ = t; g_ = p; b_ = v;
+            break;
+        }
+        case 5: {
+            r_ = v; g_ = p; b_ = q;
+            break;
+        }
+        default:
+            throw std::runtime_error("HSV H is larger than 1");
     }
-    auto r = static_cast<unsigned char>((r_ + m) * 255);
-    auto g = static_cast<unsigned char>((g_ + m) * 255);
-    auto b = static_cast<unsigned char>((b_ + m) * 255);
+    auto r = static_cast<unsigned char>(r_ * 255);
+    auto g = static_cast<unsigned char>(g_ * 255);
+    auto b = static_cast<unsigned char>(b_ * 255);
     return {r, g, b};
 }
 }

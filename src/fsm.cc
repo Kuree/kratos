@@ -406,8 +406,9 @@ std::string FSM::dot_graph() {
 
     stream << ::endl;
     // state transition
-    for (auto const& [state_name, state] : states_) {
+    for (auto const& state: states) {
         auto transitions = state->transitions();
+        auto state_name = state->name();
         // deterministic sorting
         std::vector<Var*> conds;
         conds.reserve(transitions.size());
@@ -471,7 +472,7 @@ std::map<FSMState*, color::Color> get_state_color(const std::vector<FSMState*>& 
     std::map<FSMState*, color::Color> result;
     std::map<const FSM*, color::Color> state_color;
     // set seed to 0
-    std::mt19937 gen(1);    // NOLINT
+    std::mt19937 gen(1);  // NOLINT
     std::uniform_real_distribution<double> dis(0, 1.0);
     for (auto const& state : states) {
         auto fsm = state->parent();
@@ -482,7 +483,7 @@ std::map<FSMState*, color::Color> get_state_color(const std::vector<FSMState*>& 
             // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
             h += 0.618033988749895;
             h = std::fmod(h, 1.0);
-            auto color = color::hsv_to_rgb(h * 360, 0.5, 0.95);
+            auto color = color::hsv_to_rgb(h, 0.5, 0.95);
             state_color.emplace(fsm, color);
         }
     }
@@ -507,13 +508,16 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, std::shared_ptr
                                        ptr->to_string(), parent_->fsm_name(), name_));
     }
     // making sure that it's part of the same fsm state
+    auto parent = parent_;
+    while (parent->parent_fsm()) parent = parent->parent_fsm();
     auto fsm = next_state->parent_;
-    while (fsm && fsm != parent_) {
+    while (fsm && fsm != parent) {
         fsm = fsm->parent_fsm();
     }
-    if (fsm != parent_) {
-        throw UserException(::format("FSM state {0} belongs to a different FSM {1}",
-                                     next_state->name_, next_state->parent_->fsm_name()));
+    if (fsm != parent) {
+        throw UserException(::format("FSM state {0} belongs to a different FSM {1} than {2}",
+                                     next_state->name_, next_state->parent_->fsm_name(),
+                                     parent->fsm_name()));
     }
     transitions_.emplace(ptr, state_ptr);
 }

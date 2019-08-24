@@ -6,6 +6,7 @@ class FSM:
     def __init__(self, generator, fsm):
         self.__generator = generator
         self.__fsm = fsm
+        self.__states = {}
 
     def output(self, var):
         self.__fsm.output(var)
@@ -13,9 +14,11 @@ class FSM:
     def add_state(self, name):
         if self.__generator.debug:
             debug = get_fn_ln()
-            return FSMState(self.__generator, self.__fsm.add_state(name, debug))
+            state = FSMState(self.__generator, self.__fsm.add_state(name, debug))
         else:
-            return FSMState(self.__generator, self.__fsm.add_state(name))
+            state = FSMState(self.__generator, self.__fsm.add_state(name))
+        self.__states[name] = state
+        return state
 
     def set_start_state(self, state):
         if isinstance(state, FSMState):
@@ -37,6 +40,12 @@ class FSM:
             return self.__fsm.output_table(filename)
         else:
             return self.__fsm.output_table()
+
+    def __getitem__(self, fsm_name):
+        return self.__states[fsm_name]
+
+    def add_child_fsm(self, fsm):
+        self.__fsm.add_child_fsm(fsm.__fsm)
 
     @property
     def is_moore(self):
