@@ -6,7 +6,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.13] - 2019-08011
+## [0.0.14] - 2019-08-25
+### Added
+- Add ability to slice variable with another variable (#73)
+- Add ability to sort top level assignments, off by default (#74)
+- Add ability to comment on any IR node (#72)
+- Add SystemVerilog keyword checker
+- Add ability to mark top level always block
+- Add support for packed array (#78)
+- Add active high/low check
+- Add dpi from C/C++ and Python (#83). Python interface is done throug kratos-dpi.
+- Add support for nested FSM
+
+### Changed
+- Refactor the Python binding code to reduce binary size
+- Exceptions are more informative
+- Remove redundant replace code in generator.
+- Improve the Python binding on generator name/instance_name change
+- Empty generator name is handled properly
+- FSM now requires a start state
+
+### Fixed
+- Fix pass through module with cloned modules (#79)
+- Fix move_src/move_sink for sliced variables
+- Fix the variable parent calculation (#77)
+- Fix enum variable code gen
+
+## [0.0.13] - 2019-08-11
 ### Fixed
 - Fix a bug where sliced ports cannot be connected properly using `self.wire()`
 
