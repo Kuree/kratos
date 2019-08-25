@@ -721,6 +721,8 @@ TEST(generator, nested_fsm) {   // NOLINT
     auto states = fsm.get_all_child_states(false);
     EXPECT_EQ(states.size(), 3);
     realize_fsm(&mod);
+    fix_assignment_type(&mod);
+    generate_verilog(&mod);
 }
 
 TEST(generator, slide_through_fsm) {    // NOLINT

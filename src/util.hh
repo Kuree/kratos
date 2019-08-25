@@ -1,10 +1,10 @@
 #ifndef KRATOS_UTIL_HH
 #define KRATOS_UTIL_HH
 
-#include "expr.hh"
-#include "stmt.hh"
-#include "port.hh"
 #include <sstream>
+#include "expr.hh"
+#include "port.hh"
+#include "stmt.hh"
 
 namespace kratos {
 
@@ -14,7 +14,7 @@ void set_num_cpus(int num_cpu);
 std::string ExprOpStr(ExprOp op);
 
 template <typename Iter>
-std::string static join(Iter begin, Iter end, const std::string& sep) {
+std::string static join(Iter begin, Iter end, const std::string &sep) {
     std::stringstream stream;
     for (auto it = begin; it != end; it++) {
         if (it != begin) stream << sep;
@@ -48,6 +48,8 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *ge
                                                                    const std::string &src,
                                                                    const std::string &top_name);
 
+bool inline is_2_power(uint64_t num) { return (num && (!(num & (num - 1)))); }
+
 namespace color {
 struct Color {
     unsigned char R;
@@ -57,7 +59,7 @@ struct Color {
 
 Color hsv_to_rgb(double h, double s, double v);
 
-}
+}  // namespace color
 
 namespace fs {
 std::string join(const std::string &path1, const std::string &path2);

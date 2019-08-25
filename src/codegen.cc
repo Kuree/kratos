@@ -446,10 +446,13 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
     for (auto& cond : conds) {
         auto& stmt_blk = body.at(cond);
         stream_ << indent() << (cond ? cond->to_string() : "default") << ": ";
-        if (stmt_blk->empty()) {
+        if (stmt_blk->empty() && cond) {
             throw VarException(
                 ::format("Switch statement condition {0} is empty!", cond->to_string()),
                 {stmt, cond.get()});
+        } else if (stmt_blk->empty() && !cond) {
+            //  empty default case
+            stream_ << "begin end" << stream_.endl();
         } else {
             // directly output the code if the block only has 1 element
             if (stmt_blk->size() == 1 && label_index_.find(stmt_blk.get()) == label_index_.end()) {

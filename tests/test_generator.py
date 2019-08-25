@@ -1094,7 +1094,7 @@ def test_nested_fsm():
 
     dot = fsm.dot_graph()
     check_file(dot, "test_nested_fsm.dot")
-    verilog(mod, debug=True, filename="test.sv")
+    check_gold(mod, "test_nested_fsm")
 
 
 if __name__ == "__main__":

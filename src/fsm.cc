@@ -297,7 +297,10 @@ void FSM::generate_state_transition(
             case_state_comb->add_switch_case(enum_def.get_enum(state_name), top_if);
         }
     }
-
+    // add default case
+    if (!is_2_power(states.size())) {
+        case_state_comb->add_switch_case(nullptr, std::make_shared<ScopedStmtBlock>());
+    }
     // add it to the state_comb
     state_comb->add_stmt(case_state_comb);
 }
@@ -362,10 +365,19 @@ void FSM::generate_output(Enum& enum_def, EnumVar& current_state,
             }
         }
         // add it to the case
-        auto& case_stmt = output_case_comb->add_switch_case(enum_def.get_enum(state_name), stmts);
-        if (!stmts.empty())
+        if (!stmts.empty()) {
+            auto& case_stmt =
+                output_case_comb->add_switch_case(enum_def.get_enum(state_name), stmts);
             generator_->add_named_block(::format("{0}_{1}_Output", fsm_name_, state_name),
                                         case_stmt.as<ScopedStmtBlock>());
+        }
+    }
+    // cover default case for in case there is a illegal usage.
+    // for now ground all the outputs
+    uint64_t num_states = states.size();
+    if (!is_2_power(num_states)) {
+        // it's not 2's power
+        output_case_comb->add_switch_case(nullptr, std::make_shared<ScopedStmtBlock>());
     }
 
     // add it to the output_comb
