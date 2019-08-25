@@ -737,6 +737,7 @@ TEST(generator, slide_through_fsm) {    // NOLINT
 
     auto red = fsm.add_state("Red");
     auto blue = fsm.add_state("Blue");
+    fsm.set_start_state(red);
     red->next(blue, nullptr);
     blue->next(red, nullptr);
     auto &output_value = constant(1, 2);
