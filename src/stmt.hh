@@ -209,8 +209,6 @@ public:
     const std::map<std::string, uint32_t> &port_ordering() const { return port_ordering_; }
     Generator *generator() { return parent_; }
 
-    void set_parent(IRNode *parent) override;
-
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     // to distinguish from dpi function

@@ -322,12 +322,6 @@ std::shared_ptr<Port> FunctionStmtBlock::get_port(const std::string &port_name) 
     return ports_.at(port_name);
 }
 
-void FunctionStmtBlock::set_parent(kratos::IRNode *parent) {
-    // the parent is preset already
-    if (parent != parent_)
-        throw StmtException("Function statement cannot change its parent", {this});
-}
-
 std::shared_ptr<ReturnStmt> FunctionStmtBlock::return_stmt(const std::shared_ptr<Var> &var) {
     return std::make_shared<ReturnStmt>(this, var);
 }

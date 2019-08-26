@@ -1,4 +1,4 @@
-from kratos import Generator, verilog
+from kratos import Generator, verilog, const
 import tempfile
 import os
 import filecmp
@@ -49,3 +49,33 @@ def test_regression_1():
     mod = Mod()
     check_gold(mod, "test_regression_1", optimize_passthrough=False)
 
+
+def test_regression_2():
+    from kratos.func import dpi_function
+
+    @dpi_function(8)
+    def func(arg0):
+        pass
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod", debug=True)
+            self._in = self.input("in", 2)
+            self._out = self.output("out", 8)
+            self._reg = self.var("val", 8)
+
+            self.add_code(self.code)
+
+        def code(self):
+            # because the types are inferred
+            # implicit const conversion doesn't work here
+            self._reg = func(const(1, 2))
+            self._out = func(const(1, 2))
+
+    mod = Mod()
+    mod_src = verilog(mod)
+    assert "func" in mod_src[1]
+
+
+if __name__ == "__main__":
+    test_regression_2()

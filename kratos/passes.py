@@ -84,6 +84,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     # dpi info
     dpi_func = _kratos.passes.extract_dpi_function(generator.internal_generator,
                                                    int_dpi_interface)
+    if len(dpi_func) > 0:
+        result.append(dpi_func)
 
     if filename is not None:
         output_verilog(filename, src, info, struct_info, dpi_func)

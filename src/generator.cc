@@ -194,6 +194,18 @@ std::shared_ptr<FunctionStmtBlock> Generator::get_function(const std::string &fu
     return funcs_.at(func_name);
 }
 
+void Generator::add_function(const std::shared_ptr<FunctionStmtBlock> &func) {
+    auto func_name = func->function_name();
+    if (funcs_.find(func_name) != funcs_.end())
+        throw StmtException(
+            ::format("Function {0} already exists in {1}", func_name, instance_name),
+            {func.get(), funcs_.at(func_name).get()});
+    func_index_.emplace(static_cast<uint32_t>(funcs_.size()), func_name);
+    funcs_.emplace(func_name, func);
+    // change the parent
+    func->set_parent(this);
+}
+
 IRNode *Generator::get_child(uint64_t index) {
     if (index < stmts_count()) {
         return stmts_[index].get();
@@ -281,7 +293,7 @@ bool Generator::has_child_generator(const std::string &child_name) {
     return children_.find(child_name) != children_.end();
 }
 
-void Generator::rename_child_generator(const std::shared_ptr<Generator>& child,
+void Generator::rename_child_generator(const std::shared_ptr<Generator> &child,
                                        const std::string &new_name) {
     if (!has_child_generator(child))
         throw GeneratorException(
@@ -384,6 +396,11 @@ void Generator::rename_var(const std::string &old_name, const std::string &new_n
     vars_.extract(old_name).key() = new_name;
     // rename the var
     var->name = new_name;
+}
+
+void Generator::add_call_var(const std::shared_ptr<FunctionCallVar> &var) {
+    calls_.emplace(var);
+    var->generator = this;
 }
 
 std::shared_ptr<Param> Generator::get_param(const std::string &param_name) const {

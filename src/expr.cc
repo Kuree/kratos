@@ -979,6 +979,16 @@ void FunctionCallVar::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     for (auto const &iter : args_) {
         iter.second->add_sink(stmt);
     }
+    // FIXME: this is a very hacky fix on constant generators
+    if (generator == Const::const_gen()) {
+        // use left hand size of stmt
+        generator = stmt->left()->generator;
+        // change the function def to the new generator
+        if (!generator->has_function(func_def_->function_name())) {
+            generator->add_function(func_def_->as<FunctionStmtBlock>());
+            generator->add_call_var(as<FunctionCallVar>());
+        }
+    }
 }
 
 std::string FunctionCallVar::to_string() const {

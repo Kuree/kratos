@@ -162,7 +162,7 @@ public:
             }
         }
 
-        // rmeove unused vars
+        // remove unused vars
         for (auto const& var_name : vars_to_remove) {
             generator->remove_var(var_name);
         }
