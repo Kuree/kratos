@@ -442,6 +442,7 @@ public:
                     const std::map<std::string, std::shared_ptr<Var>> &args,
                     bool has_return = true);
     bool is_function() const override { return true; }
+    FunctionStmtBlock *func() { return func_def_; }
 
     VarSlice &operator[](std::pair<uint32_t, uint32_t>) override {
         throw std::runtime_error("Slice a function call is not allowed");

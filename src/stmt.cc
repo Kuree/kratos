@@ -424,6 +424,9 @@ FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &fun
     var_ = p.as<FunctionCallVar>();
 }
 
+FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionCallVar> &var)
+    : Stmt(StatementType::FunctionalCall), func_(var->func()->as<FunctionStmtBlock>()), var_(var) {}
+
 ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *parent)
     : Stmt(StatementType::ModuleInstantiation), target_(target), parent_(parent) {
     auto const &port_names = target->get_port_names();

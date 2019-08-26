@@ -56,15 +56,19 @@ void init_stmt(py::module &m) {
     py::class_<StmtBlock, ::shared_ptr<StmtBlock>, Stmt>(m, "StmtBlock")
         .def("block_type", &StmtBlock::block_type)
         .def("add_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&StmtBlock::add_stmt))
-        .def("remove_stmt", &StmtBlock::remove_stmt);  // NOLINT
+        .def("remove_stmt", &StmtBlock::remove_stmt)
+        .def("add_stmt", [](StmtBlock& stmt, const std::shared_ptr<FunctionCallVar> &var) {
+            // need to convert it into a function call statement
+            auto st = std::make_shared<FunctionCallStmt>(var);
+            stmt.add_stmt(st);
+        });
 
     py::class_<CombinationalStmtBlock, ::shared_ptr<CombinationalStmtBlock>, StmtBlock>(
         m, "CombinationalStmtBlock")
         .def(py::init<>());
 
     py::class_<ScopedStmtBlock, ::shared_ptr<ScopedStmtBlock>, StmtBlock>(m, "ScopedStmtBlock")
-        .def(py::init<>())
-        .def("add_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&ScopedStmtBlock::add_stmt));
+        .def(py::init<>());
 
     py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, StmtBlock>(
         m, "SequentialStmtBlock")
@@ -81,8 +85,6 @@ void init_stmt(py::module &m) {
         m, "FunctionStmtBlock")
         .def("input", &FunctionStmtBlock::input)
         .def("return_stmt", &FunctionStmtBlock::return_stmt)
-        .def("add_stmt",
-             py::overload_cast<const ::shared_ptr<Stmt> &>(&FunctionStmtBlock::add_stmt))
         .def("get_port", &FunctionStmtBlock::get_port)
         .def("set_port_ordering", py::overload_cast<const std::map<std::string, uint32_t> &>(
                                       &FunctionStmtBlock::set_port_ordering))

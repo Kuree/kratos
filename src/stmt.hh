@@ -260,6 +260,8 @@ public:
     FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &func,
                      const std::map<std::string, std::shared_ptr<Var>> &args);
 
+    FunctionCallStmt(const std::shared_ptr<FunctionCallVar> &var);
+
     const std::shared_ptr<FunctionStmtBlock> &func() { return func_; }
     const std::shared_ptr<FunctionCallVar> &var() const { return var_; };
 
