@@ -765,4 +765,15 @@ std::unordered_set<std::string> Generator::named_blocks_labels() const {
     return result;
 }
 
+std::string Generator::handle_name() const {
+    // this is used to identify the generator from the top level
+    std::string result = instance_name;
+    auto parent = parent_generator_;
+    while (parent != nullptr) {
+        result = ::format("{0}.{1}", parent->instance_name, result);
+        parent = parent->parent_generator_;
+    }
+    return result;
+}
+
 }

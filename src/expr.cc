@@ -197,6 +197,10 @@ VarConcat &Var::concat(Var &var) {
 
 std::string Var::to_string() const { return name; }
 
+std::string Var::handle_name() const {
+    return ::format("{0}.{1}", generator->handle_name(), to_string());
+}
+
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)

@@ -190,3 +190,13 @@ TEST(expr, keyword) {   // NOLINT
 
     EXPECT_THROW(mod.var("var", 1), UserException);
 }
+
+TEST(expr, handle_name) {   // NOLINT
+    Context c;
+    auto &mod1 = c.generator("mod1");
+    auto &mod2 = c.generator("mod2");
+    mod1.add_child_generator("mod", mod2.shared_from_this());
+    auto &var = mod2.var("var_", 1);
+    EXPECT_EQ(var.handle_name(), "mod1.mod.var_");
+
+}

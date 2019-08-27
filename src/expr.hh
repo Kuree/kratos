@@ -146,6 +146,7 @@ public:
     // meta info
     // packed is only relevant when the size is larger than 1, by default it's false
     bool packed_array = false;
+    std::string handle_name() const;
 
     Var(const Var &var) = delete;
     Var() = delete;

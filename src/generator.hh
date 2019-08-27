@@ -189,6 +189,7 @@ public:
     std::unordered_set<std::string> named_blocks_labels() const;
     Generator *def_instance() const { return def_instance_; }
     void set_def_instance(Generator *def) { def_instance_ = def; }
+    std::string handle_name() const;
 
 private:
     std::vector<std::string> lib_files_;
