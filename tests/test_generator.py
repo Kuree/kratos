@@ -74,8 +74,8 @@ def test_generator():
 
 
 class AsyncReg(Generator):
-    def __init__(self, width):
-        super().__init__("register")
+    def __init__(self, width, debug=False):
+        super().__init__("register", debug)
 
         # define inputs and outputs
         self._in = self.input("in", width)
@@ -1097,5 +1097,14 @@ def test_nested_fsm():
     check_gold(mod, "test_nested_fsm")
 
 
+def test_symbol_table():
+    from kratos.passes import extract_symbol_table
+    mod = AsyncReg(16, True)
+    verilog(mod)
+    table = extract_symbol_table(mod)
+    assert len(table) == 1
+    assert len(table["register"]) == 5
+
+
 if __name__ == "__main__":
-    test_nested_fsm()
+    test_symbol_table()

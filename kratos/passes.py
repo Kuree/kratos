@@ -133,7 +133,7 @@ def extract_symbol_table(generator: Generator):
         if gen.debug:
             # introspect the variable tables
             entry = {}
-            variables = dict(gen)
+            variables = vars(gen)
             for name, var in variables.items():
                 if isinstance(var, _kratos.Var):
                     # I think bundle -> packed struct will not work here
