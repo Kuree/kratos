@@ -42,7 +42,7 @@ private:
     bool active_high_ = true;
 };
 
-struct PortPacked : public Port {
+struct PortPacked : public Port, public PackedInterface {
 public:
     PortPacked(Generator *module, PortDirection direction, const std::string &name,
                PackedStruct packed_struct_);
@@ -60,6 +60,8 @@ public:
     VarSlice inline &operator[](uint32_t idx) override { return Var::operator[](idx); }
 
     bool is_packed() const override { return true; }
+
+    std::set<std::string> member_names() const override;
 
 private:
     PackedStruct struct_;
@@ -99,7 +101,7 @@ private:
     std::map<std::string, std::pair<std::string, uint32_t>> debug_info_;
 };
 
-struct PortBundleRef {
+struct PortBundleRef: public PackedInterface {
 public:
     PortBundleRef(Generator *generator, std::shared_ptr<PortBundleDefinition> def)
         : generator(generator), definition_(std::move(def)) {}
@@ -117,6 +119,9 @@ public:
 
     [[nodiscard]]
     const std::string &def_name() const { return definition_->get_name(); }
+
+    [[nodiscard]]
+    std::set<std::string> member_names() const override;
 
 private:
     Generator *generator;

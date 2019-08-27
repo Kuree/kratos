@@ -311,7 +311,11 @@ private:
     std::string member_name_;
 };
 
-struct VarPacked : public Var {
+struct PackedInterface {
+    virtual std::set<std::string> member_names() const = 0;
+};
+
+struct VarPacked : public Var, public PackedInterface {
 public:
     VarPacked(Generator *m, const std::string &name, PackedStruct packed_struct_);
 
@@ -326,6 +330,8 @@ public:
         return Var::operator[](slice);
     }
     VarSlice inline &operator[](uint32_t idx) override { return Var::operator[](idx); }
+
+    std::set<std::string> member_names() const override;
 
 private:
     PackedStruct struct_;

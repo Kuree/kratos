@@ -561,6 +561,9 @@ class Generator(metaclass=GeneratorMeta):
             self.__generator.replace(child_name, new_child.internal_generator)
         self.__child_generator[child_name] = new_child
 
+    def child_generator(self):
+        return self.__child_generator
+
     @staticmethod
     def clear_context():
         Generator.__context.clear()

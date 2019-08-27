@@ -359,13 +359,16 @@ void init_expr(py::module &m) {
         .def(
             "__getitem__",
             [](PortPacked & port, const std::string &name) -> auto & { return port[name]; },
-            py::return_value_policy::reference);
+            py::return_value_policy::reference)
+        .def("member_names", &PortPacked::member_names);
 
     auto var_packed = py::class_<VarPacked, ::shared_ptr<VarPacked>, Var>(m, "VarPacked");
-    var_packed.def(
-        "__getitem__",
-        [](VarPacked & port, const std::string &name) -> auto & { return port[name]; },
-        py::return_value_policy::reference);
+    var_packed
+        .def(
+            "__getitem__",
+            [](VarPacked & port, const std::string &name) -> auto & { return port[name]; },
+            py::return_value_policy::reference)
+        .def("member_names", &VarPacked::member_names);
 
     // struct info for packed
     auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");

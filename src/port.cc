@@ -56,6 +56,14 @@ PackedSlice& PortPacked::operator[](const std::string& member_name) {
     return *ptr;
 }
 
+std::set<std::string> PortPacked::member_names() const {
+    std::set<std::string> result;
+    for (auto &def: struct_.attributes) {
+        result.emplace(std::get<0>(def));
+    }
+    return result;
+}
+
 void PortBundleDefinition::add_definition(const std::string& name, uint32_t width, uint32_t size,
                                           bool is_signed, kratos::PortDirection direction,
                                           kratos::PortType type) {
@@ -113,6 +121,13 @@ void PortBundleRef::assign(const std::shared_ptr<PortBundleRef>& other, Generato
         if (parent->debug)
             for (auto const& entry : debug_info) stmt->fn_name_ln.emplace_back(entry);
     }
+}
+
+std::set<std::string> PortBundleRef::member_names() const {
+    std::set<std::string> result;
+    for (auto const &def: name_mappings_)
+        result.emplace(def.first);
+    return result;
 }
 
 }  // namespace kratos

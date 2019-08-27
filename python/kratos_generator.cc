@@ -144,7 +144,8 @@ void init_generator(py::module &m) {
         .def_property("def_instance", &Generator::def_instance, &Generator::set_def_instance,
                       py::return_value_policy::reference)
         .def("dpi_function", &Generator::dpi_function, py::return_value_policy::reference)
-        .def("handle_name", &Generator::handle_name);
+        .def("handle_name", &Generator::handle_name)
+        .def("parent_generator", &Generator::parent_generator);
 
     generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
         var.fn_name_ln.emplace_back(info);
@@ -170,5 +171,6 @@ void init_generator(py::module &m) {
             "__getattr__", [](PortBundleRef & ref, const std::string &name) -> auto & {
                 return ref.get_port(name);
             },
-            py::return_value_policy::reference);
+            py::return_value_policy::reference)
+        .def("member_names", &PortBundleRef::member_names);
 }

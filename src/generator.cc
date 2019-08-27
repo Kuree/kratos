@@ -273,6 +273,8 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
                 }
             }
         }
+        // set parent to null
+        child->parent_generator_ = nullptr;
     }
 }
 

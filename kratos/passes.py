@@ -120,3 +120,35 @@ def output_verilog(filename, mod_src, info, struct_info, dpi_func):
         with open(filename + ".debug", "w+") as f:
             import json
             json.dump(debug_info, f)
+
+
+def extract_symbol_table(generator: Generator):
+    # this has to be run after the unification pass
+    from queue import Queue
+    table = {}
+    gen_queue = Queue()
+    gen_queue.put(generator)
+    while not gen_queue.empty():
+        gen: Generator = gen_queue.get()
+        if gen.debug:
+            # introspect the variable tables
+            entry = {}
+            variables = dict(gen)
+            for name, var in variables.items():
+                if isinstance(var, _kratos.Var):
+                    # I think bundle -> packed struct will not work here
+                    if isinstance(var, (_kratos.PortPacked, _kratos.VarPacked,
+                                        _kratos.PortBundleRef)):
+                        member_names = var.member_names()
+                        for var_name in member_names:
+                            var = var[var_name]
+                    entry[name] = var.handle_name()
+            gen_name = gen.name
+            table[gen_name] = entry
+            # push all the child generator to the queue
+            children = gen.child_generator()
+            for _, child in children.items():
+                if child.internal_generator.parent_generator() is not None:
+                    # it could be removed
+                    gen_queue.put(child)
+    return table

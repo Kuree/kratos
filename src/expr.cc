@@ -890,6 +890,14 @@ VarPacked::VarPacked(Generator *m, const std::string &name, PackedStruct packed_
     var_width = width;
 }
 
+std::set<std::string> VarPacked::member_names() const {
+    std::set<std::string> result;
+    for (auto const &def: struct_.attributes) {
+        result.emplace(std::get<0>(def));
+    }
+    return result;
+}
+
 Enum::Enum(kratos::Generator *generator, std::string name,
            const std::map<std::string, uint64_t> &values, uint32_t width)
     : name(std::move(name)), width_(width) {
