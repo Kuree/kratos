@@ -6,10 +6,10 @@
 #include "stmt.hh"
 #include "util.hh"
 
-constexpr char RED[] = "\033[91m";
-constexpr char GREEN[] = "\033[92m";
-constexpr char BLUE[] = "\033[94m";
-constexpr char ENDC[] = "\033[0m";
+constexpr char RED[] = "\033[91m";    // NOLINT
+constexpr char GREEN[] = "\033[92m";  // NOLINT
+constexpr char BLUE[] = "\033[94m";   // NOLINT
+constexpr char ENDC[] = "\033[0m";    // NOLINT
 constexpr uint32_t CODE_RANGE = 2;
 constexpr uint32_t LINE_WIDTH = 80;
 
@@ -96,4 +96,4 @@ InternalException::InternalException(const std::string& message) noexcept
 
 UserException::UserException(const std::string& message) noexcept : std::runtime_error(message) {}
 
-}
+}  // namespace kratos

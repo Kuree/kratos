@@ -22,3 +22,9 @@ if (MSVC)
 else()
   target_compile_options(kratos PRIVATE -Wall -Wextra -pedantic -Werror)
 endif()
+
+# clang-tidy
+if (${USE_CLANG_TIDY})
+    MESSAGE("Running clang-tidy")
+    set_target_properties(kratos PROPERTIES CXX_CLANG_TIDY "clang-tidy;-checks=bugprone-*,clang-*cppcoreguidelines-*,misc-*,modernize-*,readability;--warnings-as-errors=*")
+endif()

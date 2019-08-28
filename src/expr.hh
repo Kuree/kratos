@@ -312,7 +312,7 @@ private:
 };
 
 struct PackedInterface {
-    virtual std::set<std::string> member_names() const = 0;
+    [[nodiscard]] virtual std::set<std::string> member_names() const = 0;
     virtual ~PackedInterface() = default;
 };
 
@@ -360,7 +360,6 @@ protected:
 private:
     void set_parent();
 };
-
 
 struct VarConcat : public Expr {
 public:

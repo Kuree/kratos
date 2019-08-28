@@ -6,8 +6,6 @@
 using fmt::format;
 using std::runtime_error;
 using std::string;
-using std::unique_ptr;
-using std::vector;
 
 namespace kratos {
 
@@ -102,4 +100,4 @@ void Context::clear() {
     clear_hash();
 }
 
-}
+}  // namespace kratos

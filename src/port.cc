@@ -7,7 +7,6 @@
 #include "stmt.hh"
 
 using fmt::format;
-using std::runtime_error;
 using std::string;
 
 namespace kratos {
@@ -58,7 +57,7 @@ PackedSlice& PortPacked::operator[](const std::string& member_name) {
 
 std::set<std::string> PortPacked::member_names() const {
     std::set<std::string> result;
-    for (auto &def: struct_.attributes) {
+    for (auto& def : struct_.attributes) {
         result.emplace(std::get<0>(def));
     }
     return result;
@@ -125,8 +124,7 @@ void PortBundleRef::assign(const std::shared_ptr<PortBundleRef>& other, Generato
 
 std::set<std::string> PortBundleRef::member_names() const {
     std::set<std::string> result;
-    for (auto const &def: name_mappings_)
-        result.emplace(def.first);
+    for (auto const& def : name_mappings_) result.emplace(def.first);
     return result;
 }
 

@@ -8,7 +8,6 @@
 #include "stmt.hh"
 #include "util.hh"
 
-
 namespace kratos {
 /*
  * Once this project is moved to gcc-9, we will use the parallel execution
@@ -166,8 +165,8 @@ private:
     /// temporarily store up to 31 bytes between multiple add() calls
     static const uint64_t MaxBufferSize = 31 + 1;
 
-    uint64_t state[4];
-    unsigned char buffer[MaxBufferSize];
+    uint64_t state[4];                    // NOLINT
+    unsigned char buffer[MaxBufferSize];  // NOLINT
     unsigned int bufferSize;
     uint64_t totalLength;
 
@@ -200,7 +199,7 @@ uint64_t hash_64_fnv1a(const void* key, uint64_t len) {
     uint64_t hash = 0xcbf29ce484222325;
     uint64_t prime = 0x100000001b3;
 
-    for (uint32_t i = 0; i < len; ++i) {
+    for (uint64_t i = 0; i < len; ++i) {
         uint8_t value = data[i];
         hash = hash ^ value;
         hash *= prime;
@@ -398,4 +397,4 @@ void hash_generators_context(Context* context, Generator* root, HashStrategy str
     }
 }
 
-}
+}  // namespace kratos

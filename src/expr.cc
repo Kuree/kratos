@@ -327,7 +327,6 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
     else
         width = left->width;
 
-    name = to_string();
     if (right != nullptr)
         is_signed = left->is_signed & right->is_signed;
     else
@@ -798,7 +797,6 @@ ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,
     if (condition->width != 1)
         throw VarException("Ternary operator's condition has to be a binary value",
                            {condition.get()});
-    name = to_string();
 }
 
 IRNode *ConditionalExpr::get_child(uint64_t index) {
@@ -1028,4 +1026,4 @@ std::string FunctionCallVar::to_string() const {
     return result;
 }
 
-}
+}  // namespace kratos

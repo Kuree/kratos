@@ -8,7 +8,6 @@
 #include "util.hh"
 
 using fmt::format;
-using std::runtime_error;
 
 namespace kratos {
 

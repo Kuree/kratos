@@ -239,7 +239,8 @@ bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& 
 
 class GeneratorConnectivityVisitor : public IRVisitor {
 public:
-    GeneratorConnectivityVisitor() : is_top_level_(true) {}
+    GeneratorConnectivityVisitor() = default;
+
     void visit(Generator* generator) override {
         // skip if it's an external module or stub module
         if (generator->external() || generator->is_stub()) return;
@@ -277,7 +278,7 @@ public:
     }
 
 private:
-    bool is_top_level_;
+    bool is_top_level_ = true;
 };
 
 void verify_generator_connectivity(Generator* top) {
@@ -421,14 +422,16 @@ void create_module_instantiation(Generator* top) {
 }
 
 class UniqueGeneratorVisitor : public IRVisitor {
-public:
-    std::map<std::string, Generator*> generator_map;
+private:
+    std::map<std::string, Generator*> generator_map_;
 
+public:
     void visit(Generator* generator) override {
-        if (generator_map.find(generator->name) != generator_map.end()) return;
+        if (generator_map_.find(generator->name) != generator_map_.end()) return;
         // a unique one
-        if (!generator->external()) generator_map.emplace(generator->name, generator);
+        if (!generator->external()) generator_map_.emplace(generator->name, generator);
     }
+    const std::map<std::string, Generator*>& generator_map() const { return generator_map_; };
 };
 
 std::map<std::string, std::string> generate_verilog(Generator* top) {
@@ -437,7 +440,8 @@ std::map<std::string, std::string> generate_verilog(Generator* top) {
     // first get all the unique generators
     UniqueGeneratorVisitor unique_visitor;
     unique_visitor.visit_generator_root(top);
-    for (auto& [module_name, module_gen] : unique_visitor.generator_map) {
+    auto const& generator_map = unique_visitor.generator_map();
+    for (auto& [module_name, module_gen] : generator_map) {
         SystemVerilogCodeGen codegen(module_gen);
         result.emplace(module_name, codegen.str());
     }
@@ -1064,43 +1068,52 @@ public:
 
     void inline visit(ReturnStmt* stmt) override { add_info(stmt); }
 
-    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result;
+    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>& result() { return result_; }
 
 private:
     void inline add_info(Stmt* stmt) {
         if (!stmt->fn_name_ln.empty() && stmt->verilog_ln != 0) {
-            result.emplace(stmt->verilog_ln, stmt->fn_name_ln);
+            result_.emplace(stmt->verilog_ln, stmt->fn_name_ln);
         }
     }
 
     void inline add_info(Var* var) {
         if (!var->fn_name_ln.empty() && var->verilog_ln != 0 &&
-            result.find(var->verilog_ln) == result.end()) {
-            result.emplace(var->verilog_ln, var->fn_name_ln);
+            result_.find(var->verilog_ln) == result_.end()) {
+            result_.emplace(var->verilog_ln, var->fn_name_ln);
         }
     }
+
+    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result_;
 };
 
 class GeneratorDebugVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
-        if (result.find(generator->name) != result.end()) return;
+        if (result_.find(generator->name) != result_.end()) return;
         if (!generator->fn_name_ln.empty()) {
             DebugInfoVisitor visitor;
-            visitor.result.emplace(1, generator->fn_name_ln);
+            visitor.result().emplace(1, generator->fn_name_ln);
             visitor.visit_content(generator);
-            result.emplace(generator->name, visitor.result);
+            result_.emplace(generator->name, visitor.result());
         }
     }
 
-    std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>> result;
+    const std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>&
+    result() {
+        return result_;
+    }
+
+private:
+    std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
+        result_;
 };
 
 std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
 extract_debug_info(Generator* top) {
     GeneratorDebugVisitor visitor;
     visitor.visit_generator_root(top);
-    return visitor.result;
+    return visitor.result();
 }
 
 class PortPackedVisitor : public IRVisitor {
@@ -1112,9 +1125,9 @@ public:
             if (port->is_packed()) {
                 auto ptr = port->as<PortPacked>();
                 auto const port_struct = ptr->packed_struct();
-                if (structs.find(port_struct.struct_name) != structs.end()) {
+                if (structs_.find(port_struct.struct_name) != structs_.end()) {
                     // do some checking
-                    auto struct_ = structs.at(port_struct.struct_name);
+                    auto struct_ = structs_.at(port_struct.struct_name);
                     if (struct_.attributes.size() != port_struct.attributes.size())
                         throw VarException(::format("redefinition of different packed struct {0}",
                                                     port_struct.struct_name),
@@ -1129,16 +1142,17 @@ public:
                                 {port.get(), struct_ports_.at(port_struct.struct_name)});
                     }
                 } else {
-                    structs.emplace(port_struct.struct_name, port_struct);
+                    structs_.emplace(port_struct.struct_name, port_struct);
                     struct_ports_.emplace(port_struct.struct_name, port.get());
                 }
             }
         }
     }
 
-    std::map<std::string, PackedStruct> structs;
+    const std::map<std::string, PackedStruct>& structs() const { return structs_; }
 
 private:
+    std::map<std::string, PackedStruct> structs_;
     std::map<std::string, Port*> struct_ports_;
 };
 
@@ -1148,7 +1162,8 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
 
     // convert the definition into
     std::map<std::string, std::string> result;
-    for (auto const& [name, struct_] : visitor.structs) {
+    auto const& structs = visitor.structs();
+    for (auto const& [name, struct_] : structs) {
         // TODO:
         //  Use Stream class in the codegen instead to track the debugging info
         std::string entry;
@@ -1172,11 +1187,11 @@ public:
         // name and spec
         // this can be an issue if the files are going to split into multiple files
         auto const& func_name = stmt->function_name();
-        if (dpi_funcs.find(func_name) == dpi_funcs.end()) {
+        if (dpi_funcs_.find(func_name) == dpi_funcs_.end()) {
             // new one
-            dpi_funcs.emplace(func_name, dynamic_cast<DPIFunctionStmtBlock*>(stmt));
+            dpi_funcs_.emplace(func_name, dynamic_cast<DPIFunctionStmtBlock*>(stmt));
         } else {
-            auto ref_stmt = dpi_funcs.at(func_name);
+            auto ref_stmt = dpi_funcs_.at(func_name);
             auto const& ref_ports = ref_stmt->ports();
             auto const& ports = stmt->ports();
             if (ref_ports.size() != ports.size())
@@ -1208,7 +1223,10 @@ public:
         }
     }
 
-    std::map<std::string, DPIFunctionStmtBlock*> dpi_funcs;
+    const std::map<std::string, DPIFunctionStmtBlock*>& dpi_funcs() { return dpi_funcs_; }
+
+private:
+    std::map<std::string, DPIFunctionStmtBlock*> dpi_funcs_;
 };
 
 std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int_interface) {
@@ -1216,8 +1234,8 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int
     visitor.visit_root(top);
     // code gen these dpi info
     std::map<std::string, std::string> result;
-
-    for (auto const& [func_name, stmt] : visitor.dpi_funcs) {
+    auto const& dpi_funcs = visitor.dpi_funcs();
+    for (auto const& [func_name, stmt] : dpi_funcs) {
         std::stringstream stream;
         // dpi-c
         stream << "import \"DPI-C\" function ";
@@ -1549,12 +1567,17 @@ public:
             if (same_direction && dir != PortDirection::InOut && !mapping.empty()) {
                 // this is the one we need to convert
                 auto bundle_name = ref->def_name();
-                bundle_mapping[bundle_name].emplace_back(std::make_pair(entry_name, generator));
+                bundle_mapping_[bundle_name].emplace_back(std::make_pair(entry_name, generator));
             }
         }
     }
 
-    std::map<std::string, std::vector<std::pair<std::string, Generator*>>> bundle_mapping;
+    const std::map<std::string, std::vector<std::pair<std::string, Generator*>>>& bundle_mapping() {
+        return bundle_mapping_;
+    }
+
+private:
+    std::map<std::string, std::vector<std::pair<std::string, Generator*>>> bundle_mapping_;
 };
 
 void merge_bundle_mapping(
@@ -1652,7 +1675,7 @@ void change_port_bundle_struct(Generator* top) {
     PortBundleVisitor b_visitor;
     // this cannot be parallelized if we don't use a lock
     b_visitor.visit_generator_root(top);
-    merge_bundle_mapping(b_visitor.bundle_mapping);
+    merge_bundle_mapping(b_visitor.bundle_mapping());
 }
 
 class FSMVisitor : public IRVisitor {
@@ -1678,6 +1701,8 @@ bool check_return(Stmt* stmt) {
         uint64_t index;
         bool found = false;
         auto block = dynamic_cast<StmtBlock*>(stmt);
+        if (!block)
+            throw InternalException("Statement is not block but is marked as StatementType::Block");
         auto child_count = block->child_count();
         for (index = 0; index < child_count; index++) {
             auto s = dynamic_cast<Stmt*>(block->get_child(index));
@@ -1698,6 +1723,9 @@ bool check_return(Stmt* stmt) {
         return found;
     } else if (stmt->type() == StatementType::Switch) {
         auto stmt_ = dynamic_cast<SwitchStmt*>(stmt);
+        if (!stmt_)
+            throw InternalException(
+                "Statement is not switch but is marked as StatementType::Switch");
         auto cases = stmt_->body();
         if (cases.empty()) return false;
         for (auto const& iter : cases) {
@@ -1707,6 +1735,8 @@ bool check_return(Stmt* stmt) {
         return true;
     } else if (stmt->type() == StatementType::If) {
         auto stmt_ = dynamic_cast<IfStmt*>(stmt);
+        if (!stmt_)
+            throw InternalException("Statement is not if but is marked as StatementType::If");
         auto const& then = stmt_->then_body();
         auto const& else_ = stmt_->else_body();
         return check_return(then.get()) && check_return(else_.get());
@@ -1869,4 +1899,4 @@ void PassManager::register_builtin_passes() {
     register_pass("insert_pipeline_stages", &insert_pipeline_stages);
 }
 
-}
+}  // namespace kratos

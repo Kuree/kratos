@@ -203,15 +203,21 @@ void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt) {
         auto p_stmt = dynamic_cast<Stmt *>(parent);
         if (p_stmt->type() == StatementType::Switch) {
             auto p = dynamic_cast<SwitchStmt *>(p_stmt);
+            if (!p)
+                throw InternalException("stmt is not switch but is marked as StatementType::Switch");
             p->remove_stmt(stmt);
         } else if (p_stmt->type() == StatementType::If) {
             auto p = dynamic_cast<IfStmt *>(p_stmt);
+            if (!p)
+                throw InternalException("stmt is not if but is marked as StatementType::If");
             p->remove_stmt(stmt);
         } else {
             if (p_stmt->type() != StatementType::Block) {
                 throw StmtException("Internal error", {stmt.get()});
             }
             auto p = dynamic_cast<StmtBlock *>(p_stmt);
+            if (!p)
+                throw InternalException("stmt is not block but is marked as StatementType::StatementType::Block");
             p->remove_stmt(stmt);
         }
     }

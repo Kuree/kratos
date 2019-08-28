@@ -688,7 +688,7 @@ TEST(generator, active_low) {  // NOLINT
     EXPECT_THROW(check_active_high(&mod), VarException);
 }
 
-TEST(generator, nested_fsm) {   // NOLINT
+TEST(generator, nested_fsm) {  // NOLINT
     Context c;
     auto mod = c.generator("mod");
     auto &out_ = mod.port(PortDirection::Out, "out", 2);
@@ -727,7 +727,7 @@ TEST(generator, nested_fsm) {   // NOLINT
     generate_verilog(&mod);
 }
 
-TEST(generator, slide_through_fsm) {    // NOLINT
+TEST(generator, slide_through_fsm) {  // NOLINT
     Context c;
     auto mod = c.generator("mod");
     auto &out_ = mod.port(PortDirection::Out, "out", 2);

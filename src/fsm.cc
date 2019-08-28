@@ -438,7 +438,7 @@ void FSM::set_start_state(const std::shared_ptr<FSMState>& state,
 }
 
 std::string FSM::dot_graph() {
-    constexpr char indent[] = "    ";
+    constexpr char indent[] = "    ";  // NOLINT
     std::stringstream stream;
 
     // header
@@ -589,6 +589,9 @@ std::map<FSMState*, color::Color> get_state_color(const std::vector<FSMState*>& 
 FSMState::FSMState(std::string name, FSM* parent) : name_(std::move(name)), parent_(parent) {}
 
 void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shared_ptr<Var>& cond) {
+    if (!next_state || !next_state->parent_)
+        throw UserException(
+            ::format("Next state for {0}.{1} cannot be null", parent_->fsm_name(), name_));
     // making sure that it's part of the same fsm state
     auto parent = parent_;
     auto state_ptr = next_state.get();
@@ -673,4 +676,4 @@ void FSMState::check_outputs() {
     }
 }
 
-}
+}  // namespace kratos
