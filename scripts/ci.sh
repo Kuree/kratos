@@ -12,13 +12,19 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         docker exec -i manylinux bash -c 'cd kratos && auditwheel show dist/*'
         docker exec -i manylinux bash -c 'cd kratos && auditwheel repair dist/*'
         docker exec -i manylinux-test bash -c 'cd kratos && pip install pytest dist/* && pytest -v tests/'
-    else
+    elif [[ "$BUILD_WHEEL" == false ]]; then
         docker pull keyiz/garnet-flow
         docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/garnet-flow bash
 
         docker exec -i manylinux-test bash -c 'cd kratos && mkdir build && cd build && cmake ..'
         docker exec -i manylinux-test bash -c "cd kratos/build && make -j2"
         docker exec -i manylinux-test bash -c "cd kratos/build && make test"
+    else
+        docker pull keyiz/clang-tidy
+        docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/clang-tidy bash
+
+        docker exec -i manylinux-test bash -c 'cd kratos && mkdir build && cd build && cmake -DUSE_CLANG_TIDY=TRUE ..'
+        docker exec -i manylinux-test bash -c "cd kratos/build && make kratos -j2"
     fi
 
 elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then

@@ -10,6 +10,11 @@ matrix:
             - docker
           language: minimal
           env: BUILD_WHEEL=false
+        - name: "Linux clang-tidy"
+          services:
+            - docker
+          language: minimal
+          env: USE_CLANG_TIDY
         - name: "macOS"
           os: osx
           language: shell
