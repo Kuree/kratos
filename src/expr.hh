@@ -313,6 +313,7 @@ private:
 
 struct PackedInterface {
     virtual std::set<std::string> member_names() const = 0;
+    virtual ~PackedInterface() = default;
 };
 
 struct VarPacked : public Var, public PackedInterface {
