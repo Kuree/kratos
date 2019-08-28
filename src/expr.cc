@@ -360,11 +360,14 @@ void Expr::set_parent() {
         } else if (left_gen == right_gen) {
             generator = left->generator;
         } else {
-            // choose the lower one
-            if (left_gen == right_gen->parent()) {
-                generator = right_gen;
-            } else {
+            // choose the higher/lower one based on the var type
+            if (left_gen == right_gen->parent() && right->type() == PortIO) {
                 generator = left_gen;
+            } else if (left_gen->parent() == right_gen->parent() && left->type() == PortIO &&
+                       right->type() == PortIO) {
+                generator = dynamic_cast<Generator *>(left_gen->parent());
+            } else {
+                generator = right_gen;
             }
         }
     }
@@ -892,7 +895,7 @@ VarPacked::VarPacked(Generator *m, const std::string &name, PackedStruct packed_
 
 std::set<std::string> VarPacked::member_names() const {
     std::set<std::string> result;
-    for (auto const &def: struct_.attributes) {
+    for (auto const &def : struct_.attributes) {
         result.emplace(std::get<0>(def));
     }
     return result;

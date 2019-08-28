@@ -216,6 +216,7 @@ TEST(pass, decouple1) {  // NOLINT
 
     EXPECT_EQ(mod1.stmts_count(), 2);
     decouple_generator_ports(&mod1);
+    check_mixed_assignment(&mod1);
     EXPECT_EQ(mod1.stmts_count(), 2);
     auto new_var = mod1.get_var("inst1_in");
     EXPECT_TRUE(new_var != nullptr);
@@ -410,6 +411,7 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
     PassManager &manager = verilog.pass_manager();
     manager.add_pass("fix_assignment_type");
     manager.add_pass("decouple_generator_ports");
+    manager.add_pass("check_mixed_assignment");
     manager.add_pass("create_module_instantiation");
     manager.add_pass("hash_generators_parallel");
     verilog.run_passes();

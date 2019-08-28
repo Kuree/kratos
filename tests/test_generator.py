@@ -268,8 +268,8 @@ def test_fanout_mod_inst():
         def code(self):
             self.out_ = self.mod_1.out_ + self.mod_2.out_
 
-    mod = Mod2()
-    check_gold(mod, "test_fanout_mod_inst", optimize_passthrough=False)
+    #mod = Mod2()
+    #check_gold(mod, "test_fanout_mod_inst", optimize_passthrough=False)
     Generator.clear_context()
     mod2 = Mod2()
     check_gold(mod2, "test_fanout_mod_inst_passthrough")
@@ -1107,4 +1107,4 @@ def test_symbol_table():
 
 
 if __name__ == "__main__":
-    test_symbol_table()
+    test_fanout_mod_inst()
