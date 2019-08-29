@@ -296,7 +296,7 @@ This is extremely helpful for rapid prototyping and testing.
 
 .. |Build Status| image:: https://travis-ci.com/Kuree/kratos.svg?branch=master
    :target: https://travis-ci.com/Kuree/kratos
-.. |PyPI - Format| image:: https://img.shields.io/pypi/format/kratos.svg
+.. |PyPI - Format| image:: https://img.shields.io/pypi/format/kratos
    :target: https://pypi.org/project/kratos/
 .. |PyPI - Version| image:: https://badge.fury.io/py/kratos.svg
    :target: https://pypi.org/project/kratos/
