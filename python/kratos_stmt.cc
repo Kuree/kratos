@@ -94,5 +94,9 @@ void init_stmt(py::module &m) {
         m, "DPIFunctionStmtBlock")
         .def("input", &DPIFunctionStmtBlock::input)
         .def("output", &DPIFunctionStmtBlock::output)
-        .def("set_return_width", &DPIFunctionStmtBlock::set_return_width);
+        .def("set_return_width", &DPIFunctionStmtBlock::set_return_width)
+        .def("is_pure", &DPIFunctionStmtBlock::is_pure)
+        .def("is_context", &DPIFunctionStmtBlock::is_context)
+        .def("set_is_pure", &DPIFunctionStmtBlock::set_is_pure)
+        .def("set_is_context", &DPIFunctionStmtBlock::set_is_context);
 }

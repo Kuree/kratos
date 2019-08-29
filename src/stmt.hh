@@ -235,9 +235,15 @@ public:
     void set_return_width(uint32_t value) { return_width_ = value; }
 
     bool is_dpi() override { return true; }
+    bool is_context() const { return is_context_; }
+    bool is_pure() const { return is_pure_; }
+    void set_is_context(bool value);
+    void set_is_pure(bool value);
 
 protected:
     uint32_t return_width_ = 0;
+    bool is_context_ = false;
+    bool is_pure_ = false;
 };
 
 class ReturnStmt : public Stmt {

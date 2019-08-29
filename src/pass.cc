@@ -1238,7 +1238,12 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int
     for (auto const& [func_name, stmt] : dpi_funcs) {
         std::stringstream stream;
         // dpi-c
-        stream << "import \"DPI-C\" function ";
+        std::string dpi_type;
+        if (stmt->is_pure())
+            dpi_type = " pure";
+        else if (stmt->is_context())
+            dpi_type = " context";
+        stream << "import \"DPI-C\"" << dpi_type << " function ";
         // based on the return width, we choose the closest one
         if (stmt->return_width() == 0) {
             stream << "void ";

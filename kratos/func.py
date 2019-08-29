@@ -52,11 +52,17 @@ class FunctionCall:
 class DPIFunctionCall:
     cache_ordering = {}
 
-    def __init__(self, width=0):
+    def __init__(self, width=0, is_pure=False, is_context=False):
         self.width = width
+        if is_pure or is_context:
+            assert is_pure ^ is_context, "DPI can be either pure or context"
+        self.is_pure = is_pure
+        self.is_context = is_context
 
     def __call__(self, fn):
         width = self.width
+        is_pure = self.is_pure
+        is_context = self.is_context
 
         class _DPIFunctionCall:
             def __init__(self):
@@ -75,6 +81,10 @@ class DPIFunctionCall:
                 if not gen.has_function(fn_name):
                     func = gen.dpi_function(fn_name)
                     func.set_return_width(self.width)
+                    if is_pure:
+                        func.set_is_pure(is_pure)
+                    elif is_context:
+                        func.set_is_context(is_context)
                 else:
                     func = gen.get_function(fn_name)
                 if fn_name not in DPIFunctionCall.cache_ordering:

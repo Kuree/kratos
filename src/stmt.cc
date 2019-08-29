@@ -361,6 +361,16 @@ std::shared_ptr<Port> DPIFunctionStmtBlock::input(const std::string &name, uint3
     return FunctionStmtBlock::input(name, width, is_signed);
 }
 
+void DPIFunctionStmtBlock::set_is_context(bool value) {
+    is_context_ = value;
+    is_pure_ = !value;
+}
+
+void DPIFunctionStmtBlock::set_is_pure(bool value) {
+    is_pure_ = value;
+    is_context_ = !value;
+}
+
 ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def, std::shared_ptr<Var> value)
     : Stmt(StatementType::Return), func_def_(func_def), value_(std::move(value)) {}
 
