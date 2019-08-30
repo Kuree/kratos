@@ -100,14 +100,29 @@ std::map<std::string, std::string> VerilogModule::verilog_src() {
 }
 
 SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
-    : stream_(generator, this), generator_(generator) {
+    : SystemVerilogCodeGen(generator, "") {}
+
+SystemVerilogCodeGen::SystemVerilogCodeGen(kratos::Generator* generator, std::string header_name)
+    : stream_(generator, this),
+      generator_(generator),
+      header_include_name_(std::move(header_name)) {
     // if it's an external file, we don't output anything
     if (generator->external()) return;
 
     // index the named blocks
     label_index_ = index_named_block();
 
-    // output module definition
+    output_module_def(generator);
+}
+
+void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output module definition
+    // insert the header definition, if necessary
+    if (!header_include_name_.empty()) {
+        // two line indent
+        stream_ << "`include \"" << header_include_name_ << "\"" << stream_.endl()
+                << stream_.endl();
+    }
+
     stream_ << ::format("module {0} (", generator->name) << stream_.endl();
     generate_ports(generator);
     stream_ << ");" << stream_.endl() << stream_.endl();
@@ -120,7 +135,7 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
         dispatch_node(generator->get_stmt(i).get());
     }
 
-    stream_ << ::format("endmodule   // {0}", generator->name) << stream_.endl();
+    stream_ << ::fmt::v5::format("endmodule   // {0}", generator->name) << stream_.endl();
 }
 
 std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {

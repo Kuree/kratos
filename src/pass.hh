@@ -23,7 +23,7 @@ void zero_out_stubs(Generator* top);
 
 void verify_generator_connectivity(Generator* top);
 
-void zero_generator_inputs(Generator *top);
+void zero_generator_inputs(Generator* top);
 
 void check_mixed_assignment(Generator* top);
 
@@ -46,6 +46,10 @@ void uniquify_generators(Generator* top);
 void check_function_return(Generator* top);
 
 std::map<std::string, std::string> generate_verilog(Generator* top);
+// this function outputs every module into a single file in the targeted direction
+// if header filename is not empty,
+void generate_verilog(Generator* top, const std::string& output_dir, const std::string& header_name,
+                      bool debug);
 
 std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
 extract_debug_info(Generator* top);

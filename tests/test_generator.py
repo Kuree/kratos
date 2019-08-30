@@ -517,14 +517,25 @@ def test_packed_struct():
                                           ("data", 16, False)])
 
     class Mod(Generator):
-        def __init__(self):
-            super().__init__("mod")
+        def __init__(self, debug=False):
+            super().__init__("mod", debug=debug)
             self.port_packed("in", PortDirection.In, struct)
             self.port_packed("out", PortDirection.Out, struct)
             self.wire(self.ports["out"], self.ports["in"])
 
     mod = Mod()
     check_gold(mod, "test_packed_struct", optimize_passthrough=False)
+    Generator.clear_context()
+    mod = Mod(True)
+    with tempfile.TemporaryDirectory() as temp:
+        temp = "temp"
+        verilog(mod, output_dir=temp, debug=True)
+        assert os.path.isfile(os.path.join(temp, "mod.sv"))
+        assert os.path.isfile(os.path.join(temp, "mod.sv.debug"))
+        import json
+        with open(os.path.join(temp, "mod.sv.debug")) as f:
+            json.load(f)
+        assert os.path.isfile(os.path.join(temp, "definition.svh"))
 
 
 def test_more_debug1():
@@ -1107,4 +1118,4 @@ def test_symbol_table():
 
 
 if __name__ == "__main__":
-    test_fanout_mod_inst()
+    test_packed_struct()

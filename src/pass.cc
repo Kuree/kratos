@@ -1,4 +1,5 @@
 #include "pass.hh"
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <numeric>
@@ -15,6 +16,9 @@ using fmt::format;
 using std::runtime_error;
 
 namespace kratos {
+
+std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_info_gen(
+    Generator* top);
 
 class AssignmentTypeVisitor : public IRVisitor {
 public:
@@ -439,13 +443,111 @@ std::map<std::string, std::string> generate_verilog(Generator* top) {
     std::map<std::string, std::string> result;
     // first get all the unique generators
     UniqueGeneratorVisitor unique_visitor;
-    unique_visitor.visit_generator_root(top);
+    // this can be parallelized
+    unique_visitor.visit_generator_root_p(top);
     auto const& generator_map = unique_visitor.generator_map();
     for (auto& [module_name, module_gen] : generator_map) {
         SystemVerilogCodeGen codegen(module_gen);
         result.emplace(module_name, codegen.str());
     }
     return result;
+}
+
+void generate_verilog(Generator* top, const std::string& output_dir, const std::string& header_name,
+                      bool debug) {
+    // this pass assumes that all the generators has been uniquified
+    // first get all the unique generators
+    UniqueGeneratorVisitor unique_visitor;
+    // this can be parallelized
+    unique_visitor.visit_generator_root_p(top);
+    auto const& generator_map = unique_visitor.generator_map();
+    // we use header_name + ".svh"
+    std::string header_filename = header_name + ".svh";
+    std::map<std::string, std::string> result;
+    for (const auto& [module_name, module_gen] : generator_map) {
+        SystemVerilogCodeGen codegen(module_gen, header_filename);
+        result.emplace(module_name, codegen.str());
+    }
+    // write out the content to the output_dir
+    // we assume output_dir already exists
+    // notice that if the content is the same, we don't override to avoid modifying the timestamps
+    // this will help with incremental compile in the downstream tools, typically the commercial
+    // ones
+    // unfortunately verilator doesn't support incremental build. see
+    // https://www.veripool.org/boards/2/topics/2822
+    for (auto const& [module_name, src] : result) {
+        auto path = kratos::fs::join(output_dir, module_name + ".sv");
+        if (kratos::fs::exists(path)) {
+            // load up the file
+            std::ifstream in(path);
+            std::stringstream content_stream;
+            content_stream << in.rdbuf();
+            std::string content = content_stream.str();
+            if (content == src) continue;
+        }
+        // truncate mode
+        std::ofstream out(path, std::ios::trunc);
+        out << src;
+    }
+    // output debug info as well, if required
+    if (debug) {
+        for (const auto& [module_name, module_gen] : generator_map) {
+            // use unique since we want to keep it close to where it's declared
+            auto info = extract_debug_info_gen(module_gen);
+            // a simple JSON writer
+            std::stringstream json;
+            json << "{" << std::endl;
+            uint64_t count = 0;
+            for (auto const& [line_num, lines] : info) {
+                count++;
+                json << "  \"" << line_num << "\": [";
+                std::vector<std::string> entries;
+                entries.reserve(lines.size());
+                for (auto const& [f_name, f_ln] : lines) {
+                    entries.emplace_back(::format("[\"{0}\", {1}]", f_name, f_ln));
+                }
+                json << join(entries.begin(), entries.end(), ", ") << "]";
+                if (count != info.size())
+                    json << "," << std::endl;
+                else
+                    json << std::endl;
+            }
+            json << "}" << std::endl;
+            // just dump it since we don't care about incremental build for debug info
+            auto debug_filename = kratos::fs::join(output_dir, module_name + ".sv.debug");
+            std::ofstream debug_stream(debug_filename,
+                                       std::ios::in | std::ios::out | std::ios::trunc);
+            debug_stream << json.str();
+        }
+    }
+
+    // we will write out the dpi and struct ones to the header file
+    // this is to ensure everything will be set if this function is called
+    auto struct_info = extract_struct_info(top);
+    auto dpi_info = extract_dpi_function(top, true);
+    header_filename = kratos::fs::join(output_dir, header_filename);
+    std::stringstream stream;
+    for (auto const& iter : dpi_info) {
+        // this is an ordered map
+        stream << iter.second << std::endl << std::endl;
+    }
+    for (auto const& iter : struct_info) {
+        // ordered map as well
+        stream << iter.second << std::endl << std::endl;
+    }
+    // compare it with the old one, if exists. this is for incremental build
+    auto def_str = stream.str();
+    if (kratos::fs::exists(header_filename)) {
+        std::ifstream in(header_filename);
+        std::stringstream content_stream;
+        content_stream << in.rdbuf();
+        auto content = content_stream.str();
+        if (content == def_str) {
+            return;
+        }
+    }
+    std::ofstream out(header_filename, std::ios::in | std::ios::out | std::ios::trunc);
+    out << def_str;
 }
 
 void hash_generators(Generator* top, HashStrategy strategy) {
@@ -1114,6 +1216,19 @@ extract_debug_info(Generator* top) {
     GeneratorDebugVisitor visitor;
     visitor.visit_generator_root(top);
     return visitor.result();
+}
+
+std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_info_gen(
+    Generator* top) {
+    GeneratorDebugVisitor visitor;
+    visitor.visit_content(top);
+    auto result = visitor.result();
+    if (result.size() != 1) {
+        throw InternalException(
+            ::format("Unable to extract debug info from the particular generator {0}", top->name));
+    }
+    auto entry = result.begin();
+    return (*entry).second;
 }
 
 class PortPackedVisitor : public IRVisitor {

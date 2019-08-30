@@ -53,6 +53,8 @@ private:
 class SystemVerilogCodeGen {
 public:
     explicit SystemVerilogCodeGen(Generator* generator);
+    SystemVerilogCodeGen(Generator* generator, std::string header_name);
+
     std::string str() { return stream_.str(); }
 
     uint32_t indent_size = 2;
@@ -69,6 +71,7 @@ private:
     Generator* generator_;
     bool skip_indent_ = false;
     std::unordered_map<StmtBlock*, std::string> label_index_;
+    std::string header_include_name_;
 
     void generate_ports(Generator* generator);
     void generate_variables(Generator* generator);
@@ -105,6 +108,9 @@ private:
     // reverse indexing the named blocks
     std::unordered_map<StmtBlock*, std::string> index_named_block();
     std::string block_label(StmtBlock *stmt);
+
+    // the actual code gen part
+    void output_module_def(Generator* generator);
 };
 
 }  // namespace kratos

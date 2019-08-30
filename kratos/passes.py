@@ -2,6 +2,7 @@ from _kratos.passes import *
 from .generator import Generator
 import _kratos
 from typing import Dict
+import os
 
 
 class Attribute(_kratos.passes.Attribute):
@@ -17,9 +18,10 @@ def verilog(generator: Generator, optimize_if: bool = True,
             check_active_high: bool = True,
             debug: bool = False,
             additional_passes: Dict = None,
-            extra_struct: bool = False,
+            extrat_struct: bool = False,
             int_dpi_interface: bool = True,
             filename: str = None,
+            output_dir: str = None,
             use_parallel: bool = True):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
@@ -65,6 +67,13 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("sort_stmts")
 
     code_gen.run_passes()
+    if output_dir is not None:
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
+        _kratos.passes.generate_verilog(generator.internal_generator,
+                                        output_dir, "definition", debug)
+        # hijack the flow if output_dir is specified
+        return
     src = code_gen.verilog_src()
     result = [src]
     if debug:
@@ -73,10 +82,10 @@ def verilog(generator: Generator, optimize_if: bool = True,
     else:
         info = {}
 
-    if extra_struct or filename:
+    if extrat_struct or filename:
         struct_info = _kratos.passes.extract_struct_info(
             generator.internal_generator)
-        if extra_struct:
+        if extrat_struct:
             result.append(struct_info)
     else:
         struct_info = {}
