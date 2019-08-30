@@ -465,6 +465,8 @@ public:
         throw std::runtime_error("Slice a function call is not allowed");
     }
 
+    const std::map<std::string, std::shared_ptr<Var>> &args() const { return args_; }
+
 private:
     FunctionStmtBlock *func_def_;
     std::map<std::string, std::shared_ptr<Var>> args_;
