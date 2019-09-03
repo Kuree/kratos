@@ -6,6 +6,7 @@ import _kratos
 from .util import print_src, signed, const
 import copy
 import os
+import enum
 
 
 class ForNodeVisitor(ast.NodeTransformer):
@@ -353,6 +354,12 @@ def inject_import_code(code_src):
     return "\n".join([line1, line2, code_src])
 
 
+class CodeBlockType(enum.Enum):
+    Sequential = enum.auto()
+    Combinational = enum.auto()
+    Initial = enum.auto()
+
+
 def transform_stmt_block(generator, fn):
     fn_src = inspect.getsource(fn)
     fn_name = fn.__name__
@@ -361,8 +368,8 @@ def transform_stmt_block(generator, fn):
     # needs debug
     debug = generator.debug
     # extract the sensitivity list from the decorator
-    sensitivity = extract_sensitivity_from_dec(fn_body.decorator_list,
-                                               fn_name)
+    blk_type, sensitivity = extract_sensitivity_from_dec(fn_body.decorator_list,
+                                                         fn_name)
     # remove the decorator
     fn_body.decorator_list = []
     # check the function args. it should only has one self now
@@ -391,7 +398,7 @@ def transform_stmt_block(generator, fn):
     _locals.update({"_self": generator, "_scope": scope})
     exec(code_obj, _locals)
     stmts = scope.statements()
-    return sensitivity, stmts
+    return blk_type, sensitivity, stmts
 
 
 def transform_function_block(generator, fn, arg_types):
@@ -474,7 +481,7 @@ def extract_arg_name_order_from_fn(fn):
 
 def extract_sensitivity_from_dec(deco_list, fn_name):
     if len(deco_list) == 0:
-        return []
+        return CodeBlockType.Combinational, []
     else:
         assert len(deco_list) == 1, \
             "{0} is not called with @always block".format(fn_name)
@@ -483,7 +490,9 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
             "{0} is not called with @always block".format(fn_name)
         # making sure it's always
         call_name = call_obj.func.id
-        assert call_name == "always"
+        assert call_name in ["always", "initial"]
+        blk_type = CodeBlockType.Sequential if call_name == "always" else \
+            CodeBlockType.Initial
         raw_sensitivity = call_obj.args
         result = []
         for entry in raw_sensitivity:
@@ -496,7 +505,7 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
             edge_type = edge_type.capitalize()
             signal_name = signal_name_node.s
             result.append((edge_type, signal_name))
-        return result
+        return blk_type, result
 
 
 def get_ln(fn):

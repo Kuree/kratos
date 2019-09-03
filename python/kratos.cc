@@ -61,6 +61,7 @@ void init_enum(py::module &m) {
     py::enum_<StatementBlockType>(m, "StatementBlockType")
         .value("Combinational", StatementBlockType::Combinational)
         .value("Sequential", StatementBlockType::Sequential)
+        .value("Initial", StatementBlockType::Initial)
         .export_values();
 
     py::enum_<BlockEdgeType>(m, "BlockEdgeType")

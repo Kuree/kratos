@@ -8,7 +8,7 @@ namespace kratos {
 
 enum StatementType { If, Switch, Assign, Block, ModuleInstantiation, FunctionalCall, Return };
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
-enum StatementBlockType { Combinational, Sequential, Scope, Function };
+enum StatementBlockType { Combinational, Sequential, Scope, Function, Initial };
 enum BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
@@ -224,6 +224,13 @@ protected:
     std::map<std::string, uint32_t> port_ordering_;
 };
 
+class InitialStmtBlock : public StmtBlock {
+public:
+    InitialStmtBlock() : StmtBlock(StatementBlockType::Initial) {}
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+};
+
 class DPIFunctionStmtBlock : public FunctionStmtBlock {
 public:
     DPIFunctionStmtBlock(Generator *parent, const std::string &function_name)
@@ -266,7 +273,7 @@ public:
     FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &func,
                      const std::map<std::string, std::shared_ptr<Var>> &args);
 
-    FunctionCallStmt(const std::shared_ptr<FunctionCallVar> &var);
+    explicit FunctionCallStmt(const std::shared_ptr<FunctionCallVar> &var);
 
     const std::shared_ptr<FunctionStmtBlock> &func() { return func_; }
     const std::shared_ptr<FunctionCallVar> &var() const { return var_; };

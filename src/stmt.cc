@@ -492,5 +492,4 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
         }
     }
 }
-
-}
+}  // namespace kratos

@@ -94,6 +94,7 @@ public:
     // helper function to initiate the blocks
     std::shared_ptr<SequentialStmtBlock> sequential();
     std::shared_ptr<CombinationalStmtBlock> combinational();
+    std::shared_ptr<InitialStmtBlock> initial();
 
     // child generator. needed for generator merge
     void add_child_generator(const std::string &instance_name,

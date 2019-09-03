@@ -38,6 +38,7 @@ class CombinationalStmtBlock;
 class SequentialStmtBlock;
 class FunctionStmtBlock;
 class DPIFunctionStmtBlock;
+class InitialStmtBlock;
 class FunctionCallStmt;
 class ReturnStmt;
 class ModuleInstantiationStmt;

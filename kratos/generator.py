@@ -1,5 +1,5 @@
 import enum
-from .pyast import transform_stmt_block
+from .pyast import transform_stmt_block, CodeBlockType
 from .util import get_fn_ln, comment as comment_node
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
@@ -44,6 +44,7 @@ class BlockEdgeType(enum.Enum):
 class StatementBlockType(enum.Enum):
     Combinational = _kratos.StatementBlockType.Combinational
     Sequential = _kratos.StatementBlockType.Sequential
+    Initial = _kratos.StatementBlockType.Initial
 
 
 class CodeBlock:
@@ -53,6 +54,8 @@ class CodeBlock:
         self._generator = generator
         if block_type == StatementBlockType.Combinational:
             self._block = generator.internal_generator.combinational()
+        elif block_type == StatementBlockType.Initial:
+            self._block = generator.internal_generator.initial()
         else:
             self._block = generator.internal_generator.sequential()
 
@@ -101,6 +104,13 @@ class CombinationalCodeBlock(CodeBlock):
     def __init__(self, generator: "Generator",
                  debug_frame_depth: int = 4):
         super().__init__(generator, StatementBlockType.Combinational,
+                         debug_frame_depth)
+
+
+class InitialCodeBlock(CodeBlock):
+    def __init__(self, generator: "Generator",
+                 debug_frame_depth: int = 4):
+        super().__init__(generator, StatementBlockType.Initial,
                          debug_frame_depth)
 
 
@@ -415,13 +425,19 @@ class Generator(metaclass=GeneratorMeta):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_code, [fn]))
             return
-        raw_sensitives, stmts = transform_stmt_block(self, fn)
-        if len(raw_sensitives) == 0:
+        block_type, raw_sensitives, stmts = transform_stmt_block(self, fn)
+        if block_type == CodeBlockType.Combinational:
             # it's a combinational block
             comb = CombinationalCodeBlock(self)
             for stmt in stmts:
                 comb.add_stmt(stmt)
             node = comb
+        elif block_type == CodeBlockType.Initial:
+            # it's a initial block
+            init = InitialCodeBlock(self)
+            for stmt in stmts:
+                init.add_stmt(init)
+            node = init
         else:
             sensitivity_list = []
             for edge, var_name in raw_sensitives:
@@ -756,4 +772,10 @@ def always(*sensitivity):
     def wrapper(fn):
         return fn
 
+    return wrapper
+
+
+def initial():
+    def wrapper(fn):
+        return fn
     return wrapper

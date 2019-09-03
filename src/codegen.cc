@@ -258,6 +258,9 @@ void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
             stmt_code(reinterpret_cast<FunctionStmtBlock*>(stmt));
             break;
         }
+        case StatementBlockType::Initial: {
+            stmt_code(reinterpret_cast<InitialStmtBlock*>(stmt));
+        }
     }
 }
 
@@ -297,6 +300,26 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
         stmt->verilog_ln = stream_.line_no();
     }
     stream_ << "always_comb begin" << block_label(stmt) << stream_.endl();
+    indent_++;
+
+    for (uint64_t i = 0; i < stmt->child_count(); i++) {
+        dispatch_node(stmt->get_child(i));
+    }
+
+    indent_--;
+    stream_ << indent() << "end" << block_label(stmt) << stream_.endl();
+}
+
+void SystemVerilogCodeGen::stmt_code(kratos::InitialStmtBlock* stmt) {
+    // comment
+    if (!stmt->comment.empty()) {
+        stream_ << indent() << "// " << strip_newline(stmt->comment) << stream_.endl();
+    }
+    if (generator_->debug) {
+        stmt->verilog_ln = stream_.line_no();
+    }
+
+    stream_ << "initial begin" << block_label(stmt) << stream_.endl();
     indent_++;
 
     for (uint64_t i = 0; i < stmt->child_count(); i++) {

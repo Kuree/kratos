@@ -429,6 +429,12 @@ std::shared_ptr<CombinationalStmtBlock> Generator::combinational() {
     return stmt;
 }
 
+std::shared_ptr<InitialStmtBlock> Generator::initial() {
+    auto stmt = std::make_shared<InitialStmtBlock>();
+    add_stmt(stmt);
+    return stmt;
+}
+
 void inline check_direction(const Port *port1, Port *port2, bool same_direction = false) {
     auto port1_dir = port1->port_direction();
     PortDirection correct_dir;

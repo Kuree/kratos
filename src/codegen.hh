@@ -101,6 +101,8 @@ private:
 
     void stmt_code(FunctionStmtBlock *stmt);
 
+    void stmt_code(InitialStmtBlock *stmt);
+
     void stmt_code(FunctionCallStmt* stmt);
 
     void enum_code(Enum* enum_);
