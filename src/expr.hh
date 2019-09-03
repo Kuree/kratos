@@ -147,6 +147,7 @@ public:
     // packed is only relevant when the size is larger than 1, by default it's false
     bool packed_array = false;
     std::string handle_name() const;
+    virtual std::string handle_name(bool ignore_top) const;
 
     Var(const Var &var) = delete;
     Var() = delete;
@@ -353,6 +354,8 @@ public:
     uint64_t child_count() override { return right ? 2 : 1; }
     IRNode *get_child(uint64_t index) override;
 
+    std::string handle_name(bool ignore_top) const override;
+
 protected:
     // caller is responsible for the op
     Expr(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right);
@@ -389,6 +392,7 @@ struct ConditionalExpr : public Expr {
     IRNode *get_child(uint64_t index) override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     std::string to_string() const override;
+    std::string handle_name(bool ignore_top) const override ;
 
     std::shared_ptr<Var> condition;
 };

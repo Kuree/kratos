@@ -6,7 +6,17 @@
 
 namespace kratos {
 
-enum StatementType { If, Switch, Assign, Block, ModuleInstantiation, FunctionalCall, Return };
+enum StatementType {
+    If,
+    Switch,
+    Assign,
+    Block,
+    ModuleInstantiation,
+    FunctionalCall,
+    Return,
+    Assert
+};
+
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
 enum StatementBlockType { Combinational, Sequential, Scope, Function, Initial };
 enum BlockEdgeType { Posedge, Negedge };

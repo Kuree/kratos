@@ -774,12 +774,26 @@ std::unordered_set<std::string> Generator::named_blocks_labels() const {
 }
 
 std::string Generator::handle_name() const {
+    return handle_name(false);
+}
+
+std::string Generator::handle_name(bool ignore_top) const {
     // this is used to identify the generator from the top level
     std::string result = instance_name;
     auto parent = parent_generator_;
-    while (parent != nullptr) {
-        result = ::format("{0}.{1}", parent->instance_name, result);
-        parent = parent->parent_generator_;
+    if (ignore_top) {
+        std::vector<std::string> values;
+        values.emplace_back(instance_name);
+        while (parent != nullptr) {
+            values.emplace(values.begin(), parent->instance_name);
+            parent = parent->parent_generator_;
+        }
+        result = join(values.begin() + 1, values.end(), ".");
+    } else {
+        while (parent != nullptr) {
+            result = ::format("{0}.{1}", parent->instance_name, result);
+            parent = parent->parent_generator_;
+        }
     }
     return result;
 }

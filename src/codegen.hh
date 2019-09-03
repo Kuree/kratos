@@ -20,8 +20,7 @@ public:
 
     void run_passes();
 
-    [[nodiscard]]
-    std::map<std::string, std::string> verilog_src();
+    [[nodiscard]] std::map<std::string, std::string> verilog_src();
     inline PassManager& pass_manager() { return manager_; }
 
 private:
@@ -55,11 +54,16 @@ public:
     explicit SystemVerilogCodeGen(Generator* generator);
     SystemVerilogCodeGen(Generator* generator, std::string header_name);
 
-    std::string str() { return stream_.str(); }
+    inline std::string str() {
+        output_module_def(generator_);
+        return stream_.str();
+    }
 
     uint32_t indent_size = 2;
 
     std::string indent();
+    void increase_indent() { indent_++; }
+    void decrease_indent() { indent_--; }
 
     // helper function
     std::string static get_port_str(Port* port);
@@ -67,21 +71,22 @@ public:
 
 private:
     uint32_t indent_ = 0;
-    Stream stream_;
     Generator* generator_;
     bool skip_indent_ = false;
     std::unordered_map<StmtBlock*, std::string> label_index_;
     std::string header_include_name_;
 
+protected:
+    Stream stream_;
     void generate_ports(Generator* generator);
     void generate_variables(Generator* generator);
     void generate_parameters(Generator* generator);
     void generate_enums(Generator* generator);
     void generate_functions(Generator* generator);
 
-    void dispatch_node(IRNode* node);
+    virtual void dispatch_node(IRNode* node);
 
-    void stmt_code(AssignStmt* stmt);
+    virtual void stmt_code(AssignStmt* stmt);
 
     void stmt_code(ReturnStmt* stmt);
 
@@ -99,9 +104,9 @@ private:
 
     void stmt_code(SwitchStmt* stmt);
 
-    void stmt_code(FunctionStmtBlock *stmt);
+    void stmt_code(FunctionStmtBlock* stmt);
 
-    void stmt_code(InitialStmtBlock *stmt);
+    void stmt_code(InitialStmtBlock* stmt);
 
     void stmt_code(FunctionCallStmt* stmt);
 
@@ -109,7 +114,7 @@ private:
 
     // reverse indexing the named blocks
     std::unordered_map<StmtBlock*, std::string> index_named_block();
-    std::string block_label(StmtBlock *stmt);
+    std::string block_label(StmtBlock* stmt);
 
     // the actual code gen part
     void output_module_def(Generator* generator);

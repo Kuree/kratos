@@ -103,16 +103,14 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
     : SystemVerilogCodeGen(generator, "") {}
 
 SystemVerilogCodeGen::SystemVerilogCodeGen(kratos::Generator* generator, std::string header_name)
-    : stream_(generator, this),
-      generator_(generator),
-      header_include_name_(std::move(header_name)) {
+    : generator_(generator),
+      header_include_name_(std::move(header_name)),
+      stream_(generator, this) {
     // if it's an external file, we don't output anything
     if (generator->external()) return;
 
     // index the named blocks
     label_index_ = index_named_block();
-
-    output_module_def(generator);
 }
 
 void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output module definition
@@ -135,7 +133,7 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
         dispatch_node(generator->get_stmt(i).get());
     }
 
-    stream_ << ::fmt::v5::format("endmodule   // {0}", generator->name) << stream_.endl();
+    stream_ << ::format("endmodule   // {0}", generator->name) << stream_.endl();
 }
 
 std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {

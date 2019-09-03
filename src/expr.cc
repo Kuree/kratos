@@ -197,8 +197,10 @@ VarConcat &Var::concat(Var &var) {
 
 std::string Var::to_string() const { return name; }
 
-std::string Var::handle_name() const {
-    return ::format("{0}.{1}", generator->handle_name(), to_string());
+std::string Var::handle_name() const { return handle_name(false); }
+
+std::string Var::handle_name(bool ignore_top) const {
+    return ::format("{0}.{1}", generator->handle_name(ignore_top), to_string());
 }
 
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
@@ -599,19 +601,22 @@ std::shared_ptr<AssignStmt> Var::assign(Var &var, AssignmentType type) {
     return assign(var_ptr, type);
 }
 
-std::string inline expr_to_string(const Expr *expr, bool is_top) {
+std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle,
+                                  bool ignore_top = false) {
     auto left = expr->left;
     auto right = expr->right;
 
     auto left_str = left->type() == VarType::Expression
-                        ? expr_to_string(left->as<Expr>().get(), expr->op == left->as<Expr>()->op)
-                        : left->to_string();
+                        ? expr_to_string(left->as<Expr>().get(), expr->op == left->as<Expr>()->op,
+                                         use_handle, ignore_top)
+                        : (use_handle ? left->handle_name(ignore_top) : left->to_string());
 
     if (right != nullptr) {
         auto right_str =
             right->type() == VarType::Expression
-                ? expr_to_string(right->as<Expr>().get(), expr->op == right->as<Expr>()->op)
-                : right->to_string();
+                ? expr_to_string(right->as<Expr>().get(), expr->op == right->as<Expr>()->op,
+                                 use_handle, ignore_top)
+                : (use_handle ? right->handle_name(ignore_top) : right->to_string());
         if (is_top)
             return ::format("{0} {1} {2}", left_str, ExprOpStr(expr->op), right_str);
         else
@@ -624,7 +629,11 @@ std::string inline expr_to_string(const Expr *expr, bool is_top) {
     }
 }
 
-std::string Expr::to_string() const { return expr_to_string(this, true); }
+std::string Expr::to_string() const { return expr_to_string(this, true, false); }
+
+std::string Expr::handle_name(bool ignore_top) const {
+    return expr_to_string(this, true, true, ignore_top);
+}
 
 IRNode *Expr::get_child(uint64_t index) {
     if (index == 0)
@@ -819,6 +828,11 @@ void ConditionalExpr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
 std::string ConditionalExpr::to_string() const {
     return ::format("{0} ? {1}: {2}", condition->to_string(), left->to_string(),
                     right->to_string());
+}
+
+std::string ConditionalExpr::handle_name(bool ignore_top) const {
+    return ::format("{0} ? {1}: {2}", condition->handle_name(ignore_top),
+                    left->handle_name(ignore_top), right->handle_name(ignore_top));
 }
 
 PackedStruct::PackedStruct(std::string struct_name,

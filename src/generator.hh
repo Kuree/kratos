@@ -192,6 +192,7 @@ public:
     Generator *def_instance() const { return def_instance_; }
     void set_def_instance(Generator *def) { def_instance_ = def; }
     std::string handle_name() const;
+    std::string handle_name(bool ignore_top) const;
 
 private:
     std::vector<std::string> lib_files_;
