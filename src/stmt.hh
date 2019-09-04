@@ -70,6 +70,11 @@ public:
     bool equal(const std::shared_ptr<AssignStmt> &stmt) const;
     bool operator==(const AssignStmt &stmt) const;
 
+    // delay. this is only used during test bench generation
+    int inline get_delay() const { return delay_; }
+    void set_delay(int delay) { delay_ = delay; }
+
+
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 2; }
@@ -80,6 +85,8 @@ private:
     std::shared_ptr<Var> right_ = nullptr;
 
     AssignmentType assign_type_;
+
+    int delay_ = -1;
 };
 
 class IfStmt : public Stmt {

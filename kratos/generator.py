@@ -140,14 +140,17 @@ class ParamProxy:
 
 
 class VarProxy:
-    def __init__(self, generator: "Generator"):
-        self.__generator = generator
+    def __init__(self, generator):
+        if isinstance(generator, Generator):
+            self.__generator = generator.internal_generator
+        else:
+            self.__generator = generator
 
     def __getitem__(self, key):
-        return self.__generator.internal_generator.get_var(key)
+        return self.__generator.get_var(key)
 
     def __getattr__(self, key):
-        return self.__generator.internal_generator.get_var(key)
+        return self.__generator.get_var(key)
 
 
 class GeneratorMeta(type):

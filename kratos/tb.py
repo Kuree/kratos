@@ -1,18 +1,30 @@
 import _kratos
 from .generator import Generator, transform_stmt_block, CodeBlockType, \
-    InitialCodeBlock, comment_node
+    InitialCodeBlock, comment_node, VarProxy
 
 
 def assert_(expr):
     return _kratos.AssertValueStmt(expr)
 
 
+def delay(num, stmt):
+    assert isinstance(stmt, _kratos.AssignStmt)
+    stmt.delay = num
+    return stmt
+
+
 class TestBench:
+    # disable pytest collection
+    __test__ = False
+
     def __init__(self, top_name: str = "TOP"):
         self.__tb = _kratos.TestBench(Generator.get_context(), top_name)
         self.__child_generator = {}
         self.debug = False
         self.internal_generator = self.__tb.top()
+
+        # proxy
+        self.vars = VarProxy(self.internal_generator)
 
     def var(self, name, width, size: int = 1, is_signed: bool = False):
         return self.__tb.var(name, width, size, is_signed)
@@ -58,3 +70,6 @@ class TestBench:
             node = None
         if comment_str:
             comment_node(node, comment_str)
+
+    def property(self, property_name: str, sequence):
+        return self.__tb.property(property_name, sequence)

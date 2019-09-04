@@ -1,4 +1,5 @@
-from kratos import Generator, TestBench, initial, assert_
+from kratos import Generator, TestBench, initial, assert_, delay, Sequence, \
+    BlockEdgeType
 import os
 import filecmp
 import tempfile
@@ -22,7 +23,7 @@ def check_gold(src, gold_name):
             assert False
 
 
-def test_tb_codegen():
+def tb_dut_setup():
     dut = Generator("mod")
     dut.wire(dut.output("out", 1), dut.input("in", 1))
     dut.wire(dut.var("val", 1), dut.ports["in"])
@@ -34,11 +35,16 @@ def test_tb_codegen():
     out_ = tb.var("out", 1)
     tb.wire(dut.ports["in"], in_)
     tb.wire(out_, dut.ports["out"])
+    return dut, tb
+
+
+def test_tb_codegen():
+    dut, tb = tb_dut_setup()
 
     @initial
     def code():
-        in_ = 1
-        assert_(out_ == 1)
+        tb.vars["in"] = 1
+        assert_(tb.vars.out == 1)
         # access internal signal
         assert_(dut.vars.val == 1)
 
@@ -48,5 +54,32 @@ def test_tb_codegen():
     check_gold(src, "test_tb_codegen")
 
 
+def test_tb_delay():
+    dut, tb = tb_dut_setup()
+
+    @initial
+    def code():
+        delay(1, tb.vars["in"].assign(1))
+
+    tb.add_code(code)
+    src = tb.codegen()
+    check_gold(src, "test_tb_delay")
+
+
+def test_tb_sequence():
+    dut, tb = tb_dut_setup()
+    # add a clock
+    clk = tb.var("clk", 1)
+
+    seq = Sequence(tb.vars["in"] == 1)
+    seq.imply(tb.vars.out == 1).wait(1).imply(tb.vars.out == 0)
+
+    prop = tb.property("test_out", seq)
+    prop.edge(BlockEdgeType.Posedge.value, clk)
+
+    src = tb.codegen()
+    check_gold(src, "test_tb_sequence")
+
+
 if __name__ == "__main__":
-    test_tb_codegen()
+    test_tb_sequence()

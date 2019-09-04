@@ -1,4 +1,4 @@
-Procedural code generation in depth
+Procedural Code Generation in Depth
 ###################################
 
 Kratos allows you to construct complex expressions and

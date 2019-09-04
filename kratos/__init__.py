@@ -6,14 +6,14 @@ from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
     concat, zext, mux, ternary, signed, const, comment
 
 from .ports import PortBundle
-from .tb import TestBench, assert_
+from .tb import TestBench, assert_, delay
 
 # directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog
 from _kratos.exception import VarException, StmtException
 from _kratos.passes import IRVisitor as IRVisitor
 from _kratos import PackedStruct, Port, Var, AssignmentType
-from _kratos import Sequence, Property
+from _kratos import Sequence
 from .stmts import IfStmt, SwitchStmt, if_, switch_
 
 # FSMs
@@ -25,7 +25,7 @@ negedge = BlockEdgeType.Negedge
 __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
            "verilog", "signed", "const", "is_valid_verilog", "VarException",
            "StmtException", "IRVisitor", "FSM", "FSMState", "initial",
-           "Sequence", "Property", "TestBench", "assert_"]
+           "Sequence", "TestBench", "assert_", "delay"]
 
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",

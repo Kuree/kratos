@@ -19,12 +19,12 @@ class Sequence {
 public:
     explicit Sequence(const std::shared_ptr<Var> &var) : var_(var.get()) {}
     Sequence *imply(const std::shared_ptr<Var> &var);
-    void wait(uint32_t num_clk) { wait(num_clk, num_clk); }
-    void wait(uint32_t from_num_clk, uint32_t to_num_clk);
+    Sequence *wait(uint32_t num_clk) { return wait(num_clk, num_clk); }
+    Sequence *wait(uint32_t from_num_clk, uint32_t to_num_clk);
 
     [[nodiscard]] std::string to_string() const;
 
-    const Sequence* next() const { return next_.get(); }
+    [[nodiscard]] const Sequence *next() const { return next_.get(); }
 
 private:
     Var *var_;
@@ -89,6 +89,7 @@ public:
     Var &var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed) {
         return top_->var(var_name, width, size, is_signed);
     }
+    std::shared_ptr<Var> get_var(const std::string &var_name) { return top_->get_var(var_name); }
     std::shared_ptr<InitialStmtBlock> initial() { return top_->initial(); }
     void add_stmt(const std::shared_ptr<Stmt> &stmt) { top_->add_stmt(stmt); }
     void wire(const std::shared_ptr<Var> &var, const std::shared_ptr<Port> &port);

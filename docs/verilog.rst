@@ -1,6 +1,6 @@
 .. _verilog:
 
-Generate System Verilog
+Generate SystemVerilog
 #######################
 
 kratos can only generate SystemVerilog. However, it only uses a subset

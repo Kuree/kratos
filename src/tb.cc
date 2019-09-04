@@ -46,9 +46,10 @@ std::string Sequence::to_string() const {
     return seq;
 }
 
-void Sequence::wait(uint32_t from_num_clk, uint32_t to_num_clk) {
+Sequence *Sequence::wait(uint32_t from_num_clk, uint32_t to_num_clk) {
     wait_low_ = from_num_clk;
     wait_high_ = to_num_clk;
+    return this;
 }
 
 Property::Property(std::string property_name, std::shared_ptr<Sequence> sequence)
@@ -163,17 +164,20 @@ protected:
         if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator != top_) ||
             (stmt->right()->type() == VarType::PortIO && stmt->right()->generator != top_))
             return;
-        stream_ << indent() << var_name(stmt->left().get()) << " = "
+        std::string delay_str;
+        if (stmt->get_delay() > 0) {
+            int delay = stmt->get_delay();
+            delay_str = ::format("#{0} ", delay);
+        }
+        stream_ << indent() << delay_str << var_name(stmt->left().get()) << " = "
                 << var_name(stmt->right().get()) << ";" << stream_.endl();
     }
 };
 
 uint32_t get_order(const std::shared_ptr<Stmt> &stmt) {
-    if (stmt->type() != StatementType::Block)
-        return 0;
+    if (stmt->type() != StatementType::Block) return 0;
     auto block = stmt->as<StmtBlock>();
-    if (block->block_type() != StatementBlockType::Initial)
-        return 0;
+    if (block->block_type() != StatementBlockType::Initial) return 0;
     return 1;
 }
 
