@@ -48,7 +48,7 @@ class StatementBlockType(enum.Enum):
 
 
 class CodeBlock:
-    def __init__(self, generator: "Generator", block_type: StatementBlockType,
+    def __init__(self, generator, block_type: StatementBlockType,
                  debug_frame_depth):
         self.block_type = block_type
         self._generator = generator
@@ -90,7 +90,7 @@ class CodeBlock:
 
 
 class SequentialCodeBlock(CodeBlock):
-    def __init__(self, generator: "Generator", sensitivity_list,
+    def __init__(self, generator, sensitivity_list,
                  debug_frame_depth: int = 4):
         super().__init__(generator, StatementBlockType.Sequential,
                          debug_frame_depth)
@@ -101,14 +101,14 @@ class SequentialCodeBlock(CodeBlock):
 
 
 class CombinationalCodeBlock(CodeBlock):
-    def __init__(self, generator: "Generator",
+    def __init__(self, generator,
                  debug_frame_depth: int = 4):
         super().__init__(generator, StatementBlockType.Combinational,
                          debug_frame_depth)
 
 
 class InitialCodeBlock(CodeBlock):
-    def __init__(self, generator: "Generator",
+    def __init__(self, generator,
                  debug_frame_depth: int = 4):
         super().__init__(generator, StatementBlockType.Initial,
                          debug_frame_depth)
@@ -436,7 +436,7 @@ class Generator(metaclass=GeneratorMeta):
             # it's a initial block
             init = InitialCodeBlock(self)
             for stmt in stmts:
-                init.add_stmt(init)
+                init.add_stmt(stmt)
             node = init
         else:
             sensitivity_list = []
@@ -775,7 +775,7 @@ def always(*sensitivity):
     return wrapper
 
 
-def initial():
-    def wrapper(fn):
+def initial(fn):
+    def wrapper():
         return fn
-    return wrapper
+    return wrapper()

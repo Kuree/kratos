@@ -484,15 +484,19 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         return CodeBlockType.Combinational, []
     else:
         assert len(deco_list) == 1, \
-            "{0} is not called with @always block".format(fn_name)
+            "{0} is not called with multiple decorators blocks".format(fn_name)
         call_obj = deco_list[0]
-        assert isinstance(call_obj, ast.Call), \
-            "{0} is not called with @always block".format(fn_name)
-        # making sure it's always
-        call_name = call_obj.func.id
-        assert call_name in ["always", "initial"]
-        blk_type = CodeBlockType.Sequential if call_name == "always" else \
-            CodeBlockType.Initial
+        if isinstance(call_obj, ast.Call):
+            call_name = call_obj.func.id
+            assert call_name == "always", \
+                "{0} is not called with @always block".format(fn_name)
+        else:
+            assert isinstance(call_obj, ast.Name)
+            call_name = call_obj.id
+            assert call_name == "initial", \
+                "{0} is not called with @initial block".format(fn_name)
+            return CodeBlockType.Initial, []
+        blk_type = CodeBlockType.Sequential
         raw_sensitivity = call_obj.args
         result = []
         for entry in raw_sensitivity:

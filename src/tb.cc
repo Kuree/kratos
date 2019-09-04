@@ -54,7 +54,7 @@ void Sequence::wait(uint32_t from_num_clk, uint32_t to_num_clk) {
 Property::Property(std::string property_name, std::shared_ptr<Sequence> sequence)
     : property_name_(std::move(property_name)), sequence_(std::move(sequence)) {}
 
-void Property::edge(kratos::BlockEdgeType type, std::shared_ptr<Var> &var) {
+void Property::edge(kratos::BlockEdgeType type, const std::shared_ptr<Var> &var) {
     if (var->width != 1) throw VarException("{0} should be width 1", {var.get()});
     edge_ = {var.get(), type};
 }
@@ -80,6 +80,10 @@ void TestBench::wire(const std::shared_ptr<Var> &var, const std::shared_ptr<Port
 
 void TestBench::wire(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &port2) {
     top_->wire_ports(port1, port2);
+}
+
+void TestBench::wire(const std::shared_ptr<Var> &src, const std::shared_ptr<Var> &sink) {
+    top_->add_stmt(src->assign(sink));
 }
 
 class TestBenchCodeGen : public SystemVerilogCodeGen {
@@ -114,7 +118,7 @@ private:
         if (var->parent() == top_ || var->parent() == Const::const_gen())
             return var->to_string();
         else
-            return var->handle_name(false);
+            return var->handle_name(true);
     }
 
 protected:
@@ -128,13 +132,22 @@ protected:
         stream_ << indent() << "property " << property->property_name() << ";" << stream_.endl();
         increase_indent();
         auto const edge = property->edge();
+        auto seq = property->sequence();
         if (edge.first) {
             auto const &[var, type] = edge;
             stream_ << indent()
                     << ::format("@({0} {1}) ", type == Posedge ? "posedge" : "negedge",
                                 var->handle_name(true));
+        } else {
+            // if it's concurrent property, we have to have a clock
+            auto next = seq->next();
+            if (next) {
+                // next is not null but edge is not set
+                throw StmtException(
+                    ::format("Clock edge not set for sequence {0}", seq->to_string()), {stmt});
+            }
         }
-        stream_ << indent() << property->sequence()->to_string() << ";" << stream_.endl();
+        stream_ << seq->to_string() << ";" << stream_.endl();
         decrease_indent();
         stream_ << indent() << "endproperty" << stream_.endl();
 
@@ -147,16 +160,43 @@ protected:
         if (stmt->assign_type() != Blocking) {
             throw StmtException("Test bench assignment as to be blocking", {stmt});
         }
-        stream_ << indent() << stmt->left()->handle_name() << " = " << stmt->right()->handle_name()
-                << ";" << stream_.endl();
+        if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator != top_) ||
+            (stmt->right()->type() == VarType::PortIO && stmt->right()->generator != top_))
+            return;
+        stream_ << indent() << var_name(stmt->left().get()) << " = "
+                << var_name(stmt->right().get()) << ";" << stream_.endl();
     }
 };
+
+uint32_t get_order(const std::shared_ptr<Stmt> &stmt) {
+    if (stmt->type() != StatementType::Block)
+        return 0;
+    auto block = stmt->as<StmtBlock>();
+    if (block->block_type() != StatementBlockType::Initial)
+        return 0;
+    return 1;
+}
+
+void sort_initials(Generator *top) {
+    auto const &stmts = top->get_all_stmts();
+    auto new_stmts = std::vector<std::shared_ptr<Stmt>>(stmts.begin(), stmts.end());
+
+    // move initialize to the last
+    std::sort(new_stmts.begin(), new_stmts.end(), [](const auto &left, const auto &right) {
+        return get_order(left) < get_order(right);
+    });
+
+    top->set_stmts(new_stmts);
+}
 
 std::string TestBench::codegen() {
     // fix connections
     fix_assignment_type(top_);
     create_module_instantiation(top_);
     verify_generator_connectivity(top_);
+
+    // sort initials in case we need to access internal signals
+    sort_initials(top_);
 
     // need to convert properties into properties statement
     for (auto const &iter : properties_) {

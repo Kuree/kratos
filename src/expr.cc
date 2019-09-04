@@ -200,7 +200,11 @@ std::string Var::to_string() const { return name; }
 std::string Var::handle_name() const { return handle_name(false); }
 
 std::string Var::handle_name(bool ignore_top) const {
-    return ::format("{0}.{1}", generator->handle_name(ignore_top), to_string());
+    auto gen_name = generator->handle_name(ignore_top);
+    if (!gen_name.empty())
+        return ::format("{0}.{1}", generator->handle_name(ignore_top), to_string());
+    else
+        return to_string();
 }
 
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }

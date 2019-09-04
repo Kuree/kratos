@@ -13,7 +13,6 @@ public:
     AssertBase() : Stmt(StatementType::Assert) {}
 
     virtual AssertType assert_type() = 0;
-
 };
 
 class Sequence {
@@ -24,6 +23,8 @@ public:
     void wait(uint32_t from_num_clk, uint32_t to_num_clk);
 
     [[nodiscard]] std::string to_string() const;
+
+    const Sequence* next() const { return next_.get(); }
 
 private:
     Var *var_;
@@ -43,7 +44,7 @@ public:
 
     const std::string &property_name() const { return property_name_; }
     Sequence *sequence() { return sequence_.get(); }
-    void edge(BlockEdgeType type, std::shared_ptr<Var> &var);
+    void edge(BlockEdgeType type, const std::shared_ptr<Var> &var);
     std::pair<Var *, BlockEdgeType> edge() const { return edge_; }
 
 private:
@@ -92,6 +93,12 @@ public:
     void add_stmt(const std::shared_ptr<Stmt> &stmt) { top_->add_stmt(stmt); }
     void wire(const std::shared_ptr<Var> &var, const std::shared_ptr<Port> &port);
     void wire(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &port2);
+    void wire(const std::shared_ptr<Var> &src, const std::shared_ptr<Var> &sink);
+
+    void add_child_generator(const std::string &instance_name,
+                             const std::shared_ptr<Generator> &child) {
+        top_->add_child_generator(instance_name, child);
+    }
 
     // create properties
     std::shared_ptr<Property> property(const std::string &property_name,

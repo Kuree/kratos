@@ -57,7 +57,7 @@ void init_stmt(py::module &m) {
         .def("block_type", &StmtBlock::block_type)
         .def("add_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&StmtBlock::add_stmt))
         .def("remove_stmt", &StmtBlock::remove_stmt)
-        .def("add_stmt", [](StmtBlock& stmt, const std::shared_ptr<FunctionCallVar> &var) {
+        .def("add_stmt", [](StmtBlock &stmt, const std::shared_ptr<FunctionCallVar> &var) {
             // need to convert it into a function call statement
             auto st = std::make_shared<FunctionCallStmt>(var);
             stmt.add_stmt(st);
@@ -99,4 +99,7 @@ void init_stmt(py::module &m) {
         .def("is_context", &DPIFunctionStmtBlock::is_context)
         .def("set_is_pure", &DPIFunctionStmtBlock::set_is_pure)
         .def("set_is_context", &DPIFunctionStmtBlock::set_is_context);
+
+    py::class_<InitialStmtBlock, std::shared_ptr<InitialStmtBlock>, StmtBlock>(m,
+                                                                               "InitialStmtBlock");
 }

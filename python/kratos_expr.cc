@@ -307,7 +307,9 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def_property_readonly("generator", [](const Var &var) { return var.generator; })
         .def_static("move_src_to", &Var::move_src_to)
         .def_static("move_sink_to", &Var::move_sink_to)
-        .def("handle_name", &Var::handle_name);
+        .def("handle_name", [](const Var &var) { return var.handle_name(); })
+        .def("handle_name",
+             [](const Var &var, bool ignore_top) { return var.handle_name(ignore_top); });
 
     def_attributes<py::class_<Var, ::shared_ptr<Var>>, Var>(class_);
 }
