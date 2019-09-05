@@ -750,3 +750,18 @@ TEST(generator, slide_through_fsm) {  // NOLINT
     fix_assignment_type(&mod);
     generate_verilog(&mod);
 }
+
+TEST(generator, non_synthesizable) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto comb = mod.combinational();
+    auto dpi = mod.dpi_function("test_dpi");
+    auto &call = mod.call("test_dpi", {});
+    auto stmt = std::make_shared<FunctionCallStmt>(call.as<FunctionCallVar>());
+    comb->add_stmt(stmt);
+    // add debug info
+    stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+
+    // run the pass
+    EXPECT_THROW(check_non_synthesizable_content(&mod), UserException);
+}

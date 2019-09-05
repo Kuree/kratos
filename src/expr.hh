@@ -392,7 +392,7 @@ struct ConditionalExpr : public Expr {
     IRNode *get_child(uint64_t index) override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     std::string to_string() const override;
-    std::string handle_name(bool ignore_top) const override ;
+    std::string handle_name(bool ignore_top) const override;
 
     std::shared_ptr<Var> condition;
 };
@@ -468,6 +468,8 @@ public:
     void add_source(const std::shared_ptr<AssignStmt> &) override {
         throw std::runtime_error("Slice a function call is not allowed");
     }
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     const std::map<std::string, std::shared_ptr<Var>> &args() const { return args_; }
 

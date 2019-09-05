@@ -79,6 +79,7 @@ public:
     virtual inline void visit(EnumConst *) {}
     virtual inline void visit(Const *) {}
     virtual inline void visit(Parameter *) {}
+    virtual inline void visit(FunctionCallVar *) {}
     virtual inline void visit(AssignStmt *) {}
     virtual inline void visit(ScopedStmtBlock *) {}
     virtual inline void visit(IfStmt *) {}
@@ -86,7 +87,7 @@ public:
     virtual inline void visit(CombinationalStmtBlock *) {}
     virtual inline void visit(SequentialStmtBlock *) {}
     virtual inline void visit(FunctionStmtBlock *) {}
-    virtual inline void visit(InitialStmtBlock*) {}
+    virtual inline void visit(InitialStmtBlock *) {}
     virtual inline void visit(FunctionCallStmt *) {}
     virtual inline void visit(ReturnStmt *) {}
     virtual inline void visit(ModuleInstantiationStmt *) {}

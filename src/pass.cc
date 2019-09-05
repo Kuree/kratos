@@ -842,6 +842,46 @@ void check_mixed_assignment(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
+class SynthesizableVisitor : public IRVisitor {
+public:
+    void visit(AssignStmt* stmt) override {
+        if (stmt->get_delay() >= 0) {
+            nodes_.emplace_back(stmt);
+        }
+    }
+
+    void visit(FunctionCallVar* var) override {
+        auto const def = var->func();
+        if (def->is_dpi()) {
+            nodes_.emplace_back(var);
+        }
+    }
+
+    void visit(FunctionCallStmt* stmt) override {
+        auto const& def = stmt->func();
+        if (def->is_dpi()) {
+            nodes_.emplace_back(stmt);
+        }
+    }
+
+    const std::vector<IRNode*>& nodes() const { return nodes_; }
+
+private:
+    std::vector<IRNode*> nodes_;
+};
+
+void check_non_synthesizable_content(Generator* top) {
+    SynthesizableVisitor visitor;
+    visitor.visit_root(top);
+    auto const& nodes = visitor.nodes();
+    if (!nodes.empty()) {
+        print_nodes(nodes);
+        throw UserException(
+            "Non-synthesizable content detected. Please see the revelent lines "
+            "output above (after using debug mode)");
+    }
+}
+
 class ActiveVisitor : public IRVisitor {
 public:
     void visit(IfStmt* stmt) override {
@@ -2005,6 +2045,8 @@ void PassManager::register_builtin_passes() {
     register_pass("sort_stmts", &sort_stmts);
 
     register_pass("check_active_high", &check_active_high);
+
+    register_pass("check_non_synthesizable_content", &check_non_synthesizable_content);
 
     // TODO:
     //  add inline pass

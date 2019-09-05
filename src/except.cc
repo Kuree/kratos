@@ -32,11 +32,11 @@ void print_ast_node(const IRNode* node) {
         // print out a blue line
         for (auto const& [filename, line_number] : node->fn_name_ln) {
             if (fs::exists(filename)) {
+                std::cerr << blue_line() << std::endl;
+                std::cerr << BLUE << filename << ":" << line_number << ENDC << std::endl;
                 uint32_t line_count = 0;
                 std::string line;
-                std::cerr << filename << std::endl;
                 std::ifstream file(filename);
-                std::cerr << blue_line() << std::endl;
                 while (std::getline(file, line)) {
                     line_count++;
                     if (line_count == line_number) {

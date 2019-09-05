@@ -94,6 +94,11 @@ readable and your life easier:
   return.
 - ``sort_stmts``: sort the statements in the order of assignment, module
   instantiation, combinational, and sequential logic. This is off by default.
+- ``check_non_synthesizable_content``: this is a pass that checks all the
+  IR nodes in the design that is not synthesizable. It will print out all
+  the relevant code that's producing offending SystemVerilog code. Notice
+  that you have to turn the debug on to see the source. An exception is
+  thrown if detected.
 
 
 Write your own Pass
