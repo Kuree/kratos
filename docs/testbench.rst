@@ -57,26 +57,36 @@ following example based on the previous generator setup:
 
 .. code-block:: Python
 
-    # add a clock
-    clk = tb.var("clk", 1)
+    # add a clock and wire them together
+    tb.wire(dut.clock("clk"), tb.var("clk", 1))
 
     seq = Sequence(in_ == 1)
     seq.imply(out_ == 1).wait(1).imply(out_ == 0)
 
     prop = tb.property("test_out", seq)
-    prop.edge(BlockEdgeType.Posedge.value, clk)
 
-The sequence based property requires a clock, as specified by the
-SystemVerilog spec. We first created an initial sequence, called ``seq``,
+
+Since sequence requires clock, as specified by the SystemVerilog spec,
+we need to add clock signals. After that, we first created an initial
+sequence, called ``seq``,
 then we specify the next sequence using ``imply`` call, which returns
 the next sequence object. We want that to wait one clock cycle, hence
 calling ``wait(1)``. This sequence also implies ``out_ == 0``.
 This chained creation allows you to meta-program the sequence.
 
 After creating the sequence, we can add the it to a property. We call
-``tb.property()`` to give it a name. Notice that we need to specify
-the clock for that particular property.
+``tb.property()`` to give it a name. Kratos will automatically wire
+the clocks to the sequence.
 
+.. note::
+
+  If your design has multiple clocks, you need to specify the clock on
+  sequences by yourself. Here is an example on how to specify the clock
+  edges.
+
+  .. code-block:: Python
+
+      prop.edge(BlockEdgeType.Posedge.value, clk)
 
 Road Map
 ========

@@ -42,10 +42,10 @@ class Property {
 public:
     Property(std::string property_name, std::shared_ptr<Sequence> sequence);
 
-    const std::string &property_name() const { return property_name_; }
+    [[nodiscard]] const std::string &property_name() const { return property_name_; }
     Sequence *sequence() { return sequence_.get(); }
     void edge(BlockEdgeType type, const std::shared_ptr<Var> &var);
-    std::pair<Var *, BlockEdgeType> edge() const { return edge_; }
+    [[nodiscard]] std::pair<Var *, BlockEdgeType> edge() const { return edge_; }
 
 private:
     std::string property_name_;

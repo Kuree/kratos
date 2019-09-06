@@ -68,14 +68,13 @@ def test_tb_delay():
 
 def test_tb_sequence():
     dut, tb = tb_dut_setup()
-    # add a clock
-    clk = tb.var("clk", 1)
+    # add a clock and wire them together
+    tb.wire(dut.clock("clk"), tb.var("clk", 1))
 
     seq = Sequence(tb.vars["in"] == 1)
     seq.imply(tb.vars.out == 1).wait(1).imply(tb.vars.out == 0)
 
-    prop = tb.property("test_out", seq)
-    prop.edge(BlockEdgeType.Posedge.value, clk)
+    tb.property("test_out", seq)
 
     src = tb.codegen()
     check_gold(src, "test_tb_sequence")
