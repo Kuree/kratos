@@ -74,7 +74,6 @@ public:
     int inline get_delay() const { return delay_; }
     void set_delay(int delay) { delay_ = delay; }
 
-
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 2; }
@@ -169,6 +168,7 @@ public:
     bool empty() const { return stmts_.empty(); }
     uint64_t size() const { return stmts_.size(); }
     std::shared_ptr<Stmt> operator[](uint32_t index) { return stmts_[index]; }
+    void set_stmts(const std::vector<std::shared_ptr<Stmt>> &stmts) { stmts_ = stmts; }
 
 protected:
     explicit StmtBlock(StatementBlockType type);

@@ -1375,6 +1375,11 @@ public:
                         {port_ref.get(), port.get()});
                 }
             }
+            if (dpi_stmt->is_context() != ref_stmt->is_context() ||
+                dpi_stmt->is_pure() != ref_stmt->is_pure())
+                throw StmtException(
+                    "DPI function " + func_name + " has different attribute (pure/context)",
+                    {stmt, ref_stmt});
         }
     }
 
