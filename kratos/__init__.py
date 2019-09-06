@@ -7,6 +7,7 @@ from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
 
 from .ports import PortBundle
 from .tb import TestBench, assert_, delay
+from .debug import enable_runtime_debug
 
 # directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog
@@ -25,7 +26,7 @@ negedge = BlockEdgeType.Negedge
 __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
            "verilog", "signed", "const", "is_valid_verilog", "VarException",
            "StmtException", "IRVisitor", "FSM", "FSMState", "initial",
-           "Sequence", "TestBench", "assert_", "delay"]
+           "Sequence", "TestBench", "assert_", "delay", "enable_runtime_debug"]
 
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",

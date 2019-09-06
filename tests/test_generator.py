@@ -1,6 +1,7 @@
 from kratos import Generator, PortDirection, PortType, always, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute, zext, posedge, PortBundle, const, comment
+    PackedStruct, Port, Attribute, zext, posedge, PortBundle, const, comment,\
+    enable_runtime_debug
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
@@ -1117,5 +1118,20 @@ def test_symbol_table():
     assert len(table["register"]) == 5
 
 
+def test_breakpoint():
+    mod = Generator("mod", True)
+    comb = mod.combinational()
+    stmt0 = mod.output("out", 1).assign(mod.input("in", 1))
+    comb.add_stmt(stmt0)
+    stmt1 = mod.var("val", 1).assign(mod.ports["in"])
+    comb.add_stmt(stmt1)
+
+    table = enable_runtime_debug(mod)
+    assert len(table) == 2
+    assert table[stmt0] == 0
+    assert table[stmt1] == 1
+    check_gold(mod, "test_breakpoint")
+    
+
 if __name__ == "__main__":
-    test_packed_struct()
+    test_breakpoint()
