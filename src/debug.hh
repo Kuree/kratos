@@ -25,9 +25,10 @@ public:
 
 private:
     std::map<Stmt *, uint32_t> break_points_;
-    std::unordered_map<Generator, std::set<uint32_t>> generator_break_points_;
+    std::unordered_map<Generator *, std::set<uint32_t>> generator_break_points_;
     std::map<Stmt *, std::pair<std::string, uint32_t>> stmt_mapping_;
-    std::unordered_map<std::string, std::pair<Generator*, std::map<std::string, std::string>>> variable_mapping_;
+    std::unordered_map<std::string, std::pair<Generator *, std::map<std::string, std::string>>>
+        variable_mapping_;
 
     std::string top_name_ = "TOP";
 };

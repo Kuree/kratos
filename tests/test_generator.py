@@ -1115,7 +1115,7 @@ def test_symbol_table():
     verilog(mod)
     table = extract_symbol_table(mod)
     assert len(table) == 1
-    assert len(table["register"]) == 5
+    assert len(table[mod]) == 5
 
 
 def test_breakpoint():
@@ -1134,4 +1134,4 @@ def test_breakpoint():
     
 
 if __name__ == "__main__":
-    test_breakpoint()
+    test_symbol_table()

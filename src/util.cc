@@ -445,11 +445,16 @@ std::string temp_directory_path() {
 }
 
 std::string get_ext(const std::string &filename) {
+#if defined(__linux__)
+    std::filesystem::path path(filename);
+    return path.extension().string();
+#else
     auto idx = filename.rfind('.');
     if (idx != std::string::npos)
         return filename.substr(idx);
     else
         return "";
+#endif
 }
 
 }  // namespace fs

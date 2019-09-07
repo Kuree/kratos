@@ -152,8 +152,7 @@ def extract_symbol_table(generator: Generator):
                         for var_name in member_names:
                             var = var[var_name]
                     entry[name] = var.handle_name()
-            gen_name = gen.name
-            table[gen_name] = entry
+            table[gen] = entry
             # push all the child generator to the queue
             children = gen.child_generator()
             for _, child in children.items():
