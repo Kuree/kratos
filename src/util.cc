@@ -444,5 +444,13 @@ std::string temp_directory_path() {
 #endif
 }
 
+std::string get_ext(const std::string &filename) {
+    auto idx = filename.rfind('.');
+    if (idx != std::string::npos)
+        return filename.substr(idx);
+    else
+        return "";
+}
+
 }  // namespace fs
 }

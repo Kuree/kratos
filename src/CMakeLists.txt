@@ -4,11 +4,12 @@ add_library(kratos port.cc port.hh generator.cc generator.hh
         ir.cc ir.hh graph.cc graph.hh hash.cc hash.hh util.cc util.hh except.cc except.hh fsm.cc fsm.hh
         syntax.hh syntax.cc tb.hh tb.cc debug.hh debug.cc)
 
-target_include_directories(kratos PUBLIC ../extern/fmt/include ../extern/cxxpool/src)
+target_include_directories(kratos PUBLIC ../extern/fmt/include ../extern/cxxpool/src ../extern/sqlite_orm/include
+        ../extern/sqlite/include)
 if (WIN32 OR MINGW OR APPLE)
-   target_link_libraries(kratos fmt)
+   target_link_libraries(kratos fmt sqlite3)
 else()
-    target_link_libraries(kratos fmt stdc++fs)
+    target_link_libraries(kratos fmt sqlite3 stdc++fs)
 endif()
 
 if (APPLE)

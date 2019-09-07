@@ -1,5 +1,7 @@
 #include "debug.hh"
 #include "generator.hh"
+#include "sqlite_orm/sqlite_orm.h"
+#include "util.hh"
 
 namespace kratos {
 
@@ -75,6 +77,31 @@ void insert_debugger_setup(Generator *top) {
     auto &call_var = top->call(func_name, {}, false);
     auto stmt = std::make_shared<FunctionCallStmt>(call_var.as<FunctionCallVar>());
     initial->add_stmt(stmt);
+}
+
+void DebugDatabase::set_break_points(const std::unordered_map<Stmt *, uint32_t> &break_points) {
+    set_break_points(break_points, ".py");
+}
+
+void DebugDatabase::set_break_points(const std::unordered_map<Stmt *, uint32_t> &break_points,
+                                     const std::string &ext) {
+    // set the break points
+    break_points_ = break_points;
+
+    // index all the front-end code
+    // we are only interested in the files that has the extension
+    for (auto const &iter: break_points) {
+        auto const &stmt = iter.first;
+        auto fn_ln = stmt->fn_name_ln;
+        for (auto const &[fn, ln] : fn_ln) {
+            auto fn_ext = fs::get_ext(fn);
+            if (fn_ext == ext) {
+                // this is the one we need
+                stmt_mapping_.emplace(stmt, std::make_pair(fn, ln));
+                break;
+            }
+        }
+    }
 }
 
 }

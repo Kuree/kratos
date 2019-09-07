@@ -24,6 +24,7 @@ endif()
 add_subdirectory(extern/googletest/)
 add_subdirectory(extern/fmt)
 add_subdirectory(extern/pybind11)
+add_subdirectory(extern/sqlite)
 
 include(GoogleTest)
 
