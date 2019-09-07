@@ -7,6 +7,7 @@
 #include "pass.hh"
 #include "stmt.hh"
 #include "util.hh"
+#include "debug.hh"
 
 namespace kratos {
 /*
@@ -303,11 +304,14 @@ public:
         // this is to hash the call args and func_def
         auto func = stmt->func();
         auto str = func->function_name();
-        auto const &var = stmt->var();
-        auto const &var_args = var->args();
-        // this is ordered map
-        for (auto const &iter: var_args) {
-            str.append(iter.second->to_string());
+        if (str != break_point_func_name) {
+            // breakpoint with id doesn't count since their ids will be different all the time
+            auto const& var = stmt->var();
+            auto const& var_args = var->args();
+            // this is ordered map
+            for (auto const& iter : var_args) {
+                str.append(iter.second->to_string());
+            }
         }
         uint64_t hash = hash_64_fnv1a(str.c_str(), str.size()) << level;
         constexpr uint64_t call_signature = shift_const(0x9e3779b97f4a7c16, 4);
