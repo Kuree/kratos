@@ -5,6 +5,17 @@
 #include "util.hh"
 
 namespace kratos {
+
+uint64_t IRNode::index_of(kratos::IRNode *node) {
+    uint64_t index;
+    for (index = 0; index < child_count(); index++) {
+        auto n = get_child(index);
+        if (n == node)
+            break;
+    }
+    return index;
+}
+
 void IRVisitor::visit_root(IRNode *root) {
     // recursively call visits
     root->accept(this);

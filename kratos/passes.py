@@ -1,6 +1,7 @@
 from _kratos.passes import *
 from .generator import Generator
 import _kratos
+from .debug import dump_debug_database
 from typing import Dict
 import os
 
@@ -18,10 +19,12 @@ def verilog(generator: Generator, optimize_if: bool = True,
             check_active_high: bool = True,
             debug: bool = False,
             additional_passes: Dict = None,
-            extrat_struct: bool = False,
+            extract_struct: bool = False,
             int_dpi_interface: bool = True,
             filename: str = None,
             output_dir: str = None,
+            debug_db_filename: str = "",
+            debug_top_name: str = "TOP",
             use_parallel: bool = True):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
@@ -56,6 +59,10 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("check_active_high")
     pass_manager.add_pass("check_function_return")
     pass_manager.add_pass("merge_wire_assignments")
+    # insert debug break points if needed
+    if debug_db_filename:
+        pass_manager.add_pass("inject_debug_break_points")
+        pass_manager.add_pass("insert_debugger_setup")
     if use_parallel:
         pass_manager.add_pass("hash_generators_parallel")
     else:
@@ -82,10 +89,10 @@ def verilog(generator: Generator, optimize_if: bool = True,
     else:
         info = {}
 
-    if extrat_struct or filename:
+    if extract_struct or filename:
         struct_info = _kratos.passes.extract_struct_info(
             generator.internal_generator)
-        if extrat_struct:
+        if extract_struct:
             result.append(struct_info)
     else:
         struct_info = {}
@@ -98,6 +105,10 @@ def verilog(generator: Generator, optimize_if: bool = True,
 
     if filename is not None:
         output_verilog(filename, src, info, struct_info, dpi_func)
+
+    # debug database
+    if debug_db_filename:
+        dump_debug_database(generator, debug_db_filename, debug_db_filename)
 
     return result[0] if len(result) == 1 else result
 
@@ -129,34 +140,3 @@ def output_verilog(filename, mod_src, info, struct_info, dpi_func):
         with open(filename + ".debug", "w+") as f:
             import json
             json.dump(debug_info, f)
-
-
-def extract_symbol_table(generator: Generator):
-    # this has to be run after the unification pass
-    from queue import Queue
-    table = {}
-    gen_queue = Queue()
-    gen_queue.put(generator)
-    while not gen_queue.empty():
-        gen: Generator = gen_queue.get()
-        if gen.debug:
-            # introspect the variable tables
-            entry = {}
-            variables = vars(gen)
-            for name, var in variables.items():
-                if isinstance(var, _kratos.Var):
-                    # I think bundle -> packed struct will not work here
-                    if isinstance(var, (_kratos.PortPacked, _kratos.VarPacked,
-                                        _kratos.PortBundleRef)):
-                        member_names = var.member_names()
-                        for var_name in member_names:
-                            var = var[var_name]
-                    entry[name] = var.handle_name()
-            table[gen] = entry
-            # push all the child generator to the queue
-            children = gen.child_generator()
-            for _, child in children.items():
-                if child.internal_generator.parent_generator() is not None:
-                    # it could be removed
-                    gen_queue.put(child)
-    return table

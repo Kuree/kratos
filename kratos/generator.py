@@ -63,11 +63,14 @@ class CodeBlock:
             fn, ln = get_fn_ln(debug_frame_depth)
             self._block.add_fn_ln((fn, ln))
 
-    def add_stmt(self, stmt):
+    def add_stmt(self, stmt, add_fn_ln: bool = True, depth=2):
         if hasattr(stmt, "stmt"):
             self._block.add_stmt(stmt.stmt())
         else:
             self._block.add_stmt(stmt)
+        if add_fn_ln:
+            info = get_fn_ln(depth)
+            stmt.add_fn_ln(info)
 
     def remove_stmt(self, stmt):
         if hasattr(stmt, "stmt"):
@@ -80,12 +83,12 @@ class CodeBlock:
 
     def if_(self, predicate: _kratos.Var) -> IfStmt:
         stmt = if_(predicate)
-        self.add_stmt(stmt.stmt())
+        self.add_stmt(stmt.stmt(), depth=3)
         return stmt
 
     def switch_(self, predicate: _kratos.Var) -> SwitchStmt:
         stmt = switch_(predicate)
-        self.add_stmt(stmt.stmt())
+        self.add_stmt(stmt.stmt(), depth=3)
         return stmt
 
 
@@ -433,13 +436,13 @@ class Generator(metaclass=GeneratorMeta):
             # it's a combinational block
             comb = CombinationalCodeBlock(self)
             for stmt in stmts:
-                comb.add_stmt(stmt)
+                comb.add_stmt(stmt, False)
             node = comb
         elif block_type == CodeBlockType.Initial:
             # it's a initial block
             init = InitialCodeBlock(self)
             for stmt in stmts:
-                init.add_stmt(stmt)
+                init.add_stmt(stmt, False)
             node = init
         else:
             sensitivity_list = []
@@ -449,7 +452,7 @@ class Generator(metaclass=GeneratorMeta):
                 sensitivity_list.append((edge, var))
             seq = SequentialCodeBlock(self, sensitivity_list)
             for stmt in stmts:
-                seq.add_stmt(stmt)
+                seq.add_stmt(stmt, False)
             node = seq
         if comment_str:
             comment_node(node, comment_str)

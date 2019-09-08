@@ -68,3 +68,6 @@ test.sv*
 
 # clang build dir
 clang-build
+
+# database file
+*.db

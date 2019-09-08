@@ -6,8 +6,10 @@
 namespace kratos {
 
 constexpr char break_point_func_name[] = "breakpoint_trace";
+constexpr char break_point_func_arg[] = "stmt_id";
 
-std::unordered_map<Stmt *, uint32_t> inject_debug_break_points(Generator *top);
+void inject_debug_break_points(Generator *top);
+std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top);
 
 void insert_debugger_setup(Generator *top);
 
@@ -16,8 +18,8 @@ public:
     DebugDatabase() = default;
     explicit DebugDatabase(std::string top_name) : top_name_(std::move(top_name)) {}
 
-    void set_break_points(const std::map<Stmt *, uint32_t> &break_points);
-    void set_break_points(const std::map<Stmt *, uint32_t> &break_points, const std::string &ext);
+    void set_break_points(Generator *top);
+    void set_break_points(Generator *top, const std::string &ext);
 
     void set_variable_mapping(const std::map<Generator *, std::map<std::string, Var *>> &mapping);
 

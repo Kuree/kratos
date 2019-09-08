@@ -1,4 +1,5 @@
 #include "debug.hh"
+#include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
 #include "sqlite_orm/sqlite_orm.h"
@@ -10,8 +11,6 @@ namespace kratos {
 
 class DebugBreakInjectVisitor : public IRVisitor {
 public:
-    const std::unordered_map<Stmt *, uint32_t> &stmt_map() const { return map_; }
-
     void visit(CombinationalStmtBlock *stmt) override { insert_statements(stmt); }
 
     void visit(SequentialStmtBlock *stmt) override { insert_statements(stmt); }
@@ -33,7 +32,6 @@ private:
             // FIXME: See #89
             bp_stmt->set_parent(block);
             new_blocks.emplace_back(bp_stmt);
-            map_.emplace(stmt.get(), stmt_id);
             // insert the normal one
             new_blocks.emplace_back(stmt);
         }
@@ -47,7 +45,7 @@ private:
             // create the function in the generator
             auto func = generator->dpi_function(break_point_func_name);
             func->input(var_name_, var_size_, false);
-            func->set_port_ordering({{"stmt_id", 0}});
+            func->set_port_ordering({{break_point_func_arg, 0}});
             // it is a context function
             func->set_is_context(true);
         }
@@ -58,16 +56,53 @@ private:
     }
 
     uint32_t count_ = 0;
-    std::unordered_map<Stmt *, uint32_t> map_;
 
-    const std::string var_name_ = "stmt_id";
+    const std::string var_name_ = break_point_func_arg;
     const uint32_t var_size_ = 32;
 };
 
-std::unordered_map<Stmt *, uint32_t> inject_debug_break_points(Generator *top) {
+void inject_debug_break_points(Generator *top) {
     DebugBreakInjectVisitor visitor;
     visitor.visit_root(top);
-    return visitor.stmt_map();
+}
+
+class ExtractDebugVisitor : public IRVisitor {
+public:
+    void visit(FunctionCallStmt *stmt) override {
+        auto def = stmt->func();
+        if (def->is_dpi() && def->function_name() == break_point_func_name) {
+            // extract the call id number
+            auto const &var = stmt->var();
+            auto const &args = var->args();
+            if (args.find(break_point_func_arg) == args.end()) return;
+            auto var_arg = args.at(break_point_func_arg);
+            if (var_arg->type() != VarType::ConstValue)
+                throw InternalException("Debug breakpoint not called with a const");
+            auto const_ = var_arg->as<Const>();
+            auto id = static_cast<uint32_t>(const_->value());
+            // find out the next stmt it's break to
+            if (!stmt->parent())
+                throw StmtException("Breakpoint exception doesn't below to anything", {stmt});
+            auto index = stmt->parent()->index_of(stmt);
+            auto target = stmt->parent()->get_child(index + 1);
+            if (!target) {
+                throw InternalException("Target stmt cannot be found for debug statement");
+            }
+            auto target_stmt = reinterpret_cast<Stmt *>(target);
+            map_.emplace(target_stmt, id);
+        }
+    }
+
+    const std::map<Stmt *, uint32_t> &map() const { return map_; }
+
+private:
+    std::map<Stmt *, uint32_t> map_;
+};
+
+std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top) {
+    ExtractDebugVisitor visitor;
+    visitor.visit_root(top);
+    return visitor.map();
 }
 
 void insert_debugger_setup(Generator *top) {
@@ -82,18 +117,18 @@ void insert_debugger_setup(Generator *top) {
     initial->add_stmt(stmt);
 }
 
-void DebugDatabase::set_break_points(const std::map<Stmt *, uint32_t> &break_points) {
-    set_break_points(break_points, ".py");
+void DebugDatabase::set_break_points(Generator *top) {
+    set_break_points(top, ".py");
 }
 
-void DebugDatabase::set_break_points(const std::map<Stmt *, uint32_t> &break_points,
+void DebugDatabase::set_break_points(Generator* top,
                                      const std::string &ext) {
     // set the break points
-    break_points_ = break_points;
+    break_points_ = extract_debug_break_points(top);
 
     // index all the front-end code
     // we are only interested in the files that has the extension
-    for (auto const &[stmt, id] : break_points) {
+    for (auto const &[stmt, id] : break_points_) {
         auto fn_ln = stmt->fn_name_ln;
         for (auto const &[fn, ln] : fn_ln) {
             auto fn_ext = fs::get_ext(fn);
@@ -174,7 +209,10 @@ void DebugDatabase::save_database(const std::string &filename) {
                                 make_column("var", &Variable::var),
                                 make_column("front_var", &Variable::front_var),
                                 make_column("id", &Variable::id)));
+    storage.sync_schema();
     // insert tables
+    // use transaction to speed up
+    auto guard = storage.transaction_guard();
     // metadata
     MetaData top_name{"top_name", top_name_};
     storage.insert(top_name);
@@ -201,6 +239,7 @@ void DebugDatabase::save_database(const std::string &filename) {
             }
         }
     }
+    guard.commit();
 }
 
 }

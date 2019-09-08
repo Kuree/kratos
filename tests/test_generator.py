@@ -1110,7 +1110,7 @@ def test_nested_fsm():
 
 
 def test_symbol_table():
-    from kratos.passes import extract_symbol_table
+    from kratos.debug import extract_symbol_table
     mod = AsyncReg(16, True)
     verilog(mod)
     table = extract_symbol_table(mod)
@@ -1119,6 +1119,7 @@ def test_symbol_table():
 
 
 def test_breakpoint():
+    from _kratos.passes import extract_debug_break_points
     mod = Generator("mod", True)
     comb = mod.combinational()
     stmt0 = mod.output("out", 1).assign(mod.input("in", 1))
@@ -1126,7 +1127,8 @@ def test_breakpoint():
     stmt1 = mod.var("val", 1).assign(mod.ports["in"])
     comb.add_stmt(stmt1)
 
-    table = enable_runtime_debug(mod)
+    enable_runtime_debug(mod)
+    table = extract_debug_break_points(mod.internal_generator)
     assert len(table) == 2
     assert table[stmt0] == 0
     assert table[stmt1] == 1
@@ -1134,4 +1136,4 @@ def test_breakpoint():
     
 
 if __name__ == "__main__":
-    test_symbol_table()
+    test_breakpoint()

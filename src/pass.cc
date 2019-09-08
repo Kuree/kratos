@@ -11,6 +11,8 @@
 #include "graph.hh"
 #include "port.hh"
 #include "util.hh"
+#include "debug.hh"
+
 
 using fmt::format;
 using std::runtime_error;
@@ -2052,6 +2054,10 @@ void PassManager::register_builtin_passes() {
     register_pass("check_active_high", &check_active_high);
 
     register_pass("check_non_synthesizable_content", &check_non_synthesizable_content);
+
+    register_pass("inject_debug_break_points", &inject_debug_break_points);
+
+    register_pass("insert_debugger_setup", &insert_debugger_setup);
 
     // TODO:
     //  add inline pass
