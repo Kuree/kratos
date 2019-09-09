@@ -68,7 +68,7 @@ class CodeBlock:
             self._block.add_stmt(stmt.stmt())
         else:
             self._block.add_stmt(stmt)
-        if add_fn_ln:
+        if add_fn_ln and self._generator.debug:
             info = get_fn_ln(depth)
             stmt.add_fn_ln(info)
 

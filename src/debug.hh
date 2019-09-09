@@ -11,8 +11,6 @@ constexpr char break_point_func_arg[] = "stmt_id";
 void inject_debug_break_points(Generator *top);
 std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top);
 
-void insert_debugger_setup(Generator *top);
-
 class DebugDatabase {
 public:
     DebugDatabase() = default;

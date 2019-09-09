@@ -1,5 +1,4 @@
-import "DPI-C" context function void breakpoint_trace(input int  stmt_id);
-import "DPI-C" context function void setup_debugger();
+import "DPI-C" function void breakpoint_trace(input int  stmt_id);
 module mod (
   input logic  in,
   output logic  out
@@ -11,9 +10,6 @@ always_comb begin
   out = in;
   breakpoint_trace (32'h1);
   val = in;
-end
-initial begin
-  setup_debugger ();
 end
 endmodule   // mod
 

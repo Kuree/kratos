@@ -9,7 +9,6 @@ namespace py = pybind11;
 void init_debug(py::module &m) {
     using namespace kratos;
     m.def("inject_debug_break_points", &inject_debug_break_points)
-        .def("insert_debugger_setup", &insert_debugger_setup)
         .def("extract_debug_break_points", &extract_debug_break_points);
 
     py::class_<DebugDatabase>(m, "DebugDataBase")

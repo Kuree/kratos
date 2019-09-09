@@ -46,8 +46,6 @@ private:
             auto func = generator->dpi_function(break_point_func_name);
             func->input(var_name_, var_size_, false);
             func->set_port_ordering({{break_point_func_arg, 0}});
-            // it is a context function
-            func->set_is_context(true);
         }
         auto &id_const = constant(stmt_id, var_size_);
         auto &var = generator->call(break_point_func_name,
@@ -103,18 +101,6 @@ std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top) {
     ExtractDebugVisitor visitor;
     visitor.visit_root(top);
     return visitor.map();
-}
-
-void insert_debugger_setup(Generator *top) {
-    // create an initial block at the very end that calls a specialized DPI function
-    const std::string func_name = "setup_debugger";
-    auto initial = top->initial();
-    auto func = top->dpi_function(func_name);
-    // this is an context function
-    func->set_is_context(true);
-    auto &call_var = top->call(func_name, {}, false);
-    auto stmt = std::make_shared<FunctionCallStmt>(call_var.as<FunctionCallVar>());
-    initial->add_stmt(stmt);
 }
 
 void DebugDatabase::set_break_points(Generator *top) {
