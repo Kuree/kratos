@@ -1,4 +1,5 @@
 from kratos import Generator, DebugDataBase, verilog
+import _kratos
 import sqlite3
 import tempfile
 import os
@@ -46,6 +47,8 @@ def test_debug_mock():
         mod = Mod()
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
+        # inject verilator public
+        _kratos.passes.insert_verilator_public(mod.internal_generator)
         verilog(mod, filename=filename, debug_db_filename=debug_db)
 
 

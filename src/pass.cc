@@ -2057,6 +2057,8 @@ void PassManager::register_builtin_passes() {
 
     register_pass("inject_debug_break_points", &inject_debug_break_points);
 
+    register_pass("insert_verilator_public", &insert_verilator_public);
+
     // TODO:
     //  add inline pass
 

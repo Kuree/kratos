@@ -103,6 +103,32 @@ std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top) {
     return visitor.map();
 }
 
+class InsertVerilatorPublic: public IRVisitor {
+public:
+    void visit(Var *var) override {
+        if (var->type() != VarType::Base)
+            return;
+        insert_str(var);
+    }
+
+    void visit(Port *var) override {
+        // currently the runtime only support scalar variables
+        if (var->size != 1)
+            return;
+        insert_str(var);
+    }
+
+private:
+    void static insert_str(Var *var) {
+        var->set_after_var_str_(" /*verilator public*/");
+    }
+};
+
+void insert_verilator_public(Generator *top) {
+    InsertVerilatorPublic visitor;
+    visitor.visit_root(top);
+}
+
 void DebugDatabase::set_break_points(Generator *top) {
     set_break_points(top, ".py");
 }
