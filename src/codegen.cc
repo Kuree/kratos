@@ -54,7 +54,8 @@ Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
         p->verilog_ln = line_no_;
     }
 
-    (*this) << codegen_->indent() << SystemVerilogCodeGen::get_port_str(p) << end << endl();
+    (*this) << codegen_->indent() << p->before_var_str() << SystemVerilogCodeGen::get_port_str(p)
+            << p->after_var_str() << end << endl();
 
     return *this;
 }
@@ -79,12 +80,14 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
     }
     std::string format_str;
     if (var->size > 1 && var->packed_array)
-        format_str = "{0} {1} {4}{2} {3};";
+        format_str = "{0} {1} {4}{2} {3}{5};";
     else
-        format_str = "{0} {1} {2} {3}{4};";
-    (*this) << ::format(format_str, type, var->is_signed ? "signed" : "",
+        format_str = "{0} {1} {2} {3}{4}{5};";
+    (*this) << var->before_var_str()
+            << ::format(format_str, type, var->is_signed ? "signed" : "",
                         var->is_enum() ? "" : SystemVerilogCodeGen::get_var_width_str(var.get()),
-                        var->name, var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1))
+                        var->name, var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1),
+                        " " + var->after_var_str())
             << endl();
     return *this;
 }

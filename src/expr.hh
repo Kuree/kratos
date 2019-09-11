@@ -149,6 +149,13 @@ public:
     std::string handle_name() const;
     virtual std::string handle_name(bool ignore_top) const;
 
+    // before and after strings. they're used for downstream tools. kratos doesn't care about the
+    // value. it's user's responsibility to make it legal syntax
+    inline void set_before_var_str_(const std::string &value) { before_var_str_ = value; }
+    inline const std::string &before_var_str() const { return before_var_str_; }
+    inline void set_after_var_str_(const std::string &value) { after_var_str_ = value; }
+    inline const std::string &after_var_str() const { return after_var_str_; }
+
     Var(const Var &var) = delete;
     Var() = delete;
 
@@ -163,6 +170,10 @@ protected:
     std::unordered_set<std::shared_ptr<VarConcat>> concat_vars_;
 
     std::set<std::shared_ptr<VarSlice>> slices_;
+
+    // comment values
+    std::string before_var_str_;
+    std::string after_var_str_;
 
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
