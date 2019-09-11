@@ -188,7 +188,7 @@ void DebugDatabase::save_database(const std::string &filename) {
         make_storage(filename,
                      make_table("metadata", make_column("name", &MetaData::name),
                                 make_column("value", &MetaData::value)),
-                     make_table("breakpoint", make_column("id", &BreakPoint::id, primary_key()),
+                     make_table("breakpoint", make_column("id", &BreakPoint::id),
                                 make_column("filename", &BreakPoint::filename),
                                 make_column("line_num", &BreakPoint::line_num)),
                      make_table("variable", make_column("handle", &Variable::handle),
