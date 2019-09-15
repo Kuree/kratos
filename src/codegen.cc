@@ -280,8 +280,8 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
         sensitive_list.emplace_back(::format("{0} {1}", edge, var->to_string()));
     }
     std::string sensitive_list_str = join(sensitive_list.begin(), sensitive_list.end(), ", ");
-    stream_ << stream_.endl() << "always @(" << sensitive_list_str << ") begin" << block_label(stmt)
-            << stream_.endl();
+    stream_ << stream_.endl() << "always_ff @(" << sensitive_list_str << ") begin"
+            << block_label(stmt) << stream_.endl();
     indent_++;
 
     for (uint64_t i = 0; i < stmt->child_count(); i++) {

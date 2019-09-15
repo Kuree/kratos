@@ -13,7 +13,7 @@ typedef enum logic[1:0] {
 Color_state   Color_current_state;
 Color_state   Color_next_state;
 
-always @(posedge clk, posedge rst) begin
+always_ff @(posedge clk, posedge rst) begin
   if (rst) begin
     Color_current_state <= Color_Red;
   end

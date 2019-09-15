@@ -19,7 +19,7 @@ begin
 end
 endfunction
 
-always @(posedge clk, posedge rst) begin
+always_ff @(posedge clk, posedge rst) begin
   if (rst) begin
     Color_current_state <= Red;
   end

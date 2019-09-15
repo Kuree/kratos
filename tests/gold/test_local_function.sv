@@ -5,7 +5,7 @@ module test (
 );
 
 
-always @(posedge clk) begin
+always_ff @(posedge clk) begin
   if (clk) begin
     out <= in;
   end

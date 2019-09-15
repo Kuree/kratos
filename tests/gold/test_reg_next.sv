@@ -7,7 +7,7 @@ module test (
 logic   a;
 logic   b;
 
-always @(posedge clk) begin
+always_ff @(posedge clk) begin
   a <= in;
   b <= a;
 end

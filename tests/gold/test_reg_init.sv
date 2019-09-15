@@ -8,7 +8,7 @@ module test (
 logic   a;
 logic   b;
 
-always @(posedge clk, posedge rst) begin
+always_ff @(posedge clk, posedge rst) begin
   if (rst) begin
     a <= 1'h0;
     b <= 1'h0;
