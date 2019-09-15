@@ -479,7 +479,16 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
       parent_var_(parent),
       cast_type_(cast_type) {
     type_ = VarType::BaseCasted;
-    if (cast_type_ == Signed) is_signed = true;
+    if (cast_type_ == Signed) {
+        is_signed = true;
+    } else if (cast_type_ == VarCastType::AsyncReset || cast_type_ == VarCastType::Clock) {
+        if (parent->size != 1) {
+            throw VarException(::format("Can only cast bit width 1 to "
+                                        "Clock or AsyncReset. {0} is {1}",
+                                        parent->to_string(), parent->size),
+                               {parent});
+        }
+    }
 }
 
 std::shared_ptr<AssignStmt> VarCasted::assign(const std::shared_ptr<Var> &, AssignmentType) {

@@ -113,9 +113,21 @@ class VarCastType(enum.Enum):
     AsyncReset = _kratos.VarCastType.AsyncReset
 
 
-def signed(var):
+def cast(var, cast_type):
     assert isinstance(var, _kratos.Var)
-    return var.cast(VarCastType.Signed.value)
+    return var.cast(cast_type.value)
+
+
+def signed(var):
+    return cast(var, VarCastType.Signed)
+
+
+def clock(var):
+    return cast(var, VarCastType.Clock)
+
+
+def async_reset(var):
+    return cast(var, VarCastType.AsyncReset)
 
 
 def const(value: int, width: int, is_signed: bool = False):

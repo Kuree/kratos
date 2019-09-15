@@ -4,6 +4,7 @@
 #include <iostream>
 #include <numeric>
 #include "codegen.hh"
+#include "debug.hh"
 #include "except.hh"
 #include "fmt/format.h"
 #include "fsm.hh"
@@ -11,8 +12,6 @@
 #include "graph.hh"
 #include "port.hh"
 #include "util.hh"
-#include "debug.hh"
-
 
 using fmt::format;
 using std::runtime_error;
@@ -1616,6 +1615,48 @@ void merge_wire_assignments(Generator* top) {
     visitor.visit_root(top);
 }
 
+class SensitivityVisitor : public IRVisitor {
+    void visit(SequentialStmtBlock* stmt) override {
+        auto const& sensitivity_list = stmt->get_conditions();
+        for (auto const& iter : sensitivity_list) {
+            auto const& var = iter.second;
+            // check type
+            if (var->type() == VarType::PortIO) {
+                // it's a port
+                auto port = var->as<Port>();
+                if (port->port_type() != PortType::Clock &&
+                    port->port_type() != PortType::AsyncReset) {
+                    // only clock and async reset allowed
+                    throw StmtException(
+                        ::format("Only Clock and AsyncReset allowed in "
+                                 "sensitivity list. {0} is {1}",
+                                 var->to_string(), port_type_to_str(port->port_type())),
+                        {stmt, var.get()});
+                }
+            } else if (var->type() == VarType::BaseCasted) {
+                auto var_casted = var->as<VarCasted>();
+                if (var_casted->cast_type() != VarCastType::Clock &&
+                    var_casted->cast_type() != VarCastType::AsyncReset) {
+                    throw StmtException(::format("Only Clock and AsyncReset allowed in "
+                                                 "sensitivity list. Please use cast() to cast {0}}",
+                                                 var->to_string()),
+                                        {stmt, var.get()});
+                }
+            } else {
+                throw StmtException(::format("Only variable type of Clock and "
+                                             "AsyncReset allowed in sensitivity list, got {0}",
+                                             var->to_string()),
+                                    {stmt, var.get()});
+            }
+        }
+    }
+};
+
+void check_always_sensitivity(Generator* top) {
+    SensitivityVisitor visitor;
+    visitor.visit_root(top);
+}
+
 class PipelineInsertionVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
@@ -2058,6 +2099,8 @@ void PassManager::register_builtin_passes() {
     register_pass("inject_debug_break_points", &inject_debug_break_points);
 
     register_pass("insert_verilator_public", &insert_verilator_public);
+
+    register_pass("check_always_sensitivity", &check_always_sensitivity);
 
     // TODO:
     //  add inline pass

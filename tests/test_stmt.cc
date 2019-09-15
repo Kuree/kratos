@@ -60,7 +60,6 @@ TEST(stmt, block) {  // NOLINT
     comb_block.add_stmt(var3.assign(var4));
     EXPECT_EQ(stmt->assign_type(), AssignmentType::Blocking);
     EXPECT_NO_THROW(seq_block.add_condition({BlockEdgeType::Posedge, clk.shared_from_this()}));
-    EXPECT_THROW(seq_block.add_condition({BlockEdgeType::Negedge, var1.shared_from_this()}), VarException);
     EXPECT_EQ(seq_block.get_conditions().size(), 1);
 }
 

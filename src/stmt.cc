@@ -185,13 +185,6 @@ void SequentialStmtBlock::add_condition(
     auto pos = std::find(conditions_.begin(), conditions_.end(), condition);
     if (pos != conditions_.end()) return;
     auto var = condition.second;
-    if (var->type() != VarType::PortIO)
-        throw VarException("only ports are allowed for sequential block condition.", {var.get()});
-    const auto &port = var->as<Port>();
-    if (port->port_type() != PortType::AsyncReset && port->port_type() != PortType::Clock) {
-        throw VarException(
-            "only clock and async reset allowed to use as sequential block condition", {var.get()});
-    }
     conditions_.emplace_back(condition);
     auto stmt = var->generator->get_null_var(var)->assign(var);
     stmt->set_parent(this);

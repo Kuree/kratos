@@ -191,6 +191,8 @@ public:
 
     std::string to_string() const override;
 
+    VarCastType cast_type() const { return cast_type_; }
+
 private:
     Var *parent_var_ = nullptr;
 

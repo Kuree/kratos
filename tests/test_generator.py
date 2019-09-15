@@ -1133,7 +1133,40 @@ def test_breakpoint():
     assert table[stmt0] == 0
     assert table[stmt1] == 1
     check_gold(mod, "test_breakpoint")
-    
+
+
+def test_cast():
+    from kratos.util import clock
+
+    class Mod1(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            self.v = self.var("v", 1)
+            self.out = self.output("out", 1)
+            self.add_code(self.code)
+
+        @always((posedge, "v"))
+        def code(self):
+            self.out = 1
+
+    mod = Mod1()
+    try:
+        verilog(mod)
+        assert False
+    except StmtException:
+        assert True
+
+    class Mod2(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            self.v = self.var("v", 1)
+            # only procedural allowed
+            seq = self.sequential((posedge, clock(self.v)))
+            seq.add_stmt(self.output("out", 1).assign(const(1, 1)))
+
+    mod = Mod2()
+    verilog(mod)
+
 
 if __name__ == "__main__":
-    test_breakpoint()
+    test_cast()
