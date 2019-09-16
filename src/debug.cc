@@ -25,16 +25,35 @@ private:
             return;
         std::vector<std::shared_ptr<Stmt>> new_blocks;
         new_blocks.reserve(block->size() * 2);
-        for (auto const &stmt : *block) {
+        // if it's a sequential block, we only inject one and link them together since non-blocking
+        // assignments are evaluated simultaneously
+        auto root_blk = get_root_block(block);
+        if (root_blk->block_type() == StatementBlockType::Sequential) {
+            // only need to insert one
             uint32_t stmt_id = count_++;
-            // make a function call
+            for (auto const &stmt: *block) {
+                stmt->set_stmt_id(stmt_id);
+                new_blocks.emplace_back(stmt);
+            }
+            // append the actual bp_stmt
             auto bp_stmt = get_function_call_stmt(parent, stmt_id);
-            // FIXME: See #89
             bp_stmt->set_parent(block);
             new_blocks.emplace_back(bp_stmt);
-            // insert the normal one
-            new_blocks.emplace_back(stmt);
+        } else {
+            for (auto const &stmt : *block) {
+                uint32_t stmt_id = count_++;
+                // make a function call
+                auto bp_stmt = get_function_call_stmt(parent, stmt_id);
+                // FIXME: See #89
+                bp_stmt->set_parent(block);
+                new_blocks.emplace_back(bp_stmt);
+                // insert the normal one
+                new_blocks.emplace_back(stmt);
+                // set stmt id
+                stmt->set_stmt_id(stmt_id);
+            }
         }
+
         // replace the content
         block->set_stmts(new_blocks);
     }
@@ -53,6 +72,21 @@ private:
         return std::make_shared<FunctionCallStmt>(var.as<FunctionCallVar>());
     }
 
+    static StmtBlock *get_root_block(Stmt *stmt) {
+        if (stmt->type() == StatementType::Block) {
+            auto block = reinterpret_cast<StmtBlock *>(stmt);
+            if (block->block_type() != StatementBlockType::Scope) {
+                return block;
+            }
+        }
+        auto parent = stmt->parent();
+        if (parent->ir_node_kind() != IRNodeKind::StmtKind) {
+            throw InternalException("Non block statement's parent has to be a block statement");
+        }
+        auto parent_stmt = reinterpret_cast<Stmt *>(parent);
+        return get_root_block(parent_stmt);
+    }
+
     uint32_t count_ = 0;
 
     const std::string var_name_ = break_point_func_arg;
@@ -66,32 +100,24 @@ void inject_debug_break_points(Generator *top) {
 
 class ExtractDebugVisitor : public IRVisitor {
 public:
-    void visit(FunctionCallStmt *stmt) override {
-        auto def = stmt->func();
-        if (def->is_dpi() && def->function_name() == break_point_func_name) {
-            // extract the call id number
-            auto const &var = stmt->var();
-            auto const &args = var->args();
-            if (args.find(break_point_func_arg) == args.end()) return;
-            auto var_arg = args.at(break_point_func_arg);
-            if (var_arg->type() != VarType::ConstValue)
-                throw InternalException("Debug breakpoint not called with a const");
-            auto const_ = var_arg->as<Const>();
-            auto id = static_cast<uint32_t>(const_->value());
-            // find out the next stmt it's break to
-            if (!stmt->parent())
-                throw StmtException("Breakpoint exception doesn't below to anything", {stmt});
-            auto index = stmt->parent()->index_of(stmt);
-            auto target = stmt->parent()->get_child(index + 1);
-            if (!target) {
-                throw InternalException("Target stmt cannot be found for debug statement");
-            }
-            auto target_stmt = reinterpret_cast<Stmt *>(target);
-            map_.emplace(target_stmt, id);
+
+    void visit(AssignStmt *stmt) override { extract_stmt_id(stmt); }
+    void visit(ScopedStmtBlock *stmt) override { extract_stmt_id(stmt); }
+    void visit(IfStmt *stmt) override { extract_stmt_id(stmt); }
+    void visit(SwitchStmt *stmt) override { extract_stmt_id(stmt); }
+    void visit(FunctionCallStmt *stmt) override { extract_stmt_id(stmt); }
+    void visit(ReturnStmt *stmt) override { extract_stmt_id(stmt); }
+
+    const std::map<Stmt *, uint32_t> &map() const { return map_; }
+
+private:
+    void extract_stmt_id(Stmt* stmt) {
+        int id = stmt->stmt_id();
+        if (id >= 0) {
+            map_.emplace(stmt, id);
         }
     }
 
-    const std::map<Stmt *, uint32_t> &map() const { return map_; }
 
 private:
     std::map<Stmt *, uint32_t> map_;
@@ -103,25 +129,21 @@ std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top) {
     return visitor.map();
 }
 
-class InsertVerilatorPublic: public IRVisitor {
+class InsertVerilatorPublic : public IRVisitor {
 public:
     void visit(Var *var) override {
-        if (var->type() != VarType::Base)
-            return;
+        if (var->type() != VarType::Base) return;
         insert_str(var);
     }
 
     void visit(Port *var) override {
         // currently the runtime only support scalar variables
-        if (var->size != 1)
-            return;
+        if (var->size != 1) return;
         insert_str(var);
     }
 
 private:
-    void static insert_str(Var *var) {
-        var->set_after_var_str_(" /*verilator public*/");
-    }
+    void static insert_str(Var *var) { var->set_after_var_str_(" /*verilator public*/"); }
 };
 
 void insert_verilator_public(Generator *top) {
@@ -129,12 +151,9 @@ void insert_verilator_public(Generator *top) {
     visitor.visit_root(top);
 }
 
-void DebugDatabase::set_break_points(Generator *top) {
-    set_break_points(top, ".py");
-}
+void DebugDatabase::set_break_points(Generator *top) { set_break_points(top, ".py"); }
 
-void DebugDatabase::set_break_points(Generator* top,
-                                     const std::string &ext) {
+void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {
     // set the break points
     break_points_ = extract_debug_break_points(top);
 
@@ -210,17 +229,16 @@ struct Variable {
 
 void DebugDatabase::save_database(const std::string &filename) {
     using namespace sqlite_orm;
-    auto storage =
-        make_storage(filename,
-                     make_table("metadata", make_column("name", &MetaData::name),
-                                make_column("value", &MetaData::value)),
-                     make_table("breakpoint", make_column("id", &BreakPoint::id),
-                                make_column("filename", &BreakPoint::filename),
-                                make_column("line_num", &BreakPoint::line_num)),
-                     make_table("variable", make_column("handle", &Variable::handle),
-                                make_column("var", &Variable::var),
-                                make_column("front_var", &Variable::front_var),
-                                make_column("id", &Variable::id)));
+    auto storage = make_storage(filename,
+                                make_table("metadata", make_column("name", &MetaData::name),
+                                           make_column("value", &MetaData::value)),
+                                make_table("breakpoint", make_column("id", &BreakPoint::id),
+                                           make_column("filename", &BreakPoint::filename),
+                                           make_column("line_num", &BreakPoint::line_num)),
+                                make_table("variable", make_column("handle", &Variable::handle),
+                                           make_column("var", &Variable::var),
+                                           make_column("front_var", &Variable::front_var),
+                                           make_column("id", &Variable::id)));
     storage.sync_schema();
     // insert tables
     // use transaction to speed up
@@ -254,4 +272,4 @@ void DebugDatabase::save_database(const std::string &filename) {
     guard.commit();
 }
 
-}
+}  // namespace kratos

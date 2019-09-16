@@ -1,4 +1,4 @@
-from kratos import Generator, DebugDataBase, verilog
+from kratos import Generator, always, verilog, posedge
 import _kratos
 import sqlite3
 import tempfile
@@ -19,6 +19,7 @@ def test_db_dump():
         c.execute("SELECT * from breakpoint")
         result = c.fetchall()
         assert len(result) == 1
+
 
 def test_debug_mock():
     # this is used for the runtime debugging
@@ -52,6 +53,48 @@ def test_debug_mock():
         verilog(mod, filename=filename, debug_db_filename=debug_db)
 
 
+def test_seq_debug():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod", True)
+            # ports
+            self.in_ = self.input("in1", 1)
+            self.clock("clk")
+            for i in range(4):
+                self.output("out{0}".format(i), 1)
+
+            self.add_code(self.code1)
+            self.add_code(self.code2)
+
+        def code1(self):
+            if self.in_ == 0:
+                self.ports.out0 = 0
+                self.ports.out1 = 0
+            else:
+                self.ports.out0 = 1
+                self.ports.out1 = 1
+
+        @always((posedge, "clk"))
+        def code2(self):
+            if self.in_ == 0:
+                self.ports.out2 = 0
+                self.ports.out3 = 0
+            else:
+                self.ports.out2 = 1
+                self.ports.out3 = 1
+
+    mod = Mod()
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        filename = os.path.join(temp, "test.sv")
+        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM breakpoint WHERE id=7")
+        result = c.fetchall()
+        assert len(result) == 2
+
+
 if __name__ == "__main__":
-    test_debug_mock()
+    test_seq_debug()
 

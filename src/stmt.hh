@@ -43,9 +43,14 @@ public:
 
     ~Stmt() override = default;
 
+    // debug
+    int stmt_id() const { return stmt_id_; }
+    void set_stmt_id(uint32_t id) { stmt_id_ = id; }
+
 protected:
     StatementType type_;
     IRNode *parent_ = nullptr;
+    int stmt_id_ = -1;
 };
 
 class AssignStmt : public Stmt {
