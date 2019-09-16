@@ -31,7 +31,7 @@ private:
         if (root_blk->block_type() == StatementBlockType::Sequential) {
             // only need to insert one
             uint32_t stmt_id = count_++;
-            for (auto const &stmt: *block) {
+            for (auto const &stmt : *block) {
                 stmt->set_stmt_id(stmt_id);
                 new_blocks.emplace_back(stmt);
             }
@@ -100,7 +100,6 @@ void inject_debug_break_points(Generator *top) {
 
 class ExtractDebugVisitor : public IRVisitor {
 public:
-
     void visit(AssignStmt *stmt) override { extract_stmt_id(stmt); }
     void visit(ScopedStmtBlock *stmt) override { extract_stmt_id(stmt); }
     void visit(IfStmt *stmt) override { extract_stmt_id(stmt); }
@@ -111,13 +110,12 @@ public:
     const std::map<Stmt *, uint32_t> &map() const { return map_; }
 
 private:
-    void extract_stmt_id(Stmt* stmt) {
+    void extract_stmt_id(Stmt *stmt) {
         int id = stmt->stmt_id();
         if (id >= 0) {
             map_.emplace(stmt, id);
         }
     }
-
 
 private:
     std::map<Stmt *, uint32_t> map_;
@@ -197,6 +195,75 @@ void DebugDatabase::set_variable_mapping(
     }
 }
 
+class ConnectionVisitor : public IRVisitor {
+public:
+    void visit(Generator *generator) override {
+        // loop through the module instance statement, where it holds the connection
+        // information
+        uint64_t child_count = generator->stmts_count();
+        for (uint64_t i = 0; i < child_count; i++) {
+            auto const stmt = generator->get_stmt(i);
+            if (stmt->type() == StatementType::ModuleInstantiation) {
+                auto mod = stmt->as<ModuleInstantiationStmt>();
+                auto target = mod->target();
+                auto target_handle_name = target->handle_name();
+                auto mapping = mod->port_mapping();
+                for (const auto &[target_port, parent_var] : mapping) {
+                    // we ignore the constant connection
+                    if (parent_var->type() == VarType::ConstValue) continue;
+                    auto gen = parent_var->generator;
+                    auto gen_handle = gen->handle_name();
+                    // the direction is var -> var
+                    if (target_port->port_direction() == PortDirection::In) {
+                        connections_.emplace(
+                            std::make_pair(gen_handle, parent_var->to_string()),
+                            std::make_pair(target_handle_name, target_port->to_string()));
+                    } else {
+                        connections_.emplace(
+                            std::make_pair(target_handle_name, target_port->to_string()),
+                            std::make_pair(gen_handle, parent_var->to_string()));
+                    }
+                }
+            }
+        }
+    }
+
+    const DebugDatabase::ConnectionMap &connections() const { return connections_; }
+
+private:
+    DebugDatabase::ConnectionMap connections_;
+};
+
+void DebugDatabase::set_generator_connection(kratos::Generator *top) {
+    // we create a IR visitor to visit the generators
+    ConnectionVisitor visitor;
+    // this can be parallelized
+    visitor.visit_generator_root_p(top);
+    connection_map_ = visitor.connections();
+}
+
+class HierarchyVisitor: public IRVisitor {
+public:
+    void visit(Generator *generator) override  {
+        auto handle_name = generator->handle_name();
+        for (auto const &gen: generator->get_child_generators()) {
+            auto name = gen->instance_name;
+            hierarchy_.emplace_back(std::make_pair(handle_name, name));
+        }
+    }
+    const std::vector<std::pair<std::string, std::string>> & hierarchy() const { return hierarchy_; }
+
+private:
+    std::vector<std::pair<std::string, std::string>> hierarchy_;
+};
+
+void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
+    HierarchyVisitor visitor;
+    // no parallel to make it in order
+    visitor.visit_generator_root(top);
+    hierarchy_ = visitor.hierarchy();
+}
+
 // this is the database schema
 // TABLE metadata
 // NAME, VALUE
@@ -227,18 +294,43 @@ struct Variable {
     uint32_t id;
 };
 
+// TABLE connection
+// all the variables are the in the RTL form. You can cross search the variable
+// to find out the python variable name, if any
+struct Connection {
+    std::string handle_from;
+    std::string var_from;
+    std::string handle_to;
+    std::string var_to;
+};
+
+// TABLE hierarchy. the parent uses full handle name, the child is the instance name
+// you can make parent_handle.child to obtain the child handle name
+struct Hierarchy {
+    std::string parent_handle;
+    std::string child;
+};
+
 void DebugDatabase::save_database(const std::string &filename) {
     using namespace sqlite_orm;
-    auto storage = make_storage(filename,
-                                make_table("metadata", make_column("name", &MetaData::name),
-                                           make_column("value", &MetaData::value)),
-                                make_table("breakpoint", make_column("id", &BreakPoint::id),
-                                           make_column("filename", &BreakPoint::filename),
-                                           make_column("line_num", &BreakPoint::line_num)),
-                                make_table("variable", make_column("handle", &Variable::handle),
-                                           make_column("var", &Variable::var),
-                                           make_column("front_var", &Variable::front_var),
-                                           make_column("id", &Variable::id)));
+    auto storage = make_storage(
+        filename,
+        make_table("metadata", make_column("name", &MetaData::name),
+                   make_column("value", &MetaData::value)),
+        make_table("breakpoint", make_column("id", &BreakPoint::id),
+                   make_column("filename", &BreakPoint::filename),
+                   make_column("line_num", &BreakPoint::line_num)),
+        make_table("variable", make_column("handle", &Variable::handle),
+                   make_column("var", &Variable::var),
+                   make_column("front_var", &Variable::front_var),
+                   make_column("id", &Variable::id)),
+        make_table("connection", make_column("handle_from", &Connection::handle_from),
+                   make_column("var_from", &Connection::var_from),
+                   make_column("handle_to", &Connection::handle_to),
+                   make_column("var_to", &Connection::var_to)),
+        make_table("hierarchy", make_column("parent_handle", &Hierarchy::parent_handle),
+                   make_column("child", &Hierarchy::child)));
+
     storage.sync_schema();
     // insert tables
     // use transaction to speed up
@@ -269,6 +361,21 @@ void DebugDatabase::save_database(const std::string &filename) {
             }
         }
     }
+
+    // connections
+    for (auto const &[from, to]: connection_map_) {
+        auto const [from_handle, from_var] = from;
+        auto const [to_handle, to_var] = to;
+        Connection conn{from_handle, from_var, to_handle, to_var};
+        storage.insert(conn);
+    }
+
+    // hierarchy
+    for (auto const &[handle, name]: hierarchy_) {
+        Hierarchy h{handle, name};
+        storage.insert(h);
+    }
+
     guard.commit();
 }
 

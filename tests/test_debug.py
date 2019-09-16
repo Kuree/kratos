@@ -95,6 +95,33 @@ def test_seq_debug():
         assert len(result) == 2
 
 
+def test_metadata():
+    def insert_io(m):
+        m.input("in", 1)
+        m.output("out", 1)
+        m.wire(m.ports.out, m.ports["in"])
+
+    mod1 = Generator("mod1", True)
+    insert_io(mod1)
+    mod2 = Generator("mod2", True)
+    insert_io(mod2)
+    mod1.add_child("child", mod2)
+    mod1.wire(mod2.ports["in"], mod1.ports["in"])
+    mod1.wire(mod1.output("out2", 1), mod2.ports.out)
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        filename = os.path.join(temp, "test.sv")
+        verilog(mod1, filename=filename, debug_db_filename=debug_db,
+                optimize_passthrough=False)
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM connection")
+        conns = c.fetchall()
+        assert len(conns) == 2
+        assert conns[0][-1] == conns[0][1] and conns[0][1] == "in"
+        assert conns[1][-1] == "out2"
+
+
 if __name__ == "__main__":
-    test_seq_debug()
+    test_metadata()
 

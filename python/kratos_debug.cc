@@ -17,6 +17,8 @@ void init_debug(py::module &m) {
         // only use python extension since we're dealing with python binding
         .def("set_break_points", py::overload_cast<Generator *>(&DebugDatabase::set_break_points))
         .def("set_variable_mapping", &DebugDatabase::set_variable_mapping)
+        .def("set_generator_connection", &DebugDatabase::set_generator_connection)
+        .def("set_generator_hierarchy", &DebugDatabase::set_generator_hierarchy)
         // dump the database file
         .def("save_database", &DebugDatabase::save_database);
 }

@@ -47,4 +47,7 @@ def dump_debug_database(generator: Generator, top_name: str, filename: str):
     for gen, value in raw_symbol_table.items():
         symbol_table[gen.internal_generator] = value
     db.set_variable_mapping(symbol_table)
+    # insert other metadata information
+    db.set_generator_connection(generator.internal_generator)
+    db.set_generator_hierarchy(generator.internal_generator)
     db.save_database(filename)

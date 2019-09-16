@@ -20,6 +20,7 @@ struct Parameter;
 struct VarSlice;
 struct VarConcat;
 struct VarCasted;
+struct Port;
 struct PortBundleDefinition;
 struct PortBundleRef;
 struct PortPacked;

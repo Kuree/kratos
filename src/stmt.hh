@@ -313,7 +313,7 @@ public:
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
-    const std::map<std::shared_ptr<Var>, std::shared_ptr<Var>> &port_mapping() const {
+    const std::map<std::shared_ptr<Port>, std::shared_ptr<Var>> &port_mapping() const {
         return port_mapping_;
     }
 
@@ -327,7 +327,7 @@ public:
 private:
     Generator *target_;
     Generator *parent_;
-    std::map<std::shared_ptr<Var>, std::shared_ptr<Var>> port_mapping_;
+    std::map<std::shared_ptr<Port>, std::shared_ptr<Var>> port_mapping_;
 
     std::map<std::shared_ptr<Var>, std::shared_ptr<Stmt>> port_debug_;
 };

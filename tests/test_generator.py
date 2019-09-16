@@ -529,7 +529,6 @@ def test_packed_struct():
     Generator.clear_context()
     mod = Mod(True)
     with tempfile.TemporaryDirectory() as temp:
-        temp = "temp"
         verilog(mod, output_dir=temp, debug=True)
         assert os.path.isfile(os.path.join(temp, "mod.sv"))
         assert os.path.isfile(os.path.join(temp, "mod.sv.debug"))

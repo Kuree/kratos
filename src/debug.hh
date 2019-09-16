@@ -16,11 +16,18 @@ void insert_verilator_public(Generator *top);
 
 class DebugDatabase {
 public:
+    using ConnectionMap =
+        std::map<std::pair<std::string, std::string>, std::pair<std::string, std::string>>;
+
     DebugDatabase() = default;
     explicit DebugDatabase(std::string top_name) : top_name_(std::move(top_name)) {}
 
     void set_break_points(Generator *top);
     void set_break_points(Generator *top, const std::string &ext);
+
+    // these have to be called after unification happens
+    void set_generator_connection(Generator *top);
+    void set_generator_hierarchy(Generator *top);
 
     void set_variable_mapping(const std::map<Generator *, std::map<std::string, Var *>> &mapping);
 
@@ -32,6 +39,8 @@ private:
     std::map<Stmt *, std::pair<std::string, uint32_t>> stmt_mapping_;
     std::unordered_map<std::string, std::pair<Generator *, std::map<std::string, std::string>>>
         variable_mapping_;
+    ConnectionMap connection_map_;
+    std::vector<std::pair<std::string, std::string>> hierarchy_;
 
     std::string top_name_ = "TOP";
 };
