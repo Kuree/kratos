@@ -1902,7 +1902,7 @@ void realize_fsm(Generator* top) {
 }
 
 bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
-                          bool check_unreachable = false) {
+                          bool check_unreachable = false, bool full_branch = true) {
     if (cond(stmt)) {
         return true;
     } else if (stmt->type() == StatementType::Block) {
@@ -1915,7 +1915,7 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
         auto child_count = block->child_count();
         for (index = 0; index < child_count; index++) {
             auto s = dynamic_cast<Stmt*>(block->get_child(index));
-            if (check_stmt_condition(s, cond, check_unreachable)) {
+            if (check_stmt_condition(s, cond, check_unreachable, full_branch)) {
                 found = true;
                 break;
             }
@@ -1937,21 +1937,44 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
                 "Statement is not switch but is marked as StatementType::Switch");
         auto cases = stmt_->body();
         if (cases.empty()) return false;
+        uint32_t found_case = 0;
         for (auto const& iter : cases) {
             auto scope_stmt = iter.second.get();
-            if (!check_stmt_condition(scope_stmt, cond, check_unreachable)) return false;
+            if (check_stmt_condition(scope_stmt, cond, check_unreachable, full_branch))
+                found_case++;
+            else if (full_branch)
+                return false;
         }
         // make sure default case is covered
         // if there is no default case, all the cases have to be covered
-        return cases.find(nullptr) != cases.end() || cases.size() == (1u << stmt_->target()->size);
+        // the only exception is that if the target is an enum and we've covered all it's enum case
+        uint32_t targeted_cases;
+        if (stmt_->target()->is_enum()) {
+            auto enum_var = stmt_->target()->as<EnumVar>();
+            auto enum_def = enum_var->enum_type();
+            targeted_cases = enum_def->values.size();
+        } else {
+            targeted_cases = 1u << stmt_->target()->size;
+        }
+
+        if (full_branch) {
+            return cases.find(nullptr) != cases.end() || found_case == targeted_cases;
+        } else {
+            return found_case > 0;
+        }
     } else if (stmt->type() == StatementType::If) {
         auto stmt_ = dynamic_cast<IfStmt*>(stmt);
         if (!stmt_)
             throw InternalException("Statement is not if but is marked as StatementType::If");
         auto const& then = stmt_->then_body();
         auto const& else_ = stmt_->else_body();
-        return check_stmt_condition(then.get(), cond, check_unreachable) &&
-               check_stmt_condition(else_.get(), cond, check_unreachable);
+        if (full_branch) {
+            return check_stmt_condition(then.get(), cond, check_unreachable, full_branch) &&
+                   check_stmt_condition(else_.get(), cond, check_unreachable, full_branch);
+        } else {
+            return check_stmt_condition(then.get(), cond, check_unreachable, full_branch) ||
+                   check_stmt_condition(else_.get(), cond, check_unreachable, full_branch);
+        }
     }
     return false;
 }
@@ -2054,31 +2077,40 @@ public:
     }
 
 private:
-    bool static check_stmt_block(StmtBlock* stmt, Var* var) {
-        return check_stmt_condition(stmt, [=](Stmt *s) -> bool {
-            if (s->type() == StatementType::Assign) {
-                auto assign = s->as<AssignStmt>();
-                return assign->left().get() == var;
-            }
-            return false;
-        });
+    bool static check_stmt_block(StmtBlock* stmt, Var* var, bool full_branch) {
+        return check_stmt_condition(
+            stmt,
+            [=](Stmt* s) -> bool {
+                if (s->type() == StatementType::Assign) {
+                    auto assign = s->as<AssignStmt>();
+                    return assign->left().get() == var;
+                }
+                return false;
+            },
+            false, full_branch);
     }
 
-    static void check_stmt_block(StmtBlock*stmt, Var* var, const std::vector<Stmt*> &stmts) {
+    static void check_stmt_block(StmtBlock* stmt, Var* var, const std::vector<Stmt*>& stmts,
+                                 bool full_branch) {
         auto check = [=](Stmt* s) -> bool {
-          if (s->type() == StatementType::Assign) {
-              auto assign = reinterpret_cast<AssignStmt*>(s);
-              return assign->left().get() == var;
-          } else if (s->type() == StatementType::Block) {
-              auto block = reinterpret_cast<StmtBlock*>(s);
-              if (block->block_type() == StatementBlockType::Function) {
-                  // function call to set the variable
-                  return check_stmt_block(block, var);
-              }
-          }
-          return false;
+            if (s->type() == StatementType::Assign) {
+                auto assign = reinterpret_cast<AssignStmt*>(s);
+                auto left = assign->left().get();
+                if (left->type() == VarType::Slice) {
+                    auto slice = reinterpret_cast<VarSlice*>(left);
+                    left = slice->get_var_root_parent();
+                }
+                return left == var;
+            } else if (s->type() == StatementType::Block) {
+                auto block = reinterpret_cast<StmtBlock*>(s);
+                if (block->block_type() == StatementBlockType::Function) {
+                    // function call to set the variable
+                    return check_stmt_block(block, var, full_branch);
+                }
+            }
+            return false;
         };
-        if (!check_stmt_condition(stmt, check)) {
+        if (!check_stmt_condition(stmt, check, false, full_branch)) {
             // things goes wrong
             // need to recover all the statements
             throw StmtException(::format("{0} will be inferred as latch", var->to_string()),
@@ -2089,9 +2121,9 @@ private:
     void static check_combinational(CombinationalStmtBlock* stmt) {
         AssignedVarVisitor visitor;
         visitor.visit_root(stmt);
-        auto & vars = visitor.assigned_vars();
-        for (auto const &iter : vars) {
-            check_stmt_block(stmt, iter.first, iter.second);
+        auto& vars = visitor.assigned_vars();
+        for (auto const& iter : vars) {
+            check_stmt_block(stmt, iter.first, iter.second, true);
         }
     }
 
@@ -2103,46 +2135,46 @@ private:
             if (var->type() == PortIO) {
                 auto port = reinterpret_cast<Port*>(var);
                 if (port->port_type() == PortType::Clock) continue;
-            } else {
-                if (var->type() != VarType::BaseCasted) {
-                    // check every if statement that's targeted by that variable
-                    IfVisitor visitor(var);
-                    visitor.visit_root(stmt);
-                    auto ifs = visitor.ifs();
-                    // derive the variables to check
-                    for (auto const &if_: ifs) {
-                        AssignedVarVisitor a_v;
-                        a_v.visit_root(if_->then_body().get());
-                        auto vars = a_v.assigned_vars();
-                        for (auto const &[var, stmts]: vars) {
-                            check_stmt_block(if_->then_body().get(), var, stmts);
-                        }
-                    }
-
+            }
+            // check every if statement that's targeted by that variable
+            IfVisitor visitor(var);
+            visitor.visit_root(stmt);
+            auto ifs = visitor.ifs();
+            // derive the variables to check
+            for (auto const& if_ : ifs) {
+                AssignedVarVisitor a_v;
+                a_v.visit_root(if_->then_body().get());
+                auto vars = a_v.assigned_vars();
+                for (auto const& [var, stmts] : vars) {
+                    check_stmt_block(if_->else_body().get(), var, stmts, false);
                 }
             }
         }
     }
 
-    class IfVisitor: public IRVisitor {
+    class IfVisitor : public IRVisitor {
     public:
-        explicit IfVisitor(Var* var): IRVisitor(), var_(var) {}
+        explicit IfVisitor(Var* var) : IRVisitor(), var_(var) {}
         void visit(IfStmt* stmt) override {
-            if (has_var(stmt->predicate().get(), var_))
-                ifs_.emplace(stmt);
+            if (has_var(stmt->predicate().get(), var_)) ifs_.emplace(stmt);
         }
-        const std::unordered_set<IfStmt*> &ifs() const { return ifs_; }
+        const std::unordered_set<IfStmt*>& ifs() const { return ifs_; }
+
     private:
-        Var *var_;
+        Var* var_;
         std::unordered_set<IfStmt*> ifs_;
 
-        bool static has_var(Var *var, Var *target) {
+        bool static has_var(Var* var, Var* target) {
             if (var->type() == VarType::Expression) {
                 auto expr = var->as<Expr>().get();
                 bool left = has_var(expr->left.get(), target);
-                bool right = expr->right? has_var(expr->right.get(), target): false;
+                bool right = expr->right ? has_var(expr->right.get(), target) : false;
                 return left || right;
             } else {
+                if (var->type() == VarType::Slice) {
+                    auto slice = reinterpret_cast<VarSlice*>(var);
+                    var = slice->get_var_root_parent();
+                }
                 return var == target;
             }
         }
@@ -2152,6 +2184,10 @@ private:
     public:
         void visit(AssignStmt* stmt) override {
             auto left = stmt->left().get();
+            if (left->type() == VarType::Slice) {
+                auto slice = reinterpret_cast<VarSlice*>(left);
+                left = slice->get_var_root_parent();
+            }
             assigned_vars_[left].emplace_back(stmt);
         }
         const std::unordered_map<Var*, std::vector<Stmt*>>& assigned_vars() const {

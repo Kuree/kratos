@@ -28,24 +28,17 @@ always_comb begin
     Color_Red: if (in == 2'h1) begin
       Color_next_state = Color_Blue;
     end
-    else begin
+    else if (in == 2'h0) begin
       Color_next_state = Color_Red;
-      if (in == 2'h0) begin
-        Color_next_state = Color_Red;
-      end
-      else begin
-        Color_next_state = Color_Red;
-        if (in == 2'h2) begin
-          Color_next_state = HSV_idle;
-        end
-        else Color_next_state = Color_Red;
-      end
     end
+    else if (in == 2'h2) begin
+      Color_next_state = HSV_idle;
+    end
+    else Color_next_state = Color_Red;
     HSV_idle: if (in == 2'h0) begin
       Color_next_state = Color_Red;
     end
     else Color_next_state = HSV_idle;
-    default: begin end
   endcase
 end
 always_comb begin
@@ -59,7 +52,6 @@ always_comb begin
     HSV_idle: begin :Color_HSV_idle_Output
         out = 2'h2;
       end :Color_HSV_idle_Output
-    default: begin end
   endcase
 end
 endmodule   // mod

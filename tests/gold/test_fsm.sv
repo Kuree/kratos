@@ -27,13 +27,10 @@ always_comb begin
     Red: if (in == 2'h1) begin
       Color_next_state = Blue;
     end
-    else begin
+    else if (in == 2'h0) begin
       Color_next_state = Red;
-      if (in == 2'h0) begin
-        Color_next_state = Red;
-      end
-      else Color_next_state = Red;
     end
+    else Color_next_state = Red;
   endcase
 end
 always_comb begin

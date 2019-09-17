@@ -1167,5 +1167,53 @@ def test_cast():
     verilog(mod)
 
 
+def test_async_no_latch():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod", True)
+            clk = self.clock("clk")
+            rst = self.reset("rst")
+            cen = self.input("cen", 1, PortType.ClockEnable)
+            in_ = self.input("in", 1)
+            out_ = self.output("out", 1)
+
+            @always((posedge, "clk"), (posedge, "rst"))
+            def code():
+                if rst:
+                    out_ = 0
+                elif cen:
+                    out_ = in_
+
+            self.add_code(code)
+
+    mod = Mod()
+    verilog(mod)
+
+
+def test_async_latch():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod", True)
+            clk = self.clock("clk")
+            rst = self.reset("rst")
+            cen = self.input("cen", 1, PortType.ClockEnable)
+            in_ = self.input("in", 1)
+            out_ = self.output("out", 1)
+
+            @always((posedge, "clk"), (posedge, "rst"))
+            def code():
+                if rst:
+                    out_ = 0
+
+            self.add_code(code)
+
+    mod = Mod()
+    try:
+        verilog(mod)
+        assert False
+    except StmtException:
+        assert True
+
+
 if __name__ == "__main__":
-    test_nested_fsm()
+    test_async_no_latch()

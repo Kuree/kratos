@@ -766,26 +766,47 @@ TEST(generator, non_synthesizable) {  // NOLINT
     EXPECT_THROW(check_non_synthesizable_content(&mod), UserException);
 }
 
-
-TEST(generator, latch) {    // NOLINT
+TEST(generator, latch) {  // NOLINT
     Context c;
     auto &mod = c.generator("module");
     auto &in = mod.port(PortDirection::In, "in", 2);
     auto &out = mod.port(PortDirection::Out, "out", 1);
     auto &out2 = mod.port(PortDirection::Out, "out2", 1);
-    auto if_stmt = std::make_shared<IfStmt>(in.eq(constant(0, 2)));
-    if_stmt->add_then_stmt(out.assign(constant(0, 1)));
-    if_stmt->add_else_stmt(out.assign(constant(1, 1)));
     auto comb = mod.combinational();
-    //comb->add_stmt(if_stmt);
-
-    //EXPECT_NO_THROW(check_inferred_latch(&mod));
 
     auto switch_stmt = std::make_shared<SwitchStmt>(in.shared_from_this());
     switch_stmt->add_switch_case(constant(0, 2).as<Const>(), out2.assign(constant(0, 1)));
     switch_stmt->add_switch_case(nullptr, out2.assign(constant(1, 1)));
 
     comb->add_stmt(switch_stmt);
+
+    EXPECT_NO_THROW(check_inferred_latch(&mod));
+
+    auto if_stmt = std::make_shared<IfStmt>(in.eq(constant(0, 2)));
+    if_stmt->add_then_stmt(out.assign(constant(0, 1)));
+    comb->add_stmt(if_stmt);
+
+    EXPECT_THROW(check_inferred_latch(&mod), StmtException);
+}
+
+TEST(generator, latch_rst) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("module");
+    auto &in = mod.port(PortDirection::In, "in", 1);
+    auto &out = mod.port(PortDirection::Out, "out", 1);
+    auto &clk = mod.port(PortDirection::In, "clk", 1, 1, PortType::Clock, false);
+    auto &rst = mod.port(PortDirection::In, "rst", 1, 1, PortType::AsyncReset, false);
+    auto &cen = mod.port(PortDirection::In, "cen", 1, 1, PortType::ClockEnable, false);
+
+    auto seq = mod.sequential();
+    seq->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+    seq->add_condition({BlockEdgeType::Posedge, rst.shared_from_this()});
+    auto if_ = std::make_shared<IfStmt>(rst);
+    if_->add_then_stmt(out.assign(constant(0, 1)));
+    auto if__ = std::make_shared<IfStmt>(cen);
+    if__->add_then_stmt(out.assign(in));
+    if_->add_else_stmt(if__);
+    seq->add_stmt(if_);
 
     EXPECT_NO_THROW(check_inferred_latch(&mod));
 }

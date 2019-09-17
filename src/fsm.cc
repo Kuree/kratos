@@ -66,6 +66,8 @@ std::vector<FSMState*> FSM::get_all_child_states(bool include_extra_state) const
         if (visited.find(state) != visited.end()) continue;
         visited.emplace(state);
         result.emplace_back(state);
+        if (!state)
+            continue;
         auto next_states = state->transitions();
         for (auto const& iter : next_states) {
             auto const next_state = iter.second;
@@ -289,8 +291,10 @@ void FSM::generate_state_transition(
                 if_->add_else_stmt(new_if);
                 if_ = new_if;
             }
-            // prevent the reg being inferred as a latch
-            // TODO: refacotr this code
+        }
+        // prevent the reg being inferred as a latch
+        // TODO: refactor this code
+        if (if_) {
             auto stmt = get_next_state_stmt(enum_def, next_state, state, state, state_name_mapping);
             if_->add_else_stmt(stmt);
             // mealy machine need to add extra state transition outputs
@@ -300,22 +304,20 @@ void FSM::generate_state_transition(
                 if_->add_else_stmt(func_stmt);
             }
             if (generator_->debug) {
+                stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                 if (func_stmt) {
                     add_debug_info(state, func_stmt);
                     func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                 }
             }
         }
+
         if (!has_slide_through) {
             if (!top_if)
                 throw InternalException(
                     ::format("Unable to find any state transition for state {0}", state->name()));
             case_state_comb->add_switch_case(enum_def.get_enum(state_name), top_if);
         }
-    }
-    // add default case
-    if (!is_2_power(states.size())) {
-        case_state_comb->add_switch_case(nullptr, std::make_shared<ScopedStmtBlock>());
     }
     // add it to the state_comb
     state_comb->add_stmt(case_state_comb);
@@ -387,13 +389,6 @@ void FSM::generate_output(Enum& enum_def, EnumVar& current_state,
             generator_->add_named_block(::format("{0}_{1}_Output", fsm_name_, state_name),
                                         case_stmt.as<ScopedStmtBlock>());
         }
-    }
-    // cover default case for in case there is a illegal usage.
-    // for now ground all the outputs
-    uint64_t num_states = states.size();
-    if (!is_2_power(num_states)) {
-        // it's not 2's power
-        output_case_comb->add_switch_case(nullptr, std::make_shared<ScopedStmtBlock>());
     }
 
     // add it to the output_comb
