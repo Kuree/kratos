@@ -1901,8 +1901,9 @@ void realize_fsm(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
-bool check_return(Stmt* stmt) {
-    if (stmt->type() == StatementType::Return) {
+bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
+                          bool check_unreachable = false) {
+    if (cond(stmt)) {
         return true;
     } else if (stmt->type() == StatementType::Block) {
         // it has to be the last block
@@ -1914,12 +1915,12 @@ bool check_return(Stmt* stmt) {
         auto child_count = block->child_count();
         for (index = 0; index < child_count; index++) {
             auto s = dynamic_cast<Stmt*>(block->get_child(index));
-            if (check_return(s)) {
+            if (check_stmt_condition(s, cond, check_unreachable)) {
                 found = true;
                 break;
             }
         }
-        if (found) {
+        if (found && check_unreachable) {
             if (index != block->child_count() - 1) {
                 // we have unreachable state
                 std::vector<Stmt*> stmts;
@@ -1938,16 +1939,19 @@ bool check_return(Stmt* stmt) {
         if (cases.empty()) return false;
         for (auto const& iter : cases) {
             auto scope_stmt = iter.second.get();
-            if (!check_return(scope_stmt)) return false;
+            if (!check_stmt_condition(scope_stmt, cond, check_unreachable)) return false;
         }
-        return true;
+        // make sure default case is covered
+        // if there is no default case, all the cases have to be covered
+        return cases.find(nullptr) != cases.end() || cases.size() == (1u << stmt_->target()->size);
     } else if (stmt->type() == StatementType::If) {
         auto stmt_ = dynamic_cast<IfStmt*>(stmt);
         if (!stmt_)
             throw InternalException("Statement is not if but is marked as StatementType::If");
         auto const& then = stmt_->then_body();
         auto const& else_ = stmt_->else_body();
-        return check_return(then.get()) && check_return(else_.get());
+        return check_stmt_condition(then.get(), cond, check_unreachable) &&
+               check_stmt_condition(else_.get(), cond, check_unreachable);
     }
     return false;
 }
@@ -1962,7 +1966,9 @@ public:
             // check if the function has a return
             if (!func->has_return_value()) continue;
             // build statement graph
-            bool has_return = check_return(func.get());
+            bool has_return = check_stmt_condition(
+                func.get(),
+                [](Stmt* stmt) -> bool { return stmt->type() == StatementType::Return; }, true);
             if (!has_return) {
                 std::vector<Stmt*> stmts;
                 stmts.reserve(func->child_count());
@@ -2025,6 +2031,142 @@ public:
         top->set_stmts(result);
     }
 };
+
+class LatchVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        uint64_t stmt_count = generator->stmts_count();
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = generator->get_stmt(i);
+            if (stmt->type() == StatementType::Block) {
+                auto blk = stmt->as<StmtBlock>();
+                if (blk->block_type() == StatementBlockType::Combinational) {
+                    // multiple passes to extract assigned variables
+                    auto stmt_ = blk->as<CombinationalStmtBlock>();
+                    check_combinational(stmt_.get());
+                } else if (blk->block_type() == StatementBlockType::Sequential) {
+                    // multiple passes to extract assigned variables
+                    auto stmt_ = blk->as<SequentialStmtBlock>();
+                    check_sequential(stmt_.get());
+                }
+            }
+        }
+    }
+
+private:
+    bool static check_stmt_block(StmtBlock* stmt, Var* var) {
+        return check_stmt_condition(stmt, [=](Stmt *s) -> bool {
+            if (s->type() == StatementType::Assign) {
+                auto assign = s->as<AssignStmt>();
+                return assign->left().get() == var;
+            }
+            return false;
+        });
+    }
+
+    static void check_stmt_block(StmtBlock*stmt, Var* var, const std::vector<Stmt*> &stmts) {
+        auto check = [=](Stmt* s) -> bool {
+          if (s->type() == StatementType::Assign) {
+              auto assign = reinterpret_cast<AssignStmt*>(s);
+              return assign->left().get() == var;
+          } else if (s->type() == StatementType::Block) {
+              auto block = reinterpret_cast<StmtBlock*>(s);
+              if (block->block_type() == StatementBlockType::Function) {
+                  // function call to set the variable
+                  return check_stmt_block(block, var);
+              }
+          }
+          return false;
+        };
+        if (!check_stmt_condition(stmt, check)) {
+            // things goes wrong
+            // need to recover all the statements
+            throw StmtException(::format("{0} will be inferred as latch", var->to_string()),
+                                stmts.begin(), stmts.end());
+        }
+    }
+
+    void static check_combinational(CombinationalStmtBlock* stmt) {
+        AssignedVarVisitor visitor;
+        visitor.visit_root(stmt);
+        auto & vars = visitor.assigned_vars();
+        for (auto const &iter : vars) {
+            check_stmt_block(stmt, iter.first, iter.second);
+        }
+    }
+
+    void static check_sequential(SequentialStmtBlock* stmt) {
+        auto const& conditions = stmt->get_conditions();
+        // we care about non-clock
+        for (auto const& iter : conditions) {
+            auto var = iter.second.get();
+            if (var->type() == PortIO) {
+                auto port = reinterpret_cast<Port*>(var);
+                if (port->port_type() == PortType::Clock) continue;
+            } else {
+                if (var->type() != VarType::BaseCasted) {
+                    // check every if statement that's targeted by that variable
+                    IfVisitor visitor(var);
+                    visitor.visit_root(stmt);
+                    auto ifs = visitor.ifs();
+                    // derive the variables to check
+                    for (auto const &if_: ifs) {
+                        AssignedVarVisitor a_v;
+                        a_v.visit_root(if_->then_body().get());
+                        auto vars = a_v.assigned_vars();
+                        for (auto const &[var, stmts]: vars) {
+                            check_stmt_block(if_->then_body().get(), var, stmts);
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
+    class IfVisitor: public IRVisitor {
+    public:
+        explicit IfVisitor(Var* var): IRVisitor(), var_(var) {}
+        void visit(IfStmt* stmt) override {
+            if (has_var(stmt->predicate().get(), var_))
+                ifs_.emplace(stmt);
+        }
+        const std::unordered_set<IfStmt*> &ifs() const { return ifs_; }
+    private:
+        Var *var_;
+        std::unordered_set<IfStmt*> ifs_;
+
+        bool static has_var(Var *var, Var *target) {
+            if (var->type() == VarType::Expression) {
+                auto expr = var->as<Expr>().get();
+                bool left = has_var(expr->left.get(), target);
+                bool right = expr->right? has_var(expr->right.get(), target): false;
+                return left || right;
+            } else {
+                return var == target;
+            }
+        }
+    };
+
+    class AssignedVarVisitor : public IRVisitor {
+    public:
+        void visit(AssignStmt* stmt) override {
+            auto left = stmt->left().get();
+            assigned_vars_[left].emplace_back(stmt);
+        }
+        const std::unordered_map<Var*, std::vector<Stmt*>>& assigned_vars() const {
+            return assigned_vars_;
+        }
+
+    private:
+        std::unordered_map<Var*, std::vector<Stmt*>> assigned_vars_;
+    };
+};
+
+void check_inferred_latch(Generator* top) {
+    LatchVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
 
 void sort_stmts(Generator* top) {
     SortStmtVisitor visitor;
@@ -2101,6 +2243,8 @@ void PassManager::register_builtin_passes() {
     register_pass("insert_verilator_public", &insert_verilator_public);
 
     register_pass("check_always_sensitivity", &check_always_sensitivity);
+
+    register_pass("check_inferred_latch", &check_inferred_latch);
 
     // TODO:
     //  add inline pass

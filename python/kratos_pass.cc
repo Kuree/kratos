@@ -49,7 +49,8 @@ void init_pass(py::module &m) {
         .def("check_active_high", &check_active_high)
         .def("extract_dpi_function", &extract_dpi_function)
         .def("extract_debug_break_points", &extract_debug_break_points)
-        .def("insert_verilator_public", &insert_verilator_public);
+        .def("insert_verilator_public", &insert_verilator_public)
+        .def("check_inferred_latch", &check_inferred_latch);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
 This class gives you the fined control over which pass to run and in which order.

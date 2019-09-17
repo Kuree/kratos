@@ -17,8 +17,11 @@ public:
 class StmtException : public std::runtime_error {
 public:
     StmtException(const std::string &message, const std::vector<IRNode *> &nodes) noexcept;
-    StmtException(const std::string &message, std::vector<Stmt *>::iterator begin,
-                  std::vector<Stmt *>::iterator end) noexcept;
+    StmtException(const std::string &message, const std::vector<Stmt*>::const_iterator &begin,
+        const std::vector<Stmt*>::const_iterator &end) noexcept;
+private:
+    template <class T>
+    void print_nodes(T begin, T end) noexcept;
 };
 
 class GeneratorException : public std::runtime_error {

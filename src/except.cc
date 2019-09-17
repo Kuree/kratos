@@ -74,12 +74,18 @@ VarException::VarException(const std::string& message, std::vector<const Var*>::
 
 StmtException::StmtException(const std::string& message, const std::vector<IRNode*>& nodes) noexcept
     : std::runtime_error(message) {
-    print_nodes(nodes);
+    print_nodes(nodes.begin(), nodes.end());
 }
 
-StmtException::StmtException(const std::string& message, std::vector<Stmt*>::iterator begin,
-                             std::vector<Stmt*>::iterator end) noexcept
+StmtException::StmtException(const std::string& message,
+                             const std::vector<kratos::Stmt*>::const_iterator& begin,
+                             const std::vector<kratos::Stmt*>::const_iterator& end) noexcept
     : std::runtime_error(message) {
+    print_nodes(begin, end);
+}
+
+template <class T>
+void StmtException::print_nodes(T begin, T end) noexcept {
     for (auto it = begin; it != end; it++) {
         print_ast_node(*it);
     }

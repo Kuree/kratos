@@ -1168,4 +1168,4 @@ def test_cast():
 
 
 if __name__ == "__main__":
-    test_cast()
+    test_nested_fsm()

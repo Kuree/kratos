@@ -47,6 +47,8 @@ void uniquify_generators(Generator* top);
 
 void check_function_return(Generator* top);
 
+void check_inferred_latch(Generator *top);
+
 std::map<std::string, std::string> generate_verilog(Generator* top);
 // this function outputs every module into a single file in the targeted direction
 // if header filename is not empty,

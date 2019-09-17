@@ -31,13 +31,25 @@ always_comb begin
       Color_next_state = Red;
       Color_output (2'h2);
     end
+    else begin
+      Color_next_state = Blue;
+      Color_output (2'h1);
+    end
     Red: if (in == 2'h1) begin
       Color_next_state = Blue;
       Color_output (2'h1);
     end
-    else if (in == 2'h0) begin
+    else begin
       Color_next_state = Red;
       Color_output (2'h2);
+      if (in == 2'h0) begin
+        Color_next_state = Red;
+        Color_output (2'h2);
+      end
+      else begin
+        Color_next_state = Red;
+        Color_output (2'h2);
+      end
     end
   endcase
 end

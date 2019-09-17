@@ -56,6 +56,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("verify_generator_connectivity")
     pass_manager.add_pass("check_mixed_assignment")
     pass_manager.add_pass("check_always_sensitivity")
+    # pass_manager.add_pass("check_inferred_latch")
     if check_active_high:
         pass_manager.add_pass("check_active_high")
     pass_manager.add_pass("check_function_return")

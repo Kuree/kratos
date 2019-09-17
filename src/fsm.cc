@@ -289,6 +289,22 @@ void FSM::generate_state_transition(
                 if_->add_else_stmt(new_if);
                 if_ = new_if;
             }
+            // prevent the reg being inferred as a latch
+            // TODO: refacotr this code
+            auto stmt = get_next_state_stmt(enum_def, next_state, state, state, state_name_mapping);
+            if_->add_else_stmt(stmt);
+            // mealy machine need to add extra state transition outputs
+            std::shared_ptr<FunctionCallStmt> func_stmt = nullptr;
+            if (!moore_) {
+                get_func_call_stmt(func_def, state, func_stmt);
+                if_->add_else_stmt(func_stmt);
+            }
+            if (generator_->debug) {
+                if (func_stmt) {
+                    add_debug_info(state, func_stmt);
+                    func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+                }
+            }
         }
         if (!has_slide_through) {
             if (!top_if)

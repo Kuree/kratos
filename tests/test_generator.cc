@@ -765,3 +765,27 @@ TEST(generator, non_synthesizable) {  // NOLINT
     // run the pass
     EXPECT_THROW(check_non_synthesizable_content(&mod), UserException);
 }
+
+
+TEST(generator, latch) {    // NOLINT
+    Context c;
+    auto &mod = c.generator("module");
+    auto &in = mod.port(PortDirection::In, "in", 2);
+    auto &out = mod.port(PortDirection::Out, "out", 1);
+    auto &out2 = mod.port(PortDirection::Out, "out2", 1);
+    auto if_stmt = std::make_shared<IfStmt>(in.eq(constant(0, 2)));
+    if_stmt->add_then_stmt(out.assign(constant(0, 1)));
+    if_stmt->add_else_stmt(out.assign(constant(1, 1)));
+    auto comb = mod.combinational();
+    //comb->add_stmt(if_stmt);
+
+    //EXPECT_NO_THROW(check_inferred_latch(&mod));
+
+    auto switch_stmt = std::make_shared<SwitchStmt>(in.shared_from_this());
+    switch_stmt->add_switch_case(constant(0, 2).as<Const>(), out2.assign(constant(0, 1)));
+    switch_stmt->add_switch_case(nullptr, out2.assign(constant(1, 1)));
+
+    comb->add_stmt(switch_stmt);
+
+    EXPECT_NO_THROW(check_inferred_latch(&mod));
+}
