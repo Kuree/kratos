@@ -99,6 +99,18 @@ readable and your life easier:
   the relevant code that's producing offending SystemVerilog code. Notice
   that you have to turn the debug on to see the source. An exception is
   thrown if detected.
+- ``check_inferred_latch``: check to make sure there is no inferred latch in
+  combinational and sequential code blocks. This will report where it found
+  the corresponding assignments. Limitation: it doesn't handle variable
+  slicing very well. This is intended to be a quick check and no false
+  negative. You're still encouraged to check DC compiler warnings.
+- ``check_function_return``: check to make sure that the function has return
+  values if not void.
+- ``check_always_sensitivity``: check to make sure the variable in the
+  sensitivity list is properly typed. Only allow clock and async reset
+  signals.
+- ``inject_debug_break_points``: inject the breakpoints in the IR, which
+  will be used to interact with ``kratos-runtime``.
 
 
 Write your own Pass
