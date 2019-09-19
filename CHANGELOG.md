@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.15] - 2019-09-18
+### Added
+- Add ability to add function call var to statement block in python
+- Add handle name to variables/generators
+- Add symbol table extraction
+- Add hashing for function call
+- Add ability to output files per modules with proper include header (#86)
+- Add support for initial block
+- Add support for test bench generation; add property assertion
+- Add pass to detect non-synthesiszable components (#84)
+- Add integration to kratos-runtime
+  - SQLite3 integration
+  - Breakpoint injection
+  - Design database dump
+- Add pass to analyze latch in `always_comb` and `always_ff`.
+
+### Changed
+- `clang-tidy` will run through `kratos` target
+- DPI call by default won't have any type
+
+### Fixed
+- Fix a bug where DPI call won't be generated properly when the arg is const
+- Fix FSM code gen produces latch.
+
 ## [0.0.14] - 2019-08-25
 ### Added
 - Add ability to slice variable with another variable (#73)
