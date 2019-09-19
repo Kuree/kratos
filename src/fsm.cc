@@ -66,8 +66,7 @@ std::vector<FSMState*> FSM::get_all_child_states(bool include_extra_state) const
         if (visited.find(state) != visited.end()) continue;
         visited.emplace(state);
         result.emplace_back(state);
-        if (!state)
-            continue;
+        if (!state) continue;
         auto next_states = state->transitions();
         for (auto const& iter : next_states) {
             auto const next_state = iter.second;
@@ -499,10 +498,15 @@ std::string FSM::dot_graph() {
         });
         for (auto const& cond : conds) {
             auto next_state = transitions.at(cond);
-            stream << indent
-                   << ::format("{0}    ->  {1} [ label = \"{2}\" ];", state_name,
-                               next_state->name(), cond->to_string())
-                   << ::endl;
+            if (cond) {
+                stream << indent
+                       << ::format("{0}    ->  {1} [ label = \"{2}\" ];", state_name,
+                                   next_state->name(), cond->to_string())
+                       << ::endl;
+            } else {
+                stream << indent << ::format("{0}    ->  {1};", state_name, next_state->name())
+                       << ::endl;
+            }
         }
     }
     stream << "}" << ::endl;
