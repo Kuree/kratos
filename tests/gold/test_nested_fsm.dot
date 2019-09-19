@@ -3,11 +3,11 @@ digraph Color {
 
     node [shape=doublecircle, label="Red", style=filled, fillcolor="#799EF2"] Red;
     node [shape=circle, label="Blue", style=filled, fillcolor="#799EF2"] Blue;
-    node [shape=circle, label="idle", style=filled, fillcolor="#79CDF2"] idle;
+    node [shape=circle, label="HSV_idle", style=filled, fillcolor="#79CDF2"] HSV_idle;
 
     Blue    ->  Red [ label = "in == 2'h1" ];
     Red    ->  Red [ label = "in == 2'h0" ];
     Red    ->  Blue [ label = "in == 2'h1" ];
-    Red    ->  idle [ label = "in == 2'h2" ];
-    idle    ->  Red [ label = "in == 2'h0" ];
+    Red    ->  HSV_idle [ label = "in == 2'h2" ];
+    HSV_idle    ->  Red [ label = "in == 2'h0" ];
 }

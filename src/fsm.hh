@@ -101,9 +101,10 @@ public:
                 const std::pair<std::string, uint32_t> &debug_info);
     void check_outputs();
 
-    const inline std::string &name() { return name_; }
+    const inline std::string &name() const { return name_; }
     const inline std::map<Var *, FSMState *> &transitions() { return transitions_; }
     const inline std::map<Var *, Var *> &output_values() const { return output_values_; }
+    std::string handle_name() const;
 
     // debug info
     const inline std::unordered_map<FSMState *, std::pair<std::string, uint32_t>>

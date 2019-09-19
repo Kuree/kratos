@@ -457,7 +457,7 @@ std::string FSM::dot_graph() {
 
     // start state is double circle
     std::string start_state_name;
-    if (start_state_) start_state_name = start_state_->name();
+    if (start_state_) start_state_name = start_state_->handle_name();
     // we include extra states to draw the extra state transition diagram
     auto states = get_all_child_states(true);
     auto state_colors = get_state_color(states);
@@ -468,12 +468,12 @@ std::string FSM::dot_graph() {
             << indent
             << ::format(
                    R"(node [shape=doublecircle, label="{0}", style=filled, fillcolor="{1}"] {0};)",
-                   start_state_->name(), color_str)
+                   start_state_->handle_name(), color_str)
             << ::endl;
     }
     // the rest of the states
     for (auto const& iter : states) {
-        auto state_name = iter->name();
+        auto state_name = iter->handle_name();
         if (state_name == start_state_name) continue;
         auto color = state_colors.at(iter);
         auto color_str = ::format("#{0:02X}{1:02X}{2:02X}", color.R, color.G, color.B);
@@ -488,7 +488,7 @@ std::string FSM::dot_graph() {
     // state transition
     for (auto const& state : states) {
         auto transitions = state->transitions();
-        auto state_name = state->name();
+        auto state_name = state->handle_name();
         // deterministic sorting
         std::vector<Var*> conds;
         conds.reserve(transitions.size());
@@ -501,10 +501,11 @@ std::string FSM::dot_graph() {
             if (cond) {
                 stream << indent
                        << ::format("{0}    ->  {1} [ label = \"{2}\" ];", state_name,
-                                   next_state->name(), cond->to_string())
+                                   next_state->handle_name(), cond->to_string())
                        << ::endl;
             } else {
-                stream << indent << ::format("{0}    ->  {1};", state_name, next_state->name())
+                stream << indent
+                       << ::format("{0}    ->  {1};", state_name, next_state->handle_name())
                        << ::endl;
             }
         }
@@ -689,6 +690,18 @@ void FSMState::check_outputs() {
                                {output});
         }
     }
+}
+
+std::string FSMState::handle_name() const {
+    auto str = name_;
+    auto current = parent_;
+    auto p = parent_->parent_fsm();
+    while (p) {
+        str = ::format("{0}_{1}", current->fsm_name(), str);
+        current = p;
+        p = p->parent_fsm();
+    }
+    return str;
 }
 
 }  // namespace kratos
