@@ -281,18 +281,17 @@ are plugins that will help users to debug, prototype, and testing.
 building hardware. The main abstraction in kratos in a ``Generator``.
 ``Generator`` can be modified at any time through passes.
 
-`zelus <https://github.com/Kuree/zelus>`__ is a library of useful
-generators, such as mux and decoder. They are designed to be as
-efficient as possible.
-
 `kratos-debug <https://github.com/Kuree/kratos-debug>`__ is a GUI for user to
-debug generated verilog. It offers a source viewer to see the line mapping that
+view generated verilog. It offers a source viewer to see the line mapping that
 kratos provides.
 
 `kratos-dpi <https://github.com/Kuree/kratos-dpi>`__ is a DPI plugin that
 allows users to run arbitrary Python code to emulate a SystemVerilog function.
 This is extremely helpful for rapid prototyping and testing. 
 
+`kratos-runtime <https://github.com/Kuree/kratos-runtime>`__ is a necessary
+component if you want to debug kratos with standard simulators. It supports
+value inspectiion and breakpoints.
 
 .. |Build Status| image:: https://travis-ci.com/Kuree/kratos.svg?branch=master
    :target: https://travis-ci.com/Kuree/kratos
