@@ -2,7 +2,6 @@
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
-#include "sqlite_orm/sqlite_orm.h"
 #include "util.hh"
 
 using fmt::format;
@@ -284,24 +283,7 @@ void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
 // you can make parent_handle.child to obtain the child handle name
 
 void DebugDatabase::save_database(const std::string &filename) {
-    using namespace sqlite_orm;
-    auto storage = make_storage(
-        filename,
-        make_table("metadata", make_column("name", &MetaData::name),
-                   make_column("value", &MetaData::value)),
-        make_table("breakpoint", make_column("id", &BreakPoint::id),
-                   make_column("filename", &BreakPoint::filename),
-                   make_column("line_num", &BreakPoint::line_num)),
-        make_table("variable", make_column("handle", &Variable::handle),
-                   make_column("var", &Variable::var),
-                   make_column("front_var", &Variable::front_var),
-                   make_column("id", &Variable::id)),
-        make_table("connection", make_column("handle_from", &Connection::handle_from),
-                   make_column("var_from", &Connection::var_from),
-                   make_column("handle_to", &Connection::handle_to),
-                   make_column("var_to", &Connection::var_to)),
-        make_table("hierarchy", make_column("parent_handle", &Hierarchy::parent_handle),
-                   make_column("child", &Hierarchy::child)));
+    auto storage = init_storage(filename);
 
     storage.sync_schema();
     // insert tables
