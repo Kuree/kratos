@@ -45,5 +45,37 @@ private:
     std::string top_name_ = "TOP";
 };
 
+
+// table row definitions
+struct MetaData {
+    std::string name;
+    std::string value;
+};
+
+struct BreakPoint {
+    uint32_t id;
+    std::string filename;
+    uint32_t line_num;
+};
+
+struct Variable {
+    std::string handle;
+    std::string var;
+    std::string front_var;
+    uint32_t id;
+};
+
+struct Connection {
+    std::string handle_from;
+    std::string var_from;
+    std::string handle_to;
+    std::string var_to;
+};
+
+struct Hierarchy {
+    std::string parent_handle;
+    std::string child;
+};
+
 }  // namespace kratos
 #endif  // KRATOS_DEBUG_HH

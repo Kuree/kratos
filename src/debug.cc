@@ -276,40 +276,12 @@ void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
 // generator_handle + var is the var handle name, front_var comes from the variable name
 // and breakpoint is the breakpoint id
 
-struct MetaData {
-    std::string name;
-    std::string value;
-};
-
-struct BreakPoint {
-    uint32_t id;
-    std::string filename;
-    uint32_t line_num;
-};
-
-struct Variable {
-    std::string handle;
-    std::string var;
-    std::string front_var;
-    uint32_t id;
-};
-
 // TABLE connection
 // all the variables are the in the RTL form. You can cross search the variable
 // to find out the python variable name, if any
-struct Connection {
-    std::string handle_from;
-    std::string var_from;
-    std::string handle_to;
-    std::string var_to;
-};
 
 // TABLE hierarchy. the parent uses full handle name, the child is the instance name
 // you can make parent_handle.child to obtain the child handle name
-struct Hierarchy {
-    std::string parent_handle;
-    std::string child;
-};
 
 void DebugDatabase::save_database(const std::string &filename) {
     using namespace sqlite_orm;
