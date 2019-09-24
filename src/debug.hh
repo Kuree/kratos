@@ -1,7 +1,6 @@
 #ifndef KRATOS_DEBUG_HH
 #define KRATOS_DEBUG_HH
 
-#include "sqlite_orm/sqlite_orm.h"
 #include "stmt.hh"
 
 namespace kratos {
@@ -79,27 +78,7 @@ struct Hierarchy {
 };
 
 // initialize the database
-inline auto init_storage(const std::string &filename) {
-    using namespace sqlite_orm;
-    auto storage = make_storage(
-        filename,
-        make_table("metadata", make_column("name", &MetaData::name),
-                   make_column("value", &MetaData::value)),
-        make_table("breakpoint", make_column("id", &BreakPoint::id),
-                   make_column("filename", &BreakPoint::filename),
-                   make_column("line_num", &BreakPoint::line_num)),
-        make_table("variable", make_column("handle", &Variable::handle),
-                   make_column("var", &Variable::var),
-                   make_column("front_var", &Variable::front_var),
-                   make_column("id", &Variable::id)),
-        make_table("connection", make_column("handle_from", &Connection::handle_from),
-                   make_column("var_from", &Connection::var_from),
-                   make_column("handle_to", &Connection::handle_to),
-                   make_column("var_to", &Connection::var_to)),
-        make_table("hierarchy", make_column("parent_handle", &Hierarchy::parent_handle),
-                   make_column("child", &Hierarchy::child)));
-    return storage;
-}
+auto init_storage(const std::string &filename);
 
 }  // namespace kratos
 #endif  // KRATOS_DEBUG_HH

@@ -2,6 +2,7 @@
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
+#include "sqlite_orm/sqlite_orm.h"
 #include "util.hh"
 
 using fmt::format;
@@ -241,16 +242,16 @@ void DebugDatabase::set_generator_connection(kratos::Generator *top) {
     connection_map_ = visitor.connections();
 }
 
-class HierarchyVisitor: public IRVisitor {
+class HierarchyVisitor : public IRVisitor {
 public:
-    void visit(Generator *generator) override  {
+    void visit(Generator *generator) override {
         auto handle_name = generator->handle_name();
-        for (auto const &gen: generator->get_child_generators()) {
+        for (auto const &gen : generator->get_child_generators()) {
             auto name = gen->instance_name;
             hierarchy_.emplace_back(std::make_pair(handle_name, name));
         }
     }
-    const std::vector<std::pair<std::string, std::string>> & hierarchy() const { return hierarchy_; }
+    const std::vector<std::pair<std::string, std::string>> &hierarchy() const { return hierarchy_; }
 
 private:
     std::vector<std::pair<std::string, std::string>> hierarchy_;
@@ -281,6 +282,28 @@ void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
 
 // TABLE hierarchy. the parent uses full handle name, the child is the instance name
 // you can make parent_handle.child to obtain the child handle name
+
+auto init_storage(const std::string &filename) {
+    using namespace sqlite_orm;
+    auto storage = make_storage(
+        filename,
+        make_table("metadata", make_column("name", &MetaData::name),
+                   make_column("value", &MetaData::value)),
+        make_table("breakpoint", make_column("id", &BreakPoint::id),
+                   make_column("filename", &BreakPoint::filename),
+                   make_column("line_num", &BreakPoint::line_num)),
+        make_table("variable", make_column("handle", &Variable::handle),
+                   make_column("var", &Variable::var),
+                   make_column("front_var", &Variable::front_var),
+                   make_column("id", &Variable::id)),
+        make_table("connection", make_column("handle_from", &Connection::handle_from),
+                   make_column("var_from", &Connection::var_from),
+                   make_column("handle_to", &Connection::handle_to),
+                   make_column("var_to", &Connection::var_to)),
+        make_table("hierarchy", make_column("parent_handle", &Hierarchy::parent_handle),
+                   make_column("child", &Hierarchy::child)));
+    return storage;
+}
 
 void DebugDatabase::save_database(const std::string &filename) {
     auto storage = init_storage(filename);
@@ -317,7 +340,7 @@ void DebugDatabase::save_database(const std::string &filename) {
     }
 
     // connections
-    for (auto const &[from, to]: connection_map_) {
+    for (auto const &[from, to] : connection_map_) {
         auto const [from_handle, from_var] = from;
         auto const [to_handle, to_var] = to;
         Connection conn{from_handle, from_var, to_handle, to_var};
@@ -325,7 +348,7 @@ void DebugDatabase::save_database(const std::string &filename) {
     }
 
     // hierarchy
-    for (auto const &[handle, name]: hierarchy_) {
+    for (auto const &[handle, name] : hierarchy_) {
         Hierarchy h{handle, name};
         storage.insert(h);
     }
