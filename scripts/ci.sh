@@ -38,6 +38,7 @@ elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     source /Users/travis/.pyenv/versions/${PYTHON}/envs/venv37/bin/activate
     python --version
 
+    python -m pip install scikit-build
     python -m pip install cmake twine wheel pytest
     python setup.py bdist_wheel
     pip install dist/*.whl
