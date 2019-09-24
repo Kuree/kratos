@@ -2,7 +2,7 @@
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
-#include "sqlite_orm/sqlite_orm.h"
+#include "db.hh"
 #include "util.hh"
 
 using fmt::format;
@@ -262,47 +262,6 @@ void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
     // no parallel to make it in order
     visitor.visit_generator_root(top);
     hierarchy_ = visitor.hierarchy();
-}
-
-// this is the database schema
-// TABLE metadata
-// NAME, VALUE
-// this is essentially a key-value storage
-// TABLE breakpoint
-// BREAK_POINT_ID filename, line_number
-// this is mapping a breakpoint id to a line in the front-end code
-// TABLE variables
-// generator_handle, var, front_var, breakpoint
-// generator_handle + var is the var handle name, front_var comes from the variable name
-// and breakpoint is the breakpoint id
-
-// TABLE connection
-// all the variables are the in the RTL form. You can cross search the variable
-// to find out the python variable name, if any
-
-// TABLE hierarchy. the parent uses full handle name, the child is the instance name
-// you can make parent_handle.child to obtain the child handle name
-
-auto init_storage(const std::string &filename) {
-    using namespace sqlite_orm;
-    auto storage = make_storage(
-        filename,
-        make_table("metadata", make_column("name", &MetaData::name),
-                   make_column("value", &MetaData::value)),
-        make_table("breakpoint", make_column("id", &BreakPoint::id),
-                   make_column("filename", &BreakPoint::filename),
-                   make_column("line_num", &BreakPoint::line_num)),
-        make_table("variable", make_column("handle", &Variable::handle),
-                   make_column("var", &Variable::var),
-                   make_column("front_var", &Variable::front_var),
-                   make_column("id", &Variable::id)),
-        make_table("connection", make_column("handle_from", &Connection::handle_from),
-                   make_column("var_from", &Connection::var_from),
-                   make_column("handle_to", &Connection::handle_to),
-                   make_column("var_to", &Connection::var_to)),
-        make_table("hierarchy", make_column("parent_handle", &Hierarchy::parent_handle),
-                   make_column("child", &Hierarchy::child)));
-    return storage;
 }
 
 void DebugDatabase::save_database(const std::string &filename) {
