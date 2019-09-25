@@ -50,12 +50,12 @@ struct ContextVariable {
 // NAME, VALUE
 // this is essentially a key-value storage
 // TABLE breakpoint
-// BREAK_POINT_ID filename, line_number
+// BREAK_POINT_ID filename, line_number, handle
 // this is mapping a breakpoint id to a line in the front-end code
 // TABLE variables
-// generator_handle, var, front_var, breakpoint
+// generator_handle, var, front_var, array_size, type
 // generator_handle + var is the var handle name, front_var comes from the variable name
-// and breakpoint is the breakpoint id
+// array_size and type will be used later to visualize the array
 
 // TABLE connection
 // all the variables are the in the RTL form. You can cross search the variable
@@ -88,7 +88,7 @@ auto inline init_storage(const std::string &filename) {
                    make_column("child", &Hierarchy::child)),
         make_table("context", make_column("name", &ContextVariable::name),
                    make_column("value", &ContextVariable::value),
-                   make_column("is_var", &ContextVariable::value),
+                   make_column("is_var", &ContextVariable::is_var),
                    make_column("id", &ContextVariable::id)));
     return storage;
 }

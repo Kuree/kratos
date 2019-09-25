@@ -45,7 +45,6 @@ def test_debug_mock():
                 self.out = 3
 
     with tempfile.TemporaryDirectory() as temp:
-        temp = "temp"
         mod = Mod()
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
