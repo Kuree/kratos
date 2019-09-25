@@ -1,8 +1,8 @@
 #include "debug.hh"
+#include "db.hh"
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
-#include "db.hh"
 #include "util.hh"
 
 using fmt::format;
@@ -195,6 +195,32 @@ void DebugDatabase::set_variable_mapping(
     }
 }
 
+class StmtContextVisitor : public IRVisitor {
+public:
+    void visit(IfStmt *stmt) override { add_content(stmt); }
+
+    void visit(AssignStmt *stmt) override { add_content(stmt); }
+
+    const std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> &stmt_context()
+        const {
+        return stmt_context_;
+    }
+
+private:
+    void add_content(Stmt *stmt) {
+        if (!stmt->scope_context().empty()) {
+            stmt_context_.emplace(stmt, stmt->scope_context());
+        }
+    }
+    std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
+};
+
+void DebugDatabase::set_stmt_context(kratos::Generator *top) {
+    StmtContextVisitor visitor;
+    visitor.visit_root(top);
+    stmt_context_ = visitor.stmt_context();
+}
+
 class ConnectionVisitor : public IRVisitor {
 public:
     void visit(Generator *generator) override {
@@ -264,6 +290,17 @@ void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
     hierarchy_ = visitor.hierarchy();
 }
 
+std::unordered_map<uint32_t, Generator *> build_id_map(
+    const std::unordered_map<Generator *, std::set<uint32_t>> &map) {
+    std::unordered_map<uint32_t, Generator *> result;
+    for (auto const &[gen, ids] : map) {
+        for (auto const &id : ids) {
+            result.emplace(id, gen);
+        }
+    }
+    return result;
+}
+
 void DebugDatabase::save_database(const std::string &filename) {
     auto storage = init_storage(filename);
 
@@ -275,24 +312,38 @@ void DebugDatabase::save_database(const std::string &filename) {
     MetaData top_name{"top_name", top_name_};
     storage.insert(top_name);
     // break points
+    auto id_to_gen = build_id_map(generator_break_points_);
     for (auto const &[stmt, id] : break_points_) {
         if (stmt_mapping_.find(stmt) != stmt_mapping_.end()) {
             auto const &[fn, ln] = stmt_mapping_.at(stmt);
-            BreakPoint br{id, fn, ln};
+            if (id_to_gen.find(id) == id_to_gen.end())
+                throw InternalException(::format("Unable to find breakpoint {0}", id));
+            auto gen = id_to_gen.at(id);
+            auto handle_name = gen->handle_name();
+            BreakPoint br{id, fn, ln, handle_name};
             storage.insert(br);
         }
     }
     // variables
     for (auto const &[handle_name, gen_map] : variable_mapping_) {
         auto const &[gen, vars] = gen_map;
-        for (auto const &[var, front_var] : vars) {
-            // FIXME: this is a hack on id mapping
-            if (generator_break_points_.find(gen) == generator_break_points_.end())
-                // exit the loop
-                break;
-            auto ids = generator_break_points_.at(gen);
-            for (auto const &id : ids) {
-                Variable variable{handle_name, var, front_var, id};
+        // FIXME: this is a hack on id mapping
+        if (generator_break_points_.find(gen) == generator_break_points_.end())
+            // exit the loop
+            continue;
+        std::unordered_set<std::string> stored_vars;
+        for (auto const &[front_var, var] : vars) {
+            auto gen_var = gen->get_var(var);
+            if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
+            Variable variable{handle_name, var, front_var, gen_var->size, gen_var->type()};
+            storage.insert(variable);
+            stored_vars.emplace(var);
+        }
+        auto all_vars = gen->get_all_var_names();
+        for (auto const &var_name : all_vars) {
+            auto var = gen->get_var(var_name);
+            if (!var || (var->type() != VarType::Base && var->type() != VarType::PortIO)) {
+                Variable variable{handle_name, var_name, "", var->size, var->type()};
                 storage.insert(variable);
             }
         }
@@ -310,6 +361,18 @@ void DebugDatabase::save_database(const std::string &filename) {
     for (auto const &[handle, name] : hierarchy_) {
         Hierarchy h{handle, name};
         storage.insert(h);
+    }
+
+    // local context variables
+    for (auto const &[stmt, id] : break_points_) {
+        // use breakpoint as an index since we can only get context as we hit potential breakpoints
+        if (stmt_context_.find(stmt) == stmt_context_.end()) continue;
+        auto values = stmt_context_.at(stmt);
+        for (auto const &[key, entry] : values) {
+            auto const &[is_var, value] = entry;
+            ContextVariable v{key, value, is_var, id};
+            storage.insert(v);
+        }
     }
 
     guard.commit();

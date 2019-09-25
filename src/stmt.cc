@@ -30,6 +30,15 @@ Generator *Stmt::generator_parent() const {
     return dynamic_cast<Generator *>(p);
 }
 
+void Stmt::add_scope_variable(const std::string &name, const std::string &value, bool is_var,
+                              bool override) {
+    if (override) {
+        scope_context_.emplace(name, std::make_pair(is_var, value));
+    } else if (scope_context_.find(name) == scope_context_.end()) {
+        scope_context_.emplace(name, std::make_pair(is_var, value));
+    }
+}
+
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
     : AssignStmt(left, right, AssignmentType::Undefined) {}
 
@@ -138,6 +147,13 @@ IRNode *IfStmt::get_child(uint64_t index) {
         return nullptr;
 }
 
+void IfStmt::add_scope_variable(const std::string &name, const std::string &value, bool is_var,
+                                bool override) {
+    Stmt::add_scope_variable(name, value, is_var, override);
+    then_body_->add_scope_variable(name, value, is_var, override);
+    else_body_->add_scope_variable(name, value, is_var, override);
+}
+
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 
 void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
@@ -175,6 +191,14 @@ void StmtBlock::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
 
 void StmtBlock::set_child(uint64_t index, const std::shared_ptr<Stmt> &stmt) {
     if (index < stmts_.size()) stmts_[index] = stmt;
+}
+
+void StmtBlock::add_scope_variable(const std::string &name, const std::string &value, bool is_var,
+                                   bool override) {
+    Stmt::add_scope_variable(name, value, is_var, override);
+    for (auto &stmt: stmts_) {
+        stmt->add_scope_variable(name, value, is_var, override);
+    }
 }
 
 void SequentialStmtBlock::add_condition(
@@ -258,6 +282,14 @@ IRNode *SwitchStmt::get_child(uint64_t index) {
             if (index-- == 0) return iter.second.get();
         }
         return nullptr;
+    }
+}
+
+void SwitchStmt::add_scope_variable(const std::string &name, const std::string &value, bool is_var,
+                                    bool override) {
+    Stmt::add_scope_variable(name, value, is_var, override);
+    for (auto &iter: body_) {
+        iter.second->add_scope_variable(name, value, is_var, override);
     }
 }
 

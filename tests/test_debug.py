@@ -45,6 +45,7 @@ def test_debug_mock():
                 self.out = 3
 
     with tempfile.TemporaryDirectory() as temp:
+        temp = "temp"
         mod = Mod()
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
@@ -122,5 +123,33 @@ def test_metadata():
         assert conns[1][-1] == "out2"
 
 
+def test_context():
+    class Mod(Generator):
+        def __init__(self, width):
+            super().__init__("mod", True)
+            in_ = self.input("in", width)
+            out = self.output("out", width)
+            sel = self.input("sel", width)
+
+            def code():
+                if sel:
+                    out = 0
+                else:
+                    for i in range(width):
+                        out[i] = 1
+            self.add_code(code)
+
+    mod = Mod(4)
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        filename = os.path.join(temp, "test.sv")
+        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM context")
+        variables = c.fetchall()
+        assert len(variables) > 20
+
+
 if __name__ == "__main__":
-    test_metadata()
+    test_context()

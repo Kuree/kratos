@@ -46,11 +46,21 @@ public:
     // debug
     int stmt_id() const { return stmt_id_; }
     void set_stmt_id(uint32_t id) { stmt_id_ = id; }
+    const std::map<std::string, std::pair<bool, std::string>> &scope_context() const {
+        return scope_context_;
+    }
+    // For now it's a flat context that every breakpoint/stmt has its own context
+    // in the future if the performance/storage size is a concern, we can group the stmt
+    // together
+    virtual void add_scope_variable(const std::string &name, const std::string &value, bool is_var,
+                                    bool override);
 
 protected:
     StatementType type_;
     IRNode *parent_ = nullptr;
     int stmt_id_ = -1;
+
+    std::map<std::string, std::pair<bool, std::string>> scope_context_;
 };
 
 class AssignStmt : public Stmt {
@@ -114,6 +124,10 @@ public:
     uint64_t child_count() override { return 3; }
     IRNode *get_child(uint64_t index) override;
 
+    // Debug
+    void add_scope_variable(const std::string &name, const std::string &value, bool is_var,
+                            bool override) override;
+
 private:
     std::shared_ptr<Var> predicate_;
     std::shared_ptr<ScopedStmtBlock> then_body_;
@@ -146,6 +160,10 @@ public:
     uint64_t child_count() override { return body_.size() + 1; }
     IRNode *get_child(uint64_t index) override;
 
+    // Debug
+    void add_scope_variable(const std::string &name, const std::string &value, bool is_var,
+                            bool override) override;
+
 private:
     std::shared_ptr<Var> target_;
     // default case will be indexed as nullptr
@@ -174,6 +192,10 @@ public:
     uint64_t size() const { return stmts_.size(); }
     std::shared_ptr<Stmt> operator[](uint32_t index) { return stmts_[index]; }
     void set_stmts(const std::vector<std::shared_ptr<Stmt>> &stmts) { stmts_ = stmts; }
+
+    // Debug
+    void add_scope_variable(const std::string &name, const std::string &value, bool is_var,
+                            bool override) override;
 
 protected:
     explicit StmtBlock(StatementBlockType type);

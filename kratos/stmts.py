@@ -29,6 +29,9 @@ class IfStmt:
     def else_body(self):
         return self._stmt.else_body()
 
+    def add_scope_variable(self, name, value, is_var=False, override=False):
+        self._stmt.add_scope_variable(name, value, is_var, override)
+
     def stmt(self):
         return self._stmt
 
@@ -55,6 +58,9 @@ class SwitchStmt:
 
     def stmt(self):
         return self._stmt
+
+    def add_scope_variable(self, name, value, is_var=False, override=False):
+        self._stmt.add_scope_variable(name, value, is_var, override)
 
 
 def switch_(predicate: _kratos.Var):

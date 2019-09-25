@@ -15,13 +15,15 @@ struct BreakPoint {
     uint32_t id;
     std::string filename;
     uint32_t line_num;
+    std::string handle;
 };
 
 struct Variable {
     std::string handle;
     std::string var;
     std::string front_var;
-    uint32_t id;
+    uint32_t array_size;
+    uint32_t type;
 };
 
 struct Connection {
@@ -36,6 +38,12 @@ struct Hierarchy {
     std::string child;
 };
 
+struct ContextVariable {
+    std::string name;
+    std::string value;
+    bool is_var;
+    uint32_t id;
+};
 
 // this is the database schema
 // TABLE metadata
@@ -56,7 +64,6 @@ struct Hierarchy {
 // TABLE hierarchy. the parent uses full handle name, the child is the instance name
 // you can make parent_handle.child to obtain the child handle name
 
-
 // initialize the database
 auto inline init_storage(const std::string &filename) {
     using namespace sqlite_orm;
@@ -66,20 +73,26 @@ auto inline init_storage(const std::string &filename) {
                    make_column("value", &MetaData::value)),
         make_table("breakpoint", make_column("id", &BreakPoint::id),
                    make_column("filename", &BreakPoint::filename),
-                   make_column("line_num", &BreakPoint::line_num)),
+                   make_column("line_num", &BreakPoint::line_num),
+                   make_column("handle", &BreakPoint::handle)),
         make_table("variable", make_column("handle", &Variable::handle),
                    make_column("var", &Variable::var),
                    make_column("front_var", &Variable::front_var),
-                   make_column("id", &Variable::id)),
+                   make_column("array_size", &Variable::array_size),
+                   make_column("type", &Variable::type)),
         make_table("connection", make_column("handle_from", &Connection::handle_from),
                    make_column("var_from", &Connection::var_from),
                    make_column("handle_to", &Connection::handle_to),
                    make_column("var_to", &Connection::var_to)),
         make_table("hierarchy", make_column("parent_handle", &Hierarchy::parent_handle),
-                   make_column("child", &Hierarchy::child)));
+                   make_column("child", &Hierarchy::child)),
+        make_table("context", make_column("name", &ContextVariable::name),
+                   make_column("value", &ContextVariable::value),
+                   make_column("is_var", &ContextVariable::value),
+                   make_column("id", &ContextVariable::id)));
     return storage;
 }
 
-}
+}  // namespace kratos
 
 #endif  // KRATOS_DB_HH

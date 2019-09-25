@@ -1,5 +1,6 @@
 import enum
-from .pyast import transform_stmt_block, CodeBlockType
+from .pyast import transform_stmt_block, CodeBlockType, add_scope_context, \
+    get_frame_local
 from .util import get_fn_ln, comment as comment_node
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
@@ -71,6 +72,7 @@ class CodeBlock:
         if add_fn_ln and self._generator.debug:
             info = get_fn_ln(depth)
             stmt.add_fn_ln(info)
+            add_scope_context(stmt, get_frame_local(depth))
 
     def remove_stmt(self, stmt):
         if hasattr(stmt, "stmt"):
@@ -454,6 +456,10 @@ class Generator(metaclass=GeneratorMeta):
             for stmt in stmts:
                 seq.add_stmt(stmt, False)
             node = seq
+        # add context vars
+        if self.debug:
+            for stmt in stmts:
+                add_scope_context(stmt, get_frame_local(2))
         if comment_str:
             comment_node(node, comment_str)
         if label:
@@ -502,6 +508,7 @@ class Generator(metaclass=GeneratorMeta):
 
         if self.debug:
             stmt.add_fn_ln(get_fn_ln())
+            add_scope_context(stmt, get_frame_local(2))
 
         if attributes is not None:
             if not isinstance(attributes, list):

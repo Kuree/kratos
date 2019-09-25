@@ -179,7 +179,7 @@ def test_external_module():
 def test_for_loop():
     class Module(Generator):
         def __init__(self, num_var: int):
-            super().__init__("mod")
+            super().__init__("mod", True)
             self.num_var = num_var
 
             self.inputs = []
@@ -1216,4 +1216,4 @@ def test_async_latch():
 
 
 if __name__ == "__main__":
-    test_async_no_latch()
+    test_for_loop()

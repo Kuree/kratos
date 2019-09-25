@@ -13,7 +13,14 @@ using std::shared_ptr;
 void init_stmt(py::module &m) {
     using namespace kratos;
     py::class_<Stmt, ::shared_ptr<Stmt>> stmt_(m, "Stmt");
-    stmt_.def(py::init<StatementType>()).def("type", &Stmt::type);
+    stmt_.def(py::init<StatementType>())
+        .def("type", &Stmt::type)
+        .def("add_scope_variable", &Stmt::add_scope_variable)
+        .def("add_scope_variable",
+             [](Stmt &stmt, const std::string &name, const std::string &value, bool is_var) {
+                 stmt.add_scope_variable(name, value, is_var, false);
+             });
+
     def_trace<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
 
     py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt> assign_(

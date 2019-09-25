@@ -30,6 +30,7 @@ class ForNodeVisitor(ast.NodeTransformer):
         self.local = local.copy()
         self.global_ = global_.copy()
         self.local["self"] = self.generator
+        self.target_node = {}
 
     def visit_For(self, node: ast.For):
         # making sure that we don't have for/else case
@@ -65,7 +66,9 @@ class ForNodeVisitor(ast.NodeTransformer):
                 # need to replace all the reference to
                 visitor = ForNodeVisitor.NameVisitor(target, value)
                 n = visitor.visit(n)
+                n = self.generic_visit(n)
                 new_node.append(n)
+                self.target_node[n] = (target.id, value)
         return new_node
 
 
@@ -125,16 +128,6 @@ class IfNodeVisitor(ast.NodeTransformer):
         expression = node.body
         else_expression = node.orelse
 
-        # recursive call
-        for idx, node in enumerate(expression):
-            if_exp = IfNodeVisitor(self.generator, self.fn_src, self.local,
-                                   self.global_)
-            expression[idx] = if_exp.visit(node)
-        for idx, node in enumerate(else_expression):
-            else_exp = IfNodeVisitor(self.generator, self.fn_src, self.local,
-                                     self.global_)
-            else_expression[idx] = else_exp.visit(node)
-
         if self.generator.debug:
             keywords = [ast.keyword(arg="f_ln", value=ast.Num(n=node.lineno))]
         else:
@@ -151,7 +144,7 @@ class IfNodeVisitor(ast.NodeTransformer):
                                                 cts=ast.Load()),
                              args=else_expression, keywords=[])
 
-        return ast.Expr(value=else_node)
+        return self.generic_visit(ast.Expr(value=else_node))
 
 
 class AssignNodeVisitor(ast.NodeTransformer):
@@ -197,6 +190,41 @@ class ReturnNodeVisitor(ast.NodeTransformer):
             keywords=[]))
 
 
+class AssignLocalVisitor(ast.NodeTransformer):
+    def __init__(self, name, value, scope_name):
+        self.name = name
+        self.value = value
+        self.scope_name = scope_name
+
+    def visit_Call(self, node: ast.Call):
+        if isinstance(node.func, ast.Attribute):
+            attr = node.func
+            if attr.attr == "assign" and \
+                    isinstance(attr.value, ast.Name) \
+                    and attr.value.id == self.scope_name:
+                keyword = ast.keyword(arg=self.name,
+                                      value=ast.Str(s=self.value))
+                node.keywords.append(keyword)
+        return node
+
+
+def add_scope_context(stmt, _locals):
+    for key, value in _locals.items():
+        if isinstance(value, (int, float, str, bool)):
+            # this is straight forward one
+            stmt.add_scope_variable(key, str(value), False)
+        elif isinstance(value, _kratos.Var):
+            # it's a var
+            stmt.add_scope_variable(key, value.handle_name(), True)
+
+
+def get_frame_local(num_frame=2):
+    frame = inspect.currentframe()
+    for i in range(num_frame):
+        frame = frame.f_back
+    return frame.f_locals
+
+
 class Scope:
     def __init__(self, generator, filename, ln):
         self.stmt_list = []
@@ -208,7 +236,7 @@ class Scope:
 
         self._level = 0
 
-    def if_(self, target, *args, f_ln=None):
+    def if_(self, target, *args, f_ln=None, **kargs):
         class IfStatement:
             def __init__(self, scope):
                 self._if = _kratos.IfStmt(target)
@@ -217,6 +245,9 @@ class Scope:
                                       f_ln + scope.ln - 1))
                     self._if.add_fn_ln((scope.filename,
                                         f_ln + scope.ln - 1))
+                    # this is additional info passed in
+                    add_scope_context(self._if, kargs)
+
                 self.scope = scope
                 for stmt in args:
                     if hasattr(stmt, "stmt"):
@@ -234,10 +265,13 @@ class Scope:
             def stmt(self):
                 return self._if
 
+            def add_scope_variable(self, name, value, is_var=False):
+                self._if.add_scope_variable(name, value, is_var)
+
         if_stmt = IfStatement(self)
         return if_stmt
 
-    def assign(self, a, b, f_ln=None):
+    def assign(self, a, b, f_ln=None, **kargs):
         assert isinstance(a, _kratos.Var)
         try:
             stmt = a.assign(b)
@@ -249,6 +283,11 @@ class Scope:
         if self.filename:
             assert f_ln is not None
             stmt.add_fn_ln((self.filename, f_ln + self.ln - 1))
+            # obtain the previous call frame info
+            __local = get_frame_local()
+            add_scope_context(stmt, __local)
+            # this is additional info passed in
+            add_scope_context(stmt, kargs)
         return stmt
 
     def add_stmt(self, stmt):
@@ -329,6 +368,12 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     if_visitor = IfNodeVisitor(generator, fn_src, _locals, _globals)
     fn_body = if_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
+
+    # mark the local variables
+    target_nodes = for_visitor.target_node
+    for node, (key, value) in target_nodes.items():
+        assign_local_visitor = AssignLocalVisitor(key, value, "scope")
+        assign_local_visitor.visit(node)
 
     # add stmt to the scope
     add_stmt_to_scope(fn_body)
