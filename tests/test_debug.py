@@ -129,6 +129,9 @@ def test_context():
             in_ = self.input("in", width)
             out = self.output("out", width)
             sel = self.input("sel", width)
+            # test self variables
+            self.out = out
+            self.width = width
 
             def code():
                 if sel:

@@ -1112,7 +1112,7 @@ def test_symbol_table():
     from kratos.debug import extract_symbol_table
     mod = AsyncReg(16, True)
     verilog(mod)
-    table = extract_symbol_table(mod)
+    table, _ = extract_symbol_table(mod)
     assert len(table) == 1
     assert len(table[mod]) == 5
 

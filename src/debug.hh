@@ -30,6 +30,8 @@ public:
     void set_generator_hierarchy(Generator *top);
 
     void set_variable_mapping(const std::map<Generator *, std::map<std::string, Var *>> &mapping);
+    void set_generator_variable(
+        const std::map<Generator *, std::map<std::string, std::string>> &values);
     void set_stmt_context(Generator *top);
 
     void save_database(const std::string &filename);
@@ -40,9 +42,10 @@ private:
     std::map<Stmt *, std::pair<std::string, uint32_t>> stmt_mapping_;
     std::unordered_map<std::string, std::pair<Generator *, std::map<std::string, std::string>>>
         variable_mapping_;
+    std::unordered_map<std::string, std::map<std::string, std::string>> generator_values_;
     ConnectionMap connection_map_;
     std::vector<std::pair<std::string, std::string>> hierarchy_;
-    std::map<Stmt*, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
+    std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
 
     std::string top_name_ = "TOP";
 };

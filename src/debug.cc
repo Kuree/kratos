@@ -195,6 +195,25 @@ void DebugDatabase::set_variable_mapping(
     }
 }
 
+void DebugDatabase::set_generator_variable(
+    const std::map<Generator *, std::map<std::string, std::string>> &values) {
+    bool initialized = false;
+    bool has_top = false;
+    for (auto const &[gen, map] : values) {
+        if (!initialized) {
+            auto handle_name = gen->handle_name();
+            has_top = handle_name.find(top_name_) == std::string::npos;
+            initialized = true;
+        }
+        auto handle_name = gen->handle_name();
+        if (!has_top) handle_name = ::format("{0}.{1}", top_name_, handle_name);
+
+        for (auto const &[name, value] : map) {
+            generator_values_[handle_name].emplace(name, value);
+        }
+    }
+}
+
 class StmtContextVisitor : public IRVisitor {
 public:
     void visit(IfStmt *stmt) override { add_content(stmt); }
@@ -331,21 +350,25 @@ void DebugDatabase::save_database(const std::string &filename) {
         if (generator_break_points_.find(gen) == generator_break_points_.end())
             // exit the loop
             continue;
-        std::unordered_set<std::string> stored_vars;
         for (auto const &[front_var, var] : vars) {
             auto gen_var = gen->get_var(var);
             if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
-            Variable variable{handle_name, var, front_var, gen_var->size, gen_var->type()};
+            Variable variable{handle_name, var, front_var, gen_var->size, gen_var->type(), true};
             storage.insert(variable);
-            stored_vars.emplace(var);
         }
         auto all_vars = gen->get_all_var_names();
         for (auto const &var_name : all_vars) {
             auto var = gen->get_var(var_name);
-            if (!var || (var->type() != VarType::Base && var->type() != VarType::PortIO)) {
-                Variable variable{handle_name, var_name, "", var->size, var->type()};
+            if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
+                Variable variable{handle_name, var_name, "", var->size, var->type(), true};
                 storage.insert(variable);
             }
+        }
+    }
+    for (auto const &[handle_name, map]: generator_values_) {
+        for (auto const &[name, value]: map) {
+            Variable variable{handle_name, value, name, 0, 0, false};
+            storage.insert(variable);
         }
     }
 

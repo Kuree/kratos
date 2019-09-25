@@ -24,6 +24,7 @@ struct Variable {
     std::string front_var;
     uint32_t array_size;
     uint32_t type;
+    bool is_var;
 };
 
 struct Connection {
@@ -79,7 +80,8 @@ auto inline init_storage(const std::string &filename) {
                    make_column("var", &Variable::var),
                    make_column("front_var", &Variable::front_var),
                    make_column("array_size", &Variable::array_size),
-                   make_column("type", &Variable::type)),
+                   make_column("type", &Variable::type),
+                   make_column("is_var", &Variable::is_var)),
         make_table("connection", make_column("handle_from", &Connection::handle_from),
                    make_column("var_from", &Connection::var_from),
                    make_column("handle_to", &Connection::handle_to),

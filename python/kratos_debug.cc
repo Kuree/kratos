@@ -19,6 +19,7 @@ void init_debug(py::module &m) {
         .def("set_variable_mapping", &DebugDatabase::set_variable_mapping)
         .def("set_generator_connection", &DebugDatabase::set_generator_connection)
         .def("set_generator_hierarchy", &DebugDatabase::set_generator_hierarchy)
+        .def("set_generator_variable", &DebugDatabase::set_generator_variable)
         .def("set_stmt_context", &DebugDatabase::set_stmt_context)
         // dump the database file
         .def("save_database", &DebugDatabase::save_database);
