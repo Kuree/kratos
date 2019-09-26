@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Kratos Debug",
+            "type": "kratos",
+            "request": "launch",
+            "program": "${workspaceFolder}/${command:AskForProgramName}",
+            "stopOnEntry": true,
+            "runtimeIP": "0.0.0.0",
+            "runtimePort": 8888
+        }
+    ]
+}
