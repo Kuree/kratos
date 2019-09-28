@@ -23,6 +23,7 @@ Kratos: a hardware design language written in C++/Python
    advanced/fsm.rst
    advanced/functions.rst
    advanced/dpi.rst
+   advanced/backend.rst
 
 .. toctree::
    :maxdepth: 2

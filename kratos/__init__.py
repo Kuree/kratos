@@ -1,5 +1,6 @@
 from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
-    always, initial, CombinationalCodeBlock, SequentialCodeBlock
+    always, initial, CombinationalCodeBlock, SequentialCodeBlock, \
+    set_global_debug
 
 from .passes import Attribute, verilog
 from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
@@ -8,6 +9,7 @@ from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
 from .ports import PortBundle
 from .tb import TestBench, assert_, delay
 from .debug import enable_runtime_debug
+from .pyast import add_scope_context
 
 # directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog
@@ -31,7 +33,8 @@ __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
 
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",
-            "if_", "switch_", "Attribute", "PortBundle", "DebugDataBase"]
+            "if_", "switch_", "Attribute", "PortBundle", "DebugDataBase",
+            "add_scope_context", "set_global_debug"]
 
 # utils
 __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",
