@@ -153,5 +153,35 @@ def test_context():
         assert len(variables) > 20
 
 
+def test_hierarchy():
+    from functools import reduce
+    mods = []
+    num_child = 4
+    for i in range(num_child):
+        mod = Generator("mod", True)
+        in_ = mod.input("in", 1)
+        out_ = mod.output("out", 1)
+        mod.wire(out_, in_ & 1)
+        mods.append(mod)
+
+    parent = Generator("parent", True)
+    in_ = parent.input("in", 1)
+    out_ = parent.output("out", 1)
+    for i, mod in enumerate(mods):
+        parent.add_child("mod{0}".format(i), mod)
+        parent.wire(mod.ports["in"], in_)
+    parent.wire(out_, reduce(lambda a, b: a ^ b,
+                             [mod.ports.out for mod in mods]))
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        filename = os.path.join(temp, "test.sv")
+        verilog(parent, filename=filename, debug_db_filename=debug_db)
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM hierarchy")
+        mods = c.fetchall()
+        assert len(mods) == num_child
+
+
 if __name__ == "__main__":
-    test_context()
+    test_hierarchy()
