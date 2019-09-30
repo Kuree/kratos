@@ -683,14 +683,12 @@ void set_var_parent(std::shared_ptr<Var> &var, Var *target, Var *new_var, bool c
     var = new_var_ptr;
 }
 
-void change_var_expr(std::shared_ptr<Expr> expr, Var *target, Var *new_var) {
+void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var) {
     if (expr->left->type() == VarType::Expression) {
-        expr = expr->left->as<Expr>();
-        change_var_expr(expr, target, new_var);
+        change_var_expr(expr->left->as<Expr>(), target, new_var);
     }
     if (expr->right && expr->right->type() == VarType::Expression) {
-        expr = expr->right->as<Expr>();
-        change_var_expr(expr, target, new_var);
+        change_var_expr(expr->right->as<Expr>(), target, new_var);
     }
 
     if (expr->left.get() == target) expr->left = new_var->shared_from_this();

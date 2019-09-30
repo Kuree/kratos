@@ -810,3 +810,43 @@ TEST(generator, latch_rst) {  // NOLINT
 
     EXPECT_NO_THROW(check_inferred_latch(&mod));
 }
+
+TEST(generator, decouple2) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("parent");
+    auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
+    auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("child");
+    auto &port2_1 = mod2.port(PortDirection::In, "in", 1);
+    auto &port2_2 = mod2.port(PortDirection::Out, "out", 1);
+    mod2.add_stmt(port2_2.assign(port2_1));
+
+    auto &mod3 = c.generator("child");
+    auto &port3_1 = mod3.port(PortDirection::In, "in", 1);
+    auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
+    mod3.add_stmt(port3_2.assign(port3_1));
+
+    auto &mod4 = c.generator("child");
+    auto &port4_1 = mod4.port(PortDirection::In, "in", 1);
+    auto &port4_2 = mod4.port(PortDirection::Out, "out", 1);
+    mod4.add_stmt(port4_2.assign(port4_1));
+
+    auto inputs = {port2_1.shared_from_this(), port3_1.shared_from_this(),
+                   port4_1.shared_from_this()};
+    auto mods = {&mod2, &mod3, &mod4};
+    auto count = 0;
+    for (auto mod: mods) {
+        mod1.add_child_generator("mod" + std::to_string(count++), mod->shared_from_this());
+    }
+    for (auto const &in: inputs) {
+        mod1.add_stmt(in->assign(port1_1));
+    }
+    mod1.add_stmt(port1_2.assign(port2_2 ^ port3_2 ^ port4_2));
+    fix_assignment_type(&mod1);
+    decouple_generator_ports(&mod1);
+    hash_generators_sequential(&mod1);
+    auto result = generate_verilog(&mod1);
+    auto mod_src = result.at("parent");
+    EXPECT_TRUE(mod_src.find("mod0_out ^ mod1_out ^ mod2_out") != std::string::npos);
+}
