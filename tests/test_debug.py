@@ -96,30 +96,19 @@ def test_seq_debug():
 
 
 def test_metadata():
-    def insert_io(m):
-        m.input("in", 1)
-        m.output("out", 1)
-        m.wire(m.ports.out, m.ports["in"])
-
-    mod1 = Generator("mod1", True)
-    insert_io(mod1)
-    mod2 = Generator("mod2", True)
-    insert_io(mod2)
-    mod1.add_child("child", mod2)
-    mod1.wire(mod2.ports["in"], mod1.ports["in"])
-    mod1.wire(mod1.output("out2", 1), mod2.ports.out)
+    mod = Generator("mod", True)
+    mod.input("in", 1)
+    mod.output("out", 1)
+    mod.wire(mod.ports.out, mod.ports["in"])
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(mod1, filename=filename, debug_db_filename=debug_db,
-                optimize_passthrough=False)
+        verilog(mod, filename=filename, debug_db_filename=debug_db)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
-        c.execute("SELECT * FROM connection")
-        conns = c.fetchall()
-        assert len(conns) == 2
-        assert conns[0][-1] == conns[0][1] and conns[0][1] == "in"
-        assert conns[1][-1] == "out2"
+        c.execute("SELECT value FROM metadata WHERE name = ?", ["top_name"])
+        value = c.fetchone()[0]
+        assert value == "mod"
 
 
 def test_context():
@@ -153,7 +142,7 @@ def test_context():
         assert len(variables) > 20
 
 
-def test_hierarchy():
+def test_hierarchy_conn():
     from functools import reduce
     mods = []
     num_child = 4
@@ -184,7 +173,10 @@ def test_hierarchy():
         c.execute("SELECT * FROM hierarchy")
         mods = c.fetchall()
         assert len(mods) == num_child
+        c.execute("SELECT * FROM connection")
+        conns = c.fetchall()
+        assert len(conns) == num_child - 1
 
 
 if __name__ == "__main__":
-    test_hierarchy()
+    test_hierarchy_conn()
