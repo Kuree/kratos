@@ -466,6 +466,9 @@ std::pair<bool, bool> correct_port_direction(Port *port1, Port *port2, Generator
         } else if (parent2 == top && top->has_child_generator(parent1->shared_from_this())) {
             check_direction(port1, port2, true);
             return {(port1->port_direction() == PortDirection::In), true};
+        } else if (parent1->parent() == parent2->parent() && parent1->parent() == top) {
+            check_direction(port1, port2, false);
+            return {!(port1->port_direction() == PortDirection::In), true};
         } else {
             return {false, false};
         }

@@ -169,7 +169,10 @@ def test_hierarchy():
     out_ = parent.output("out", 1)
     for i, mod in enumerate(mods):
         parent.add_child("mod{0}".format(i), mod)
-        parent.wire(mod.ports["in"], in_)
+        if i == 0:
+            continue
+        parent.wire(mod.ports["in"], mods[i - 1].ports.out)
+    parent.wire(mods[0].ports["in"], in_)
     parent.wire(out_, reduce(lambda a, b: a ^ b,
                              [mod.ports.out for mod in mods]))
     with tempfile.TemporaryDirectory() as temp:

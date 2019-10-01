@@ -816,7 +816,8 @@ private:
                 auto port = dynamic_cast<Port*>(dst_var);
                 if (port->port_direction() == PortDirection::In) {
                     auto context_g = dst_var->generator->parent();
-                    if (gen != context_g && gen->parent() != context_g) {
+                    if (gen != context_g && gen->parent() != context_g &&
+                        gen->parent() != context_g) {
                         throw VarException(
                             ::format("{0}.{1} cannot be wired to {2}.{3} because {0} is "
                                      "not a child generator of {2}",
@@ -827,7 +828,8 @@ private:
                     return;
                 }
             }
-            if (gen->parent() != generator || has_non_port(generator, var)) {
+            if ((gen->parent() != generator && gen->parent() != generator->parent()) ||
+                has_non_port(generator, var)) {
                 throw VarException(::format("{0}.{1} cannot be wired to {2}.{3} because {2} is "
                                             "not a child generator of {0}",
                                             generator->instance_name, dst_var->to_string(),
