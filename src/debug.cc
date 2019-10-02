@@ -174,17 +174,8 @@ void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {
 
 void DebugDatabase::set_variable_mapping(
     const std::map<Generator *, std::map<std::string, Var *>> &mapping) {
-    // we need to be careful about whether the top is included or not in the handle name
-    bool initialized = false;
-    bool has_top = false;
     for (auto const &[gen, map] : mapping) {
-        if (!initialized) {
-            auto handle_name = gen->handle_name();
-            has_top = handle_name.find(top_name_) == std::string::npos;
-            initialized = true;
-        }
         auto handle_name = gen->handle_name();
-        if (!has_top) handle_name = ::format("{0}.{1}", top_name_, handle_name);
 
         variable_mapping_.emplace(handle_name,
                                   std::make_pair(gen, std::map<std::string, std::string>()));
@@ -197,17 +188,8 @@ void DebugDatabase::set_variable_mapping(
 
 void DebugDatabase::set_generator_variable(
     const std::map<Generator *, std::map<std::string, std::string>> &values) {
-    bool initialized = false;
-    bool has_top = false;
     for (auto const &[gen, map] : values) {
-        if (!initialized) {
-            auto handle_name = gen->handle_name();
-            has_top = handle_name.find(top_name_) == std::string::npos;
-            initialized = true;
-        }
         auto handle_name = gen->handle_name();
-        if (!has_top) handle_name = ::format("{0}.{1}", top_name_, handle_name);
-
         for (auto const &[name, value] : map) {
             generator_values_[handle_name].emplace(name, value);
         }
