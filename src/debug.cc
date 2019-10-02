@@ -248,32 +248,41 @@ public:
         uint64_t child_count = generator->stmts_count();
         for (uint64_t i = 0; i < child_count; i++) {
             auto const stmt = generator->get_stmt(i);
-            if (stmt->type() == StatementType::Assign) {
-                auto assign = stmt->as<AssignStmt>();
-                auto const &left = assign->left();
-                auto const &right = assign->right();
-                // we only care about when the parent mismatch
-                auto left_gen = left->generator;
-                auto right_gen = right->generator;
-                // not interesting
-                if (left_gen == right_gen) continue;
-                if (left->type() != VarType::PortIO || right->type() != VarType::PortIO) continue;
-                auto const &left_port = left->as<Port>();
-                auto const &right_port = right->as<Port>();
-                bool is_left_from = true;
-                if (left_gen == generator) {
-                    is_left_from = left_port->port_direction() == PortDirection::In;
-                } else {
-                    is_left_from = right_port->port_direction() == PortDirection::In;
-                }
-                if (is_left_from) {
-                    connections_.emplace(
-                        std::make_pair(left_gen->handle_name(), left_port->to_string()),
-                        std::make_pair(right_gen->handle_name(), right_port->to_string()));
-                } else {
-                    connections_.emplace(
-                        std::make_pair(right_gen->handle_name(), right_port->to_string()),
-                        std::make_pair(left_gen->handle_name(), left_port->to_string()));
+            if (stmt->type() == StatementType::ModuleInstantiation) {
+                auto mod = stmt->as<ModuleInstantiationStmt>();
+                auto target = mod->target();
+                auto target_handle_name = target->handle_name();
+                auto mapping = mod->port_mapping();
+                for (auto [target_port, parent_var] : mapping) {
+                    // we ignore the constant connection
+                    if (parent_var->type() != VarType::PortIO) {
+                        if (target_port->port_direction() == PortDirection::In) {
+                            auto source = parent_var->sources();
+                            if (source.size() == 1) {
+                                parent_var = (*source.begin())->right();
+                            }
+                        } else {
+                            auto sink = parent_var->sinks();
+                            if (sink.size() == 1) {
+                                parent_var = (*sink.begin())->left();
+                            }
+                        }
+                    }
+                    if (parent_var->type() != VarType::PortIO) {
+                        continue;
+                    }
+                    auto gen = parent_var->generator;
+                    auto gen_handle = gen->handle_name();
+                    // the direction is var -> var
+                    if (target_port->port_direction() == PortDirection::In) {
+                        connections_.emplace(
+                            std::make_pair(gen_handle, parent_var->to_string()),
+                            std::make_pair(target_handle_name, target_port->to_string()));
+                    } else {
+                        connections_.emplace(
+                            std::make_pair(target_handle_name, target_port->to_string()),
+                            std::make_pair(gen_handle, parent_var->to_string()));
+                    }
                 }
             }
         }

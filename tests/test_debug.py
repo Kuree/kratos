@@ -162,8 +162,9 @@ def test_hierarchy_conn():
             continue
         parent.wire(mod.ports["in"], mods[i - 1].ports.out)
     parent.wire(mods[0].ports["in"], in_)
-    parent.wire(out_, reduce(lambda a, b: a ^ b,
-                             [mod.ports.out for mod in mods]))
+    comb = parent.combinational()
+    comb.add_stmt(out_.assign(reduce(lambda a, b: a ^ b,
+                              [mod.ports.out for mod in mods])))
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
@@ -175,7 +176,8 @@ def test_hierarchy_conn():
         assert len(mods) == num_child
         c.execute("SELECT * FROM connection")
         conns = c.fetchall()
-        assert len(conns) == num_child - 1
+        # plus 2 because in and out from parent to mod0 and mod3
+        assert len(conns) == num_child - 1 + 2
 
 
 if __name__ == "__main__":
