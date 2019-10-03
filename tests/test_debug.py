@@ -180,5 +180,34 @@ def test_hierarchy_conn():
         assert len(conns) == num_child - 1 + 2
 
 
+def test_clock_interaction():
+    mods = []
+    num_child = 4
+    for i in range(num_child):
+        mod = Generator("mod", True)
+        in_ = mod.input("in", 1)
+        out_ = mod.output("out", 1)
+        clk = mod.clock("clk")
+        seq = mod.sequential((posedge, clk))
+        seq.add_stmt(out_.assign(in_))
+        mods.append(mod)
+    parent = Generator("parent", True)
+    clk = parent.clock("clk")
+    in_ = parent.input("in", 1)
+    out = parent.output("out", 1)
+    for i, mod in enumerate(mods):
+        parent.add_child("mod{0}".format(i), mod)
+        parent.wire(mod.ports.clk, clk)
+        if i == 0:
+            continue
+        parent.wire(mod.ports["in"], mods[i - 1].ports.out)
+    parent.wire(mods[0].ports["in"], in_)
+    parent.wire(out, mods[-1].ports.out)
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        filename = os.path.join(temp, "test.sv")
+        verilog(parent, filename=filename, debug_db_filename=debug_db)
+
+
 if __name__ == "__main__":
-    test_hierarchy_conn()
+    test_clock_interaction()

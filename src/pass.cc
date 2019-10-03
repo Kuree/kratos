@@ -2278,6 +2278,8 @@ void PassManager::register_builtin_passes() {
 
     register_pass("inject_debug_break_points", &inject_debug_break_points);
 
+    register_pass("inject_clock_break_points", &inject_clock_break_points);
+
     register_pass("insert_verilator_public", &insert_verilator_public);
 
     register_pass("check_always_sensitivity", &check_always_sensitivity);

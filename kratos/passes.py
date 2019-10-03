@@ -64,6 +64,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     # insert debug break points if needed
     if debug_db_filename:
         pass_manager.add_pass("inject_debug_break_points")
+        pass_manager.add_pass("inject_clock_break_points")
     if use_parallel:
         pass_manager.add_pass("hash_generators_parallel")
     else:
