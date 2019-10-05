@@ -52,7 +52,7 @@ private:
 class SystemVerilogCodeGen {
 public:
     explicit SystemVerilogCodeGen(Generator* generator);
-    SystemVerilogCodeGen(Generator* generator, std::string header_name);
+    SystemVerilogCodeGen(Generator* generator, std::string package_name, std::string header_name);
 
     inline std::string str() {
         output_module_def(generator_);
@@ -74,6 +74,7 @@ private:
     Generator* generator_;
     bool skip_indent_ = false;
     std::unordered_map<StmtBlock*, std::string> label_index_;
+    std::string package_name_;
     std::string header_include_name_;
 
 protected:

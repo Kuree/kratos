@@ -79,34 +79,39 @@ def verilog(generator: Generator, optimize_if: bool = True,
     if output_dir is not None:
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
+        package_name = generator.internal_generator.name + "_pkg"
         _kratos.passes.generate_verilog(generator.internal_generator,
-                                        output_dir, "definition", debug)
-        # hijack the flow if output_dir is specified
-        return
-    src = code_gen.verilog_src()
-    result = [src]
-    if debug:
-        info = _kratos.passes.extract_debug_info(generator.internal_generator)
-        result.append(info)
+                                        output_dir,
+                                        package_name,
+                                        debug)
+        r = None
     else:
-        info = {}
+        src = code_gen.verilog_src()
+        result = [src]
+        gen = generator.internal_generator
+        if debug:
+            info = _kratos.passes.extract_debug_info(gen)
+            result.append(info)
+        else:
+            info = {}
 
-    if extract_struct or filename:
-        struct_info = _kratos.passes.extract_struct_info(
-            generator.internal_generator)
-        if extract_struct:
-            result.append(struct_info)
-    else:
-        struct_info = {}
+        if extract_struct or filename:
+            struct_info = _kratos.passes.extract_struct_info(
+                generator.internal_generator)
+            if extract_struct:
+                result.append(struct_info)
+        else:
+            struct_info = {}
 
-    # dpi info
-    dpi_func = _kratos.passes.extract_dpi_function(generator.internal_generator,
-                                                   int_dpi_interface)
-    if len(dpi_func) > 0:
-        result.append(dpi_func)
+        # dpi info
+        dpi_func = _kratos.passes.extract_dpi_function(gen, int_dpi_interface)
+        if len(dpi_func) > 0:
+            result.append(dpi_func)
 
-    if filename is not None:
-        output_verilog(filename, src, info, struct_info, dpi_func)
+        if filename is not None:
+            output_verilog(filename, src, info, struct_info, dpi_func)
+
+        r = result[0] if len(result) == 1 else result
 
     # debug database
     if debug_db_filename:
@@ -114,7 +119,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
                             generator.internal_generator.handle_name(),
                             debug_db_filename)
 
-    return result[0] if len(result) == 1 else result
+    return r
 
 
 def output_verilog(filename, mod_src, info, struct_info, dpi_func):

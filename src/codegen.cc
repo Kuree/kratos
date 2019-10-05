@@ -103,10 +103,12 @@ std::map<std::string, std::string> VerilogModule::verilog_src() {
 }
 
 SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
-    : SystemVerilogCodeGen(generator, "") {}
+    : SystemVerilogCodeGen(generator, "", "") {}
 
-SystemVerilogCodeGen::SystemVerilogCodeGen(kratos::Generator* generator, std::string header_name)
+SystemVerilogCodeGen::SystemVerilogCodeGen(kratos::Generator* generator, std::string package_name,
+                                           std::string header_name)
     : generator_(generator),
+      package_name_(std::move(package_name)),
       header_include_name_(std::move(header_name)),
       stream_(generator, this) {
     // if it's an external file, we don't output anything
@@ -122,6 +124,8 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
         // two line indent
         stream_ << "`include \"" << header_include_name_ << "\"" << stream_.endl()
                 << stream_.endl();
+        // import everything
+        stream_ << "import " << package_name_ << "::*;" << stream_.endl();
     }
 
     stream_ << ::format("module {0} (", generator->name) << stream_.endl();

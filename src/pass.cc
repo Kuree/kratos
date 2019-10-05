@@ -454,8 +454,13 @@ std::map<std::string, std::string> generate_verilog(Generator* top) {
     return result;
 }
 
-void generate_verilog(Generator* top, const std::string& output_dir, const std::string& header_name,
-                      bool debug) {
+void generate_verilog(Generator* top, const std::string& output_dir,
+                      const std::string& package_name, bool debug) {
+    // input check
+    if (package_name == top->name) {
+        throw UserException(
+            ::format("Package name cannot be the same as module name ({0}", top->name));
+    }
     // this pass assumes that all the generators has been uniquified
     // first get all the unique generators
     UniqueGeneratorVisitor unique_visitor;
@@ -463,10 +468,10 @@ void generate_verilog(Generator* top, const std::string& output_dir, const std::
     unique_visitor.visit_generator_root_p(top);
     auto const& generator_map = unique_visitor.generator_map();
     // we use header_name + ".svh"
-    std::string header_filename = header_name + ".svh";
+    std::string header_filename = package_name + ".svh";
     std::map<std::string, std::string> result;
     for (const auto& [module_name, module_gen] : generator_map) {
-        SystemVerilogCodeGen codegen(module_gen, header_filename);
+        SystemVerilogCodeGen codegen(module_gen, package_name, header_filename);
         result.emplace(module_name, codegen.str());
     }
     // write out the content to the output_dir
@@ -524,10 +529,21 @@ void generate_verilog(Generator* top, const std::string& output_dir, const std::
 
     // we will write out the dpi and struct ones to the header file
     // this is to ensure everything will be set if this function is called
+    // output the guard
     auto struct_info = extract_struct_info(top);
     auto dpi_info = extract_dpi_function(top, true);
     header_filename = kratos::fs::join(output_dir, header_filename);
     std::stringstream stream;
+    // output the guard
+    std::string guard_name = "kratos_" + package_name;
+    // make it upper case
+    std::for_each(guard_name.begin(), guard_name.end(),
+                  [](char& c) { c = static_cast<char>(::toupper(c)); });
+    stream << "`ifndef " << guard_name << std::endl;
+    stream << "`define " << guard_name << std::endl;
+    // package header
+    stream << "package " << package_name << ";" << std::endl;
+
     for (auto const& iter : dpi_info) {
         // this is an ordered map
         stream << iter.second << std::endl << std::endl;
@@ -536,6 +552,12 @@ void generate_verilog(Generator* top, const std::string& output_dir, const std::
         // ordered map as well
         stream << iter.second << std::endl << std::endl;
     }
+
+    // closing
+    stream << "endpackage" << std::endl;
+    // end of guard
+    stream << "`endif" << std::endl;
+
     // compare it with the old one, if exists. this is for incremental build
     auto def_str = stream.str();
     if (kratos::fs::exists(header_filename)) {

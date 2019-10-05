@@ -52,7 +52,7 @@ void check_inferred_latch(Generator *top);
 std::map<std::string, std::string> generate_verilog(Generator* top);
 // this function outputs every module into a single file in the targeted direction
 // if header filename is not empty,
-void generate_verilog(Generator* top, const std::string& output_dir, const std::string& header_name,
+void generate_verilog(Generator* top, const std::string& output_dir, const std::string& package_name,
                       bool debug);
 
 std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>

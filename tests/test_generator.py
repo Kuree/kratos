@@ -535,7 +535,7 @@ def test_packed_struct():
         import json
         with open(os.path.join(temp, "mod.sv.debug")) as f:
             json.load(f)
-        assert os.path.isfile(os.path.join(temp, "definition.svh"))
+        assert os.path.isfile(os.path.join(temp, "mod_pkg.svh"))
 
 
 def test_more_debug1():
@@ -1216,4 +1216,4 @@ def test_async_latch():
 
 
 if __name__ == "__main__":
-    test_for_loop()
+    test_packed_struct()
