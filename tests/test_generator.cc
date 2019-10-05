@@ -684,6 +684,7 @@ TEST(generator, active_low) {  // NOLINT
     auto &mod = c.generator("mod");
     auto &rst = mod.port(PortDirection::In, "reset", 1, 1, PortType::AsyncReset, false);
     auto seq = mod.sequential();
+    rst.set_active_high(true);
     seq->add_condition({BlockEdgeType::Negedge, rst.shared_from_this()});
     EXPECT_THROW(check_active_high(&mod), VarException);
 }

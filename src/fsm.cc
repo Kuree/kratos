@@ -151,7 +151,8 @@ void FSM::realize() {
     //   current_state <= next_state
     auto seq = generator_->sequential();
     seq->add_condition({BlockEdgeType::Posedge, clk_});
-    if (reset_->type() == VarType::PortIO && !reset_->as<Port>()->active_high())
+    if (reset_->type() == VarType::PortIO &&
+        (reset_->as<Port>()->active_high() && !(*reset_->as<Port>()->active_high())))
         seq->add_condition({BlockEdgeType::Negedge, reset_});
     else
         seq->add_condition({BlockEdgeType::Posedge, reset_});

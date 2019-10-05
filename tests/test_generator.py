@@ -92,7 +92,7 @@ class AsyncReg(Generator):
 
     @always((posedge, "clk"), (posedge, "rst"))
     def seq_code_block(self):
-        if ~self._rst:
+        if self._rst:
             self._val = 0
         else:
             self._val = self._in

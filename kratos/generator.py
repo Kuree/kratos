@@ -363,13 +363,15 @@ class Generator(metaclass=GeneratorMeta):
             p.add_fn_ln(get_fn_ln())
         return p
 
-    def reset(self, name, is_input=True, is_async=True):
+    def reset(self, name, is_input=True, is_async=True, active_high=None):
         direction = PortDirection.In if is_input else PortDirection.Out
         reset = PortType.AsyncReset if is_async else PortType.Reset
         p = self.__generator.port(direction.value, name, 1, 1, reset.value,
                                   False)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
+        if active_high is not None:
+            p.active_high = active_high
         return p
 
     def output(self, name, width, port_type: PortType = PortType.Data,

@@ -8,7 +8,7 @@ module register (
 logic  [15:0] val;
 
 always_ff @(posedge clk, posedge rst) begin
-  if (~rst) begin
+  if (rst) begin
     val <= 16'h0;
   end
   else val <= in;

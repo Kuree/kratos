@@ -886,6 +886,11 @@ void check_non_synthesizable_content(Generator* top) {
 }
 
 class ActiveVisitor : public IRVisitor {
+    // we can be very clever about how to detect the wrong negative
+    // 1. we determine the activate low or high from the sequential conditions
+    // 2. whenever we meet a if reset statement, we check it against it
+    //    because if the async reset is used properly, we will determine the port type first first
+    //    if the port is used as an sync reset, the port active type will be undefined.
 public:
     void visit(IfStmt* stmt) override {
         auto predicate = stmt->predicate();
@@ -893,22 +898,49 @@ public:
         // thus is designed to be zero false negative
         if (predicate->type() == VarType::PortIO) {
             auto port = predicate->as<Port>();
-            if (!port->active_high()) {
-                throw VarException(
-                    ::format("Active low signal should be used as if (~{0})", port->to_string()),
-                    {port.get(), stmt});
+            if (port->port_type() == PortType::AsyncReset) {
+                if (reset_map_.find(port.get()) == reset_map_.end()) {
+                    // it's used as a sync reset
+                    throw VarException(
+                        ::format("{0} is used has a synchronous reset", port->to_string()),
+                        {port.get(), stmt});
+                }
+                bool reset_high = reset_map_.at(port.get());
+                if (!reset_high)
+                    throw VarException("Active low signal used as active high", {port.get(), stmt});
+            } else if (port->port_type() == PortType::Reset) {
+                if (reset_map_.find(port.get()) != reset_map_.end()) {
+                    throw VarException(::format("{0} is synchronous reset but used as async reset",
+                                                port->to_string()),
+                                       {port.get(), stmt, reset_stmt_.at(port.get())});
+                }
             }
         } else if (predicate->type() == VarType::Expression) {
             auto expr = predicate->as<Expr>();
-            if (expr->op == ExprOp::UNot) {
+            if (expr->op == ExprOp::UNot || expr->op == ExprOp::UInvert) {
                 auto var = expr->left->as<Var>();
                 if (var->type() == VarType::PortIO) {
                     auto port = var->as<Port>();
-                    if (port->active_high())
-                        throw VarException(
-                            ::format("Active high signal shouldn't be used as if (~{0})",
-                                     port->to_string()),
-                            {port.get(), stmt});
+                    if (port->port_type() == PortType::AsyncReset) {
+                        if (reset_map_.find(port.get()) == reset_map_.end()) {
+                            // it's used as a sync reset
+                            throw VarException(
+                                ::format("{0} is used has a synchronous reset", port->to_string()),
+                                {port.get(), stmt});
+                        }
+                        bool reset_high = reset_map_.at(port.get());
+                        if (reset_high) {
+                            throw VarException("Active high signal used as active low",
+                                               {port.get(), stmt});
+                        }
+                    } else if (port->port_type() == PortType::Reset) {
+                        if (reset_map_.find(port.get()) != reset_map_.end()) {
+                            throw VarException(
+                                ::format("{0} is synchronous reset but used as async reset",
+                                         port->to_string()),
+                                {port.get(), stmt, reset_stmt_.at(port.get())});
+                        }
+                    }
                 }
             }
         }
@@ -919,20 +951,43 @@ public:
         for (auto const& [t, v] : sensitivity) {
             if (v->type() == VarType::PortIO) {
                 auto port = v->as<Port>();
-                if (port->active_high() && t == BlockEdgeType::Negedge) {
+                if (port->port_type() == PortType::AsyncReset) {
+                    auto reset_high = t == BlockEdgeType::Posedge;
+                    // check if we have reset edge set
+                    if (port->active_high()) {
+                        if (reset_high != (*port->active_high())) {
+                            throw VarException(
+                                ::format("{0} is declared reset {1} but is used as reset {2}",
+                                         port->to_string(), reset_high ? "high" : "low",
+                                         reset_high ? "high" : "low"),
+                                {port.get(), stmt});
+                        }
+                    }
+                    if (reset_map_.find(port.get()) != reset_map_.end()) {
+                        // check consistency
+                        if (reset_map_.at(port.get()) != reset_high) {
+                            throw VarException(
+                                ::format("Inconsistent active low/high usage for {0}",
+                                         port->to_string()),
+                                {port.get(), stmt, reset_stmt_.at(port.get())});
+                        }
+                    } else {
+                        reset_map_.emplace(std::make_pair(port.get(), reset_high));
+                        reset_map_.emplace(std::make_pair(port.get(), stmt));
+                    }
+                } else if (port->port_type() == PortType::Reset) {
                     throw VarException(
-                        ::format("{0}.{1} is declared as active high, but is used as active low",
-                                 v->generator->instance_name, port->to_string()),
-                        {port.get(), stmt});
-                } else if (!port->active_high() && t == BlockEdgeType::Posedge) {
-                    throw VarException(
-                        ::format("{0}.{1} is declared as active low, but is used as active high",
-                                 v->generator->instance_name, port->to_string()),
+                        ::format("{0} is used as async reset but is declared synchronous",
+                                 port->to_string()),
                         {port.get(), stmt});
                 }
             }
         }
     }
+
+private:
+    std::unordered_map<Port*, bool> reset_map_;
+    std::unordered_map<Port*, Stmt*> reset_stmt_;
 };
 
 void check_active_high(Generator* top) {
