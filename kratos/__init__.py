@@ -4,7 +4,7 @@ from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
 
 from .passes import Attribute, verilog
 from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
-    concat, zext, mux, ternary, signed, const, comment
+    concat, zext, mux, ternary, signed, const, comment, unsigned
 
 from .ports import PortBundle
 from .tb import TestBench, assert_, delay
@@ -27,7 +27,7 @@ posedge = BlockEdgeType.Posedge
 negedge = BlockEdgeType.Negedge
 
 __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
-           "verilog", "signed", "const", "is_valid_verilog", "VarException",
+           "verilog", "const", "is_valid_verilog", "VarException",
            "StmtException", "IRVisitor", "FSM", "FSMState", "initial",
            "Sequence", "TestBench", "assert_", "delay", "enable_runtime_debug"]
 
@@ -38,7 +38,7 @@ __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
 
 # utils
 __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",
-            "concat", "zext", "comment"]
+            "concat", "zext", "comment", "signed", "unsigned"]
 
 # type aliasing
 __all__ += ["BlockEdgeType", "posedge", "negedge", "mux", "ternary"]

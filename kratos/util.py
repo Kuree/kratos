@@ -109,6 +109,7 @@ def mux(cond, left, right):
 
 class VarCastType(enum.Enum):
     Signed = _kratos.VarCastType.Signed
+    Unsigned = _kratos.VarCastType.Unsigned
     Clock = _kratos.VarCastType.Clock
     AsyncReset = _kratos.VarCastType.AsyncReset
 
@@ -120,6 +121,10 @@ def cast(var, cast_type):
 
 def signed(var):
     return cast(var, VarCastType.Signed)
+
+
+def unsigned(var):
+    return cast(var, VarCastType.Unsigned)
 
 
 def clock(var):

@@ -52,7 +52,7 @@ bool is_relational_op(ExprOp op);
 
 enum VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted };
 
-enum VarCastType { Signed, Clock, AsyncReset };
+enum VarCastType { Signed, Unsigned, Clock, AsyncReset };
 
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:

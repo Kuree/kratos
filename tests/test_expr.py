@@ -1,4 +1,4 @@
-from kratos import Generator, signed
+from kratos import Generator, signed, unsigned
 from kratos.util import reduce_or, Const, const
 
 
@@ -33,7 +33,14 @@ def test_signed():
     mod = Generator("module")
     a = mod.var("a", 2)
     c = signed(a)
-    assert str(c) == "$signed(a)"
+    assert str(c) == "signed'(a)"
+
+
+def test_unsigned():
+    mod = Generator("module")
+    a = mod.var("a", 2, is_signed=True)
+    c = unsigned(a)
+    assert str(c) == "unsigned'(a)"
 
 
 def test_reduce_or():
