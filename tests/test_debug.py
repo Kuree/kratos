@@ -185,16 +185,16 @@ def test_clock_interaction():
     num_child = 4
     for i in range(num_child):
         mod = Generator("mod", True)
-        in_ = mod.input("in", 1)
-        out_ = mod.output("out", 1)
+        in_ = mod.input("in", 4)
+        out_ = mod.output("out", 4)
         clk = mod.clock("clk")
         seq = mod.sequential((posedge, clk))
         seq.add_stmt(out_.assign(in_))
         mods.append(mod)
     parent = Generator("parent", True)
     clk = parent.clock("clk")
-    in_ = parent.input("in", 1)
-    out = parent.output("out", 1)
+    in_ = parent.input("in", 4)
+    out = parent.output("out", 4)
     for i, mod in enumerate(mods):
         parent.add_child("mod{0}".format(i), mod)
         parent.wire(mod.ports.clk, clk)
