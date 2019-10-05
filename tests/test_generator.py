@@ -52,12 +52,13 @@ def check_file(src_str, gold_filename):
                         gold_filename)
     with open(gold) as f:
         gold_text = f.read()
+        if os.path.isfile(src_str):
+            with open(src_str) as ff:
+                src_str = ff.read()
         if src_str != gold_text:
             print(src_str)
             print("-" * 80)
             print(gold_text)
-            with open("test.dot", "w") as ff:
-                ff.write(src_str)
             assert False
 
 
@@ -528,14 +529,17 @@ def test_packed_struct():
     check_gold(mod, "test_packed_struct", optimize_passthrough=False)
     Generator.clear_context()
     mod = Mod(True)
+    mod.name = "packed_struct"
     with tempfile.TemporaryDirectory() as temp:
         verilog(mod, output_dir=temp, debug=True)
-        assert os.path.isfile(os.path.join(temp, "mod.sv"))
-        assert os.path.isfile(os.path.join(temp, "mod.sv.debug"))
+        mod_file = os.path.join(temp, "packed_struct.sv")
+        def_file = os.path.join(temp, "packed_struct_pkg.svh")
         import json
-        with open(os.path.join(temp, "mod.sv.debug")) as f:
+        # json is correct
+        with open(os.path.join(temp, "packed_struct.sv.debug")) as f:
             json.load(f)
-        assert os.path.isfile(os.path.join(temp, "mod_pkg.svh"))
+        check_file(mod_file, "packed_struct_pkg.sv")
+        check_file(def_file, "packed_struct_pkg.svh")
 
 
 def test_more_debug1():
