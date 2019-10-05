@@ -7,8 +7,7 @@ Kratos is a hardware design language written in C++/Python. It
 differentiates itself from other DSL with the following design
 philosophy:
 
-- Fully debuggable: users can see a trace of every passes on
-  every verilog statement.
+- Fully debuggable: debug hardware just like debugging Python code!
 - Highly efficient: Python frontend powered by
   Modern C++ binding. Designed with multi-processing in mind.
 - Human-readable verilog: we know how difficult it is to read machine
@@ -72,7 +71,7 @@ specify the sensitivity of the ``always`` block when defining
 
            self.add_code(self.comb_code_block)
 
-       @always((Posedge, "clk"), (Posedge, "rst"))
+       @always((posedge, "clk"), (posedge, "rst"))
        def seq_code_block(self):
            if self._rst:
                self._val = 0
@@ -287,11 +286,15 @@ kratos provides.
 
 `kratos-dpi <https://github.com/Kuree/kratos-dpi>`__ is a DPI plugin that
 allows users to run arbitrary Python code to emulate a SystemVerilog function.
-This is extremely helpful for rapid prototyping and testing. 
+This is extremely helpful for rapid prototyping and testing.
 
 `kratos-runtime <https://github.com/Kuree/kratos-runtime>`__ is a necessary
 component if you want to debug kratos with standard simulators. It supports
-value inspectiion and breakpoints.
+value inspection and breakpoints.
+
+`kratos-vscode <https://github.com/Kuree/kratos-vscode>`__ is a Visual Studio
+Code extension that allows user to debug with Kratos. The simulator has to be
+loaded with ``kratos-runtime``.
 
 .. |Build Status| image:: https://travis-ci.com/Kuree/kratos.svg?branch=master
    :target: https://travis-ci.com/Kuree/kratos
