@@ -56,16 +56,15 @@ enum VarCastType { Signed, Unsigned, Clock, AsyncReset };
 
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
-    Var(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed);
-    Var(Generator *m, const std::string &name, uint32_t width, uint32_t size, bool is_signed,
+    Var(Generator *m, const std::string &name, uint32_t var_width, uint32_t size, bool is_signed);
+    Var(Generator *m, const std::string &name, uint32_t var_width, uint32_t size, bool is_signed,
         VarType type);
 
     std::string name;
-    uint32_t &width() { return width_; };
     uint32_t &var_width() { return var_width_; }
     uint32_t &size() { return size_; }
     bool &is_signed() { return is_signed_; };
-    uint32_t width() const { return width_; };
+    uint32_t width() const { return var_width_ * size_; };
     uint32_t var_width() const { return var_width_; }
     uint32_t size() const { return size_; }
     bool is_signed() const { return is_signed_; };
@@ -174,7 +173,6 @@ public:
     ~Var() override = default;
 
 protected:
-    uint32_t width_;
     uint32_t var_width_;
     uint32_t size_;
     bool is_signed_;

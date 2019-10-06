@@ -292,11 +292,6 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
             "width", [](Var &var) { return var.var_width(); },
             [](Var &var, uint32_t width) {
                 var.var_width() = width;
-                if (var.size() == 1) {
-                    var.width() = width;
-                } else {
-                    var.width() = var.size() * width;
-                }
             })
         .def_property(
             "signed", [](Var &v) { return v.is_signed(); },
