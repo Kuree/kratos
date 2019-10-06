@@ -57,3 +57,17 @@ def test_const():
     b = const(2, 4)
     assert str(a) == str(b)
     assert str(a) == "4'h2"
+
+
+def test_width():
+    mod = Generator("module", True)
+    a = mod.var("a", 1)
+    a.width = 2
+    file_names = list(a.fn_name_ln)
+    assert len(file_names) == 2
+    assert file_names[0][0] == file_names[1][0]
+    assert abs(file_names[0][1] - file_names[1][1]) == 1
+
+
+if __name__ == "__main__":
+    test_width()

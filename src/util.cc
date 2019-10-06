@@ -457,5 +457,14 @@ std::string get_ext(const std::string &filename) {
 #endif
 }
 
+std::string abspath(const std::string &filename) {
+#if defined(__linux__)
+    return std::filesystem::absolute(filename);
+#else
+    auto path = realpath(filename.c_str(), nullptr);
+    return std::string(path);
+#endif
+}
+
 }  // namespace fs
 }

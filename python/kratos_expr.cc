@@ -1,6 +1,7 @@
 #include "kratos_expr.hh"
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
+#include <pybind11/cast.h>
 #include "kratos_debug.hh"
 
 namespace py = pybind11;
@@ -292,6 +293,21 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
             "width", [](Var &var) { return var.var_width(); },
             [](Var &var, uint32_t width) {
                 var.var_width() = width;
+                if (var.generator->debug) {
+                    // get caller frame info
+                    PyFrameObject *frame = PyThreadState_Get()->frame;
+                    if (frame->f_back) {
+                        auto line_num = PyFrame_GetLineNumber(frame);
+                        struct py::detail::string_caster<std::string> repr;
+                        py::handle handle(frame->f_code->co_filename);
+                        repr.load(handle, true);
+                        if (repr) {
+                            // resolve full path
+                            std::string filename = fs::abspath(repr);
+                            var.fn_name_ln.emplace_back(std::make_pair(filename, line_num));
+                        }
+                    }
+                }
             })
         .def_property(
             "signed", [](Var &v) { return v.is_signed(); },

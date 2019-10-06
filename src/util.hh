@@ -68,6 +68,7 @@ bool exists(const std::string &filename);
 bool remove(const std::string &filename);
 std::string temp_directory_path();
 std::string get_ext(const std::string &filename);
+std::string abspath(const std::string &filename);
 }  // namespace fs
 }  // namespace kratos
 
