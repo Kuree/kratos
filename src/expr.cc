@@ -154,15 +154,15 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
         throw VarException(::format("low ({0}) cannot be larger than ({1})", low, high), {this});
     }
     // if the size is not 1, we are slicing off size, not width
-    if (size == 1) {
-        if (high >= width) {
+    if (size_ == 1) {
+        if (high >= width_) {
             throw VarException(
-                ::format("high ({0}) has to be smaller than width ({1})", high, width), {this});
+                ::format("high ({0}) has to be smaller than width ({1})", high, width_), {this});
         }
     } else {
-        if (high > size) {
-            throw VarException(::format("high ({0}) has to be smaller than size ({1})", high, size),
-                               {this});
+        if (high > size_) {
+            throw VarException(
+                ::format("high ({0}) has to be smaller than size ({1})", high, size_), {this});
         }
     }
     // create a new one
@@ -207,9 +207,7 @@ std::string Var::handle_name(bool ignore_top) const {
         return to_string();
 }
 
-void Var::set_width_param(const std::shared_ptr<Param> &param) {
-    set_width_param(param.get());
-}
+void Var::set_width_param(const std::shared_ptr<Param> &param) { set_width_param(param.get()); }
 
 void Var::set_width_param(kratos::Param *param) {
     // set width to the current param value
@@ -219,48 +217,48 @@ void Var::set_width_param(kratos::Param *param) {
                                     param->to_string()),
                            {param});
     }
-    width = param->value();
+    width_ = param->value();
     param_ = param;
 }
 
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
-    : Var(parent->generator, "", parent->var_width, 1, parent->is_signed, VarType::Slice),
+    : Var(parent->generator, "", parent->var_width(), 1, parent->is_signed(), VarType::Slice),
       parent_var(parent),
       low(low),
       high(high),
       op_({high, low}) {
     // compute the width
-    if (parent->size == 1) {
+    if (parent->size() == 1) {
         // this is the actual slice
-        width = high - low + 1;
-        var_width = width;
+        width_ = high - low + 1;
+        var_width_ = width_;
     } else {
-        size = high - low + 1;
-        var_width = parent->var_width;
-        width = size * var_width;
+        size_ = high - low + 1;
+        var_width_ = parent->var_width();
+        width_ = size_ * var_width_;
     }
     // compute the var high and var_low
     if (parent->type() != VarType::Slice) {
         // use width to compute
-        if (parent->size == 1) {
+        if (parent->size() == 1) {
             var_low_ = low;
             var_high_ = high;
         } else {
-            var_low_ = low * parent->var_width;
-            var_high_ = (high + 1) * parent->var_width - 1;
+            var_low_ = low * parent->var_width();
+            var_high_ = (high + 1) * parent->var_width() - 1;
         }
     } else {
         // it's a slice
-        if (parent->size == 1) {
+        if (parent->size() == 1) {
             auto slice = dynamic_cast<VarSlice *>(parent);
             var_low_ = low + slice->var_low();
             var_high_ = (high + 1) + slice->var_low();
         } else {
             auto slice = dynamic_cast<VarSlice *>(parent);
-            var_low_ = slice->var_low() + low * parent->var_width;
-            var_high_ = slice->var_low() + (high + 1) * parent->var_width - 1;
+            var_low_ = slice->var_low() + low * parent->var_width();
+            var_high_ = slice->var_low() + (high + 1) * parent->var_width() - 1;
         }
     }
 }
@@ -291,27 +289,27 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
     // there is an issue about the var_high and var_low; the problem will only show up during
     // the connectivity check
     // TODO: fix this
-    if (parent->size == 1) {
+    if (parent->size() == 1) {
         // slice through the 1D array
         // so the width will be 1
-        width = 1;
-        var_width = 1;
-        size = 1;
+        width_ = 1;
+        var_width_ = 1;
+        size_ = 1;
         var_high_ = 0;
         var_low_ = 0;
     } else {
-        var_width = parent->var_width;
-        width = var_width;
-        size = 1;
-        var_high_ = var_width - 1;
+        var_width_ = parent->var_width();
+        width_ = var_width_;
+        size_ = 1;
+        var_high_ = var_width_ - 1;
         var_low_ = 0;
         // we need to compute the clog2 here
-        uint32_t required_width = std::ceil(std::log2(parent->size));
-        if (required_width != sliced_var_->width) {
+        uint32_t required_width = std::ceil(std::log2(parent->size()));
+        if (required_width != sliced_var_->width()) {
             // error message copied from verilator
             throw VarException(
                 ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
-                         parent->size - 1, required_width, sliced_var_->width),
+                         parent->size() - 1, required_width, sliced_var_->width()),
                 {parent, slice});
         }
     }
@@ -332,47 +330,47 @@ std::string VarVarSlice::to_string() const {
 }
 
 Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
-    : Var(left->generator, "", left->width / left->size, left->size, left->is_signed),
+    : Var(left->generator, "", left->width() / left->size(), left->size(), left->is_signed()),
       op(op),
       left(left),
       right(right) {
     if (left == nullptr) throw UserException("left operand is null");
 
-    if (right != nullptr && left->width != right->width)
+    if (right != nullptr && left->width() != right->width())
         throw VarException(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
-                     left->to_string(), left->width, right->to_string(), right->width),
+                     left->to_string(), left->width(), right->to_string(), right->width()),
             {left.get(), right.get()});
     // check parametrization
     param_ = const_cast<Param *>(left->param());
     if (right != nullptr && right->param() != param_) {
         if (left->type() == VarType::ConstValue) {
-            param_ = const_cast<Param*>(right->param());
+            param_ = const_cast<Param *>(right->param());
         } else if (right->type() != VarType::ConstValue) {
             throw VarException(
-                ::format(
-                    "left ({0}) is parametrized with ({1}) yet right ({2}) is parametrized with {3}",
-                    left->to_string(), param_ ? param_->to_string() : "NULL", right->to_string(),
-                    right->param() ? right->param()->to_string() : "NULL"),
+                ::format("left ({0}) is parametrized with ({1}) yet right ({2}) is parametrized "
+                         "with {3}",
+                         left->to_string(), param_ ? param_->to_string() : "NULL",
+                         right->to_string(), right->param() ? right->param()->to_string() : "NULL"),
                 {left.get(), right.get(), param_, right->param()});
         }
     }
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op))
-        width = 1;
+        width_ = 1;
     else
-        width = left->width;
+        width_ = left->width();
 
     if (right != nullptr)
-        is_signed = left->is_signed & right->is_signed;
+        is_signed_ = left->is_signed() & right->is_signed();
     else
-        is_signed = left->is_signed;
+        is_signed_ = left->is_signed();
     type_ = VarType::Expression;
     set_parent();
 }
 
 Expr::Expr(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right)
-    : Var(left->generator, "", left->width / left->size, left->size, left->is_signed),
+    : Var(left->generator, "", left->width() / left->size(), left->size(), left->is_signed()),
       op(ExprOp::Add),
       left(left),
       right(std::move(right)) {
@@ -415,11 +413,11 @@ Var::Var(Generator *module, const std::string &name, uint32_t width, uint32_t si
          VarType type)
     : IRNode(IRNodeKind::VarKind),
       name(name),
-      width(width * size),
-      var_width(width),
-      size(size),
-      is_signed(is_signed),
       generator(module),
+      width_(width * size),
+      var_width_(width),
+      size_(size),
+      is_signed_(is_signed),
       type_(type) {
     // only constant allows to be null generator
     if (module == nullptr && type != VarType::ConstValue)
@@ -505,19 +503,19 @@ std::unordered_set<std::shared_ptr<Const>> Const::consts_ = {};
 std::shared_ptr<Generator> Const::const_generator_ = nullptr;
 
 VarCasted::VarCasted(Var *parent, VarCastType cast_type)
-    : Var(parent->generator, "", parent->width, true, parent->type()),
+    : Var(parent->generator, "", parent->width(), true, parent->type()),
       parent_var_(parent),
       cast_type_(cast_type) {
     type_ = VarType::BaseCasted;
     if (cast_type_ == Signed) {
-        is_signed = true;
+        is_signed_ = true;
     } else if (cast_type_ == Unsigned) {
-        is_signed = false;
+        is_signed_ = false;
     } else if (cast_type_ == VarCastType::AsyncReset || cast_type_ == VarCastType::Clock) {
-        if (parent->size != 1) {
+        if (parent->size() != 1) {
             throw VarException(::format("Can only cast bit width 1 to "
                                         "Clock or AsyncReset. {0} is {1}",
-                                        parent->to_string(), parent->size),
+                                        parent->to_string(), parent->size()),
                                {parent});
         }
     }
@@ -539,7 +537,7 @@ std::string VarCasted::to_string() const {
 void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }
 
 std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
-    if (cast_type == VarCastType::Signed && is_signed) {
+    if (cast_type == VarCastType::Signed && is_signed_) {
         return shared_from_this();
     } else if (casted_.find(cast_type) != casted_.end()) {
         return casted_.at(cast_type);
@@ -551,7 +549,7 @@ std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
 
 void Const::set_value(int64_t new_value) {
     try {
-        Const c(generator, new_value, width, is_signed);
+        Const c(generator, new_value, width_, is_signed_);
         value_ = new_value;
     } catch (::runtime_error &) {
         std::cerr << ::format("Unable to set value from {0} to {1}", value_, new_value)
@@ -606,24 +604,24 @@ std::string VarConcat::to_string() const {
 
 VarConcat::VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_ptr<Var> &second)
     : Expr(first, second) {
-    if (first->is_signed != second->is_signed)
+    if (first->is_signed_ != second->is_signed())
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
             {first.get(), second.get()});
     vars_ = std::vector<std::shared_ptr<Var>>(first->vars_.begin(), first->vars_.end());
     vars_.emplace_back(second);
-    width = first->width + second->width;
+    width_ = first->width() + second->width();
     op = ExprOp::Concat;
 }
 
 VarConcat::VarConcat(const std::shared_ptr<Var> &first, const std::shared_ptr<Var> &second)
     : Expr(first, second) {
-    if (first->is_signed != second->is_signed)
+    if (first->is_signed() != second->is_signed())
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
             {first.get(), second.get()});
     vars_ = {first, second};
-    width = first->width + second->width;
+    width_ = first->width() + second->width();
     op = ExprOp::Concat;
 }
 
@@ -635,10 +633,10 @@ VarConcat &VarConcat::concat(kratos::Var &var) {
 }
 
 std::string Const::to_string() const {
-    if (is_signed && value_ < 0) {
-        return ::format("-{0}\'h{1:X}", width, -value_);
+    if (is_signed_ && value_ < 0) {
+        return ::format("-{0}\'h{1:X}", width_, -value_);
     } else {
-        return ::format("{0}\'h{1:X}", width, value_);
+        return ::format("{0}\'h{1:X}", width_, value_);
     }
 }
 
@@ -848,7 +846,7 @@ ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,
                                  const std::shared_ptr<Var> &left,
                                  const std::shared_ptr<Var> &right)
     : Expr(ExprOp::Conditional, left, right), condition(condition) {
-    if (condition->width != 1)
+    if (condition->width() != 1)
         throw VarException("Ternary operator's condition has to be a binary value",
                            {condition.get()});
 }
@@ -900,12 +898,12 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
     // compute the high and low
     uint32_t low_ = 0;
     bool found = false;
-    for (auto const &[name, width, is_signed_] : struct_.attributes) {
+    for (auto const &[name, width, is_signed] : struct_.attributes) {
         if (name == member_name) {
             found = true;
             high = width + low_ - 1;
             low = low_;
-            is_signed = is_signed_;
+            is_signed_ = is_signed;
             var_high_ = high;
             var_low_ = low;
             break;
@@ -943,11 +941,11 @@ PackedSlice &VarPacked::operator[](const std::string &member_name) {
 VarPacked::VarPacked(Generator *m, const std::string &name, PackedStruct packed_struct_)
     : Var(m, name, 0, 1, false), struct_(std::move(packed_struct_)) {
     // compute the width
-    width = 0;
+    width_ = 0;
     for (auto const &def : struct_.attributes) {
-        width += std::get<1>(def);
+        width_ += std::get<1>(def);
     }
-    var_width = width;
+    var_width_ = width_;
 }
 
 std::set<std::string> VarPacked::member_names() const {
@@ -1019,10 +1017,10 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
         }
         // check the port types
         auto &arg_port = args.at(port_name);
-        if (func_port->width != arg_port->width)
+        if (func_port->width() != arg_port->width())
             throw VarException(::format("{0}'s width doesn't match", port_name),
                                {func_port.get(), arg_port.get()});
-        if (func_port->is_signed != arg_port->is_signed)
+        if (func_port->is_signed() != arg_port->is_signed())
             throw VarException(::format("{0}'s sign doesn't match", port_name),
                                {func_port.get(), arg_port.get()});
     }
@@ -1032,17 +1030,17 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
         throw StmtException(::format("{0} doesn't have return value", func_def->function_name()),
                             {func_def.get()});
     if (has_return && !func_def->is_dpi()) {
-        width = handle->width;
-        var_width = handle->width;
-        size = handle->size;
-        is_signed = handle->is_signed;
+        width_ = handle->width();
+        var_width_ = handle->width();
+        size_ = handle->size();
+        is_signed_ = handle->is_signed();
     } else if (has_return && func_def->is_dpi()) {
         auto dpi = func_def->as<DPIFunctionStmtBlock>();
         if (dpi->return_width()) {
-            width = dpi->return_width();
-            var_width = width;
-            size = width;
-            is_signed = false;
+            width_ = dpi->return_width();
+            var_width_ = width_;
+            size_ = width_;
+            is_signed_ = false;
         }
     }
 }

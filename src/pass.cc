@@ -74,12 +74,12 @@ public:
         const auto left = stmt->left();
         auto right = stmt->right();
         // if the right hand side is a const and it's safe to do so, we will let it happen
-        if (left->width != right->width) {
+        if (left->width() != right->width()) {
             if (right->type() == VarType::ConstValue) {
                 auto old_value = right->as<Const>();
                 try {
                     auto& new_const =
-                        constant(old_value->value(), left->width, old_value->is_signed);
+                        constant(old_value->value(), left->width(), old_value->is_signed());
                     stmt->set_right(new_const.shared_from_this());
                     right = new_const.shared_from_this();
                 } catch (::runtime_error&) {
@@ -87,15 +87,16 @@ public:
                 }
             }
         }
-        if (left->width != right->width)
+        if (left->width() != right->width())
             throw StmtException(
                 ::format("assignment width doesn't match. left ({0}): {1} right ({2}): {3}",
-                         left->to_string(), left->width, right->to_string(), right->width),
+                         left->to_string(), left->width(), right->to_string(), right->width()),
                 {stmt});
-        if (left->is_signed != right->is_signed)
+        if (left->is_signed() != right->is_signed())
             throw StmtException(
                 ::format("assignment sign doesn't match. left ({0}): {1} right ({2}): {3}",
-                         left->to_string(), left->is_signed, right->to_string(), right->is_signed),
+                         left->to_string(), left->is_signed(), right->to_string(),
+                         right->is_signed()),
                 {stmt});
     }
 
@@ -207,7 +208,7 @@ void remove_unused_stmts(Generator* top) {
 
 bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& bits) {
     bool result = false;
-    bits.reserve(port->width);
+    bits.reserve(port->width());
     if (!port->sources().empty()) {
         // it has been assigned. need to compute all the slices
         auto sources = port->sources();
@@ -233,12 +234,12 @@ bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& 
                 }
             } else {
                 result = true;
-                for (uint32_t i = 0; i < port->width; i++) bits.emplace(i);
+                for (uint32_t i = 0; i < port->width(); i++) bits.emplace(i);
                 break;
             }
         }
     }
-    if (result && bits.size() != port->width) result = false;
+    if (result && bits.size() != port->width()) result = false;
     return result;
 }
 
@@ -268,7 +269,7 @@ public:
                 for (auto const& stmt : port->sources()) {
                     stmt_list.emplace_back(stmt.get());
                 }
-                for (uint32_t i = 0; i < port->width; i++) {
+                for (uint32_t i = 0; i < port->width(); i++) {
                     if (bits.find(i) == bits.end()) {
                         throw StmtException(
                             ::format("{0}[{1}] is a floating net. Please check your connections",
@@ -324,7 +325,7 @@ public:
                         // complete at the time of implementation
                         // compute the set difference
                         std::vector<uint32_t> diff_bits;
-                        for (uint32_t i = 0; i < port->width; i++) {
+                        for (uint32_t i = 0; i < port->width(); i++) {
                             if (bits.find(i) == bits.end()) {
                                 // no need to sort the bits since we're going in order
                                 // so it's already sorted.
@@ -343,11 +344,11 @@ public:
                         std::function<void(uint32_t, uint32_t)> wire_zero = [=](uint32_t h,
                                                                                 uint32_t l) {
                             uint32_t ll, hh;
-                            if (port->size == 1) {
+                            if (port->size() == 1) {
                                 ll = l;
                                 hh = h;
                             } else {
-                                if (l % port->var_width || (h + 1) % port->var_width) {
+                                if (l % port->var_width() || (h + 1) % port->var_width()) {
                                     // can't handle it right now
                                     auto stmts = std::vector<Stmt*>();
                                     stmts.reserve(port->sources().size());
@@ -359,16 +360,16 @@ public:
                                         stmts.begin(), stmts.end());
                                 }
                                 // compute the low and high
-                                ll = l / port->var_width;
-                                hh = h / port->var_width;
+                                ll = l / port->var_width();
+                                hh = h / port->var_width();
                             }
                             std::shared_ptr<AssignStmt> stmt;
                             // a special case is that the port is not connected at all!
-                            if (ll == 0 && hh == (port->width - 1)) {
-                                stmt = port->assign(constant(0, port->width, port->is_signed));
+                            if (ll == 0 && hh == (port->width() - 1)) {
+                                stmt = port->assign(constant(0, port->width(), port->is_signed()));
                             } else {
                                 auto& slice = port->operator[]({hh, ll});
-                                stmt = slice.assign(constant(0, slice.width, slice.is_signed));
+                                stmt = slice.assign(constant(0, slice.width(), slice.is_signed()));
                             }
                             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                             gen->add_stmt(stmt);
@@ -667,7 +668,7 @@ public:
                     auto packed = port->as<PortPacked>();
                     parent->var_packed(new_name, packed->packed_struct());
                 } else {
-                    parent->var(new_name, port->var_width, port->size, port->is_signed);
+                    parent->var(new_name, port->var_width(), port->size(), port->is_signed());
                 }
                 auto var = parent->get_var(new_name);
                 if (parent->debug) {
@@ -710,7 +711,7 @@ public:
                     auto packed = port->as<PortPacked>();
                     parent->var_packed(new_name, packed->packed_struct());
                 } else {
-                    parent->var(new_name, port->var_width, port->size, port->is_signed);
+                    parent->var(new_name, port->var_width(), port->size(), port->is_signed());
                 }
                 auto var = parent->get_var(new_name);
                 if (parent->debug) {
@@ -766,7 +767,7 @@ public:
                         fmt::format("{0}.{1} is driven by a net, but {0} is declared as a stub",
                                     generator->name, port_name),
                         {port.get(), generator});
-                generator->add_stmt(port->assign(constant(0, port->width)));
+                generator->add_stmt(port->assign(constant(0, port->width())));
             }
         }
     }
@@ -1204,8 +1205,8 @@ public:
                     auto next_port = (*(port->sinks().begin()))->left();
                     auto var_name =
                         generator->get_unique_variable_name(child->instance_name, port_name);
-                    auto& new_var =
-                        generator->var(var_name, port->var_width, port->size, port->is_signed);
+                    auto& new_var = generator->var(var_name, port->var_width(), port->size(),
+                                                   port->is_signed());
                     if (generator->debug) {
                         // need to copy the changes over
                         new_var.fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
@@ -1453,7 +1454,8 @@ public:
                         {port_ref.get()});
                 }
                 auto const& port = ports.at(port_name);
-                if (port->size != port_ref->size || port->is_signed != port_ref->is_signed ||
+                if (port->size() != port_ref->size() ||
+                    port->is_signed() != port_ref->is_signed() ||
                     port->port_direction() != port_ref->port_direction()) {
                     throw VarException(
                         ::format("DPI function with the same name ({0}) have different interface",
@@ -1523,18 +1525,18 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int
                 auto port = ports.at(port_name);
                 // compute the closest width
                 std::string type_str;
-                if (port->width <= 8) {
+                if (port->width() <= 8) {
                     type_str = "byte";
-                } else if (port->width <= 16) {
+                } else if (port->width() <= 16) {
                     type_str = "shortint";
-                } else if (port->width <= 32) {
+                } else if (port->width() <= 32) {
                     type_str = "int";
                 } else {
                     type_str = "longint";
                 }
                 auto s = ::format("{0} {1} {2} {3}",
                                   port->port_direction() == PortDirection::In ? "input" : "output",
-                                  type_str, port->is_signed ? "signed" : "", port_name);
+                                  type_str, port->is_signed() ? "signed" : "", port_name);
                 port_str.emplace_back(s);
             } else {
                 port_str.emplace_back(
@@ -1621,7 +1623,7 @@ private:
             // only deal with 1D for now
             if (left_parent->type() == Slice) continue;
             if (right_parent->type() == Slice) continue;
-            if (left_parent->width != right_parent->width) continue;
+            if (left_parent->width() != right_parent->width()) continue;
 
             slice_vars[{left_parent, right_parent}].emplace_back(assign_stmt);
         }
@@ -1632,7 +1634,7 @@ private:
 
             // NOTE:
             // we assume that at this stage we've passed the connectivity check
-            if (stmts.size() != left->width) continue;
+            if (stmts.size() != left->width()) continue;
 
             // remove left's sources and right's sink
             // also add it to the statements to remove
@@ -1802,8 +1804,8 @@ public:
                 for (uint32_t i = 0; i < num_stages; i++) {
                     auto new_name =
                         generator->get_unique_variable_name(port_name, ::format("stage_{0}", i));
-                    auto& var =
-                        generator->var(new_name, port->var_width, port->size, port->is_signed);
+                    auto& var = generator->var(new_name, port->var_width(), port->size(),
+                                               port->is_signed());
                     if (generator->debug)
                         var.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
                     vars[i] = var.shared_from_this();
@@ -1851,7 +1853,7 @@ public:
                         break;
                     }
                 }
-                if (port->size != 1) {
+                if (port->size() != 1) {
                     // TODO: upgrade packed struct to support array
                     same_direction = false;
                     break;
@@ -1891,8 +1893,8 @@ void merge_bundle_mapping(
             std::string base_str;
             for (auto const& port_name : ports) {
                 auto port = generator->get_port(mappings.at(port_name));
-                base_str.append(::format("{0}{1}{2}{3}", port->var_width, port->width,
-                                         port->is_signed, port_name));
+                base_str.append(::format("{0}{1}{2}{3}", port->var_width(), port->width(),
+                                         port->is_signed(), port_name));
             }
             uint64_t hash = hash_64_fnv1a(base_str.c_str(), base_str.size());
             if (bundle_hashs.find(generator) != bundle_hashs.end()) {
@@ -1926,7 +1928,7 @@ void merge_bundle_mapping(
         auto const& mapping = ref_port_ref->name_mappings();
         for (auto const& [var_name, real_name] : mapping) {
             auto port = ref_generator->get_port(real_name);
-            def.emplace_back(std::make_tuple(var_name, port->width, port->is_signed));
+            def.emplace_back(std::make_tuple(var_name, port->width(), port->is_signed()));
         }
         PackedStruct struct_(bundle_name, def);
         for (auto const& [entry_name, generator] : generators) {
@@ -2039,7 +2041,7 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
             auto enum_def = enum_var->enum_type();
             targeted_cases = enum_def->values.size();
         } else {
-            targeted_cases = 1u << stmt_->target()->size;
+            targeted_cases = 1u << stmt_->target()->size();
         }
 
         if (full_branch) {

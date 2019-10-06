@@ -66,7 +66,7 @@ Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size) 
 Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed) {
     if (vars_.find(var_name) != vars_.end()) {
         auto v_p = get_var(var_name);
-        if (v_p->width != width || v_p->is_signed != is_signed)
+        if (v_p->width() != width || v_p->is_signed() != is_signed)
             throw VarException(::format("redefinition of {0} with different width/sign", var_name),
                                {v_p.get()});
         return *v_p;
@@ -550,12 +550,12 @@ std::shared_ptr<Generator> Generator::clone() {
     auto port_names = get_port_names();
     for (auto const &port_name : port_names) {
         auto port = get_port(port_name);
-        generator->port(port->port_direction(), port_name, port->width, port->size,
-                        port->port_type(), port->is_signed);
+        generator->port(port->port_direction(), port_name, port->width(), port->size(),
+                        port->port_type(), port->is_signed());
     }
     // also parameters
     for (auto const &[param_name, param] : params_) {
-        generator->parameter(param_name, param->width, param->is_signed);
+        generator->parameter(param_name, param->width(), param->is_signed());
     }
     if (!fn_name_ln.empty()) {
         generator->fn_name_ln.insert(generator->fn_name_ln.end(), fn_name_ln.begin(),
@@ -629,12 +629,12 @@ void Generator::replace(const std::string &child_name,
         auto old_port = old_child->get_port(port_name);
         auto new_port = new_child->get_port(port_name);
         // type checking
-        if (old_port->size != new_port->size || old_port->width != new_port->width) {
+        if (old_port->size() != new_port->size() || old_port->width() != new_port->width()) {
             throw VarException(::format("{0}'s port {1} has different width than {2}'s",
                                         old_child->name, port_name, new_child->name),
                                {old_port.get(), new_port.get()});
         }
-        if (old_port->is_signed != new_port->is_signed) {
+        if (old_port->is_signed() != new_port->is_signed()) {
             throw VarException(::format("{0}'s port {1} has different sign than {2}'s",
                                         old_child->name, port_name, new_child->name),
                                {old_port.get(), new_port.get()});
@@ -754,7 +754,8 @@ void Generator::remove_var(const std::string &var_name) {
 }
 
 std::shared_ptr<Var> Generator::get_null_var(const std::shared_ptr<Var> &var) {
-    return std::make_shared<Var>(this, "", var->width, var->size, var->is_signed, VarType::Base);
+    return std::make_shared<Var>(this, "", var->width(), var->size(), var->is_signed(),
+                                 VarType::Base);
 }
 
 std::shared_ptr<StmtBlock> Generator::get_named_block(const std::string &block_name) const {
@@ -776,9 +777,7 @@ std::unordered_set<std::string> Generator::named_blocks_labels() const {
     return result;
 }
 
-std::string Generator::handle_name() const {
-    return handle_name(false);
-}
+std::string Generator::handle_name() const { return handle_name(false); }
 
 std::string Generator::handle_name(bool ignore_top) const {
     // this is used to identify the generator from the top level

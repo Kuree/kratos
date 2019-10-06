@@ -48,16 +48,16 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
     if (left == nullptr) throw UserException("left hand side is empty");
     if (right == nullptr) throw UserException("right hand side is empty");
     // check for sign
-    if (left->is_signed != right->is_signed) {
+    if (left->is_signed() != right->is_signed()) {
         throw VarException(::format("left ({0})'s sign does not match with right ({1}). {2} <- {3}",
-                                    left->name, right->name, left->is_signed, right->is_signed),
+                                    left->name, right->name, left->is_signed(), right->is_signed()),
                            {left.get(), right.get()});
     }
     // check for width
-    if (left->width != right->width) {
+    if (left->width() != right->width()) {
         throw VarException(
             ::format("left ({0})'s width does not match with right ({1}). {2} <- {3}", left->name,
-                     right->name, left->width, right->width),
+                     right->name, left->width(), right->width()),
             {left.get(), right.get()});
     }
     // check parameters
@@ -445,7 +445,7 @@ void ReturnStmt::set_parent(kratos::IRNode *parent) {
     // need to handle the assignments
     if (!func_def_->function_handler()) {
         // create a function handler
-        func_def_->create_function_handler(value_->width, value_->is_signed);
+        func_def_->create_function_handler(value_->width(), value_->is_signed());
     }
     auto p = func_def_->function_handler();
     auto s = p->assign(value_, AssignmentType::Blocking);
@@ -463,10 +463,10 @@ FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &fun
         }
         // check the port types
         auto &arg_port = args.at(port_name);
-        if (func_port->width != arg_port->width)
+        if (func_port->width() != arg_port->width())
             throw VarException(::format("{0}'s width doesn't match", port_name),
                                {func_port.get(), arg_port.get()});
-        if (func_port->is_signed != arg_port->is_signed)
+        if (func_port->is_signed() != arg_port->is_signed())
             throw VarException(::format("{0}'s sign doesn't match", port_name),
                                {func_port.get(), arg_port.get()});
     }

@@ -11,7 +11,7 @@ namespace kratos {
 
 AssertValueStmt::AssertValueStmt(const std::shared_ptr<Var> &expr) : assert_var_(expr.get()) {
     // making sure that the expression has to be width 1
-    if (expr->width != 1) throw VarException("Assert variable has to be width 1", {expr.get()});
+    if (expr->width() != 1) throw VarException("Assert variable has to be width 1", {expr.get()});
 }
 
 AssertPropertyStmt::AssertPropertyStmt(const std::shared_ptr<Property> &property)
@@ -56,7 +56,7 @@ Property::Property(std::string property_name, std::shared_ptr<Sequence> sequence
     : property_name_(std::move(property_name)), sequence_(std::move(sequence)) {}
 
 void Property::edge(kratos::BlockEdgeType type, const std::shared_ptr<Var> &var) {
-    if (var->width != 1) throw VarException("{0} should be width 1", {var.get()});
+    if (var->width() != 1) throw VarException("{0} should be width 1", {var.get()});
     edge_ = {var.get(), type};
 }
 
@@ -143,13 +143,13 @@ protected:
             // because it's a test bench, the variable doesn't have type
             // we need to source for connected modules to see what they are connected to
             auto children = generator->get_child_generators();
-            std::vector<Var*> clk_vars;
+            std::vector<Var *> clk_vars;
             for (auto const &gen : children) {
                 auto clks = gen->get_ports(PortType::Clock);
-                for (auto const &clk_name: clks) {
+                for (auto const &clk_name : clks) {
                     auto clk = gen->get_port(clk_name);
                     auto source = clk->sources();
-                    for (auto const &assign: source) {
+                    for (auto const &assign : source) {
                         auto src_var = assign->right();
                         if (src_var->generator == generator && src_var->type() == VarType::Base) {
                             clk_vars.emplace_back(src_var.get());

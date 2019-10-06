@@ -371,8 +371,8 @@ TEST(pass, replace) {  // NOLINT
     mod1.add_stmt(out1.assign(out2));
 
     EXPECT_THROW(mod1.replace(mod2.instance_name, mod3.shared_from_this()), VarException);
-    in3.width = 1;
-    out3.width = 1;
+    in3.width() = 1;
+    out3.width() = 1;
     EXPECT_NO_THROW(mod1.replace(mod2.instance_name, mod3.shared_from_this()));
     EXPECT_EQ(mod1.get_child_generator_size(), 1);
     fix_assignment_type(&mod1);

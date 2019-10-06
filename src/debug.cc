@@ -136,7 +136,7 @@ public:
 
     void visit(Port *var) override {
         // currently the runtime only support scalar variables
-        if (var->size != 1) return;
+        if (var->size() != 1) return;
         insert_str(var);
     }
 
@@ -350,14 +350,14 @@ void DebugDatabase::save_database(const std::string &filename) {
         for (auto const &[front_var, var] : vars) {
             auto gen_var = gen->get_var(var);
             if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
-            Variable variable{handle_name, var, front_var, gen_var->size, gen_var->type(), true};
+            Variable variable{handle_name, var, front_var, gen_var->size(), gen_var->type(), true};
             storage.insert(variable);
         }
         auto all_vars = gen->get_all_var_names();
         for (auto const &var_name : all_vars) {
             auto var = gen->get_var(var_name);
             if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
-                Variable variable{handle_name, var_name, "", var->size, var->type(), true};
+                Variable variable{handle_name, var_name, "", var->size(), var->type(), true};
                 storage.insert(variable);
             }
         }
@@ -401,7 +401,7 @@ void DebugDatabase::save_database(const std::string &filename) {
 void inject_clock_break_points(Generator *top) {
     // trying to find the clock automatically
     auto const &port_names = top->get_port_names();
-    for (auto const &port_name: port_names) {
+    for (auto const &port_name : port_names) {
         auto const &port = top->get_port(port_name);
         if (port && port->port_type() == PortType::Clock) {
             inject_clock_break_points(top, port);

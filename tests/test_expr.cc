@@ -50,13 +50,13 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ(slice_expr.low, 0);
     EXPECT_EQ(slice_expr.to_string(), "d[2:0]");
     // test the raw interface. users should not do that
-    EXPECT_EQ(VarSlice(&wire, 2, 1).width, 2);
+    EXPECT_EQ(VarSlice(&wire, 2, 1).width(), 2);
 
     // test other ops
     EXPECT_EQ((var1.eq(var3)).to_string(), "a == c");
     EXPECT_EQ(var1.cast(VarCastType::Signed)->to_string(), "signed'(a)");
     EXPECT_EQ(VarCasted(&var1, VarCastType::Signed).to_string(), "signed'(a)");
-    EXPECT_TRUE(var1.cast(VarCastType::Signed)->is_signed);
+    EXPECT_TRUE(var1.cast(VarCastType::Signed)->is_signed());
 
     // test pretty print of expr
     expr = var1 + var1 + var2;
@@ -72,7 +72,7 @@ TEST(expr, relational) {  // NOLINT
     auto &var1 = mod.var("a", 2);
     auto &var2 = mod.var("b", 2);
     auto &exp = var1 >= var2;
-    EXPECT_EQ(exp.width, 1);
+    EXPECT_EQ(exp.width(), 1);
 }
 
 TEST(expr, assign) {  // NOLINT
@@ -208,5 +208,5 @@ TEST(expr, param_width) {   // NOLINT
     param.set_value(4);
     auto &p = mod.port(PortDirection::In, "in", 2);
     EXPECT_NO_THROW(p.set_width_param(param.as<Param>()));
-    EXPECT_EQ(p.width, 4);
+    EXPECT_EQ(p.width(), 4);
 }

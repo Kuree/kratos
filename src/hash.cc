@@ -1,13 +1,13 @@
 #include "hash.hh"
 #include <fstream>
 #include "cxxpool.h"
+#include "debug.hh"
 #include "generator.hh"
 #include "graph.hh"
 #include "ir.hh"
 #include "pass.hh"
 #include "stmt.hh"
 #include "util.hh"
-#include "debug.hh"
 
 namespace kratos {
 /*
@@ -241,7 +241,7 @@ public:
 
     void visit(AssignStmt* stmt) override {
         auto var = stmt->left()->to_string() + stmt->right()->to_string() +
-                   std::to_string(stmt->left()->width);
+                   std::to_string(stmt->left()->width());
         uint64_t stmt_hash = hash_64_fnv1a(var.c_str(), var.size());
         // based on level
         stmt_hash = shift(stmt_hash, level);
@@ -300,7 +300,7 @@ public:
         stmt_hashes_.emplace_back(target_hash ^ mod_signature);
     }
 
-    void visit(FunctionCallStmt *stmt) override {
+    void visit(FunctionCallStmt* stmt) override {
         // this is to hash the call args and func_def
         auto func = stmt->func();
         auto str = func->function_name();

@@ -200,7 +200,7 @@ std::shared_ptr<FunctionStmtBlock> FSM::get_func_def() {
     // add outputs
     for (auto const& var : outputs_) {
         auto var_name = var->to_string() + "_value";
-        func->input(var_name, var->width, var->is_signed);
+        func->input(var_name, var->width(), var->is_signed());
         name_mapping.emplace(var_name, var);
     }
     auto ports = func->ports();
@@ -631,7 +631,7 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shar
             throw UserException("Unconditional transition has been assign to " + name_);
         }
         auto ptr = cond.get();
-        if (cond->width != 1) throw VarException("Condition has to be a boolean value", {ptr});
+        if (cond->width() != 1) throw VarException("Condition has to be a boolean value", {ptr});
 
         if (transitions_.find(ptr) != transitions_.end()) {
             throw ::runtime_error(::format("{0} has been added to FSM {1}-{2} already",
@@ -659,7 +659,7 @@ void FSMState::output(const std::shared_ptr<Var>& output_var,
 }
 
 void FSMState::output(const std::shared_ptr<Var>& output_var, int64_t value) {
-    auto& c = constant(value, output_var->width, output_var->is_signed);
+    auto& c = constant(value, output_var->width(), output_var->is_signed());
     output(output_var, c.shared_from_this());
 }
 

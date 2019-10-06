@@ -79,14 +79,14 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
         type = "logic";
     }
     std::string format_str;
-    if (var->size > 1 && var->packed_array)
+    if (var->size() > 1 && var->packed_array)
         format_str = "{0} {1} {4}{2} {3}{5};";
     else
         format_str = "{0} {1} {2} {3}{4}{5};";
     (*this) << var->before_var_str()
-            << ::format(format_str, type, var->is_signed ? "signed" : "",
+            << ::format(format_str, type, var->is_signed() ? "signed" : "",
                         var->is_enum() ? "" : SystemVerilogCodeGen::get_var_width_str(var.get()),
-                        var->name, var->size == 1 ? "" : ::format("[{0}:0]", var->size - 1),
+                        var->name, var->size() == 1 ? "" : ::format("[{0}:0]", var->size() - 1),
                         var->after_var_str())
             << endl();
     return *this;
@@ -149,9 +149,9 @@ std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {
     if (var->parametrized()) {
         width = ::format("{0}-1", var->param()->to_string());
     } else {
-        width = std::to_string(var->var_width - 1);
+        width = std::to_string(var->var_width() - 1);
     }
-    return var->var_width > 1 && !var->is_packed() ? ::format("[{0}:0]",width) : "";
+    return var->var_width() > 1 && !var->is_packed() ? ::format("[{0}:0]", width) : "";
 }
 
 void SystemVerilogCodeGen::generate_ports(Generator* generator) {
@@ -185,8 +185,7 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
         uint32_t count = 0;
         for (auto const& [name, param] : params) {
             stream_ << ::format("parameter {0} = {1}", name, param->value_str());
-            if (++count < params.size())
-                stream_ << ", ";
+            if (++count < params.size()) stream_ << ", ";
         }
         stream_ << ")" << stream_.endl();
     }
@@ -549,15 +548,15 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         auto ptr = reinterpret_cast<PortPacked*>(port);
         strs.emplace_back(ptr->packed_struct().struct_name);
     }
-    if (port->is_signed) strs.emplace_back("signed");
-    if (port->size > 1 && port->packed_array) {
-        strs.emplace_back(::format("[{0}:0]", port->size - 1));
+    if (port->is_signed()) strs.emplace_back("signed");
+    if (port->size() > 1 && port->packed_array) {
+        strs.emplace_back(::format("[{0}:0]", port->size() - 1));
     }
     if (!port->is_packed()) strs.emplace_back(get_var_width_str(port));
     strs.emplace_back(port->name);
 
-    if (port->size > 1 && !port->packed_array) {
-        strs.emplace_back(::format("[{0}:0]", port->size - 1));
+    if (port->size() > 1 && !port->packed_array) {
+        strs.emplace_back(::format("[{0}:0]", port->size() - 1));
     }
     return join(strs.begin(), strs.end(), " ");
 }

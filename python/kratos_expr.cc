@@ -289,17 +289,19 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("concat", &Var::concat, py::return_value_policy::reference)
         .def_readwrite("name", &Var::name)
         .def_property(
-            "width", [](Var &var) { return var.var_width; },
+            "width", [](Var &var) { return var.var_width(); },
             [](Var &var, uint32_t width) {
-                var.var_width = width;
-                if (var.size == 1) {
-                    var.width = width;
+                var.var_width() = width;
+                if (var.size() == 1) {
+                    var.width() = width;
                 } else {
-                    var.width = var.size * width;
+                    var.width() = var.size() * width;
                 }
             })
-        .def_readwrite("signed", &Var::is_signed)
-        .def_property_readonly("size", [](const Var &var) { return var.size; })
+        .def_property(
+            "signed", [](Var &v) { return v.is_signed(); },
+            [](Var &v, bool s) { v.is_signed() = s; })
+        .def_property_readonly("size", [](const Var &var) { return var.size(); })
         .def("sources", &Var::sources, py::return_value_policy::reference)
         .def("sinks", &Var::sinks, py::return_value_policy::reference)
         .def("cast", &Var::cast)

@@ -61,10 +61,14 @@ public:
         VarType type);
 
     std::string name;
-    uint32_t width;
-    uint32_t var_width;
-    uint32_t size;
-    bool is_signed;
+    uint32_t &width() { return width_; };
+    uint32_t &var_width() { return var_width_; }
+    uint32_t &size() { return size_; }
+    bool &is_signed() { return is_signed_; };
+    uint32_t width() const { return width_; };
+    uint32_t var_width() const { return var_width_; }
+    uint32_t size() const { return size_; }
+    bool is_signed() const { return is_signed_; };
 
     // overload all the operators
     // unary
@@ -151,8 +155,8 @@ public:
     // is parametrized
     bool parametrized() const { return param_ != nullptr; }
     void set_width_param(const std::shared_ptr<Param> &param);
-    void set_width_param(Param* param);
-    Param* param() const { return param_; }
+    void set_width_param(Param *param);
+    Param *param() const { return param_; }
 
     // for slice
     virtual const Var *get_var_root_parent() const { return this; }
@@ -170,6 +174,11 @@ public:
     ~Var() override = default;
 
 protected:
+    uint32_t width_;
+    uint32_t var_width_;
+    uint32_t size_;
+    bool is_signed_;
+
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
     std::unordered_set<std::shared_ptr<AssignStmt>> sources_;
 
@@ -184,7 +193,7 @@ protected:
     std::string after_var_str_;
 
     // parametrization
-    Param* param_ = nullptr;
+    Param *param_ = nullptr;
 
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;

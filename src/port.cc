@@ -26,7 +26,7 @@ Port::Port(Generator* module, PortDirection direction, const ::string& name, uin
 void Port::set_port_type(PortType type) { type_ = type; }
 
 void Port::set_active_high(bool value) {
-    if (width != 1)
+    if (width_ != 1)
         throw VarException(
             ::format("{0}'s width is not 1, which can not be set as active high/low", name),
             {this});
@@ -38,11 +38,11 @@ PortPacked::PortPacked(Generator* module, PortDirection direction, const std::st
     : Port(module, direction, name, 0, 1, PortType::Data, false),
       struct_(std::move(packed_struct_)) {
     // compute the width
-    width = 0;
+    width_ = 0;
     for (auto const& def : struct_.attributes) {
-        width += std::get<1>(def);
+        width_ += std::get<1>(def);
     }
-    var_width = width;
+    var_width_ = width_;
 }
 
 void PortPacked::set_port_type(PortType) {
