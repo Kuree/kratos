@@ -3,7 +3,7 @@ from typing import Union, List
 import os
 import math
 import inspect
-from _kratos import ConditionalExpr
+from _kratos import ConditionalExpr, get_fn_ln as _get_fn_ln
 import _kratos
 import enum
 import functools
@@ -86,11 +86,8 @@ def concat(*args):
 
 
 def get_fn_ln(depth: int = 2):
-    frame = inspect.stack()[depth]
-    filename = frame.filename
-    filename = os.path.abspath(filename)
-    ln = frame.lineno
-    return filename, ln
+    # need to minus one before C++ is an extra frame
+    return _get_fn_ln(depth + 1)
 
 
 def zext(var, width):

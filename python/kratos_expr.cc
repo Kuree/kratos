@@ -7,6 +7,8 @@
 namespace py = pybind11;
 using std::shared_ptr;
 
+std::optional<std::pair<std::string, uint32_t>> get_fn_ln(uint32_t num_frame_back);
+
 void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_) {
     namespace py = pybind11;
     using std::shared_ptr;
@@ -294,18 +296,9 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
             [](Var &var, uint32_t width) {
                 var.var_width() = width;
                 if (var.generator->debug) {
-                    // get caller frame info
-                    PyFrameObject *frame = PyThreadState_Get()->frame;
-                    if (frame->f_back) {
-                        auto line_num = PyFrame_GetLineNumber(frame);
-                        struct py::detail::string_caster<std::string> repr;
-                        py::handle handle(frame->f_code->co_filename);
-                        repr.load(handle, true);
-                        if (repr) {
-                            // resolve full path
-                            std::string filename = fs::abspath(repr);
-                            var.fn_name_ln.emplace_back(std::make_pair(filename, line_num));
-                        }
+                    auto fn_ln = get_fn_ln(1);
+                    if (fn_ln) {
+                        var.fn_name_ln.emplace_back(*fn_ln);
                     }
                 }
             })

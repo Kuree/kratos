@@ -25,6 +25,7 @@ void init_except(py::module &m);
 void init_tb(py::module &m);
 void init_debug(py::module &m);
 void init_enum(py::module &m);
+void init_python_util(py::module &m);
 
 // util submodule
 void init_util(py::module &m) {
@@ -84,4 +85,5 @@ PYBIND11_MODULE(_kratos, m) {
     init_fsm(m);
     init_tb(m);
     init_debug(m);
+    init_python_util(m);
 }
