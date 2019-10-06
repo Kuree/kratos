@@ -25,6 +25,7 @@ struct PortBundleDefinition;
 struct PortBundleRef;
 struct PortPacked;
 struct VarPacked;
+struct Param;
 struct Enum;
 struct EnumConst;
 struct EnumVar;

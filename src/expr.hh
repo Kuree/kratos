@@ -148,6 +148,14 @@ public:
     bool packed_array = false;
     std::string handle_name() const;
     virtual std::string handle_name(bool ignore_top) const;
+    // is parametrized
+    bool parametrized() const { return param_ != nullptr; }
+    void set_width_param(const std::shared_ptr<Param> &param);
+    void set_width_param(Param* param);
+    Param* param() const { return param_; }
+
+    // for slice
+    virtual const Var *get_var_root_parent() const { return this; }
 
     // before and after strings. they're used for downstream tools. kratos doesn't care about the
     // value. it's user's responsibility to make it legal syntax
@@ -174,6 +182,9 @@ protected:
     // comment values
     std::string before_var_str_;
     std::string after_var_str_;
+
+    // parametrization
+    Param* param_ = nullptr;
 
 private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
@@ -227,7 +238,7 @@ public:
         return var->operator[](op_).shared_from_this();
     }
 
-    Var *get_var_root_parent() const;
+    const Var *get_var_root_parent() const override;
     virtual bool sliced_by_var() const { return false; }
 
 protected:
@@ -262,7 +273,7 @@ struct Const : public Var {
 public:
     Const(Generator *m, int64_t value, uint32_t width, bool is_signed);
 
-    int64_t value() { return value_; }
+    int64_t value() const { return value_; }
     void set_value(int64_t new_value);
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;

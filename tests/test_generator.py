@@ -1219,5 +1219,17 @@ def test_async_latch():
         assert True
 
 
+def test_param():
+    mod = Generator("mod")
+    param = mod.parameter("P", 4, 4)
+    in_ = mod.input("in", param)
+    out = mod.output("out", param)
+    var = mod.var("v", param)
+    mod.wire(var, in_)
+    mod.wire(out, var * 2)
+
+    check_gold(mod, "test_param", optimize_fanout=False)
+
+
 if __name__ == "__main__":
-    test_packed_struct()
+    test_param()

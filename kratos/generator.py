@@ -312,8 +312,9 @@ class Generator(metaclass=GeneratorMeta):
     def get_stmt_by_index(self, index):
         return self.__generator.get_stmt(index)
 
-    def var(self, name: str, width: int, is_signed: bool = False,
-            size: int = 1, packed: bool = False) -> _kratos.Var:
+    def var(self, name: str, width: Union[int, _kratos.Param],
+            is_signed: bool = False, size: int = 1,
+            packed: bool = False) -> _kratos.Var:
 
         v = self.__generator.var(name, width, size, is_signed)
         if self.debug:
@@ -335,7 +336,8 @@ class Generator(metaclass=GeneratorMeta):
             return
         return SequentialCodeBlock(self, sensitivity_list, 3)
 
-    def port(self, name: str, width: int, direction: PortDirection,
+    def port(self, name: str, width: Union[int, _kratos.Param],
+             direction: PortDirection,
              port_type: PortType = PortType.Data,
              is_signed: bool = False, size: int = 1,
              packed: bool = False) -> _kratos.Port:
@@ -346,7 +348,8 @@ class Generator(metaclass=GeneratorMeta):
         p.packed_array = packed
         return p
 
-    def input(self, name, width, port_type: PortType = PortType.Data,
+    def input(self, name, width: Union[int, _kratos.Param],
+              port_type: PortType = PortType.Data,
               is_signed: bool = False, size: int = 1, packed: bool = False):
         p = self.__generator.port(PortDirection.In.value, name, width, size,
                                   port_type.value, is_signed)
@@ -374,7 +377,8 @@ class Generator(metaclass=GeneratorMeta):
             p.active_high = active_high
         return p
 
-    def output(self, name, width, port_type: PortType = PortType.Data,
+    def output(self, name, width: Union[int, _kratos.Param],
+               port_type: PortType = PortType.Data,
                is_signed: bool = False, size: int = 1, packed: bool = False):
         p = self.__generator.port(PortDirection.Out.value, name, width, size,
                                   port_type.value, is_signed)
@@ -401,10 +405,10 @@ class Generator(metaclass=GeneratorMeta):
             return self.__generator.add_bundle_port_def(bundle_name,
                                                         bundle.definition)
 
-    def parameter(self, name: str, width: int,
+    def parameter(self, name: str, width: int, default_value=0,
                   is_signed: bool = False) -> _kratos.Param:
         param = self.__generator.parameter(name, width, is_signed)
-
+        param.value = default_value
         if self.debug:
             fn, ln = get_fn_ln()
             param.add_fn_ln((fn, ln))
@@ -793,4 +797,5 @@ def always(*sensitivity):
 def initial(fn):
     def wrapper():
         return fn
+
     return wrapper()

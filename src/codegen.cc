@@ -128,10 +128,11 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
         stream_ << "import " << package_name_ << "::*;" << stream_.endl();
     }
 
-    stream_ << ::format("module {0} (", generator->name) << stream_.endl();
-    generate_ports(generator);
-    stream_ << ");" << stream_.endl() << stream_.endl();
+    stream_ << ::format("module {0} ", generator->name);
     generate_parameters(generator);
+    stream_ << indent() << "(" << stream_.endl();
+    generate_ports(generator);
+    stream_ << indent() << ");" << stream_.endl() << stream_.endl();
     generate_enums(generator);
     generate_variables(generator);
     generate_functions(generator);
@@ -144,7 +145,13 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
 }
 
 std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {
-    return var->var_width > 1 && !var->is_packed() ? ::format("[{0}:0]", var->var_width - 1) : "";
+    std::string width;
+    if (var->parametrized()) {
+        width = ::format("{0}-1", var->param()->to_string());
+    } else {
+        width = std::to_string(var->var_width - 1);
+    }
+    return var->var_width > 1 && !var->is_packed() ? ::format("[{0}:0]",width) : "";
 }
 
 void SystemVerilogCodeGen::generate_ports(Generator* generator) {
@@ -173,8 +180,15 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
 
 void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
     auto& params = generator->get_params();
-    for (auto const& [name, param] : params) {
-        stream_ << ::format("parameter {0} = {1};", name, param->value_str()) << stream_.endl();
+    if (!params.empty()) {
+        stream_ << "#(";
+        uint32_t count = 0;
+        for (auto const& [name, param] : params) {
+            stream_ << ::format("parameter {0} = {1}", name, param->value_str());
+            if (++count < params.size())
+                stream_ << ", ";
+        }
+        stream_ << ")" << stream_.endl();
     }
 }
 

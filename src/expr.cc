@@ -207,6 +207,22 @@ std::string Var::handle_name(bool ignore_top) const {
         return to_string();
 }
 
+void Var::set_width_param(const std::shared_ptr<Param> &param) {
+    set_width_param(param.get());
+}
+
+void Var::set_width_param(kratos::Param *param) {
+    // set width to the current param value
+    if (param->value() <= 0) {
+        throw VarException(::format("{0} is non-positive ({1}), "
+                                    "thus cannot be used for parametrization width",
+                                    param->to_string()),
+                           {param});
+    }
+    width = param->value();
+    param_ = param;
+}
+
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
@@ -260,7 +276,7 @@ std::string VarSlice::to_string() const {
     return get_slice_name(parent_var->to_string(), high, low);
 }
 
-Var *VarSlice::get_var_root_parent() const {
+const Var *VarSlice::get_var_root_parent() const {
     Var *parent = parent_var;
     while (parent->type() == VarType::Slice) {
         parent = parent->as<VarSlice>()->parent_var;
@@ -327,6 +343,20 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
                      left->to_string(), left->width, right->to_string(), right->width),
             {left.get(), right.get()});
+    // check parametrization
+    param_ = const_cast<Param *>(left->param());
+    if (right != nullptr && right->param() != param_) {
+        if (left->type() == VarType::ConstValue) {
+            param_ = const_cast<Param*>(right->param());
+        } else if (right->type() != VarType::ConstValue) {
+            throw VarException(
+                ::format(
+                    "left ({0}) is parametrized with ({1}) yet right ({2}) is parametrized with {3}",
+                    left->to_string(), param_ ? param_->to_string() : "NULL", right->to_string(),
+                    right->param() ? right->param()->to_string() : "NULL"),
+                {left.get(), right.get(), param_, right->param()});
+        }
+    }
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op))
         width = 1;

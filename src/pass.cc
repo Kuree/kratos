@@ -832,7 +832,7 @@ private:
             // if it's an input port, the parent context is different
             if (dst_var->type() == VarType::Slice) {
                 auto slice = dynamic_cast<VarSlice*>(dst_var);
-                dst_var = slice->get_var_root_parent();
+                dst_var = const_cast<Var*>(slice->get_var_root_parent());
             }
             if (dst_var->type() == VarType::PortIO) {
                 auto port = dynamic_cast<Port*>(dst_var);
@@ -2177,7 +2177,7 @@ private:
                 auto left = assign->left().get();
                 if (left->type() == VarType::Slice) {
                     auto slice = reinterpret_cast<VarSlice*>(left);
-                    left = slice->get_var_root_parent();
+                    left = const_cast<Var*>(slice->get_var_root_parent());
                 }
                 return left == var;
             } else if (s->type() == StatementType::Block) {
@@ -2252,7 +2252,7 @@ private:
             } else {
                 if (var->type() == VarType::Slice) {
                     auto slice = reinterpret_cast<VarSlice*>(var);
-                    var = slice->get_var_root_parent();
+                    var = const_cast<Var*>(slice->get_var_root_parent());
                 }
                 return var == target;
             }
@@ -2265,7 +2265,7 @@ private:
             auto left = stmt->left().get();
             if (left->type() == VarType::Slice) {
                 auto slice = reinterpret_cast<VarSlice*>(left);
-                left = slice->get_var_root_parent();
+                left = const_cast<Var*>(slice->get_var_root_parent());
             }
             assigned_vars_[left].emplace_back(stmt);
         }

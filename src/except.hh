@@ -44,7 +44,8 @@ void print_ast_node(const IRNode *node);
 template <typename T>
 void print_nodes(const std::vector<T> &nodes) {
     for (auto const &node : nodes) {
-        print_ast_node(node);
+        if (node)
+            print_ast_node(node);
     }
 }
 

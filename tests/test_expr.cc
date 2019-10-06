@@ -200,3 +200,13 @@ TEST(expr, handle_name) {   // NOLINT
     EXPECT_EQ(var.handle_name(), "mod1.mod.var_");
 
 }
+
+TEST(expr, param_width) {   // NOLINT
+    Context c;
+    auto &mod = c.generator("mod1");
+    auto &param = mod.parameter("WIDTH", 4);
+    param.set_value(4);
+    auto &p = mod.port(PortDirection::In, "in", 2);
+    EXPECT_NO_THROW(p.set_width_param(param.as<Param>()));
+    EXPECT_EQ(p.width, 4);
+}
