@@ -1228,7 +1228,7 @@ def test_param():
     mod.wire(var, in_)
     mod.wire(out, var * 2)
 
-    check_gold(mod, "test_param", optimize_fanout=False)
+    check_gold(mod, "test_param")
 
 
 if __name__ == "__main__":

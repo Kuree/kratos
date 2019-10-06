@@ -1158,6 +1158,12 @@ public:
                     // not the same parent
                     return;
                 }
+                // FIXME: need to re-work on fanout one wire removal
+                //  For now disable the expression based search
+                if (stmt->right() != var) {
+                    // expr based
+                    return;
+                }
                 queue.emplace_back(std::make_pair(var, stmt));
                 compute_assign_chain(sink_var, queue);
             }
