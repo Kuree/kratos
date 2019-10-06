@@ -14,18 +14,34 @@ just as in verilog.
 
 Examples
 ========
+
+Kratos allows you to either parameterize constant values or variable widths.
+Although it's more restricted than what SystemVerilog offers, it should cover
+the majority of use cases. You can also directly use Python's meta-programming
+to parameterize your generators.
+
+Here is the function definition for parameter
+
+.. code-block:: Python
+
+  def parameter(self, name: str, width: int, default_value=0,
+                  is_signed: bool = False)
+
+Parameterize constant values
+----------------------------
+
 We can create a module that add ``value`` to the input and then output the
 sum. Here is the python code that defines a module called ``add_value``. Here
 we created a parameter called ``value``.
 
 .. code-block:: Python
 
-    class ParameterModule(kratos.Generator):
+  class ParameterModule(kratos.Generator):
     def __init__(self, width):
         super().__init__("add_value")
         in_ = self.port("in", width, kratos.PortDirection.In)
         out_ self.port("out", width, kratos.PortDirection.Out)
-        self.value_param = self.parameter("value", width)
+        self.value_param = self.parameter("value", width, default_value=0)
         self.add_stmt(out_.assign(in_ + self.value_param))
 
 Here is the generated verilog:
@@ -55,7 +71,7 @@ parameter to ``42``.
             self.port("in", width, kratos.PortDirection.In)
             self.port("out", width, kratos.PortDirection.Out)
             adder = ParameterModule(width)
-            adder.value_param.set_value(42)
+            adder.value_param.value = 42
             self.add_child("adder", adder)
             self.wire(adder.ports["in"], self.ports["in"])
             self.wire(self.ports["out"], adder.ports["out"])
@@ -77,9 +93,34 @@ Here is the generated verilog for the parent module:
 
   endmodule   // parent
 
-Limitations
-===========
+Parameterize variable width
+---------------------------
+When you create a port or a variable from the generator, you can pass in a
+parameter as ``width``.
 
-One of the major difference between kratos' parameter and verilog's is that
-kratos doesn't allow you to parametrize the variable width. In that case
-you have to use standard generator parameters.
+Here is an example on how to use it:
+
+.. code-block:: Python
+
+    mod = Generator("mod")
+    param = mod.parameter("P", 4, 4)
+    in_ = mod.input("in", param)
+    out = mod.output("out", param)
+    var = mod.var("v", param)
+    mod.wire(var, in_)
+    mod.wire(out, var * 2)
+
+Here is generated SystemVerilog:
+
+.. code-block:: SystemVerilog
+
+  module mod #(parameter P = 4'h4)
+  (
+    input logic [P-1:0] in,
+    output logic [P-1:0] out
+  );
+
+  logic  [P-1:0] v;
+  assign v = in;
+  assign out = v * 4'h2;
+  endmodule   // mod
