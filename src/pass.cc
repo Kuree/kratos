@@ -91,13 +91,14 @@ public:
             throw StmtException(
                 ::format("assignment width doesn't match. left ({0}): {1} right ({2}): {3}",
                          left->to_string(), left->width(), right->to_string(), right->width()),
-                {stmt});
+                {stmt, left.get(), right.get(), left->param(), right->param()});
         if (left->is_signed() != right->is_signed())
             throw StmtException(
                 ::format("assignment sign doesn't match. left ({0}): {1} right ({2}): {3}",
                          left->to_string(), left->is_signed(), right->to_string(),
                          right->is_signed()),
-                {stmt});
+                {stmt, left.get(), right.get(), left->param(), right->param()});
+        check_expr(right.get(), stmt);
     }
 
     void visit(Generator* generator) override {
@@ -140,6 +141,31 @@ private:
             throw StmtException(::format("{0} has wire assignment yet is also used in always block",
                                          var->to_string()),
                                 stmt_list.begin(), stmt_list.end());
+        }
+    }
+
+    void static inline check_expr(Var* var, Stmt* stmt) {
+        if (var->type() == VarType::Expression) {
+            auto expr = reinterpret_cast<Expr*>(var);
+            auto left = expr->left;
+            auto right = expr->right;
+            auto width = var->width();
+            if (left->width() != width && expr->op != ExprOp::Concat) {
+                throw VarException(::format("{0}'s width should be {1} but used as {2}",
+                                            left->to_string(), left->width(), width),
+                                   {var, left.get(), stmt, left->param()});
+            }
+            if (right && right->width() != width && expr->op != ExprOp::Concat) {
+                throw VarException(::format("{0}'s width should be {1} but used as {2}",
+                                            right->to_string(), right->width(), width),
+                                   {var, right.get(), stmt, right->param()});
+            }
+            if (left->type() == VarType::Expression) {
+                check_expr(left.get(), stmt);
+            }
+            if (right && right->type() == VarType::Expression) {
+                check_expr(right.get(), stmt);
+            }
         }
     }
 };

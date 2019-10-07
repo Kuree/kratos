@@ -1220,15 +1220,24 @@ def test_async_latch():
 
 
 def test_param():
-    mod = Generator("mod")
+    mod = Generator("mod", True)
     param = mod.parameter("P", 4, 4)
+    param2 = mod.parameter("P2", 4, 4)
     in_ = mod.input("in", param)
-    out = mod.output("out", param)
+    out = mod.output("out", param2)
     var = mod.var("v", param)
     mod.wire(var, in_)
     mod.wire(out, var * 2)
 
     check_gold(mod, "test_param")
+    param.value = 2
+    try:
+        verilog(mod)
+        assert False
+    except VarException:
+        assert True
+    param.value = 4
+    verilog(mod)
 
 
 if __name__ == "__main__":

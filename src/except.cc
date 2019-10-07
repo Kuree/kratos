@@ -26,6 +26,9 @@ std::string inline blue_line() {
 }
 
 void print_ast_node(const IRNode* node) {
+    if (!node) {
+        return;
+    }
     // we only support unix for now
 #ifdef __unix__
     if (!node->fn_name_ln.empty()) {

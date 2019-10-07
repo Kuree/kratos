@@ -281,7 +281,7 @@ public:
     Const(Generator *m, int64_t value, uint32_t width, bool is_signed);
 
     int64_t value() const { return value_; }
-    void set_value(int64_t new_value);
+    virtual void set_value(int64_t new_value);
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
@@ -316,8 +316,14 @@ public:
 
     std::string inline value_str() const { return Const::to_string(); }
 
+    const std::unordered_set<Var*> &param_vars() const { return param_vars_; }
+    void add_param_var(Var *var) { param_vars_.emplace(var); }
+    void set_value(int64_t new_value) override;
+
 private:
     std::string parameter_name_;
+
+    std::unordered_set<Var*> param_vars_;
 };
 
 struct PackedStruct {

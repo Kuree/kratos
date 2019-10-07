@@ -359,7 +359,16 @@ void init_expr(py::module &m) {
     auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
 
     auto param = py::class_<Param, ::shared_ptr<Param>, Var>(m, "Param");
-    param.def_property("value", &Param::value, &Param::set_value);
+    param.def_property("value", &Param::value, [](Param &param, int64_t value) {
+        param.set_value(value);
+        if (param.generator->debug) {
+            // store the line change info
+            auto info = get_fn_ln(1);
+            if (info) {
+                param.fn_name_ln.emplace_back(*info);
+            }
+        }
+    });
 
     auto port_packed = py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>(m, "PortPacked");
     port_packed.def("port_direction", &PortPacked::port_direction)

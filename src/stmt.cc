@@ -60,22 +60,6 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
                      right->name, left->width(), right->width()),
             {left.get(), right.get()});
     }
-    // check parameters
-    // compute root
-    auto left_root = left->get_var_root_parent();
-    auto right_root = right->get_var_root_parent();
-    if (left_root->parametrized() || right_root->parametrized()) {
-        if (left_root->param() != right_root->param()) {
-            throw VarException(
-                ::format("left ({0}) is parametrized by {1} but right ({2}) "
-                         "is parametrized by {3}",
-                         left->to_string(),
-                         left_root->parametrized() ? left_root->param()->to_string() : "NULL",
-                         right->to_string(),
-                         right_root->parametrized() ? right_root->param()->to_string() : "NULL"),
-                {left.get(), right.get(), left_root->param(), right_root->param()});
-        }
-    }
 }
 
 bool AssignStmt::equal(const std::shared_ptr<AssignStmt> &stmt) const {

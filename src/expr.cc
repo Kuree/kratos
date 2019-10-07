@@ -219,6 +219,7 @@ void Var::set_width_param(kratos::Param *param) {
     }
     var_width_ = param->value();
     param_ = param;
+    param->add_param_var(this);
 }
 
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
@@ -337,20 +338,6 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
                      left->to_string(), left->width(), right->to_string(), right->width()),
             {left.get(), right.get()});
-    // check parametrization
-    param_ = const_cast<Param *>(left->param());
-    if (right != nullptr && right->param() != param_) {
-        if (left->type() == VarType::ConstValue) {
-            param_ = const_cast<Param *>(right->param());
-        } else if (right->type() != VarType::ConstValue) {
-            throw VarException(
-                ::format("left ({0}) is parametrized with ({1}) yet right ({2}) is parametrized "
-                         "with {3}",
-                         left->to_string(), param_ ? param_->to_string() : "NULL",
-                         right->to_string(), right->param() ? right->param()->to_string() : "NULL"),
-                {left.get(), right.get(), param_, right->param()});
-        }
-    }
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op))
         var_width_ = 1;
@@ -402,11 +389,12 @@ void Expr::set_parent() {
     }
 }
 
-Var::Var(Generator *module, const std::string &name, uint32_t var_width, uint32_t size, bool is_signed)
+Var::Var(Generator *module, const std::string &name, uint32_t var_width, uint32_t size,
+         bool is_signed)
     : Var(module, name, var_width, size, is_signed, VarType::Base) {}
 
-Var::Var(Generator *module, const std::string &name, uint32_t var_width, uint32_t size, bool is_signed,
-         VarType type)
+Var::Var(Generator *module, const std::string &name, uint32_t var_width, uint32_t size,
+         bool is_signed, VarType type)
     : IRNode(IRNodeKind::VarKind),
       name(name),
       generator(module),
@@ -574,6 +562,22 @@ Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
     : Const(m, 0, width, is_signed), parameter_name_(std::move(name)) {
     // override the type value
     type_ = VarType::Parameter;
+}
+
+void Param::set_value(int64_t new_value) {
+    if (new_value <= 0 && !param_vars_.empty()) {
+        throw VarException(
+            ::format(
+                "{0} is used for parametrizing variable width, thus cannot be non-positive ({1})",
+                to_string(), new_value),
+            {this});
+    }
+    Const::set_value(new_value);
+
+    // change the width of parametrized variables
+    for (auto &var : param_vars_) {
+        var->var_width() = new_value;
+    }
 }
 
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
