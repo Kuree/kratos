@@ -1,6 +1,26 @@
 How to debug in Kratos
 ######################
 
+Debug hardware as software
+==========================
+One major feature of Kratos is to allow designers debug their hardware
+designers in a fashion close to debugging software. Kratos has a suite of tools
+to support a wide-range of SystemVerilog simulators such as Verilator and
+ncsim.
+
+Here is a demonstration of debugging a design written in Kratos:
+
+.. image:: https://cdn.jsdelivr.net/gh/Kuree/kratos-vscode@master/images/demo.gif
+    :alt: demo
+
+To see more details, please visit kratos-vscode_ and kratos-runtime_
+
+.. _kratos-vscode: https://github.com/Kuree/kratos-vscode
+
+.. _kratos-runtime: https://github.com/Kuree/kratos-runtime
+
+Which line generates this SystemVerilog?
+========================================
 kratos comes with a GUI to help you debug the system verilog it
 generated. You need to install ``kratos-debug`` to use the tool:
 
