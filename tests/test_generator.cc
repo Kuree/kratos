@@ -417,7 +417,6 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
     verilog.run_passes();
     auto src = verilog.verilog_src();
     EXPECT_EQ(src.size(), 3);
-    EXPECT_TRUE(is_valid_verilog(src));
 }
 
 TEST(pass, module_hash) {  // NOLINT

@@ -697,6 +697,10 @@ public:
                     parent->var(new_name, port->var_width(), port->size(), port->is_signed());
                 }
                 auto var = parent->get_var(new_name);
+                // if it's parametrized, keep that as well
+                if (port->parametrized()) {
+                    var->set_width_param(port->param());
+                }
                 if (parent->debug) {
                     // need to copy over the changes over
                     var->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
@@ -740,6 +744,10 @@ public:
                     parent->var(new_name, port->var_width(), port->size(), port->is_signed());
                 }
                 auto var = parent->get_var(new_name);
+                // if it's parametrized, keep that as well
+                if (port->parametrized()) {
+                    var->set_width_param(port->param());
+                }
                 if (parent->debug) {
                     // need to copy over the changes over
                     var->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
