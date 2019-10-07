@@ -836,10 +836,10 @@ TEST(generator, decouple2) {  // NOLINT
                    port4_1.shared_from_this()};
     auto mods = {&mod2, &mod3, &mod4};
     auto count = 0;
-    for (auto mod: mods) {
+    for (auto mod : mods) {
         mod1.add_child_generator("mod" + std::to_string(count++), mod->shared_from_this());
     }
-    for (auto const &in: inputs) {
+    for (auto const &in : inputs) {
         mod1.add_stmt(in->assign(port1_1));
     }
     mod1.add_stmt(port1_2.assign(port2_2 ^ port3_2 ^ port4_2));
@@ -849,4 +849,40 @@ TEST(generator, decouple2) {  // NOLINT
     auto result = generate_verilog(&mod1);
     auto mod_src = result.at("parent");
     EXPECT_TRUE(mod_src.find("mod0_out ^ mod1_out ^ mod2_out") != std::string::npos);
+}
+
+TEST(generator, parameter_value) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &p = mod.parameter("P", 4);
+    p.set_value(4);
+    auto &mod_in = mod.var("in", 4);
+    auto &mod_out = mod.var("out", 4);
+    for (auto const &port: {&mod_in, &mod_out}) {
+        port->set_width_param(&p);
+    }
+
+    auto &child = c.generator("child");
+    auto &p2 = child.parameter("P2", 4);
+    p2.set_value(4);
+    auto &child_in = child.port(PortDirection::In, "in", 4);
+    auto &child_out = child.port(PortDirection::Out, "out", 4);
+    child.add_stmt(child_out.assign(child_in));
+    for (auto const &port:  {&child_in, &child_out}) {
+        port->set_width_param(&p2);
+    }
+    // wiring
+    mod.add_stmt(child_in.assign(mod_in));
+    mod.add_stmt(mod_out.assign(child_out));
+
+    // set chaining
+    p2.set_value(p.as<Param>());
+    // change parent param value
+    p.set_value(2);
+
+    // run passes
+    fix_assignment_type(&mod);
+    verify_assignments(&mod);
+    create_module_instantiation(&mod);
+    generate_verilog(&mod);
 }

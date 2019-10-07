@@ -1240,5 +1240,50 @@ def test_param():
     verilog(mod)
 
 
+def test_nested_param():
+    parent = Generator("parent")
+    param1 = parent.parameter("P", 4, 4)
+    # use normal variable to see how decoupling works
+    in1 = parent.var("in", param1)
+    out1 = parent.var("out", param1)
+
+    child = Generator("child")
+    param2 = child.parameter("P2", 4, 4)
+    in2 = child.input("in", param2)
+    out2 = child.output("out", param2)
+    child.wire(out2, in2)
+
+    parent.add_child("mod", child)
+    parent.wire(in1, in2)
+    parent.wire(out1, out2)
+
+    # change the value
+    param2.value = param1
+    # test the value propagation
+    param1.value = 2
+    check_gold(parent, "test_nested_param", optimize_passthrough=False)
+
+
+def hash_param_width():
+    class Mod(Generator):
+        def __init__(self, value):
+            super().__init__("mod")
+            p = self.parameter("P", 2, 2)
+            out = self.output("out", p)
+            self.wire(out, p)
+            p.value = value
+    mod1 = Mod(1)
+    mod2 = Mod(2)
+    parent = Generator("parent")
+    parent.add_child("mod1", mod1)
+    parent.add_child("mod2", mod2)
+
+    hash_generators_parallel(parent.internal_generator)
+    c = Generator.get_context()
+    hash1 = c.get_hash(mod1.internal_generator)
+    hash2 = c.get_hash(mod2.internal_generator)
+    assert hash1 == hash2
+
+
 if __name__ == "__main__":
-    test_param()
+    hash_param_width()

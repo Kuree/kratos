@@ -456,9 +456,22 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
         uint32_t count = 0;
         for (auto const& name : param_names) {
             auto const& param = params.at(name);
+            auto value = param->value_str();
+            if (param->parent_param()) {
+                auto p = param->parent_param();
+                // checking on parameter parent
+                auto p_gen = p->generator;
+                if (p_gen != stmt->generator_parent()) {
+                    throw VarException(
+                        ::format("{0}.{1} is not declared in generator {2}", p_gen->name, p->name,
+                                 stmt->generator_parent()->name),
+                        {stmt, p_gen, p});
+                }
+                value = p->to_string();
+            }
             stream_ << indent()
                     << ::format(
-                           ".{0}({1}){2}", name, param->value_str(),
+                           ".{0}({1}){2}", name, value,
                            ++count == params.size() ? ")" : "," + std::string(1, stream_.endl()));
         }
 

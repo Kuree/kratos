@@ -214,6 +214,28 @@ constexpr uint64_t shift_const(uint64_t value, uint8_t amount) {
     return (value << amount) | (value >> (64u - amount));
 }
 
+static uint64_t hash_var(Var* var) {
+    if (!var) return 0;
+    if (var->type() == VarType::Expression) {
+        auto expr = reinterpret_cast<Expr*>(var);
+        auto op_hash = (uint64_t)expr->op;
+        return hash_var(expr->left.get()) ^ hash_var(expr->right.get()) ^ op_hash;
+    } else if (var->type() == VarType::ConstValue) {
+        auto c = reinterpret_cast<Const*>(var);
+        return static_cast<uint64_t>(c->value());
+    } else if (var->type() == VarType::Parameter) {
+        auto v = var->to_string();
+        return hash_64_fnv1a(v.c_str(), v.size());
+    } else {
+        auto v = var->to_string();
+        auto hash = hash_64_fnv1a(v.c_str(), v.size());
+        if (!var->parametrized()) {
+            hash ^= var->width();
+        }
+        return hash;
+    }
+}
+
 class HashVisitor : public IRVisitor {
 public:
     explicit HashVisitor(Generator* root) : root_(root) {
@@ -240,9 +262,8 @@ public:
     }
 
     void visit(AssignStmt* stmt) override {
-        auto var = stmt->left()->to_string() + stmt->right()->to_string() +
-                   std::to_string(stmt->left()->width());
-        uint64_t stmt_hash = hash_64_fnv1a(var.c_str(), var.size());
+        uint64_t stmt_hash =
+            hash_var(stmt->left().get()) ^ (shift(hash_var(stmt->right().get()), 1));
         // based on level
         stmt_hash = shift(stmt_hash, level);
         stmt_hashes_.emplace_back(stmt_hash);

@@ -359,8 +359,17 @@ void init_expr(py::module &m) {
     auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
 
     auto param = py::class_<Param, ::shared_ptr<Param>, Var>(m, "Param");
-    param.def_property("value", &Param::value, [](Param &param, int64_t value) {
-        param.set_value(value);
+    param.def_property("value", &Param::value, [](Param &param, const py::object &value) {
+        // determine the type and cast
+        try {
+            auto v = value.cast<int64_t>();
+            param.set_value(v);
+        } catch(py::cast_error&) {
+            // try with param instead
+            // if it fail, a cast error will raise here
+            auto v = value.cast<const std::shared_ptr<Param>>();
+            param.set_value(v);
+        }
         if (param.generator->debug) {
             // store the line change info
             auto info = get_fn_ln(1);

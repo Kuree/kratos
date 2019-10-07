@@ -214,7 +214,7 @@ void Var::set_width_param(kratos::Param *param) {
     if (param->value() <= 0) {
         throw VarException(::format("{0} is non-positive ({1}), "
                                     "thus cannot be used for parametrization width",
-                                    param->to_string()),
+                                    param->to_string(), param->value()),
                            {param});
     }
     var_width_ = param->value();
@@ -578,6 +578,15 @@ void Param::set_value(int64_t new_value) {
     for (auto &var : param_vars_) {
         var->var_width() = new_value;
     }
+    // change the entire chain
+    for (auto &param: param_params_) {
+        param->set_value(new_value);
+    }
+}
+
+void Param::set_value(const std::shared_ptr<Param> &param) {
+    param->param_params_.emplace(this);
+    parent_param_ = param.get();
 }
 
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
@@ -776,6 +785,10 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
         new_var->add_source(stmt);
+        // pick a source parameter, if any
+        if (stmt->right()->parametrized() && !new_var->parametrized()) {
+            new_var->set_width_param(stmt->right()->param());
+        }
     }
     // now clear the sources
     var->sources_.clear();
@@ -804,6 +817,10 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
         new_var->add_sink(stmt);
+        // pick a source parameter, if any
+        if (stmt->left()->parametrized() && !new_var->parametrized()) {
+            new_var->set_width_param(stmt->left()->param());
+        }
     }
     // now clear the sinks
     var->sinks_.clear();

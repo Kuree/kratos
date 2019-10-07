@@ -319,11 +319,16 @@ public:
     const std::unordered_set<Var*> &param_vars() const { return param_vars_; }
     void add_param_var(Var *var) { param_vars_.emplace(var); }
     void set_value(int64_t new_value) override;
+    void set_value(const std::shared_ptr<Param> &param);
+
+    const Param* parent_param() const { return parent_param_; }
 
 private:
     std::string parameter_name_;
 
     std::unordered_set<Var*> param_vars_;
+    std::unordered_set<Param*> param_params_;
+    Param* parent_param_ = nullptr;
 };
 
 struct PackedStruct {
