@@ -283,7 +283,7 @@ concise way: this is just an example of how to add code blocks.
 
         @always((posedge, "clk"), (posedge, "rst"))
         def seq_code_block(self):
-            if ~self._rst:
+            if self._rst:
                 self._val = 0
             else:
                 self._val = self._in
@@ -311,7 +311,7 @@ Here is the verilog produced:
   logic  [15:0] val;
 
   always @(posedge rst, posedge clk) begin
-    if (~rst) begin
+    if (rst) begin
       val <= 16'h0;
     end
     else begin
@@ -343,7 +343,7 @@ variables created before:
 
           @always((posedge, "clk"), (posedge, "rst"))
           def seq_code_block():
-              if ~_rst:
+              if _rst:
                   _val = 0
               else:
                   _val = _in
@@ -407,6 +407,17 @@ Here is the generated verilog
   end
   endmodule   // PassThrough
 
+.. warning::
+
+  Due to the Python limitation, you cannot use ``not``, ``and``, and ``or`` in
+  your ``if`` statement predicate. It is because they're short-circuit
+  evaluated. To do logical comparison, you either use ``~`` as an invert for
+  1-bit signals, or ops such as ``var.r_not()``, which is a reduced op.
+
+  To perform logical comparison, you have to use `&`, `|` as bit wise
+  comparison. As long as they are 1-bit signals, there is no logical
+  difference. However, if your signal is wider than 1-bit, you should reduce
+  them into 1-bit instead, such as using ``var.r_or``.
 
 Procedural code generation
 ==========================
