@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.16] - 2019-10-06
+### Added
+- Add handle name to FSM state
+- Add kratos-vscode launch json example
+- Add _kratos namespace doc generation
+- Add ability to insert debug info at the beginning of the list
+- Add breakpoint on clock
+- Add support for parameter variable width (#97)
+- Add abspath to fs util
+- Add C implementation of `get_fn_ln` and expose it to Python (#98)
+
+### Changed
+- Split debug table generation to support kratos-runtime
+- Refactor table implementation code for kratos-runtime
+- Remove the name calculation logic; this will be handled in kratos-runtime
+- Automatically infer active low/high and run analysis on it
+- Use `signed'` instead of system function `$signed`
+- Produce SystemVerilog package when outputting in a directory (#96)
+
+### Fixed
+- Fix a bug in sliding through fsm dot graph generation
+- Fix a bug in port decouple when the expr is larger than 2
+- Fix a bug where two child generators wire to each other may cause an exception about wiring
+
 ## [0.0.15] - 2019-09-18
 ### Added
 - Add ability to add function call var to statement block in python
