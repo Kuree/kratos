@@ -1,4 +1,5 @@
 #include "debug.hh"
+#include <mutex>
 #include "db.hh"
 #include "except.hh"
 #include "fmt/format.h"
@@ -256,6 +257,7 @@ public:
                     auto gen = parent_var->generator;
                     auto gen_handle = gen->handle_name();
                     // the direction is var -> var
+                    lock_.lock();
                     if (target_port->port_direction() == PortDirection::In) {
                         connections_.emplace(
                             std::make_pair(gen_handle, parent_var->to_string()),
@@ -265,6 +267,7 @@ public:
                             std::make_pair(target_handle_name, target_port->to_string()),
                             std::make_pair(gen_handle, parent_var->to_string()));
                     }
+                    lock_.unlock();
                 }
             }
         }
@@ -274,6 +277,7 @@ public:
 
 private:
     DebugDatabase::ConnectionMap connections_;
+    std::mutex lock_;
 };
 
 void DebugDatabase::set_generator_connection(kratos::Generator *top) {
