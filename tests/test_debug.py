@@ -260,6 +260,11 @@ def test_design_hierarchy():
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
         verilog(parent, filename=filename, debug_db_filename=debug_db)
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM hierarchy")
+        mods = c.fetchall()
+        assert len(mods) == num_child_child * num_child + num_child
 
 
 if __name__ == "__main__":
