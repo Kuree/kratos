@@ -209,5 +209,58 @@ def test_clock_interaction():
         verilog(parent, filename=filename, debug_db_filename=debug_db)
 
 
+def test_design_hierarchy():
+    from functools import reduce
+    mods = []
+    num_child = 4
+    num_child_child = 3
+
+    def add_child(m):
+        output = None
+        outputs_ = []
+        for c in range(num_child_child):
+            child = Generator("child", True)
+            m.add_child("child{0}".format(c), child)
+            in__ = child.input("in", 4)
+            out__ = child.output("out", 4)
+            clk__ = child.clock("clk")
+            m.wire(m.ports.clk, clk__)
+            if output is None:
+                m.wire(m.ports["in"], in__)
+            else:
+                m.wire(output, in__)
+            output = out__
+            seq_ = child.sequential((posedge, clk__))
+            seq_.add_stmt(out__.assign(in__))
+            outputs_.append(out__)
+        return outputs_
+
+    for i in range(num_child):
+        mod = Generator("mod", True)
+        mod.input("in", 4)
+        out_ = mod.output("out", 4)
+        clk = mod.clock("clk")
+        seq = mod.sequential((posedge, clk))
+        outputs = add_child(mod)
+        seq.add_stmt(out_.assign(reduce(lambda x, y: x + y, outputs)))
+        mods.append(mod)
+    parent = Generator("parent")
+    clk = parent.clock("clk")
+    in_ = parent.input("in", 4)
+    out = parent.output("out", 4)
+    for i, mod in enumerate(mods):
+        parent.add_child("mod{0}".format(i), mod)
+        parent.wire(mod.ports.clk, clk)
+        if i == 0:
+            continue
+        parent.wire(mod.ports["in"], mods[i - 1].ports.out)
+    parent.wire(mods[0].ports["in"], in_)
+    parent.wire(out, mods[-1].ports.out)
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        filename = os.path.join(temp, "test.sv")
+        verilog(parent, filename=filename, debug_db_filename=debug_db)
+
+
 if __name__ == "__main__":
-    test_clock_interaction()
+    test_design_hierarchy()
