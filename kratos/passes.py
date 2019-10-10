@@ -21,6 +21,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             additional_passes: Dict = None,
             extract_struct: bool = False,
             int_dpi_interface: bool = True,
+            remove_assertion: bool = False,
             filename: str = None,
             output_dir: str = None,
             debug_db_filename: str = "",
@@ -35,7 +36,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     # load all the passes
     # you can easily roll your own functions to control how the passes
     # are run
-
+    if remove_assertion:
+        pass_manager.add_pass("remove_assertion")
     pass_manager.add_pass("realize_fsm")
     if optimize_passthrough:
         pass_manager.add_pass("remove_pass_through_modules")

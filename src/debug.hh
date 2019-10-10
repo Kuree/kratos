@@ -16,6 +16,7 @@ void inject_clock_break_points(Generator *top);
 void inject_clock_break_points(Generator *top, const std::string &clk_name);
 void inject_clock_break_points(Generator *top, const std::shared_ptr<Port> &port);
 void inject_assert_fail_exception(Generator *top);
+void remove_assertion(Generator *top);
 
 // for verilator
 void insert_verilator_public(Generator *top);

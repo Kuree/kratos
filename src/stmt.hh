@@ -109,6 +109,7 @@ public:
     explicit IfStmt(Var &var) : IfStmt(var.shared_from_this()) {}
 
     std::shared_ptr<Var> predicate() const { return predicate_; }
+    void set_predicate(const std::shared_ptr<Var> &var) { predicate_ = var; }
     const std::shared_ptr<ScopedStmtBlock> &then_body() const { return then_body_; }
     const std::shared_ptr<ScopedStmtBlock> &else_body() const { return else_body_; }
     void add_then_stmt(const std::shared_ptr<Stmt> &stmt);
@@ -118,6 +119,8 @@ public:
     void remove_then_stmt(const std::shared_ptr<Stmt> &stmt);
     void remove_else_stmt(const std::shared_ptr<Stmt> &stmt);
     void remove_stmt(const std::shared_ptr<Stmt> &stmt);
+    void set_then(const std::shared_ptr<ScopedStmtBlock> &stmt) { then_body_ = stmt; }
+    void set_else(const std::shared_ptr<ScopedStmtBlock> &stmt) { else_body_ = stmt; }
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
@@ -154,6 +157,9 @@ public:
     const std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> &body() const {
         return body_;
     }
+    void set_body(const std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> &body) {
+        body_ = body;
+    }
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
@@ -182,6 +188,7 @@ public:
     IRNode *get_child(uint64_t index) override {
         return index < stmts_.size() ? stmts_[index].get() : nullptr;
     }
+    std::shared_ptr<Stmt> get_stmt(uint64_t index) { return stmts_[index]; }
 
     void set_child(uint64_t index, const std::shared_ptr<Stmt> &stmt);
 

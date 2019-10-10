@@ -4,6 +4,7 @@
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
+#include "pass.hh"
 #include "tb.hh"
 #include "util.hh"
 
@@ -470,6 +471,45 @@ private:
 void inject_assert_fail_exception(Generator *top) {
     AssertVisitor visitor;
     visitor.visit_root(top);
+}
+
+// TODO: implement transformer visitor
+class AssertionRemoval : public IRVisitor {
+public:
+    void visit(Generator *gen) override {
+        auto stmt_count = gen->stmts_count();
+        std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = gen->get_stmt(i);
+            if (stmt->type() == StatementType::Assert) stmts_to_remove.emplace_back(stmt);
+        }
+        for (auto const &stmt : stmts_to_remove) {
+            gen->remove_stmt(stmt);
+        }
+    }
+
+    void visit(ScopedStmtBlock *block) override { process_block(block); }
+    void visit(SequentialStmtBlock* block) override {process_block(block); }
+    void visit(CombinationalStmtBlock* block) override {process_block(block); }
+
+    void process_block(StmtBlock *block) const {
+        auto stmt_count = block->child_count();
+        std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = reinterpret_cast<Stmt *>(block->get_child(i));
+            if (stmt->type() == Assert) stmts_to_remove.emplace_back(stmt->shared_from_this());
+        }
+        for (auto const &stmt : stmts_to_remove) {
+            block->remove_stmt(stmt);
+        }
+    }
+};
+
+void remove_assertion(Generator *top) {
+    AssertionRemoval visitor;
+    visitor.visit_root(top);
+    // then remove empty block
+    remove_empty_block(top);
 }
 
 }  // namespace kratos

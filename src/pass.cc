@@ -2322,6 +2322,99 @@ void sort_stmts(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
+
+class RemoveEmptyBlockVisitor: public IRVisitor {
+public:
+    void visit(Generator *top) override {
+        auto stmt_count = top->stmts_count();
+        std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = top->get_stmt(i);
+            if (!dispatch_node(stmt))
+                stmts_to_remove.emplace_back(stmt);
+        }
+        for (auto const &stmt: stmts_to_remove) {
+            top->remove_stmt(stmt);
+        }
+    }
+
+private:
+    std::shared_ptr<IfStmt> process(std::shared_ptr<IfStmt> stmt) {
+        auto then_ = stmt->then_body();
+        auto then_body = process(then_);
+        auto else_body = process(stmt->else_body());
+        if (!then_body) {
+            // then is empty
+            if (else_body->empty()) {
+                return nullptr;
+            } else {
+                // invert the condition and make else then
+                auto cond = stmt->predicate();
+                auto &new_cond = ~(*cond);
+                stmt->set_predicate(new_cond.shared_from_this());
+                stmt->set_then(else_body->as<ScopedStmtBlock>());
+                stmt->set_else(std::make_shared<ScopedStmtBlock>());
+                return stmt;
+            }
+        }
+        stmt->set_then(then_body->as<ScopedStmtBlock>());
+        return stmt;
+    }
+
+    std::shared_ptr<StmtBlock> process(std::shared_ptr<StmtBlock> stmt) {
+        auto stmt_count = stmt->child_count();
+        std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto st = stmt->get_stmt(i);
+            auto r = dispatch_node(st);
+            if (!r) {
+                stmts_to_remove.emplace_back(st);
+                continue;
+            }
+            stmt->set_child(i, r);
+        }
+        for (auto const &st: stmts_to_remove) {
+            stmt->remove_stmt(st);
+        }
+        if (stmt->empty())
+            return nullptr;
+        else
+            return stmt;
+    }
+
+    std::shared_ptr<SwitchStmt> process(std::shared_ptr<SwitchStmt> stmt) {
+        std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> new_body;
+        auto const &body = stmt->body();
+        for (auto &[cond, block]: body) {
+            auto r = process(block);
+            if (r) {
+                new_body.emplace(cond, r->as<ScopedStmtBlock>());
+            }
+        }
+        if (new_body.empty())
+            return nullptr;
+        stmt->set_body(new_body);
+        return stmt;
+    }
+
+    std::shared_ptr<Stmt> dispatch_node(std::shared_ptr<Stmt> stmt) {
+        if (stmt->type() == StatementType::If) {
+            return process(std::reinterpret_pointer_cast<IfStmt>(stmt));
+        } else if (stmt->type() == StatementType::Switch) {
+            return process(std::reinterpret_pointer_cast<SwitchStmt>(stmt));
+        } else if (stmt->type() == StatementType::Block) {
+            return process(std::reinterpret_pointer_cast<ScopedStmtBlock>(stmt));
+        } else {
+            return stmt;
+        }
+    }
+};
+
+void remove_empty_block(Generator *top) {
+    RemoveEmptyBlockVisitor visitor;
+    visitor.visit_root(top);
+}
+
 void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {
     if (has_pass(name))
         throw UserException(::format("{0} already exists in the pass manager", name));
@@ -2394,6 +2487,8 @@ void PassManager::register_builtin_passes() {
     register_pass("inject_assert_fail_exception", &inject_assert_fail_exception);
 
     register_pass("insert_verilator_public", &insert_verilator_public);
+
+    register_pass("remove_assertion", &remove_assertion);
 
     register_pass("check_always_sensitivity", &check_always_sensitivity);
 

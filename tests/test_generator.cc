@@ -858,7 +858,7 @@ TEST(generator, parameter_value) {  // NOLINT
     p.set_value(4);
     auto &mod_in = mod.var("in", 4);
     auto &mod_out = mod.var("out", 4);
-    for (auto const &port: {&mod_in, &mod_out}) {
+    for (auto const &port : {&mod_in, &mod_out}) {
         port->set_width_param(&p);
     }
 
@@ -868,7 +868,7 @@ TEST(generator, parameter_value) {  // NOLINT
     auto &child_in = child.port(PortDirection::In, "in", 4);
     auto &child_out = child.port(PortDirection::Out, "out", 4);
     child.add_stmt(child_out.assign(child_in));
-    for (auto const &port:  {&child_in, &child_out}) {
+    for (auto const &port : {&child_in, &child_out}) {
         port->set_width_param(&p2);
     }
     // wiring
@@ -885,4 +885,52 @@ TEST(generator, parameter_value) {  // NOLINT
     verify_assignments(&mod);
     create_module_instantiation(&mod);
     generate_verilog(&mod);
+}
+
+TEST(pass, remove_empty_block_always) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    mod.sequential();
+    remove_empty_block(&mod);
+    EXPECT_EQ(mod.stmts_count(), 0);
+}
+
+TEST(pass, remove_empty_block_if_then) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &out = mod.var("out", 1);
+    auto seq = mod.sequential();
+    auto if_ = std::make_shared<IfStmt>(out.shared_from_this());
+    if_->add_else_stmt(out.assign(constant(1, 1)));
+    seq->add_stmt(if_);
+    remove_empty_block(&mod);
+    EXPECT_EQ(mod.stmts_count(), 1);
+    EXPECT_TRUE(if_->else_body()->empty());
+    EXPECT_TRUE(!if_->then_body()->empty());
+    auto target = if_->predicate();
+    EXPECT_EQ(target->to_string(), "~out");
+}
+
+TEST(pass, remove_empty_switch_one) {   // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &out = mod.var("out", 1);
+    auto seq = mod.sequential();
+    auto case_ = std::make_shared<SwitchStmt>(out.shared_from_this());
+    case_->add_switch_case(constant(0, 1).as<Const>(), out.assign(constant(0, 1)));
+    case_->add_switch_case(constant(1, 1).as<Const>(), std::make_shared<ScopedStmtBlock>());
+    seq->add_stmt(case_);
+    remove_empty_block(&mod);
+    EXPECT_EQ(case_->body().size(), 1);
+}
+
+TEST(pass, remove_empty_switch_all) {   // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &out = mod.var("out", 1);
+    auto seq = mod.sequential();
+    auto case_ = std::make_shared<SwitchStmt>(out.shared_from_this());
+    seq->add_stmt(case_);
+    remove_empty_block(&mod);
+    EXPECT_EQ(mod.stmts_count(), 0);
 }
