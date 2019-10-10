@@ -92,7 +92,7 @@ def test_seq_debug():
         c = conn.cursor()
         c.execute("SELECT * FROM breakpoint WHERE id=7")
         result = c.fetchall()
-        assert len(result) == 2
+        assert len(result) == 1
 
 
 def test_metadata():

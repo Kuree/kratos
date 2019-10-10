@@ -28,33 +28,18 @@ private:
             return;
         std::vector<std::shared_ptr<Stmt>> new_blocks;
         new_blocks.reserve(block->size() * 2);
-        // if it's a sequential block, we only inject one and link them together since non-blocking
-        // assignments are evaluated simultaneously
-        auto root_blk = get_root_block(block);
-        if (root_blk->block_type() == StatementBlockType::Sequential) {
-            // only need to insert one
+
+        for (auto const &stmt : *block) {
             uint32_t stmt_id = count_++;
-            for (auto const &stmt : *block) {
-                stmt->set_stmt_id(stmt_id);
-                new_blocks.emplace_back(stmt);
-            }
-            // append the actual bp_stmt
+            // make a function call
             auto bp_stmt = get_function_call_stmt(parent, stmt_id);
+            // FIXME: See #89
             bp_stmt->set_parent(block);
             new_blocks.emplace_back(bp_stmt);
-        } else {
-            for (auto const &stmt : *block) {
-                uint32_t stmt_id = count_++;
-                // make a function call
-                auto bp_stmt = get_function_call_stmt(parent, stmt_id);
-                // FIXME: See #89
-                bp_stmt->set_parent(block);
-                new_blocks.emplace_back(bp_stmt);
-                // insert the normal one
-                new_blocks.emplace_back(stmt);
-                // set stmt id
-                stmt->set_stmt_id(stmt_id);
-            }
+            // insert the normal one
+            new_blocks.emplace_back(stmt);
+            // set stmt id
+            stmt->set_stmt_id(stmt_id);
         }
 
         // replace the content
@@ -489,8 +474,8 @@ public:
     }
 
     void visit(ScopedStmtBlock *block) override { process_block(block); }
-    void visit(SequentialStmtBlock* block) override {process_block(block); }
-    void visit(CombinationalStmtBlock* block) override {process_block(block); }
+    void visit(SequentialStmtBlock *block) override { process_block(block); }
+    void visit(CombinationalStmtBlock *block) override { process_block(block); }
 
     void process_block(StmtBlock *block) const {
         auto stmt_count = block->child_count();
