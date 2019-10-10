@@ -170,6 +170,27 @@ class AssignNodeVisitor(ast.NodeTransformer):
                 keywords=[]))
 
 
+class AssertNodeVisitor(ast.NodeTransformer):
+    def __init__(self, generator, debug):
+        super().__init__()
+        self.generator = generator
+        self.debug = debug
+
+    def visit_Call(self, node: ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id == "assert_":
+            # we need to transform it to scope.assert_()
+            args = node.args
+            if self.debug:
+                args.append(ast.Num(n=node.lineno))
+            return ast.Call(func=ast.Attribute(
+                value=ast.Name(id="scope", ctx=ast.Load()),
+                attr="assert_",
+                cts=ast.Load()),
+                args=args,
+                keywords=[])
+        return node
+
+
 class ReturnNodeVisitor(ast.NodeTransformer):
     def __init__(self, scope_name, debug=False):
         self.scope_name = scope_name
@@ -242,9 +263,9 @@ class Scope:
                 self._if = _kratos.IfStmt(target)
                 if f_ln is not None:
                     target.add_fn_ln((scope.filename,
-                                      f_ln + scope.ln - 1))
+                                      f_ln + scope.ln - 1), True)
                     self._if.add_fn_ln((scope.filename,
-                                        f_ln + scope.ln - 1))
+                                        f_ln + scope.ln - 1), True)
                     # this is additional info passed in
                     add_scope_context(self._if, kargs)
 
@@ -282,7 +303,19 @@ class Scope:
             raise ex
         if self.filename:
             assert f_ln is not None
-            stmt.add_fn_ln((self.filename, f_ln + self.ln - 1))
+            stmt.add_fn_ln((self.filename, f_ln + self.ln - 1), True)
+            # obtain the previous call frame info
+            __local = get_frame_local()
+            add_scope_context(stmt, __local)
+            # this is additional info passed in
+            add_scope_context(stmt, kargs)
+        return stmt
+
+    def assert_(self, value, f_ln=None, **kargs):
+        assert isinstance(value, _kratos.Var)
+        stmt = _kratos.AssertValueStmt(value)
+        if self.filename:
+            stmt.add_fn_ln((self.filename, f_ln + self.ln - 1), True)
             # obtain the previous call frame info
             __local = get_frame_local()
             add_scope_context(stmt, __local)
@@ -311,7 +344,7 @@ class FuncScope(Scope):
     def return_(self, value, f_ln=None):
         stmt = self.__func.return_stmt(value)
         if f_ln is not None:
-            stmt.add_fn_ln((self.filename, f_ln + self.ln - 1))
+            stmt.add_fn_ln((self.filename, f_ln + self.ln - 1), True)
         return stmt
 
 
@@ -368,6 +401,10 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     if_visitor = IfNodeVisitor(generator, fn_src, _locals, _globals)
     fn_body = if_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
+
+    # transform the assert_ function to get fn_ln
+    assert_visitor = AssertNodeVisitor(generator, debug)
+    fn_body = assert_visitor.visit(fn_body)
 
     # mark the local variables
     target_nodes = for_visitor.target_node

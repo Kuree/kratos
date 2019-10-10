@@ -1,10 +1,14 @@
 import _kratos
 from .generator import Generator, transform_stmt_block, CodeBlockType, \
     InitialCodeBlock, comment_node, VarProxy
+from .util import get_fn_ln
 
 
 def assert_(expr):
-    return _kratos.AssertValueStmt(expr)
+    stmt = _kratos.AssertValueStmt(expr)
+    if expr.generator.debug:
+        stmt.add_fn_ln(get_fn_ln())
+    return stmt
 
 
 def delay(num, stmt):

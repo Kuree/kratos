@@ -274,7 +274,8 @@ def test_assert():
     out_ = mod.output("out", 1)
 
     def code():
-        out_ = in_
+        # we introduce this bug on purpose
+        out_ = in_ - 1
         assert_(out_ == in_)
 
     mod.add_code(code)
@@ -285,6 +286,13 @@ def test_assert():
         with open(filename) as f:
             content = f.read()
             assert "assert (out == in) else" in content
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM breakpoint")
+        lines = c.fetchall()
+        assert len(lines) == 2
+        # they are only one line apart
+        assert lines[0][2] == lines[1][2] + 1
 
 
 if __name__ == "__main__":
