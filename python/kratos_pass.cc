@@ -50,6 +50,7 @@ void init_pass(py::module &m) {
         .def("extract_dpi_function", &extract_dpi_function)
         .def("extract_debug_break_points", &extract_debug_break_points)
         .def("insert_verilator_public", &insert_verilator_public)
+        .def("remove_assertion", &remove_assertion)
         .def("check_inferred_latch", &check_inferred_latch);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(

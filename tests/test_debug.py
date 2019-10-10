@@ -293,6 +293,10 @@ def test_assert():
         assert len(lines) == 2
         # they are only one line apart
         assert lines[0][2] == lines[1][2] + 1
+    # once we remove the assertion, it should not be there
+    _kratos.passes.remove_assertion(mod.internal_generator)
+    src = verilog(mod)[0]["mod"]
+    assert "assert" not in src
 
 
 if __name__ == "__main__":
