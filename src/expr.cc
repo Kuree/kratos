@@ -207,6 +207,20 @@ std::string Var::handle_name(bool ignore_top) const {
         return to_string();
 }
 
+std::string Var::handle_name(kratos::Generator *scope) const {
+    // subtract the scope
+    auto gen_name = scope->handle_name();
+    auto var_name = handle_name();
+    auto pos = var_name.find(gen_name);
+    if (pos != 0) {
+        throw VarException(
+            ::format("{0} is not accessible from {1}", gen_name, generator->handle_name()),
+            {this, scope, this->generator});
+    }
+    // we +1 because there is a dot there
+    return var_name.substr(pos + gen_name.size() + 1);
+}
+
 void Var::set_width_param(const std::shared_ptr<Param> &param) { set_width_param(param.get()); }
 
 void Var::set_width_param(kratos::Param *param) {
@@ -579,7 +593,7 @@ void Param::set_value(int64_t new_value) {
         var->var_width() = new_value;
     }
     // change the entire chain
-    for (auto &param: param_params_) {
+    for (auto &param : param_params_) {
         param->set_value(new_value);
     }
 }

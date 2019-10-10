@@ -61,8 +61,14 @@ public:
 
     Var *value() const { return assert_var_; }
 
+    const std::shared_ptr<Stmt> &else_() const { return else__; }
+    // currently this will only be used for debugging
+    // not exposed to Python
+    void set_else(const std::shared_ptr<Stmt> &stmt) { else__ = stmt; }
+
 private:
     Var *assert_var_;
+    std::shared_ptr<Stmt> else__ = nullptr;
 };
 
 class AssertPropertyStmt : public AssertBase {

@@ -5,6 +5,7 @@
 #include "expr.hh"
 #include "generator.hh"
 #include "pass.hh"
+#include "tb.hh"
 #include "util.hh"
 
 using fmt::format;
@@ -233,6 +234,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         stmt_code(reinterpret_cast<FunctionCallStmt*>(node));
     } else if (stmt_ptr->type() == StatementType::Return) {
         stmt_code(reinterpret_cast<ReturnStmt*>(node));
+    } else if (stmt_ptr->type() == StatementType::Assert) {
+        stmt_code(reinterpret_cast<AssertBase*>(node));
     } else {
         throw StmtException("Not implemented", {node});
     }
@@ -407,6 +410,22 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     }
     indent_--;
     stream_ << indent() << "end" << stream_.endl() << "endfunction" << stream_.endl();
+}
+
+void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
+    if (stmt->assert_type() == AssertType::AssertValue) {
+        auto st = reinterpret_cast<AssertValueStmt*>(stmt);
+        stream_ << indent() << "assert (" << st->value()->handle_name(stmt->generator_parent())
+                << ")";
+        if (st->else_()) {
+            stream_ << " else ";
+            dispatch_node(st->else_().get());
+        }
+        stream_
+                << ";" << stream_.endl();
+    } else {
+        throw StmtException("Property assertion in design files not allowed", {stmt});
+    }
 }
 
 void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {

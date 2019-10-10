@@ -44,6 +44,7 @@ class InitialStmtBlock;
 class FunctionCallStmt;
 class ReturnStmt;
 class ModuleInstantiationStmt;
+class AssertBase;
 class FSM;
 enum AssignmentType : int;
 enum HashStrategy : int;

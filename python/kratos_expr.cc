@@ -1,7 +1,7 @@
 #include "kratos_expr.hh"
+#include <pybind11/cast.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
-#include <pybind11/cast.h>
 #include "kratos_debug.hh"
 
 namespace py = pybind11;
@@ -315,7 +315,8 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def_static("move_sink_to", &Var::move_sink_to)
         .def("handle_name", [](const Var &var) { return var.handle_name(); })
         .def("handle_name",
-             [](const Var &var, bool ignore_top) { return var.handle_name(ignore_top); });
+             [](const Var &var, bool ignore_top) { return var.handle_name(ignore_top); })
+        .def("handle_name0", [](const Var &var, Generator *gen) { return var.handle_name(gen); });
 
     def_attributes<py::class_<Var, ::shared_ptr<Var>>, Var>(class_);
 }
@@ -364,7 +365,7 @@ void init_expr(py::module &m) {
         try {
             auto v = value.cast<int64_t>();
             param.set_value(v);
-        } catch(py::cast_error&) {
+        } catch (py::cast_error &) {
             // try with param instead
             // if it fail, a cast error will raise here
             auto v = value.cast<const std::shared_ptr<Param>>();

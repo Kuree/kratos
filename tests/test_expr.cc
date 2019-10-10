@@ -210,3 +210,13 @@ TEST(expr, param_width) {   // NOLINT
     EXPECT_NO_THROW(p.set_width_param(param.as<Param>()));
     EXPECT_EQ(p.width(), 4);
 }
+
+TEST(expr, handle_name_gen) {   // NOLINT
+    Context c;
+    auto &mod1 = c.generator("mod1");
+    auto &mod2 = c.generator("mod2");
+    mod1.add_child_generator("mod", mod2.shared_from_this());
+    auto &var = mod2.var("var_", 1);
+    EXPECT_EQ(var.handle_name(&mod2), "var_");
+    EXPECT_EQ(var.handle_name(&mod1), "mod.var_");
+}

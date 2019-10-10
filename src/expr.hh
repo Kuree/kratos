@@ -151,6 +151,7 @@ public:
     bool packed_array = false;
     std::string handle_name() const;
     virtual std::string handle_name(bool ignore_top) const;
+    virtual std::string handle_name(Generator *scope) const;
     // is parametrized
     bool parametrized() const { return param_ != nullptr; }
     void set_width_param(const std::shared_ptr<Param> &param);
