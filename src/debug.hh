@@ -7,6 +7,7 @@ namespace kratos {
 
 constexpr char break_point_func_name[] = "breakpoint_trace";
 constexpr char break_point_clock_func_name[] = "breakpoint_clock";
+constexpr char exception_func_name[] = "exception";
 constexpr char break_point_func_arg[] = "stmt_id";
 
 void inject_debug_break_points(Generator *top);
@@ -14,6 +15,7 @@ std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top);
 void inject_clock_break_points(Generator *top);
 void inject_clock_break_points(Generator *top, const std::string &clk_name);
 void inject_clock_break_points(Generator *top, const std::shared_ptr<Port> &port);
+void inject_assert_fail_exception(Generator *top);
 
 // for verilator
 void insert_verilator_public(Generator *top);

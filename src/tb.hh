@@ -13,6 +13,8 @@ public:
     AssertBase() : Stmt(StatementType::Assert) {}
 
     virtual AssertType assert_type() = 0;
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 };
 
 class Sequence {
@@ -64,7 +66,10 @@ public:
     const std::shared_ptr<Stmt> &else_() const { return else__; }
     // currently this will only be used for debugging
     // not exposed to Python
-    void set_else(const std::shared_ptr<Stmt> &stmt) { else__ = stmt; }
+    void set_else(const std::shared_ptr<Stmt> &stmt) {
+        else__ = stmt;
+        stmt->set_parent(this);
+    }
 
 private:
     Var *assert_var_;

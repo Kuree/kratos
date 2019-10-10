@@ -4,6 +4,7 @@
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
+#include "tb.hh"
 #include "util.hh"
 
 using fmt::format;
@@ -438,6 +439,37 @@ void inject_clock_break_points(Generator *top, const std::shared_ptr<Port> &port
         auto stmt = std::make_shared<FunctionCallStmt>(var.as<FunctionCallVar>());
         seq->add_stmt(stmt);
     }
+}
+
+class AssertVisitor : public IRVisitor {
+public:
+    void visit(AssertBase *base) override {
+        if (base->assert_type() == AssertType::AssertValue) {
+            auto stmt = reinterpret_cast<AssertValueStmt *>(base);
+            // create a function call
+            auto gen = base->generator_parent();
+            if (!gen->has_function(exception_func_name)) {
+                auto func = gen->dpi_function(exception_func_name);
+                func->input(var_name_, var_size_, false);
+            }
+            // get the stmt from the assert
+            auto id = stmt->stmt_id();
+            auto &id_const = constant(id, var_size_);
+            auto &var =
+                gen->call(exception_func_name, {{var_name_, id_const.shared_from_this()}}, false);
+            auto st = std::make_shared<FunctionCallStmt>(var.as<FunctionCallVar>());
+            stmt->set_else(st);
+        }
+    }
+
+private:
+    const std::string var_name_ = break_point_func_arg;
+    const uint32_t var_size_ = 32;
+};
+
+void inject_assert_fail_exception(Generator *top) {
+    AssertVisitor visitor;
+    visitor.visit_root(top);
 }
 
 }  // namespace kratos

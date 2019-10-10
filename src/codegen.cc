@@ -419,10 +419,15 @@ void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
                 << ")";
         if (st->else_()) {
             stream_ << " else ";
+            // turn off the indent
+            auto temp = indent_;
+            indent_ = 0;
             dispatch_node(st->else_().get());
+            indent_ = temp;
+            // dispatch code will close the ;
+        } else {
+            stream_ << ";" << stream_.endl();
         }
-        stream_
-                << ";" << stream_.endl();
     } else {
         throw StmtException("Property assertion in design files not allowed", {stmt});
     }

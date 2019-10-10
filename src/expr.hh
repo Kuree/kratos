@@ -398,6 +398,7 @@ public:
     IRNode *get_child(uint64_t index) override;
 
     std::string handle_name(bool ignore_top) const override;
+    std::string handle_name(Generator *scope) const override;
 
 protected:
     // caller is responsible for the op

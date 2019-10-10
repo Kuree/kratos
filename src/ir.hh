@@ -94,6 +94,7 @@ public:
     virtual inline void visit(FunctionCallStmt *) {}
     virtual inline void visit(ReturnStmt *) {}
     virtual inline void visit(ModuleInstantiationStmt *) {}
+    virtual inline void visit(AssertBase *) {}
 
     // generator specific traversal
     virtual void visit(Generator *) {}

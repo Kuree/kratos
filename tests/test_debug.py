@@ -267,5 +267,25 @@ def test_design_hierarchy():
         assert len(mods) == num_child_child * num_child + num_child
 
 
+def test_assert():
+    from kratos import assert_
+    mod = Generator("mod", True)
+    in_ = mod.input("in", 1)
+    out_ = mod.output("out", 1)
+
+    def code():
+        out_ = in_
+        assert_(out_ == in_)
+
+    mod.add_code(code)
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        filename = os.path.join(temp, "test.sv")
+        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        with open(filename) as f:
+            content = f.read()
+            assert "assert (out == in) else" in content
+
+
 if __name__ == "__main__":
-    test_design_hierarchy()
+    test_assert()

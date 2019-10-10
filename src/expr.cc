@@ -669,21 +669,23 @@ std::shared_ptr<AssignStmt> Var::assign(Var &var, AssignmentType type) {
 }
 
 std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle,
-                                  bool ignore_top = false) {
+                                  bool ignore_top = false, Generator *scope = nullptr) {
     auto left = expr->left;
     auto right = expr->right;
 
     auto left_str = left->type() == VarType::Expression
                         ? expr_to_string(left->as<Expr>().get(), expr->op == left->as<Expr>()->op,
-                                         use_handle, ignore_top)
-                        : (use_handle ? left->handle_name(ignore_top) : left->to_string());
+                                         use_handle, ignore_top, scope)
+                        : (use_handle ? left->handle_name(ignore_top)
+                                      : scope ? left->handle_name(scope) : left->to_string());
 
     if (right != nullptr) {
         auto right_str =
             right->type() == VarType::Expression
                 ? expr_to_string(right->as<Expr>().get(), expr->op == right->as<Expr>()->op,
-                                 use_handle, ignore_top)
-                : (use_handle ? right->handle_name(ignore_top) : right->to_string());
+                                 use_handle, ignore_top, scope)
+                : (use_handle ? right->handle_name(ignore_top)
+                              : scope ? right->handle_name(scope) : right->to_string());
         if (is_top)
             return ::format("{0} {1} {2}", left_str, ExprOpStr(expr->op), right_str);
         else
@@ -700,6 +702,10 @@ std::string Expr::to_string() const { return expr_to_string(this, true, false); 
 
 std::string Expr::handle_name(bool ignore_top) const {
     return expr_to_string(this, true, true, ignore_top);
+}
+
+std::string Expr::handle_name(kratos::Generator *scope) const {
+    return expr_to_string(this, true, false, scope);
 }
 
 IRNode *Expr::get_child(uint64_t index) {
