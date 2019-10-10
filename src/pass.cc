@@ -2399,11 +2399,11 @@ private:
 
     std::shared_ptr<Stmt> dispatch_node(std::shared_ptr<Stmt> stmt) {
         if (stmt->type() == StatementType::If) {
-            return process(std::reinterpret_pointer_cast<IfStmt>(stmt));
+            return process(std::static_pointer_cast<IfStmt>(stmt));
         } else if (stmt->type() == StatementType::Switch) {
-            return process(std::reinterpret_pointer_cast<SwitchStmt>(stmt));
+            return process(std::static_pointer_cast<SwitchStmt>(stmt));
         } else if (stmt->type() == StatementType::Block) {
-            return process(std::reinterpret_pointer_cast<ScopedStmtBlock>(stmt));
+            return process(std::static_pointer_cast<ScopedStmtBlock>(stmt));
         } else {
             return stmt;
         }
