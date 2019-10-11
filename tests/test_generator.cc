@@ -199,31 +199,35 @@ TEST(pass, decouple1) {  // NOLINT
     auto &mod1 = c.generator("module1");
     auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
     auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
+    auto &port1_3 = mod1.port(PortDirection::Out, "out2", 2);
 
     auto &mod2 = c.generator("module2");
     auto &port2_1 = mod2.port(PortDirection::In, "in", 1);
-    // auto &port2_2 = mod2.port(PortDirection::Out, "out", 1);
+    auto &port2_2 = mod2.port(PortDirection::Out, "out", 1);
 
     auto &mod3 = c.generator("module3");
     auto &port3_1 = mod3.port(PortDirection::In, "in", 2);
-    // auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
+    auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
 
     mod1.add_child_generator("inst0", mod2.shared_from_this());
     mod1.add_child_generator("inst1", mod3.shared_from_this());
 
     mod1.add_stmt(port2_1.assign(port1_2));
     mod1.add_stmt(port3_1.assign(port1_1.concat(port2_1)));
+    auto stmt = port1_3.assign(port2_2.concat(port3_2));
+    mod1.add_stmt(stmt);
 
-    EXPECT_EQ(mod1.stmts_count(), 2);
+    EXPECT_EQ(mod1.stmts_count(), 3);
     decouple_generator_ports(&mod1);
     check_mixed_assignment(&mod1);
-    EXPECT_EQ(mod1.stmts_count(), 2);
+    EXPECT_EQ(mod1.stmts_count(), 5);
     auto new_var = mod1.get_var("inst1_in");
     EXPECT_TRUE(new_var != nullptr);
 
     EXPECT_EQ(new_var->sources().size(), 1);
     auto new_var_src = (*new_var->sources().begin())->right();
     EXPECT_EQ(new_var_src, port1_1.concat(port2_1).shared_from_this());
+    EXPECT_EQ(stmt->right()->to_string(), "{inst0_out, inst1_out}");
 }
 
 TEST(pass, verilog_instance) {  // NOLINT

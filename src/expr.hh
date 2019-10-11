@@ -418,6 +418,7 @@ public:
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
     std::vector<std::shared_ptr<Var>> &vars() { return vars_; }
+    void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
     VarConcat &concat(Var &var) override;
 

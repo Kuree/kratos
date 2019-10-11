@@ -654,6 +654,13 @@ VarConcat &VarConcat::concat(kratos::Var &var) {
     return *result;
 }
 
+void VarConcat::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
+    auto pos = std::find(vars_.begin(), vars_.end(), target);
+    if (pos != vars_.end()) {
+        *pos = item;
+    }
+}
+
 std::string Const::to_string() const {
     if (is_signed_ && value_ < 0) {
         return ::format("-{0}\'h{1:X}", width(), -value_);
@@ -760,6 +767,11 @@ void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_va
     }
     if (expr->right && expr->right->type() == VarType::Slice) {
         set_var_parent(expr->right, target, new_var, false);
+    }
+    if (expr->op == ExprOp::Concat) {
+        // special treatment
+        auto concat = expr->as<VarConcat>();
+        concat->replace_var(target->shared_from_this(), new_var->shared_from_this());
     }
 }
 

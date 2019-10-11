@@ -77,5 +77,24 @@ def test_regression_2():
     assert "func" in mod_src[1]
 
 
+def test_regression_concat():
+    from kratos import concat
+    parent = Generator("parent")
+    for i in range(2):
+        child = Generator("child")
+        in_ = child.input("in", 1)
+        out_ = child.output("out", 1)
+        child.wire(out_, in_)
+        parent.add_child("child{0}".format(i), child)
+    in_ = parent.input("in", 1)
+    out_2 = parent.output("out2", 2)
+    for i in range(2):
+        parent.wire(in_, parent["child{0}".format(i)].ports["in"])
+    parent.wire(out_2,
+                concat(parent["child0"].ports.out, parent["child1"].ports.out))
+    src = verilog(parent, optimize_passthrough=False)["parent"]
+    assert "assign out2 = {child0_out, child1_out};" in src
+
+
 if __name__ == "__main__":
-    test_regression_2()
+    test_regression_concat()
