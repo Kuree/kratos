@@ -37,6 +37,7 @@ public:
     void set_generator_hierarchy(Generator *top);
 
     void set_variable_mapping(const std::map<Generator *, std::map<std::string, Var *>> &mapping);
+    void set_variable_mapping(const std::map<Generator *, std::map<std::string, std::string>> &mapping);
     void set_generator_variable(
         const std::map<Generator *, std::map<std::string, std::string>> &values);
     void set_stmt_context(Generator *top);
@@ -53,6 +54,7 @@ private:
     ConnectionMap connection_map_;
     std::vector<std::pair<std::string, std::string>> hierarchy_;
     std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
+    std::unordered_set<Generator*> generators_;
 
     std::string top_name_ = "TOP";
 };

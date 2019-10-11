@@ -15,11 +15,11 @@ struct BreakPoint {
     uint32_t id;
     std::string filename;
     uint32_t line_num;
-    std::string handle;
+    std::unique_ptr<int> handle;
 };
 
 struct Variable {
-    std::string handle;
+    std::unique_ptr<int> handle;
     std::string var;
     std::string front_var;
     uint32_t array_size;
@@ -28,14 +28,14 @@ struct Variable {
 };
 
 struct Connection {
-    std::string handle_from;
+    std::unique_ptr<int> handle_from;
     std::string var_from;
-    std::string handle_to;
+    std::unique_ptr<int> handle_to;
     std::string var_to;
 };
 
 struct Hierarchy {
-    std::string parent_handle;
+    std::unique_ptr<int> parent_handle;
     std::string child;
 };
 
@@ -43,27 +43,13 @@ struct ContextVariable {
     std::string name;
     std::string value;
     bool is_var;
-    uint32_t id;
+    std::unique_ptr<uint32_t> breakpoint_id;
 };
 
-// this is the database schema
-// TABLE metadata
-// NAME, VALUE
-// this is essentially a key-value storage
-// TABLE breakpoint
-// BREAK_POINT_ID filename, line_number, handle
-// this is mapping a breakpoint id to a line in the front-end code
-// TABLE variables
-// generator_handle, var, front_var, array_size, type
-// generator_handle + var is the var handle name, front_var comes from the variable name
-// array_size and type will be used later to visualize the array
-
-// TABLE connection
-// all the variables are the in the RTL form. You can cross search the variable
-// to find out the python variable name, if any
-
-// TABLE hierarchy. the parent uses full handle name, the child is the instance name
-// you can make parent_handle.child to obtain the child handle name
+struct Instance {
+    int id;
+    std::string handle_name;
+};
 
 // initialize the database
 auto inline init_storage(const std::string &filename) {
@@ -72,26 +58,33 @@ auto inline init_storage(const std::string &filename) {
         filename,
         make_table("metadata", make_column("name", &MetaData::name),
                    make_column("value", &MetaData::value)),
-        make_table("breakpoint", make_column("id", &BreakPoint::id),
+        make_table("breakpoint", make_column("id", &BreakPoint::id, primary_key()),
                    make_column("filename", &BreakPoint::filename),
                    make_column("line_num", &BreakPoint::line_num),
-                   make_column("handle", &BreakPoint::handle)),
+                   make_column("handle", &BreakPoint::handle),
+                   foreign_key(&BreakPoint::handle).references(&Instance::id)),
         make_table("variable", make_column("handle", &Variable::handle),
                    make_column("var", &Variable::var),
                    make_column("front_var", &Variable::front_var),
                    make_column("array_size", &Variable::array_size),
-                   make_column("type", &Variable::type),
-                   make_column("is_var", &Variable::is_var)),
+                   make_column("type", &Variable::type), make_column("is_var", &Variable::is_var),
+                   foreign_key(&Variable::handle).references(&Instance::id)),
         make_table("connection", make_column("handle_from", &Connection::handle_from),
                    make_column("var_from", &Connection::var_from),
                    make_column("handle_to", &Connection::handle_to),
-                   make_column("var_to", &Connection::var_to)),
+                   make_column("var_to", &Connection::var_to),
+                   foreign_key(&Connection::handle_from).references(&Instance::id),
+                   foreign_key(&Connection::handle_to).references(&Instance::id)),
         make_table("hierarchy", make_column("parent_handle", &Hierarchy::parent_handle),
-                   make_column("child", &Hierarchy::child)),
+                   make_column("child", &Hierarchy::child),
+                   foreign_key(&Hierarchy::parent_handle).references(&Instance::id)),
         make_table("context", make_column("name", &ContextVariable::name),
                    make_column("value", &ContextVariable::value),
                    make_column("is_var", &ContextVariable::is_var),
-                   make_column("id", &ContextVariable::id)));
+                   make_column("breakpoint_id", &ContextVariable::breakpoint_id),
+                   foreign_key(&ContextVariable::breakpoint_id).references(&BreakPoint::id)),
+        make_table("instance", make_column("id", &Instance::id, primary_key()),
+                   make_column("handle_name", &Instance::handle_name)));
     return storage;
 }
 

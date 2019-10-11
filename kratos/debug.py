@@ -4,6 +4,9 @@ from .generator import Generator
 
 def extract_symbol_table(generator: Generator):
     # this has to be run after the unification pass
+    # if you are using kratos from a different system
+    # this function serves a reference implementation of how to obtain
+    # data python the python side
     from queue import Queue
     gen_table = {}
     self_table = {}

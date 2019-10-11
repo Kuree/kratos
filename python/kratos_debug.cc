@@ -24,7 +24,12 @@ void init_debug(py::module &m) {
         .def(py::init<const std::string &>())
         // only use python extension since we're dealing with python binding
         .def("set_break_points", py::overload_cast<Generator *>(&DebugDatabase::set_break_points))
-        .def("set_variable_mapping", &DebugDatabase::set_variable_mapping)
+        .def("set_variable_mapping",
+             py::overload_cast<const std::map<Generator *, std::map<std::string, Var *>> &>(
+                 &DebugDatabase::set_variable_mapping))
+        .def("set_variable_mapping",
+             py::overload_cast<const std::map<Generator *, std::map<std::string, std::string>> &>(
+                 &DebugDatabase::set_variable_mapping))
         .def("set_generator_connection", &DebugDatabase::set_generator_connection)
         .def("set_generator_hierarchy", &DebugDatabase::set_generator_hierarchy)
         .def("set_generator_variable", &DebugDatabase::set_generator_variable)

@@ -94,7 +94,7 @@ public:
     void visit(SwitchStmt *stmt) override { extract_stmt_id(stmt); }
     void visit(FunctionCallStmt *stmt) override { extract_stmt_id(stmt); }
     void visit(ReturnStmt *stmt) override { extract_stmt_id(stmt); }
-    void visit(AssertBase *stmt) override {extract_stmt_id(stmt); }
+    void visit(AssertBase *stmt) override { extract_stmt_id(stmt); }
 
     const std::map<Stmt *, uint32_t> &map() const { return map_; }
 
@@ -175,6 +175,20 @@ void DebugDatabase::set_variable_mapping(
     }
 }
 
+void DebugDatabase::set_variable_mapping(
+    const std::map<Generator *, std::map<std::string, std::string>> &mapping) {
+    for (auto const &[gen, map] : mapping) {
+        auto handle_name = gen->handle_name();
+
+        variable_mapping_.emplace(handle_name,
+                                  std::make_pair(gen, std::map<std::string, std::string>()));
+
+        for (auto const &[front_var_name, var_name] : map) {
+            variable_mapping_[handle_name].second.emplace(front_var_name, var_name);
+        }
+    }
+}
+
 void DebugDatabase::set_generator_variable(
     const std::map<Generator *, std::map<std::string, std::string>> &values) {
     for (auto const &[gen, map] : values) {
@@ -214,6 +228,9 @@ void DebugDatabase::set_stmt_context(kratos::Generator *top) {
 class ConnectionVisitor : public IRVisitor {
 public:
     void visit(Generator *generator) override {
+        lock_.lock();
+        generators_.emplace(generator);
+        lock_.unlock();
         // loop through the module instance statement, where it holds the connection
         // information
         uint64_t child_count = generator->stmts_count();
@@ -262,9 +279,11 @@ public:
     }
 
     const DebugDatabase::ConnectionMap &connections() const { return connections_; }
+    const std::unordered_set<Generator *> &generators() const { return generators_; }
 
 private:
     DebugDatabase::ConnectionMap connections_;
+    std::unordered_set<Generator *> generators_;
     std::mutex lock_;
 };
 
@@ -274,6 +293,7 @@ void DebugDatabase::set_generator_connection(kratos::Generator *top) {
     // this can be parallelized
     visitor.visit_generator_root_p(top);
     connection_map_ = visitor.connections();
+    generators_ = visitor.generators();
 }
 
 class HierarchyVisitor : public IRVisitor {
@@ -319,6 +339,18 @@ void DebugDatabase::save_database(const std::string &filename) {
     // metadata
     MetaData top_name{"top_name", top_name_};
     storage.insert(top_name);
+
+    // insert generator ids
+    std::unordered_map<Generator *, uint32_t> gen_id_map;
+    std::unordered_map<std::string, uint32_t> handle_id_map;
+    for (auto const &gen : generators_) {
+        int id = gen_id_map.size();
+        gen_id_map.emplace(gen, id);
+        handle_id_map.emplace(gen->handle_name(), id);
+        Instance inst{id, gen->handle_name()};
+        storage.replace(inst);
+    }
+
     // break points
     auto id_to_gen = build_id_map(generator_break_points_);
     for (auto const &[stmt, id] : break_points_) {
@@ -328,8 +360,12 @@ void DebugDatabase::save_database(const std::string &filename) {
                 throw InternalException(::format("Unable to find breakpoint {0}", id));
             auto gen = id_to_gen.at(id);
             auto handle_name = gen->handle_name();
-            BreakPoint br{id, fn, ln, handle_name};
-            storage.insert(br);
+            if (gen_id_map.find(gen) == gen_id_map.end())
+                throw InternalException(
+                    ::format("Unable to find generator {0}", gen->handle_name()));
+            auto handle_id = gen_id_map.at(gen);
+            BreakPoint br{id, fn, ln, std::make_unique<int>(handle_id)};
+            storage.replace(br);
         }
     }
     // variables
@@ -339,24 +375,33 @@ void DebugDatabase::save_database(const std::string &filename) {
         if (generator_break_points_.find(gen) == generator_break_points_.end())
             // exit the loop
             continue;
+        if (gen_id_map.find(gen) == gen_id_map.end())
+            throw InternalException(::format("Unable to find generator {0}", gen->handle_name()));
+        auto id = gen_id_map.at(gen);
         for (auto const &[front_var, var] : vars) {
             auto gen_var = gen->get_var(var);
             if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
-            Variable variable{handle_name, var, front_var, gen_var->size(), gen_var->type(), true};
-            storage.insert(variable);
+            // notice that we need to flatten some of the types
+            Variable variable{std::make_unique<int>(id), var, front_var, gen_var->size(),
+                              gen_var->type(),           true};
+            storage.replace(variable);
         }
         auto all_vars = gen->get_all_var_names();
         for (auto const &var_name : all_vars) {
             auto var = gen->get_var(var_name);
             if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
-                Variable variable{handle_name, var_name, "", var->size(), var->type(), true};
-                storage.insert(variable);
+                Variable variable{
+                    std::make_unique<int>(id), var_name, "", var->size(), var->type(), true};
+                storage.replace(variable);
             }
         }
     }
     for (auto const &[handle_name, map] : generator_values_) {
+        if (handle_id_map.find(handle_name) == handle_id_map.end())
+            throw InternalException(::format("Unable to find id for {0}", handle_name));
+        auto id = handle_id_map.at(handle_name);
         for (auto const &[name, value] : map) {
-            Variable variable{handle_name, value, name, 0, 0, false};
+            Variable variable{std::make_unique<int>(id), value, name, 0, 0, false};
             storage.insert(variable);
         }
     }
@@ -365,14 +410,24 @@ void DebugDatabase::save_database(const std::string &filename) {
     for (auto const &[from, to] : connection_map_) {
         auto const [from_handle, from_var] = from;
         auto const [to_handle, to_var] = to;
-        Connection conn{from_handle, from_var, to_handle, to_var};
-        storage.insert(conn);
+        if (handle_id_map.find(from_handle) == handle_id_map.end())
+            throw InternalException(::format("Unable to find id for {0}", from_handle));
+        if (handle_id_map.find(to_handle) == handle_id_map.end())
+            throw InternalException(::format("Unable to find id for {0}", to_handle));
+        auto from_id = handle_id_map.at(from_handle);
+        auto to_id = handle_id_map.at(to_handle);
+        Connection conn{std::make_unique<int>(from_id), from_var, std::make_unique<int>(to_id),
+                        to_var};
+        storage.replace(conn);
     }
 
     // hierarchy
     for (auto const &[handle, name] : hierarchy_) {
-        Hierarchy h{handle, name};
-        storage.insert(h);
+        if (handle_id_map.find(handle) == handle_id_map.end())
+            throw InternalException(::format("Unable to find id for {0}", handle));
+        auto id = handle_id_map.at(handle);
+        Hierarchy h{std::make_unique<int>(id), name};
+        storage.replace(h);
     }
 
     // local context variables
@@ -382,8 +437,8 @@ void DebugDatabase::save_database(const std::string &filename) {
         auto values = stmt_context_.at(stmt);
         for (auto const &[key, entry] : values) {
             auto const &[is_var, value] = entry;
-            ContextVariable v{key, value, is_var, id};
-            storage.insert(v);
+            ContextVariable v{key, value, is_var, std::make_unique<uint32_t>(id)};
+            storage.replace(v);
         }
     }
 
