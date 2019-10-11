@@ -82,7 +82,10 @@ def test_explicit_array():
     b = a[0, 0]
     assert b.width == 2
     c = mod.var("c", 2)
+    d = mod.var("d", 1)
+    e = mod.var("e", 2)
     mod.wire(c, a)
+    mod.wire(e, a[d])
     src = verilog(mod)["mod"]
     assert "logic  [0:0][1:0] a" in src
 

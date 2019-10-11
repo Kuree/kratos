@@ -315,7 +315,7 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
     // there is an issue about the var_high and var_low; the problem will only show up during
     // the connectivity check
     // TODO: fix this
-    if (parent->size() == 1) {
+    if (parent->size() == 1 && !parent->explicit_array()) {
         // slice through the 1D array
         // so the width will be 1
         var_width_ = 1;
@@ -328,7 +328,7 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         var_high_ = var_width_ - 1;
         var_low_ = 0;
         // we need to compute the clog2 here
-        uint32_t required_width = std::ceil(std::log2(parent->size()));
+        uint32_t required_width = std::max<uint32_t>(1, std::ceil(std::log2(parent->size())));
         if (required_width != sliced_var_->width()) {
             // error message copied from verilator
             throw VarException(
