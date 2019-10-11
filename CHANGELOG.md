@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.17] - 2019-10-10
+### Added
+- Add a pass to remove assertions
+- Add a pass to remove empty code blocks
+- Add a pass to inject exceptions on accertions
+- Add a special flag in variable creation that create a 2D array when size=1
+- Allow assertions to have breakpoint statements
+
+### Changed
+- Parameter of parameters has better implementation
+- Revert the pass on inserting breakpoints into always_ff block
+
+### Fixed
+- Fix a bug in parallel visit in connection debug pass by adding mutex
+- Fix port decoupling parameter bug.
+- Fix a bug where concat variables won't be renamed in port decoupling
+
 ## [0.0.16] - 2019-10-06
 ### Added
 - Add handle name to FSM state

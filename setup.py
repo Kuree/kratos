@@ -77,7 +77,7 @@ setup(
     packages=[
         "kratos"
     ],
-    version='0.0.16',
+    version='0.0.17',
     author='Keyi Zhang',
     author_email='keyi@stanford.edu',
     description='Kratos is a fast hardware design language embedded in Python',
