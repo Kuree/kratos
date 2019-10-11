@@ -69,5 +69,12 @@ def test_width():
     assert abs(file_names[0][1] - file_names[1][1]) == 1
 
 
+def test_slice_same():
+    mod = Generator("mod", True)
+    a = mod.var("a", 2)
+    b = a[1, 1]
+    assert str(b) == "a[1]"
+
+
 if __name__ == "__main__":
-    test_width()
+    test_slice_same()
