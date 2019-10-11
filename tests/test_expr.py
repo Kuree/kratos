@@ -1,4 +1,4 @@
-from kratos import Generator, signed, unsigned
+from kratos import Generator, signed, unsigned, verilog
 from kratos.util import reduce_or, Const, const
 
 
@@ -70,11 +70,22 @@ def test_width():
 
 
 def test_slice_same():
-    mod = Generator("mod", True)
-    a = mod.var("a", 2)
+    mod = Generator("mod")
+    a = mod.var("a", 2, size=2)
     b = a[1, 1]
     assert str(b) == "a[1]"
 
 
+def test_explicit_array():
+    mod = Generator("mod")
+    a = mod.var("a", 2, explicit_array=True, packed=True)
+    b = a[0, 0]
+    assert b.width == 2
+    c = mod.var("c", 2)
+    mod.wire(c, a)
+    src = verilog(mod)["mod"]
+    assert "logic  [0:0][1:0] a" in src
+
+
 if __name__ == "__main__":
-    test_slice_same()
+    test_explicit_array()

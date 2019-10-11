@@ -314,12 +314,13 @@ class Generator(metaclass=GeneratorMeta):
 
     def var(self, name: str, width: Union[int, _kratos.Param],
             is_signed: bool = False, size: int = 1,
-            packed: bool = False) -> _kratos.Var:
+            packed: bool = False, explicit_array: bool = False) -> _kratos.Var:
 
         v = self.__generator.var(name, width, size, is_signed)
         if self.debug:
             v.add_fn_ln(get_fn_ln())
         v.packed_array = packed
+        v.explicit_array = explicit_array
         return v
 
     def combinational(self):
@@ -340,22 +341,26 @@ class Generator(metaclass=GeneratorMeta):
              direction: PortDirection,
              port_type: PortType = PortType.Data,
              is_signed: bool = False, size: int = 1,
-             packed: bool = False) -> _kratos.Port:
+             packed: bool = False,
+             explicit_array: bool = False) -> _kratos.Port:
         p = self.__generator.port(direction.value, name, width, size,
                                   port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         p.packed_array = packed
+        p.explicit_array = explicit_array
         return p
 
     def input(self, name, width: Union[int, _kratos.Param],
               port_type: PortType = PortType.Data,
-              is_signed: bool = False, size: int = 1, packed: bool = False):
+              is_signed: bool = False, size: int = 1, packed: bool = False,
+              explicit_array: bool = False) -> _kratos.Port:
         p = self.__generator.port(PortDirection.In.value, name, width, size,
                                   port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         p.packed_array = packed
+        p.explicit_array = explicit_array
         return p
 
     def clock(self, name, is_input=True):
@@ -379,12 +384,14 @@ class Generator(metaclass=GeneratorMeta):
 
     def output(self, name, width: Union[int, _kratos.Param],
                port_type: PortType = PortType.Data,
-               is_signed: bool = False, size: int = 1, packed: bool = False):
+               is_signed: bool = False, size: int = 1, packed: bool = False,
+               explicit_array: bool = False) -> _kratos.Port:
         p = self.__generator.port(PortDirection.Out.value, name, width, size,
                                   port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         p.packed_array = packed
+        p.explicit_array = explicit_array
         return p
 
     def port_packed(self, name: str, direction: PortDirection,

@@ -157,6 +157,8 @@ public:
     void set_width_param(const std::shared_ptr<Param> &param);
     void set_width_param(Param *param);
     Param *param() const { return param_; }
+    void set_explicit_array(bool value) { explicit_array_ = value; }
+    bool explicit_array() const { return explicit_array_; }
 
     // for slice
     virtual const Var *get_var_root_parent() const { return this; }
@@ -190,6 +192,9 @@ protected:
     // comment values
     std::string before_var_str_;
     std::string after_var_str_;
+
+    // special values
+    bool explicit_array_ = false;
 
     // parametrization
     Param *param_ = nullptr;

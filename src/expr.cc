@@ -245,7 +245,16 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
       high(high),
       op_({high, low}) {
     // compute the width
-    if (parent->size() == 1) {
+    // notice that if the user has explicit set it to be an array
+    // we need to honer their wish
+    if (parent->size() == 1 && parent->explicit_array()) {
+        if (high != 0 || low != 0) {
+            throw VarException(::format("Parent {0} is a scalar but used marked as an explicit "
+                                        "array, only [0, 0] allowed",
+                                        parent->to_string()),
+                               {parent});
+        }
+    } else if (parent->size() == 1) {
         // this is the actual slice
         var_width_ = high - low + 1;
     } else {
@@ -255,7 +264,11 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     // compute the var high and var_low
     if (parent->type() != VarType::Slice) {
         // use width to compute
-        if (parent->size() == 1) {
+        // honer user's wish
+        if (parent->size() == 1 && parent->explicit_array()) {
+            var_low_ = 0;
+            var_high_ = var_width_ - 1;
+        } else if (parent->size() == 1) {
             var_low_ = low;
             var_high_ = high;
         } else {

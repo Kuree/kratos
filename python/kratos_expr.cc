@@ -306,6 +306,7 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
             "signed", [](Var &v) { return v.is_signed(); },
             [](Var &v, bool s) { v.is_signed() = s; })
         .def_property_readonly("size", [](const Var &var) { return var.size(); })
+        .def_property("explicit_array", &Var::explicit_array, &Var::set_explicit_array)
         .def("sources", &Var::sources, py::return_value_policy::reference)
         .def("sinks", &Var::sinks, py::return_value_policy::reference)
         .def("cast", &Var::cast)
