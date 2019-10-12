@@ -688,12 +688,12 @@ std::vector<std::string> Generator::get_ports(kratos::PortType type) const {
 }
 
 std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(
-    const std::string &port_name, const std::shared_ptr<PortBundleDefinition> &def) {
+    const std::string &port_name, const PortBundleDefinition& def) {
     if (port_bundle_mapping_.find(port_name) != port_bundle_mapping_.end())
         throw UserException(::format("{0} already exists in {1}", port_name, name));
-    auto definition = def->definition();
+    auto definition = def.definition();
     auto ref = std::make_shared<PortBundleRef>(this, def);
-    auto const &debug_info = def->debug_info();
+    auto const &debug_info = def.debug_info();
     for (auto const &[name, bundle] : definition) {
         auto const &[width, size, is_signed, direction, port_type] = bundle;
         auto var_name = get_unique_variable_name(port_name, name);
@@ -711,10 +711,10 @@ std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(
 }
 
 std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(
-    const std::string &port_name, const std::shared_ptr<PortBundleDefinition> &def,
+    const std::string &port_name, const PortBundleDefinition &def,
     const std::pair<std::string, uint32_t> &debug_info) {
     auto ref = add_bundle_port_def(port_name, def);
-    auto definition = def->definition();
+    auto definition = def.definition();
     for (auto const &iter : definition) {
         auto base_name = iter.first;
         auto &port = ref->get_port(base_name);

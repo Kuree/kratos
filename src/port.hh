@@ -1,11 +1,11 @@
 #ifndef KRATOS_PORT_HH
 #define KRATOS_PORT_HH
 
+#include <optional>
 #include <set>
 #include <string>
 #include <tuple>
 #include <vector>
-#include <optional>
 #include "expr.hh"
 
 namespace kratos {
@@ -67,7 +67,7 @@ private:
     PackedStruct struct_;
 };
 
-struct PortBundleDefinition : public std::enable_shared_from_this<PortBundleDefinition> {
+struct PortBundleDefinition {
 public:
     using PortDef = std::tuple<uint32_t, uint32_t, bool, PortDirection, PortType>;
 
@@ -87,23 +87,22 @@ public:
     }
 
     void set_name(const std::string &name) { name_ = name; }
-    const std::string &get_name() const { return name_; }
+    [[nodiscard]] const std::string &get_name() const { return name_; }
 
-    std::shared_ptr<PortBundleDefinition> flip();
+    PortBundleDefinition flip();
 
 private:
     std::string name_;
     std::map<std::string, PortDef> definitions_;
-    // this is for performance reason, we don't want to flip all the time
-    // so flip().flip() should return to the same one
-    std::shared_ptr<PortBundleDefinition> flipped_ = nullptr;
     std::map<std::string, PortDef> flipped_definitions_;
     std::map<std::string, std::pair<std::string, uint32_t>> debug_info_;
+
+    PortBundleDefinition() = default;
 };
 
-struct PortBundleRef: public PackedInterface {
+struct PortBundleRef : public PackedInterface {
 public:
-    PortBundleRef(Generator *generator, std::shared_ptr<PortBundleDefinition> def)
+    PortBundleRef(Generator *generator, PortBundleDefinition def)
         : generator(generator), definition_(std::move(def)) {}
 
     Port &get_port(const std::string &name);
@@ -117,15 +116,13 @@ public:
     void assign(const std::shared_ptr<PortBundleRef> &other, Generator *parent,
                 const std::vector<std::pair<std::string, uint32_t>> &debug_info);
 
-    [[nodiscard]]
-    const std::string &def_name() const { return definition_->get_name(); }
+    [[nodiscard]] const std::string &def_name() const { return definition_.get_name(); }
 
-    [[nodiscard]]
-    std::set<std::string> member_names() const override;
+    [[nodiscard]] std::set<std::string> member_names() const override;
 
 private:
     Generator *generator;
-    const std::shared_ptr<PortBundleDefinition> definition_;
+    const PortBundleDefinition definition_;
     std::map<std::string, std::string> name_mappings_;
 };
 

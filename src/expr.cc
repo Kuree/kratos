@@ -764,6 +764,8 @@ void set_var_parent(Var * &var, Var *target, Var *new_var, bool check_target) {
 }
 
 void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var) {
+    if (!new_var || !target)
+        throw InternalException("Variable is NULL");
     if (expr->left->type() == VarType::Expression) {
         change_var_expr(expr->left->as<Expr>(), target, new_var);
     }

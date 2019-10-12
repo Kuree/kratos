@@ -530,9 +530,9 @@ TEST(generator, replace) {  // NOLINT
 
 TEST(generator, bundle_to_struct) {  // NOLINT
     Context c;
-    auto def = std::make_shared<PortBundleDefinition>("bundle");
-    def->add_definition("a", 1, 1, false, PortDirection::In, PortType::Data);
-    def->add_definition("b", 1, 1, false, PortDirection::In, PortType::Data);
+    auto def = PortBundleDefinition("bundle");
+    def.add_definition("a", 1, 1, false, PortDirection::In, PortType::Data);
+    def.add_definition("b", 1, 1, false, PortDirection::In, PortType::Data);
     auto &mod1 = c.generator("module1");
     auto &mod2 = c.generator("module2");
     auto &mod3 = c.generator("module3");
@@ -546,7 +546,7 @@ TEST(generator, bundle_to_struct) {  // NOLINT
     mod1.add_child_generator("mod2", mod2.shared_from_this());
 
     // mod3 definition
-    mod3.add_bundle_port_def("p", def->flip());
+    mod3.add_bundle_port_def("p", def.flip());
     auto &port3_a = mod3.port(PortDirection::In, "a", 1);
     auto &port3_b = mod3.port(PortDirection::In, "b", 1);
     mod3.add_stmt(mod3.get_bundle_ref("p")->get_port("a").assign(port3_a));

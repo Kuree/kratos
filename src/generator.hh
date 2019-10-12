@@ -160,9 +160,9 @@ public:
         return port_bundle_mapping_.find(port_name) != port_bundle_mapping_.end();
     }
     std::shared_ptr<PortBundleRef> add_bundle_port_def(
-        const std::string &port_name, const std::shared_ptr<PortBundleDefinition> &def);
+        const std::string &port_name, const PortBundleDefinition &def);
     std::shared_ptr<PortBundleRef> add_bundle_port_def(
-        const std::string &port_name, const std::shared_ptr<PortBundleDefinition> &def,
+        const std::string &port_name, const PortBundleDefinition &def,
         const std::pair<std::string, uint32_t> &debug_info);
     std::shared_ptr<PortBundleRef> get_bundle_ref(const std::string &port_name);
     const std::map<std::string, std::shared_ptr<PortBundleRef>> &port_bundle_mapping() const {

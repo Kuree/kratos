@@ -130,11 +130,11 @@ void init_generator(py::module &m) {
                                const std::pair<std::string, uint32_t> &>(&Generator::replace))
         .def("get_ports", &Generator::get_ports)
         .def("add_bundle_port_def",
-             py::overload_cast<const std::string &, const std::shared_ptr<PortBundleDefinition> &,
+             py::overload_cast<const std::string &, const PortBundleDefinition &,
                                const std::pair<std::string, uint32_t> &>(
                  &Generator::add_bundle_port_def))
         .def("add_bundle_port_def",
-             py::overload_cast<const std::string &, const std::shared_ptr<PortBundleDefinition> &>(
+             py::overload_cast<const std::string &, const PortBundleDefinition &>(
                  &Generator::add_bundle_port_def))
         .def("get_bundle_ref", &Generator::get_bundle_ref)
         .def("has_port_bundle", &Generator::has_port_bundle)

@@ -80,13 +80,11 @@ void PortBundleDefinition::add_definition(const std::string& name, uint32_t widt
     flipped_definitions_.emplace(name, std::make_tuple(width, size, is_signed, dir, type));
 }
 
-std::shared_ptr<PortBundleDefinition> PortBundleDefinition::flip() {
-    if (flipped_) return flipped_;
-    flipped_ = std::make_shared<PortBundleDefinition>(name_);
-    flipped_->definitions_ = flipped_definitions_;
-    flipped_->flipped_definitions_ = definitions_;
-    flipped_->debug_info_ = debug_info_;
-    flipped_->flipped_ = shared_from_this();
+PortBundleDefinition PortBundleDefinition::flip() {
+    PortBundleDefinition flipped_;
+    flipped_.definitions_ = flipped_definitions_;
+    flipped_.flipped_definitions_ = definitions_;
+    flipped_.debug_info_ = debug_info_;
     return flipped_;
 }
 
@@ -100,8 +98,8 @@ Port& PortBundleRef::get_port(const std::string& name) {
 void PortBundleRef::assign(const std::shared_ptr<PortBundleRef>& other, Generator* parent,
                            const std::vector<std::pair<std::string, uint32_t>>& debug_info) {
     // making sure they have the same interface
-    auto self_def = definition_->definition();
-    auto other_def = other->definition_->definition();
+    auto self_def = definition_.definition();
+    auto other_def = other->definition_.definition();
     if (self_def.size() != other_def.size()) {
         throw UserException("PortBundle definition doesn't match");
     }
