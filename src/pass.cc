@@ -32,7 +32,7 @@ public:
             throw VarException(
                 ::format("mismatch in assignment type. should be {0}, got {1}",
                          assign_type_to_str(type_), assign_type_to_str(stmt->assign_type())),
-                {stmt->left().get(), stmt->right().get()});
+                {stmt->left(), stmt->right()});
         }
     }
 
@@ -81,7 +81,7 @@ public:
                     auto& new_const =
                         constant(old_value->value(), left->width(), old_value->is_signed());
                     stmt->set_right(new_const.shared_from_this());
-                    right = new_const.shared_from_this();
+                    right = &new_const;
                 } catch (::runtime_error&) {
                     std::cerr << "Failed to convert constants. Expect an exception" << std::endl;
                 }
@@ -91,14 +91,14 @@ public:
             throw StmtException(
                 ::format("assignment width doesn't match. left ({0}): {1} right ({2}): {3}",
                          left->to_string(), left->width(), right->to_string(), right->width()),
-                {stmt, left.get(), right.get(), left->param(), right->param()});
+                {stmt, left, right, left->param(), right->param()});
         if (left->is_signed() != right->is_signed())
             throw StmtException(
                 ::format("assignment sign doesn't match. left ({0}): {1} right ({2}): {3}",
                          left->to_string(), left->is_signed(), right->to_string(),
                          right->is_signed()),
-                {stmt, left.get(), right.get(), left->param(), right->param()});
-        check_expr(right.get(), stmt);
+                {stmt, left, right, left->param(), right->param()});
+        check_expr(right, stmt);
     }
 
     void visit(Generator* generator) override {
@@ -153,18 +153,18 @@ private:
             if (left->width() != width && expr->op != ExprOp::Concat) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             left->to_string(), left->width(), width),
-                                   {var, left.get(), stmt, left->param()});
+                                   {var, left, stmt, left->param()});
             }
             if (right && right->width() != width && expr->op != ExprOp::Concat) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             right->to_string(), right->width(), width),
-                                   {var, right.get(), stmt, right->param()});
+                                   {var, right, stmt, right->param()});
             }
             if (left->type() == VarType::Expression) {
-                check_expr(left.get(), stmt);
+                check_expr(left, stmt);
             }
             if (right && right->type() == VarType::Expression) {
-                check_expr(right.get(), stmt);
+                check_expr(right, stmt);
             }
         }
     }
@@ -667,7 +667,7 @@ public:
                 // the variable
                 if (sources.size() == 1) {
                     const auto& stmt = *sources.begin();
-                    if (stmt->left() == port) {
+                    if (stmt->left() == port.get()) {
                         // the sink has to be it self
                         auto src = stmt->right();
                         if (src->type() == VarType::Base || src->type() == VarType::ConstValue ||
@@ -717,7 +717,7 @@ public:
                     auto stmt = *(sinks.begin());
                     auto src = stmt->left();
                     if (src->type() == VarType::PortIO && src->generator == generator->parent() &&
-                        stmt->right() == port) {
+                        stmt->right() == port.get()) {
                         // remove it from the parent generator
                         src->generator->remove_stmt(stmt);
                         continue;
@@ -833,7 +833,7 @@ private:
                                     stmt_list.begin(), stmt_list.end());
             }
             // check assignment
-            check_var_parent(generator, stmt->left().get(), stmt->right().get(), stmt.get());
+            check_var_parent(generator, stmt->left(), stmt->right(), stmt.get());
         }
     }
 
@@ -841,8 +841,8 @@ private:
         if (!var) return false;
         if (var->type() == VarType::Expression) {
             auto expr = dynamic_cast<Expr*>(var);
-            return has_non_port(context, expr->left.get()) ||
-                   has_non_port(context, expr->right.get());
+            return has_non_port(context, expr->left) ||
+                   has_non_port(context, expr->right);
         } else if (var->type() == VarType::Slice) {
             auto slice = dynamic_cast<VarSlice*>(var);
             return has_non_port(context, slice->parent_var);
@@ -1077,9 +1077,9 @@ private:
         if (expr->op != ExprOp::Eq) return false;
         // has to be the same variable
         if (var == nullptr) {
-            var = expr->left.get();
+            var = expr->left;
         } else {
-            if (var != expr->left.get()) return false;
+            if (var != expr->left) return false;
         }
         if ((expr->right->type() != VarType::ConstValue) &&
             (expr->right->type() != VarType::Parameter))
@@ -1101,7 +1101,7 @@ private:
         auto expr = stmt->predicate()->as<Expr>();
         // we assume that this is a valid case (see has_target_if)
         auto target = expr->left;
-        std::shared_ptr<SwitchStmt> switch_ = std::make_shared<SwitchStmt>(target);
+        std::shared_ptr<SwitchStmt> switch_ = std::make_shared<SwitchStmt>(target->shared_from_this());
         if (target->generator->debug) {
             switch_->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
@@ -1187,12 +1187,12 @@ public:
                 }
                 // FIXME: need to re-work on fanout one wire removal
                 //  For now disable the expression based search
-                if (stmt->right() != var) {
+                if (stmt->right() != var.get()) {
                     // expr based
                     return;
                 }
                 queue.emplace_back(std::make_pair(var, stmt));
-                compute_assign_chain(sink_var, queue);
+                compute_assign_chain(sink_var->shared_from_this(), queue);
             }
         } else {
             queue.emplace_back(std::make_pair(var, nullptr));
@@ -1241,7 +1241,7 @@ public:
                     }
                     Var::move_src_to(port.get(), &new_var, generator, false);
                     // move the sinks over
-                    Var::move_sink_to(next_port.get(), &new_var, generator, false);
+                    Var::move_sink_to(next_port, &new_var, generator, false);
                 }
             }
             // remove it from the generator children
@@ -2196,7 +2196,7 @@ private:
             [=](Stmt* s) -> bool {
                 if (s->type() == StatementType::Assign) {
                     auto assign = s->as<AssignStmt>();
-                    return assign->left().get() == var;
+                    return assign->left() == var;
                 }
                 return false;
             },
@@ -2208,7 +2208,7 @@ private:
         auto check = [=](Stmt* s) -> bool {
             if (s->type() == StatementType::Assign) {
                 auto assign = reinterpret_cast<AssignStmt*>(s);
-                auto left = assign->left().get();
+                auto left = assign->left();
                 if (left->type() == VarType::Slice) {
                     auto slice = reinterpret_cast<VarSlice*>(left);
                     left = const_cast<Var*>(slice->get_var_root_parent());
@@ -2280,8 +2280,8 @@ private:
         bool static has_var(Var* var, Var* target) {
             if (var->type() == VarType::Expression) {
                 auto expr = var->as<Expr>().get();
-                bool left = has_var(expr->left.get(), target);
-                bool right = expr->right ? has_var(expr->right.get(), target) : false;
+                bool left = has_var(expr->left, target);
+                bool right = expr->right ? has_var(expr->right, target) : false;
                 return left || right;
             } else {
                 if (var->type() == VarType::Slice) {
@@ -2296,7 +2296,7 @@ private:
     class AssignedVarVisitor : public IRVisitor {
     public:
         void visit(AssignStmt* stmt) override {
-            auto left = stmt->left().get();
+            auto left = stmt->left();
             if (left->type() == VarType::Slice) {
                 auto slice = reinterpret_cast<VarSlice*>(left);
                 left = const_cast<Var*>(slice->get_var_root_parent());

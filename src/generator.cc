@@ -105,7 +105,7 @@ std::shared_ptr<Port> Generator::get_port(const std::string &port_name) const {
 
 Expr &Generator::expr(ExprOp op, const std::shared_ptr<Var> &left,
                       const std::shared_ptr<Var> &right) {
-    auto expr = std::make_shared<Expr>(op, left, right);
+    auto expr = std::make_shared<Expr>(op, left.get(), right.get());
     exprs_.emplace(expr);
     return *expr;
 }
@@ -395,9 +395,11 @@ void Generator::rename_var(const std::string &old_name, const std::string &new_n
     auto var = get_var(old_name);
     if (!var) return;
     // Using C++17 to replace the key
-    vars_.extract(old_name).key() = new_name;
+    auto handle = vars_.extract(old_name);
+    handle.key() = new_name;
     // rename the var
     var->name = new_name;
+    vars_.insert(std::move(handle));
 }
 
 void Generator::add_call_var(const std::shared_ptr<FunctionCallVar> &var) {
@@ -751,11 +753,6 @@ void Generator::remove_var(const std::string &var_name) {
     }
 
     vars_.erase(var_name);
-}
-
-std::shared_ptr<Var> Generator::get_null_var(const std::shared_ptr<Var> &var) {
-    return std::make_shared<Var>(this, "", var->width(), var->size(), var->is_signed(),
-                                 VarType::Base);
 }
 
 std::shared_ptr<StmtBlock> Generator::get_named_block(const std::string &block_name) const {

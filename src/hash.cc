@@ -219,7 +219,7 @@ static uint64_t hash_var(Var* var) {
     if (var->type() == VarType::Expression) {
         auto expr = reinterpret_cast<Expr*>(var);
         auto op_hash = (uint64_t)expr->op;
-        return hash_var(expr->left.get()) ^ hash_var(expr->right.get()) ^ op_hash;
+        return hash_var(expr->left) ^ hash_var(expr->right) ^ op_hash;
     } else if (var->type() == VarType::ConstValue) {
         auto c = reinterpret_cast<Const*>(var);
         return static_cast<uint64_t>(c->value());
@@ -263,7 +263,7 @@ public:
 
     void visit(AssignStmt* stmt) override {
         uint64_t stmt_hash =
-            hash_var(stmt->left().get()) ^ (shift(hash_var(stmt->right().get()), 1));
+            hash_var(stmt->left()) ^ (shift(hash_var(stmt->right()), 1));
         // based on level
         stmt_hash = shift(stmt_hash, level);
         stmt_hashes_.emplace_back(stmt_hash);

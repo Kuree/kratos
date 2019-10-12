@@ -52,6 +52,7 @@ public:
                           const std::map<std::string, std::shared_ptr<Var>> &args, bool has_return);
 
     Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
+    void add_expr(const std::shared_ptr<Expr> &expr) { exprs_.emplace(expr); }
 
     // ports and vars
     std::shared_ptr<Port> get_port(const std::string &port_name) const;
@@ -182,7 +183,6 @@ public:
     ~Generator() override = default;
 
     // meta functions
-    std::shared_ptr<Var> get_null_var(const std::shared_ptr<Var> &var);
     bool inline has_named_block(const std::string &block_name) const {
         return named_blocks_.find(block_name) != named_blocks_.end();
     }

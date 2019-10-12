@@ -152,7 +152,7 @@ protected:
                     for (auto const &assign : source) {
                         auto src_var = assign->right();
                         if (src_var->generator == generator && src_var->type() == VarType::Base) {
-                            clk_vars.emplace_back(src_var.get());
+                            clk_vars.emplace_back(src_var);
                         }
                     }
                 }
@@ -193,8 +193,8 @@ protected:
             int delay = stmt->get_delay();
             delay_str = ::format("#{0} ", delay);
         }
-        stream_ << indent() << delay_str << var_name(stmt->left().get()) << " = "
-                << var_name(stmt->right().get()) << ";" << stream_.endl();
+        stream_ << indent() << delay_str << var_name(stmt->left()) << " = "
+                << var_name(stmt->right()) << ";" << stream_.endl();
     }
 };
 

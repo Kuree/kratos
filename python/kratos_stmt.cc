@@ -27,8 +27,12 @@ void init_stmt(py::module &m) {
         m, "AssignStmt", R"pbdoc(Assignment statement)pbdoc");
     assign_.def("assign_type", &AssignStmt::assign_type)
         .def("set_assign_type", &AssignStmt::set_assign_type)
-        .def_property_readonly("left", [](const AssignStmt &stmt) { return stmt.left(); })
-        .def_property_readonly("right", [](const AssignStmt &stmt) { return stmt.right(); })
+        .def_property_readonly(
+            "left", [](const AssignStmt &stmt) { return stmt.left(); },
+            py::return_value_policy::reference)
+        .def_property_readonly(
+            "right", [](const AssignStmt &stmt) { return stmt.right(); },
+            py::return_value_policy::reference)
         .def_property("delay", &AssignStmt::get_delay, &AssignStmt::set_delay);
 
     def_attributes<py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt>, AssignStmt>(assign_);

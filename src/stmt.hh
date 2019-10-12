@@ -72,13 +72,13 @@ public:
     AssignmentType assign_type() const { return assign_type_; }
     void set_assign_type(AssignmentType assign_type) { assign_type_ = assign_type; }
 
-    std::shared_ptr<Var> left() const { return left_; }
-    std::shared_ptr<Var> right() const { return right_; }
-    std::shared_ptr<Var> &left() { return left_; }
-    std::shared_ptr<Var> &right() { return right_; }
+    Var *left() const { return left_; }
+    Var *right() const { return right_; }
+    Var *&left() { return left_; }
+    Var *&right() { return right_; }
 
-    void set_left(const std::shared_ptr<Var> &left) { left_ = left; }
-    void set_right(const std::shared_ptr<Var> &right) { right_ = right; }
+    void set_left(const std::shared_ptr<Var> &left) { left_ = left.get(); }
+    void set_right(const std::shared_ptr<Var> &right) { right_ = right.get(); }
 
     void set_parent(IRNode *parent) override;
 
@@ -95,8 +95,8 @@ public:
     IRNode *get_child(uint64_t index) override;
 
 private:
-    std::shared_ptr<Var> left_ = nullptr;
-    std::shared_ptr<Var> right_ = nullptr;
+    Var *left_ = nullptr;
+    Var *right_ = nullptr;
 
     AssignmentType assign_type_;
 
@@ -342,13 +342,9 @@ public:
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
-    const std::map<std::shared_ptr<Port>, std::shared_ptr<Var>> &port_mapping() const {
-        return port_mapping_;
-    }
+    const std::map<Port *, Var *> &port_mapping() const { return port_mapping_; }
 
-    const std::map<std::shared_ptr<Var>, std::shared_ptr<Stmt>> &port_debug() const {
-        return port_debug_;
-    }
+    const std::map<Var *, Stmt *> &port_debug() const { return port_debug_; }
 
     const Generator *target() { return target_; }
     const Generator *module_parent() { return parent_; }
@@ -356,9 +352,9 @@ public:
 private:
     Generator *target_;
     Generator *parent_;
-    std::map<std::shared_ptr<Port>, std::shared_ptr<Var>> port_mapping_;
+    std::map<Port *, Var *> port_mapping_;
 
-    std::map<std::shared_ptr<Var>, std::shared_ptr<Stmt>> port_debug_;
+    std::map<Var *, Stmt *> port_debug_;
 };
 
 }  // namespace kratos

@@ -32,7 +32,7 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
         if (stmt->assign_type() != AssignmentType::Blocking)
             throw StmtException(
                 ::format("Top level assignment for {0} <- {1} has to be blocking", left, right),
-                {stmt->left().get(), stmt->right().get(), stmt});
+                {stmt->left(), stmt->right(), stmt});
         (*this) << ::format("assign {0} = {1};", left, right) << endl();
     } else {
         if (stmt->assign_type() == AssignmentType::Blocking)
@@ -42,7 +42,7 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
         else
             throw StmtException(
                 ::format("Top level assignment for {0} <- {1} has to be blocking", left, right),
-                {stmt->left().get(), stmt->right().get(), stmt});
+                {stmt->left(), stmt->right(), stmt});
     }
     return *this;
 }
@@ -253,7 +253,7 @@ void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
         auto port = stmt->left()->as<Port>();
         if (port->port_direction() == PortDirection::In && stmt->left()->generator == generator_) {
             throw StmtException("Cannot drive a module's input from itself",
-                                {stmt, stmt->left().get(), stmt->right().get()});
+                                {stmt, stmt->left(), stmt->right()});
         }
     }
     stream_ << stmt;
@@ -507,7 +507,7 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
     stream_ << " " << stmt->target()->instance_name << " (" << stream_.endl();
     indent_++;
     uint32_t count = 0;
-    std::vector<std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>>> ports;
+    std::vector<std::pair<Var*, Var*>> ports;
     auto const& mapping = stmt->port_mapping();
     ports.reserve(mapping.size());
     for (auto const& iter : mapping) ports.emplace_back(iter);

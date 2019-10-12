@@ -353,7 +353,7 @@ std::string VarVarSlice::to_string() const {
     return ::format("{0}[{1}]", parent_var->to_string(), sliced_var_->to_string());
 }
 
-Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &right)
+Expr::Expr(ExprOp op, Var *left, Var *right)
     : Var(left->generator, "", left->var_width(), left->size(), left->is_signed()),
       op(op),
       left(left),
@@ -364,7 +364,7 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
         throw VarException(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
                      left->to_string(), left->width(), right->to_string(), right->width()),
-            {left.get(), right.get()});
+            {left, right});
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op))
         var_width_ = 1;
@@ -379,11 +379,11 @@ Expr::Expr(ExprOp op, const ::shared_ptr<Var> &left, const ::shared_ptr<Var> &ri
     set_parent();
 }
 
-Expr::Expr(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right)
+Expr::Expr(Var *left, Var *right)
     : Var(left->generator, "", left->width() / left->size(), left->size(), left->is_signed()),
       op(ExprOp::Add),
       left(left),
-      right(std::move(right)) {
+      right(right) {
     type_ = VarType::Expression;
     set_parent();
 }
@@ -638,7 +638,7 @@ std::string VarConcat::to_string() const {
 }
 
 VarConcat::VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_ptr<Var> &second)
-    : Expr(first, second) {
+    : Expr(first.get(), second.get()) {
     if (first->is_signed_ != second->is_signed())
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
@@ -650,7 +650,7 @@ VarConcat::VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_
 }
 
 VarConcat::VarConcat(const std::shared_ptr<Var> &first, const std::shared_ptr<Var> &second)
-    : Expr(first, second) {
+    : Expr(first.get(), second.get()) {
     if (first->is_signed() != second->is_signed())
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
@@ -730,24 +730,24 @@ std::string Expr::handle_name(kratos::Generator *scope) const {
 
 IRNode *Expr::get_child(uint64_t index) {
     if (index == 0)
-        return left.get();
+        return left;
     else if (index == 1)
-        return right ? right.get() : nullptr;
+        return right ? right : nullptr;
     else
         return nullptr;
 }
 
-void set_var_parent(std::shared_ptr<Var> &var, Var *target, Var *new_var, bool check_target) {
+void set_var_parent(Var * &var, Var *target, Var *new_var, bool check_target) {
     std::shared_ptr<VarSlice> slice;
-    std::shared_ptr<Var> parent_var = var;
+    Var * parent_var = var;
     std::vector<std::shared_ptr<VarSlice>> slices;
     while (parent_var->type() == VarType::Slice) {
         // this is for nested slicing
         slice = parent_var->as<VarSlice>();
         slices.emplace_back(slice);
-        parent_var = slice->parent_var->shared_from_this();
+        parent_var = slice->parent_var;
     }
-    if (parent_var.get() != target) {
+    if (parent_var != target) {
         if (check_target)
             throw InternalException("Target not found");
         else
@@ -760,7 +760,7 @@ void set_var_parent(std::shared_ptr<Var> &var, Var *target, Var *new_var, bool c
     for (auto const &s : slices) {
         new_var_ptr = s->slice_var(new_var_ptr);
     }
-    var = new_var_ptr;
+    var = new_var_ptr.get();
 }
 
 void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var) {
@@ -771,8 +771,8 @@ void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_va
         change_var_expr(expr->right->as<Expr>(), target, new_var);
     }
 
-    if (expr->left.get() == target) expr->left = new_var->shared_from_this();
-    if (expr->right && expr->right.get() == target) expr->right = new_var->shared_from_this();
+    if (expr->left == target) expr->left = new_var;
+    if (expr->right && expr->right == target) expr->right = new_var;
 
     // need to change the parent as well
     if (expr->left->type() == VarType::Slice) {
@@ -792,7 +792,7 @@ void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
     auto &right = stmt->right();
     if (right->type() == VarType::Base || right->type() == VarType::PortIO ||
         right->type() == VarType::ConstValue) {
-        if (right.get() == target)
+        if (right == target)
             stmt->set_right(new_var->shared_from_this());
         else
             throw InternalException("Target not found");
@@ -807,7 +807,7 @@ void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
     auto &left = stmt->left();
     if (left->type() == VarType::Base || left->type() == VarType::PortIO ||
         left->type() == VarType::ConstValue) {
-        if (left.get() == target)
+        if (left == target)
             stmt->set_left(new_var->shared_from_this());
         else
             throw InternalException("Target not found");
@@ -906,7 +906,7 @@ void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
 ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,
                                  const std::shared_ptr<Var> &left,
                                  const std::shared_ptr<Var> &right)
-    : Expr(ExprOp::Conditional, left, right), condition(condition) {
+    : Expr(ExprOp::Conditional, left.get(), right.get()), condition(condition.get()) {
     if (condition->width() != 1)
         throw VarException("Ternary operator's condition has to be a binary value",
                            {condition.get()});
@@ -914,11 +914,11 @@ ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,
 
 IRNode *ConditionalExpr::get_child(uint64_t index) {
     if (index == 0)
-        return condition.get();
+        return condition;
     else if (index == 1)
-        return left.get();
+        return left;
     else if (index == 2)
-        return right.get();
+        return right;
     else
         return nullptr;
 }

@@ -390,10 +390,10 @@ private:
 struct Expr : public Var {
 public:
     ExprOp op;
-    std::shared_ptr<Var> left;
-    std::shared_ptr<Var> right;
+    Var* left;
+    Var* right;
 
-    Expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
+    Expr(ExprOp op, Var *left, Var *right);
     std::string to_string() const override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
@@ -407,7 +407,7 @@ public:
 
 protected:
     // caller is responsible for the op
-    Expr(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right);
+    Expr(Var *left, Var *right);
 
 private:
     void set_parent();
@@ -444,7 +444,7 @@ struct ConditionalExpr : public Expr {
     std::string to_string() const override;
     std::string handle_name(bool ignore_top) const override;
 
-    std::shared_ptr<Var> condition;
+    Var* condition;
 };
 
 struct EnumConst : public Const {

@@ -15,7 +15,7 @@ TEST(expr, arith) {  // NOLINT
     Var &var1 = mod.var("a", 1);
     Var &var2 = mod.var("b", 1);
     auto &expr = var1 + var2;
-    EXPECT_EQ(expr.left.get(), &var1);
+    EXPECT_EQ(expr.left, &var1);
 
     expr = p_in + p_out;
     EXPECT_EQ(expr.to_string(), "in + out");
@@ -35,7 +35,7 @@ TEST(expr, arith) {  // NOLINT
     // test raw expr
     // we have to use the reference version to use shared_from_this
     Var &var3 = mod.var("c", 1);
-    expr = Expr(ExprOp::Add, var1.shared_from_this(), var3.shared_from_this());
+    expr = Expr(ExprOp::Add, &var1, &var3);
     EXPECT_EQ(expr.generator, &mod);
 
     // test to_string
@@ -84,8 +84,8 @@ TEST(expr, assign) {  // NOLINT
     auto &var3 = mod.var("c", 1);
     auto &var4 = var1 + var2;
     auto assign_stmt = var3.assign(var4);
-    EXPECT_EQ(assign_stmt->right(), var4.shared_from_this());
-    EXPECT_EQ(assign_stmt->left(), var3.shared_from_this());
+    EXPECT_EQ(assign_stmt->right(), &var4);
+    EXPECT_EQ(assign_stmt->left(), &var3);
     // commit the assignment
     mod.add_stmt(assign_stmt);
     EXPECT_TRUE(var3.sources().find(assign_stmt) != var3.sources().end());

@@ -3,7 +3,7 @@ from typing import Union, List
 import os
 import math
 import inspect
-from _kratos import ConditionalExpr, get_fn_ln as _get_fn_ln
+from _kratos import mux as _mux, get_fn_ln as _get_fn_ln
 import _kratos
 import enum
 import functools
@@ -101,7 +101,7 @@ def zext(var, width):
 
 
 def mux(cond, left, right):
-    return ConditionalExpr(cond, left, right)
+    return _mux(cond, left, right)
 
 
 class VarCastType(enum.Enum):

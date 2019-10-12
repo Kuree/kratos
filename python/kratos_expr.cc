@@ -277,11 +277,14 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("r_xor", &Var::r_xor, py::return_value_policy::reference)
         .def("r_not", &Var::r_not, py::return_value_policy::reference)
         .def("r_and", &Var::r_and, py::return_value_policy::reference)
-        .def("assign", py::overload_cast<const shared_ptr<Var> &>(&Var::assign))
-        .def("assign",
-             [](Var &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
-                 return left.assign(convert_int_to_const(left, right));
-             })
+        .def("assign", py::overload_cast<const shared_ptr<Var> &>(&Var::assign),
+             py::return_value_policy::reference)
+        .def(
+            "assign",
+            [](Var &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
+                return left.assign(convert_int_to_const(left, right));
+            },
+            py::return_value_policy::reference)
         .def("assign", py::overload_cast<const shared_ptr<Var> &>(&Var::assign))
         .def("__call__",
              [](Var &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
@@ -311,13 +314,15 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("sinks", &Var::sinks, py::return_value_policy::reference)
         .def("cast", &Var::cast)
         .def_readwrite("packed_array", &Var::packed_array)
-        .def_property_readonly("generator", [](const Var &var) { return var.generator; })
+        .def_property_readonly(
+            "generator", [](const Var &var) { return var.generator; },
+            py::return_value_policy::reference)
         .def_static("move_src_to", &Var::move_src_to)
         .def_static("move_sink_to", &Var::move_sink_to)
         .def("handle_name", [](const Var &var) { return var.handle_name(); })
         .def("handle_name",
              [](const Var &var, bool ignore_top) { return var.handle_name(ignore_top); })
-        .def("handle_name0", [](const Var &var, Generator *gen) { return var.handle_name(gen); });
+        .def("handle_name", [](const Var &var, Generator *gen) { return var.handle_name(gen); });
 
     def_attributes<py::class_<Var, ::shared_ptr<Var>>, Var>(class_);
 }
@@ -418,6 +423,13 @@ void init_expr(py::module &m) {
 
     // constant
     m.def("constant", &constant, py::return_value_policy::reference);
+
+    m.def("mux", [](Var &cond, Var &left, Var &right) {
+        auto expr = std::make_shared<ConditionalExpr>(
+            cond.shared_from_this(), left.shared_from_this(), right.shared_from_this());
+        cond.generator->add_expr(expr);
+        return expr;
+    });
 }
 
 void init_enum_type(py::module &m) {

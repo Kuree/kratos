@@ -44,7 +44,7 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
 
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right,
                        AssignmentType type)
-    : Stmt(StatementType ::Assign), left_(left), right_(right), assign_type_(type) {
+    : Stmt(StatementType ::Assign), left_(left.get()), right_(right.get()), assign_type_(type) {
     if (left == nullptr) throw UserException("left hand side is empty");
     if (right == nullptr) throw UserException("right hand side is empty");
     // check for sign
@@ -72,9 +72,9 @@ bool AssignStmt::operator==(const AssignStmt &stmt) const {
 
 IRNode *AssignStmt::get_child(uint64_t index) {
     if (index == 0)
-        return left_.get();
+        return left_;
     else if (index == 1)
-        return right_.get();
+        return right_;
     else
         return nullptr;
 }
@@ -93,10 +93,6 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
 
     then_body_->set_parent(this);
     else_body_->set_parent(this);
-
-    // just to add the sinks
-    auto stmt = predicate_->generator->get_null_var(predicate_)->assign(predicate_);
-    stmt->set_parent(this);
 }
 
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
@@ -210,8 +206,6 @@ void SequentialStmtBlock::add_condition(
     if (pos != conditions_.end()) return;
     auto var = condition.second;
     conditions_.emplace_back(condition);
-    auto stmt = var->generator->get_null_var(var)->assign(var);
-    stmt->set_parent(this);
 }
 
 SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
@@ -220,8 +214,6 @@ SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
     if (target->type() == VarType::ConstValue)
         throw StmtException(::format("switch target cannot be const value {0}", target->name),
                             {this, target.get()});
-    auto stmt = target_->generator->get_null_var(target_)->assign(target_);
-    stmt->set_parent(this);
 }
 
 ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
@@ -466,7 +458,8 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
     : Stmt(StatementType::ModuleInstantiation), target_(target), parent_(parent) {
     auto const &port_names = target->get_port_names();
     for (auto const &port_name : port_names) {
-        auto const &port = target->get_port(port_name);
+        auto const &port_shared = target->get_port(port_name);
+        auto port = port_shared.get();
         auto const port_direction = port->port_direction();
         if (port_direction == PortDirection::In) {
             // if we're connected to a base variable and no slice, we are good
@@ -477,17 +470,16 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
             if (slices.empty()) {
                 if (sources.empty())
                     throw VarException(
-                        ::format("{0}.{1} is not connected", target->name, port_name),
-                        {port.get()});
+                        ::format("{0}.{1} is not connected", target->name, port_name), {port});
                 if (sources.size() > 1)
                     throw VarException(
                         ::format("{0}.{1} is driven by multiple nets", target->name, port_name),
-                        {port.get()});
+                        {port});
                 // add it to the port mapping and we are good to go
                 auto const &stmt = *sources.begin();
                 port_mapping_.emplace(port, stmt->right());
                 if (parent->debug) {
-                    port_debug_.emplace(port, stmt);
+                    port_debug_.emplace(port, stmt.get());
                 }
             } else {
                 // you need to run a de-slice pass on the module references first
@@ -504,7 +496,7 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                     auto stmt = *sinks.begin();
                     port_mapping_.emplace(port, stmt->left());
                     if (parent->debug) {
-                        port_debug_.emplace(port, stmt);
+                        port_debug_.emplace(port, stmt.get());
                     }
                 } else if (!sinks.empty() && sinks.size() > 1) {
                     throw InternalException(
