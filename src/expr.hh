@@ -422,7 +422,7 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
-    std::vector<std::shared_ptr<Var>> &vars() { return vars_; }
+    std::vector<Var*> &vars() { return vars_; }
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
     VarConcat &concat(Var &var) override;
@@ -432,7 +432,7 @@ public:
     std::string to_string() const override;
 
 private:
-    std::vector<std::shared_ptr<Var>> vars_;
+    std::vector<Var*> vars_;
 };
 
 struct ConditionalExpr : public Expr {

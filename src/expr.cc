@@ -180,7 +180,7 @@ VarSlice &Var::operator[](const std::shared_ptr<Var> &var) {
 }
 
 VarConcat &Var::concat(Var &var) {
-    auto ptr = var.shared_from_this();
+    auto ptr = &var;
     // notice that we effectively created an implicit sink->sink by creating a concat
     // however, it's not an assignment, that's why we need to use concat_vars to hold the
     // vars
@@ -190,7 +190,7 @@ VarConcat &Var::concat(Var &var) {
             return *exist_var;
         }
     }
-    auto concat_ptr = std::make_shared<VarConcat>(shared_from_this(), ptr);
+    auto concat_ptr = std::make_shared<VarConcat>(shared_from_this(), ptr->shared_from_this());
     concat_vars_.emplace(concat_ptr);
     return *concat_ptr;
 }
@@ -643,8 +643,8 @@ VarConcat::VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
             {first.get(), second.get()});
-    vars_ = std::vector<std::shared_ptr<Var>>(first->vars_.begin(), first->vars_.end());
-    vars_.emplace_back(second);
+    vars_ = std::vector<Var*>(first->vars_.begin(), first->vars_.end());
+    vars_.emplace_back(second.get());
     var_width_ = first->width() + second->width();
     op = ExprOp::Concat;
 }
@@ -655,7 +655,7 @@ VarConcat::VarConcat(const std::shared_ptr<Var> &first, const std::shared_ptr<Va
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
             {first.get(), second.get()});
-    vars_ = {first, second};
+    vars_ = {first.get(), second.get()};
     var_width_ = first->width() + second->width();
     op = ExprOp::Concat;
 }
@@ -668,9 +668,9 @@ VarConcat &VarConcat::concat(kratos::Var &var) {
 }
 
 void VarConcat::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
-    auto pos = std::find(vars_.begin(), vars_.end(), target);
+    auto pos = std::find(vars_.begin(), vars_.end(), target.get());
     if (pos != vars_.end()) {
-        *pos = item;
+        *pos = item.get();
     }
 }
 
