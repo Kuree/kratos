@@ -24,7 +24,7 @@ struct Variable {
     std::string value;
     std::string name;
     bool is_var;
-    bool is_context = false;
+    bool is_context;
 };
 
 struct Connection {

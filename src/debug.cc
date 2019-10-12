@@ -379,8 +379,8 @@ void DebugDatabase::save_database(const std::string &filename) {
             auto gen_var = gen->get_var(var);
             if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
             // notice that we need to flatten some of the types
-            Variable variable{variable_count,  std::make_unique<int>(id), var, front_var,
-                              true};
+            Variable variable{variable_count, std::make_unique<int>(id), var, front_var, true,
+                              false};
             var_id_map.emplace(gen_var.get(), variable_count);
             variable_count++;
             storage.replace(variable);
@@ -391,11 +391,8 @@ void DebugDatabase::save_database(const std::string &filename) {
             // continue because we already have that variable stored
             if (var_id_map.find(var.get()) != var_id_map.end()) continue;
             if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
-                Variable variable{variable_count,
-                                  std::make_unique<int>(id),
-                                  var_name,
-                                  "",
-                                  true};
+                Variable variable{variable_count, std::make_unique<int>(id), var_name, "", true,
+                                  false};
                 var_id_map.emplace(var.get(), variable_count);
                 variable_count++;
                 storage.replace(variable);
@@ -411,7 +408,7 @@ void DebugDatabase::save_database(const std::string &filename) {
             auto var = gen->get_var(name);
             // create a new variable
             Variable variable{
-                variable_count++, std::make_unique<int>(id), value, name, false};
+                variable_count++, std::make_unique<int>(id), value, name, var != nullptr, false};
             storage.insert(variable);
         }
     }
@@ -447,24 +444,18 @@ void DebugDatabase::save_database(const std::string &filename) {
         auto handle_name = gen->handle_name();
         if (stmt_context_.find(stmt) == stmt_context_.end()) continue;
         if (handle_id_map.find(handle_name) == handle_id_map.end())
-            throw InternalException(
-                ::format("Unable to find {0} in handle id map", handle_name));
+            throw InternalException(::format("Unable to find {0} in handle id map", handle_name));
 
         auto instance_id = handle_id_map.at(handle_name);
         auto values = stmt_context_.at(stmt);
 
         for (auto const &[key, entry] : values) {
             auto const &[is_var, value] = entry;
-            Variable variable{variable_count++,
-                              std::make_unique<int>(instance_id),
-                              value,
-                              key,
-                              is_var,
-                              true};
+            Variable variable{
+                variable_count++, std::make_unique<int>(instance_id), value, key, is_var, true};
             storage.replace(variable);
             int var_id = variable.id;
-            ContextVariable v{std::make_unique<uint32_t>(id), std::make_unique<int>(var_id),
-                              key};
+            ContextVariable v{std::make_unique<uint32_t>(id), std::make_unique<int>(var_id), key};
             storage.replace(v);
         }
     }

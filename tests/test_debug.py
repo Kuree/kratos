@@ -300,4 +300,4 @@ def test_assert():
 
 
 if __name__ == "__main__":
-    test_assert()
+    test_context()
