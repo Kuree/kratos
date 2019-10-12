@@ -380,7 +380,7 @@ void DebugDatabase::save_database(const std::string &filename) {
             if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
             // notice that we need to flatten some of the types
             Variable variable{variable_count,  std::make_unique<int>(id), var, front_var,
-                              gen_var->size(), gen_var->type(),           true};
+                              true};
             var_id_map.emplace(gen_var.get(), variable_count);
             variable_count++;
             storage.replace(variable);
@@ -395,8 +395,6 @@ void DebugDatabase::save_database(const std::string &filename) {
                                   std::make_unique<int>(id),
                                   var_name,
                                   "",
-                                  var->size(),
-                                  var->type(),
                                   true};
                 var_id_map.emplace(var.get(), variable_count);
                 variable_count++;
@@ -413,7 +411,7 @@ void DebugDatabase::save_database(const std::string &filename) {
             auto var = gen->get_var(name);
             // create a new variable
             Variable variable{
-                variable_count++, std::make_unique<int>(id), value, name, 0, 0, false};
+                variable_count++, std::make_unique<int>(id), value, name, false};
             storage.insert(variable);
         }
     }
@@ -446,49 +444,28 @@ void DebugDatabase::save_database(const std::string &filename) {
     for (auto const &[stmt, id] : break_points_) {
         // use breakpoint as an index since we can only get context as we hit potential breakpoints
         auto const &gen = stmt->generator_parent();
+        auto handle_name = gen->handle_name();
         if (stmt_context_.find(stmt) == stmt_context_.end()) continue;
+        if (handle_id_map.find(handle_name) == handle_id_map.end())
+            throw InternalException(
+                ::format("Unable to find {0} in handle id map", handle_name));
+
+        auto instance_id = handle_id_map.at(handle_name);
         auto values = stmt_context_.at(stmt);
+
         for (auto const &[key, entry] : values) {
             auto const &[is_var, value] = entry;
-            if (is_var) {
-                // get the real var name
-                auto tokens = get_tokens(value, ".");
-                auto const &var_name = tokens.back();
-                auto var = gen->get_var(var_name);
-                if (!var)
-                    throw InternalException(
-                        ::format("Unable to find {0}.{1}", gen->handle_name(), key));
-                if (var_id_map.find(var.get()) == var_id_map.end()) {
-                    // need to create a variable here
-                    Variable variable{variable_count++,
-                                      std::make_unique<int>(id),
-                                      value,
-                                      var->name,
-                                      var->size(),
-                                      var->type(),
-                                      true};
-                    storage.replace(variable);
-                    var_id_map.emplace(var.get(), variable.id);
-                }
-                int var_id = var_id_map.at(var.get());
-                ContextVariable v{std::make_unique<uint32_t>(id), std::make_unique<int>(var_id),
-                                  key};
-                storage.replace(v);
-            } else {
-                // create a new var
-                auto handle_name = gen->handle_name();
-                if (handle_id_map.find(handle_name) == handle_id_map.end())
-                    throw InternalException(
-                        ::format("Unable to find {0} in handle id map", handle_name));
-                auto instance_id = handle_id_map.at(handle_name);
-                Variable variable{
-                    variable_count, std::make_unique<int>(instance_id), value, key, 0, 0, false};
-                storage.replace(variable);
-                ContextVariable v{std::make_unique<uint32_t>(id),
-                                  std::make_unique<int>(variable_count), key};
-                variable_count++;
-                storage.replace(v);
-            }
+            Variable variable{variable_count++,
+                              std::make_unique<int>(instance_id),
+                              value,
+                              key,
+                              is_var,
+                              true};
+            storage.replace(variable);
+            int var_id = variable.id;
+            ContextVariable v{std::make_unique<uint32_t>(id), std::make_unique<int>(var_id),
+                              key};
+            storage.replace(v);
         }
     }
 
