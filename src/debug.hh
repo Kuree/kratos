@@ -52,7 +52,7 @@ private:
         variable_mapping_;
     std::unordered_map<Generator*, std::map<std::string, std::string>> generator_values_;
     ConnectionMap connection_map_;
-    std::vector<std::pair<std::string, std::string>> hierarchy_;
+    std::vector<std::pair<std::string, Generator*>> hierarchy_;
     std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
     std::unordered_set<Generator*> generators_;
 

@@ -37,6 +37,7 @@ struct Connection {
 struct Hierarchy {
     std::unique_ptr<int> parent_handle;
     std::string child;
+    std::unique_ptr<int> child_handle;
 };
 
 struct ContextVariable {
@@ -75,7 +76,8 @@ auto inline init_storage(const std::string &filename) {
                    foreign_key(&Connection::handle_from).references(&Instance::id),
                    foreign_key(&Connection::handle_to).references(&Instance::id)),
         make_table("hierarchy", make_column("parent_handle", &Hierarchy::parent_handle),
-                   make_column("child", &Hierarchy::child),
+                   make_column("name", &Hierarchy::child),
+                   make_column("handle", &Hierarchy::child_handle),
                    foreign_key(&Hierarchy::parent_handle).references(&Instance::id)),
         make_table("context", make_column("variable_id", &ContextVariable::variable_id),
                    make_column("breakpoint_id", &ContextVariable::breakpoint_id),

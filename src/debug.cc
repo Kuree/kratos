@@ -300,14 +300,13 @@ public:
     void visit(Generator *generator) override {
         auto handle_name = generator->handle_name();
         for (auto const &gen : generator->get_child_generators()) {
-            auto name = gen->instance_name;
-            hierarchy_.emplace_back(std::make_pair(handle_name, name));
+            hierarchy_.emplace_back(std::make_pair(handle_name, gen.get()));
         }
     }
-    const std::vector<std::pair<std::string, std::string>> &hierarchy() const { return hierarchy_; }
+    const std::vector<std::pair<std::string, Generator *>> &hierarchy() const { return hierarchy_; }
 
 private:
-    std::vector<std::pair<std::string, std::string>> hierarchy_;
+    std::vector<std::pair<std::string, Generator *>> hierarchy_;
 };
 
 void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
@@ -429,11 +428,15 @@ void DebugDatabase::save_database(const std::string &filename) {
     }
 
     // hierarchy
-    for (auto const &[handle, name] : hierarchy_) {
+    for (auto const &[handle, child] : hierarchy_) {
         if (handle_id_map.find(handle) == handle_id_map.end())
             throw InternalException(::format("Unable to find id for {0}", handle));
+        if (handle_id_map.find(child->handle_name()) == handle_id_map.end())
+            throw InternalException(::format("Unable to find id for {0}", child->handle_name()));
         auto id = handle_id_map.at(handle);
-        Hierarchy h{std::make_unique<int>(id), name};
+        auto child_id = handle_id_map.at(child->handle_name());
+        Hierarchy h{std::make_unique<int>(id), child->instance_name,
+                                        std::make_unique<int>(child_id)};
         storage.replace(h);
     }
 
