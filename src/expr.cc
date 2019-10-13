@@ -637,6 +637,24 @@ std::string VarConcat::to_string() const {
     return ::format("{{{0}}}", content);
 }
 
+std::string VarConcat::handle_name(bool ignore_top) const {
+    std::vector<std::string> var_names;
+    for (const auto &ptr : vars_) {
+        var_names.emplace_back(ptr->handle_name(ignore_top));
+    }
+    auto content = join(var_names.begin(), var_names.end(), ", ");
+    return ::format("{{{0}}}", content);
+}
+
+std::string VarConcat::handle_name(kratos::Generator *scope) const {
+    std::vector<std::string> var_names;
+    for (const auto &ptr : vars_) {
+        var_names.emplace_back(ptr->handle_name(scope));
+    }
+    auto content = join(var_names.begin(), var_names.end(), ", ");
+    return ::format("{{{0}}}", content);
+}
+
 VarConcat::VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_ptr<Var> &second)
     : Expr(first.get(), second.get()) {
     if (first->is_signed_ != second->is_signed())
@@ -690,6 +708,9 @@ std::shared_ptr<AssignStmt> Var::assign(Var &var, AssignmentType type) {
 
 std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle,
                                   bool ignore_top = false, Generator *scope = nullptr) {
+    // overloaded to_string methods?
+    if (expr->op == ExprOp::Concat || expr->op == ExprOp::Conditional)
+        return use_handle? expr->handle_name(ignore_top): scope? expr->handle_name(scope): expr->to_string();
     auto left = expr->left;
     auto right = expr->right;
 
@@ -939,6 +960,11 @@ std::string ConditionalExpr::to_string() const {
 std::string ConditionalExpr::handle_name(bool ignore_top) const {
     return ::format("{0} ? {1}: {2}", condition->handle_name(ignore_top),
                     left->handle_name(ignore_top), right->handle_name(ignore_top));
+}
+
+std::string ConditionalExpr::handle_name(kratos::Generator *scope) const {
+    return ::format("{0} ? {1}: {2}", condition->handle_name(scope),
+                    left->handle_name(scope), right->handle_name(scope));
 }
 
 PackedStruct::PackedStruct(std::string struct_name,

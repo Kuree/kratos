@@ -149,7 +149,7 @@ public:
     // meta info
     // packed is only relevant when the size is larger than 1, by default it's false
     bool packed_array = false;
-    std::string handle_name() const;
+    virtual std::string handle_name() const;
     virtual std::string handle_name(bool ignore_top) const;
     virtual std::string handle_name(Generator *scope) const;
     // is parametrized
@@ -430,6 +430,8 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     std::string to_string() const override;
+    std::string handle_name(bool ignore_top) const override;
+    std::string handle_name(Generator *scope) const override;
 
 private:
     std::vector<Var*> vars_;
@@ -443,6 +445,7 @@ struct ConditionalExpr : public Expr {
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     std::string to_string() const override;
     std::string handle_name(bool ignore_top) const override;
+    std::string handle_name(Generator *scope) const override;
 
     Var* condition;
 };
