@@ -150,12 +150,13 @@ private:
             auto left = expr->left;
             auto right = expr->right;
             auto width = var->width();
-            if (left->width() != width && expr->op != ExprOp::Concat) {
+            bool is_relational = is_relational_op(expr->op);
+            if (!is_relational && left->width() != width && expr->op != ExprOp::Concat) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             left->to_string(), left->width(), width),
                                    {var, left, stmt, left->param()});
             }
-            if (right && right->width() != width && expr->op != ExprOp::Concat) {
+            if (!is_relational && right && right->width() != width && expr->op != ExprOp::Concat) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             right->to_string(), right->width(), width),
                                    {var, right, stmt, right->param()});
