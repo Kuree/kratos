@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.18] - 2019-10-12
+### Added
+- Add variable indexing with explicit array
+
+### Changed
+- Fix memory model in the internal system. Should be leak free (#100)
+- Change how port bundle is constructed
+- Change debug database schema.
+
+### Fixed
+- Fix width calculation in a pass that involves with relational op
+- Fix ternary construction
+
 ## [0.0.17] - 2019-10-10
 ### Added
 - Add a pass to remove assertions
