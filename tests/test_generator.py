@@ -680,7 +680,7 @@ def test_simple_pipeline():
     attr.value_str = "2"
     mod.add_attribute(attr)
 
-    check_gold(mod, "test_simple_pipeline")
+    check_gold(mod, "test_simple_pipeline", insert_pipeline_stages=True)
 
 
 def test_replace():

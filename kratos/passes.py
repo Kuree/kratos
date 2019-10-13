@@ -22,6 +22,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
             extract_struct: bool = False,
             int_dpi_interface: bool = True,
             remove_assertion: bool = False,
+            check_inferred_latch: bool = True,
+            insert_pipeline_stages: bool = False,
             filename: str = None,
             output_dir: str = None,
             debug_db_filename: str = "",
@@ -58,7 +60,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("verify_generator_connectivity")
     pass_manager.add_pass("check_mixed_assignment")
     pass_manager.add_pass("check_always_sensitivity")
-    pass_manager.add_pass("check_inferred_latch")
+    if check_inferred_latch:
+        pass_manager.add_pass("check_inferred_latch")
     if check_active_high:
         pass_manager.add_pass("check_active_high")
     pass_manager.add_pass("check_function_return")
@@ -74,7 +77,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("hash_generators_sequential")
     pass_manager.add_pass("uniquify_generators")
     pass_manager.add_pass("create_module_instantiation")
-    pass_manager.add_pass("insert_pipeline_stages")
+    if insert_pipeline_stages:
+        pass_manager.add_pass("insert_pipeline_stages")
     if reorder_stmts:
         pass_manager.add_pass("sort_stmts")
 

@@ -111,6 +111,10 @@ readable and your life easier:
   signals.
 - ``inject_debug_break_points``: inject the breakpoints in the IR, which
   will be used to interact with ``kratos-runtime``.
+- ``inject_assert_fail_exception``: inject exception into assertion when
+  the assertion fails. This can only be used with ``kratos-runtime``.
+- ``remove_assertion``: remove assertion statement and transform the logic
+  design when necessary to keep the IR succinct.
 
 
 Write your own Pass
