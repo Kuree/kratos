@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.18.1] - 2019-10-12
+### Changed
+- Refactor database table schema
+
+### Fixed
+- Fix complex expr to_string()
+- Fix var used in if/switch target not registered as sinks.
+
 ## [0.0.18] - 2019-10-12
 ### Added
 - Add variable indexing with explicit array
