@@ -193,6 +193,7 @@ public:
     void set_def_instance(Generator *def) { def_instance_ = def; }
     std::string handle_name() const;
     std::string handle_name(bool ignore_top) const;
+    std::shared_ptr<Var> get_auxiliary_var(uint32_t width, bool signed_=false);
 
 private:
     std::vector<std::string> lib_files_;
@@ -234,6 +235,8 @@ private:
     std::set<std::shared_ptr<FunctionCallVar>> calls_;
     // cloned ref
     Generator *def_instance_ = nullptr;
+    // auxiliary var
+    std::unordered_map<uint32_t, std::shared_ptr<Var>> auxiliary_vars_;
 };
 
 }  // namespace kratos

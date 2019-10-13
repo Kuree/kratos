@@ -797,4 +797,13 @@ std::string Generator::handle_name(bool ignore_top) const {
     return result;
 }
 
+std::shared_ptr<Var> Generator::get_auxiliary_var(uint32_t width, bool signed_) {
+    if (auxiliary_vars_.find(width) != auxiliary_vars_.end()) {
+        return auxiliary_vars_.at(width);
+    }
+    auto v = std::make_shared<Var>(this, "", width, 1, signed_);
+    auxiliary_vars_.emplace(width, v);
+    return v;
+}
+
 }
