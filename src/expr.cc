@@ -24,6 +24,11 @@ bool is_relational_op(ExprOp op) {
     return ops.find(op) != ops.end();
 }
 
+bool is_reduction_op(ExprOp op) {
+    static std::unordered_set<ExprOp> ops = {ExprOp::UOr, ExprOp::UXor, ExprOp::UAnd, ExprOp::UNot};
+    return ops.find(op) != ops.end();
+}
+
 std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(
     const Var &var) const {
     auto left = const_cast<Var *>(this)->shared_from_this();
@@ -32,100 +37,102 @@ std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(
 }
 
 Expr &Var::operator-(const Var &var) const {
-    return generator->expr(ExprOp::Minus, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::Minus, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator-() const {
-    return generator->expr(ExprOp::Minus, const_cast<Var*>(this), nullptr);
+    return generator->expr(ExprOp::Minus, const_cast<Var *>(this), nullptr);
 }
 
 Expr &Var::operator~() const {
-    return generator->expr(ExprOp::UInvert, const_cast<Var*>(this), nullptr);
+    return generator->expr(ExprOp::UInvert, const_cast<Var *>(this), nullptr);
 }
 
 Expr &Var::operator+() const {
-    return generator->expr(ExprOp::UPlus, const_cast<Var*>(this), nullptr);
+    return generator->expr(ExprOp::UPlus, const_cast<Var *>(this), nullptr);
 }
 
 Expr &Var::r_or() const {
     auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UOr, const_cast<Var*>(this), nullptr);
+    return generator->expr(ExprOp::UOr, const_cast<Var *>(this), nullptr);
 }
 Expr &Var::r_and() const {
     auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UAnd, const_cast<Var*>(this), nullptr);
+    return generator->expr(ExprOp::UAnd, const_cast<Var *>(this), nullptr);
 }
 Expr &Var::r_xor() const {
     auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UXor, const_cast<Var*>(this), nullptr);
+    return generator->expr(ExprOp::UXor, const_cast<Var *>(this), nullptr);
 }
 Expr &Var::r_not() const {
     auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UNot, const_cast<Var*>(this), nullptr);
+    return generator->expr(ExprOp::UNot, const_cast<Var *>(this), nullptr);
 }
 
 Expr &Var::operator+(const Var &var) const {
-    return generator->expr(ExprOp::Add, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::Add, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator*(const Var &var) const {
-    return generator->expr(ExprOp::Multiply, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::Multiply, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator%(const Var &var) const {
-    return generator->expr(ExprOp::Mod, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::Mod, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator/(const Var &var) const {
-    return generator->expr(ExprOp::Divide, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::Divide, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator>>(const Var &var) const {
-    return generator->expr(ExprOp::LogicalShiftRight, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::LogicalShiftRight, const_cast<Var *>(this),
+                           const_cast<Var *>(&var));
 }
 
 Expr &Var::operator<<(const Var &var) const {
-    return generator->expr(ExprOp::ShiftLeft, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::ShiftLeft, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator|(const Var &var) const {
-    return generator->expr(ExprOp::Or, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::Or, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator&(const Var &var) const {
-    return generator->expr(ExprOp::And, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::And, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator^(const Var &var) const {
-    return generator->expr(ExprOp::Xor, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::Xor, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::ashr(const Var &var) const {
-    return generator->expr(ExprOp::SignedShiftRight, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::SignedShiftRight, const_cast<Var *>(this),
+                           const_cast<Var *>(&var));
 }
 
 Expr &Var::operator<(const Var &var) const {
-    return generator->expr(ExprOp::LessThan, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::LessThan, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator>(const Var &var) const {
-    return generator->expr(ExprOp::GreaterThan, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::GreaterThan, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator<=(const Var &var) const {
-    return generator->expr(ExprOp::LessEqThan, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::LessEqThan, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator>=(const Var &var) const {
-    return generator->expr(ExprOp::GreaterEqThan, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::GreaterEqThan, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::eq(const Var &var) const {
-    return generator->expr(ExprOp::Eq, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::Eq, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator!=(const Var &var) const {
-    return generator->expr(ExprOp::Neq, const_cast<Var*>(this), const_cast<Var*>(&var));
+    return generator->expr(ExprOp::Neq, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
@@ -338,15 +345,13 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
       op(op),
       left(left),
       right(right) {
-    if (left == nullptr) throw UserException("left operand is null");
-
     if (right != nullptr && left->width() != right->width())
         throw VarException(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
                      left->to_string(), left->width(), right->to_string(), right->width()),
             {left, right});
     // if it's a predicate/relational op, the width is one
-    if (is_relational_op(op))
+    if (is_relational_op(op) || is_reduction_op(op))
         var_width_ = 1;
     else
         var_width_ = left->width();
@@ -641,7 +646,7 @@ VarConcat::VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
             {first.get(), second.get()});
-    vars_ = std::vector<Var*>(first->vars_.begin(), first->vars_.end());
+    vars_ = std::vector<Var *>(first->vars_.begin(), first->vars_.end());
     vars_.emplace_back(second.get());
     var_width_ = first->width() + second->width();
     op = ExprOp::Concat;
@@ -690,7 +695,8 @@ std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle
                                   bool ignore_top = false, Generator *scope = nullptr) {
     // overloaded to_string methods?
     if (expr->op == ExprOp::Concat || expr->op == ExprOp::Conditional)
-        return use_handle? expr->handle_name(ignore_top): scope? expr->handle_name(scope): expr->to_string();
+        return use_handle ? expr->handle_name(ignore_top)
+                          : scope ? expr->handle_name(scope) : expr->to_string();
     auto left = expr->left;
     auto right = expr->right;
 
@@ -738,9 +744,9 @@ IRNode *Expr::get_child(uint64_t index) {
         return nullptr;
 }
 
-void set_var_parent(Var * &var, Var *target, Var *new_var, bool check_target) {
+void set_var_parent(Var *&var, Var *target, Var *new_var, bool check_target) {
     std::shared_ptr<VarSlice> slice;
-    Var * parent_var = var;
+    Var *parent_var = var;
     std::vector<std::shared_ptr<VarSlice>> slices;
     while (parent_var->type() == VarType::Slice) {
         // this is for nested slicing
@@ -765,8 +771,7 @@ void set_var_parent(Var * &var, Var *target, Var *new_var, bool check_target) {
 }
 
 void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var) {
-    if (!new_var || !target)
-        throw InternalException("Variable is NULL");
+    if (!new_var || !target) throw InternalException("Variable is NULL");
     if (expr->left->type() == VarType::Expression) {
         change_var_expr(expr->left->as<Expr>(), target, new_var);
     }
@@ -943,8 +948,8 @@ std::string ConditionalExpr::handle_name(bool ignore_top) const {
 }
 
 std::string ConditionalExpr::handle_name(kratos::Generator *scope) const {
-    return ::format("{0} ? {1}: {2}", condition->handle_name(scope),
-                    left->handle_name(scope), right->handle_name(scope));
+    return ::format("{0} ? {1}: {2}", condition->handle_name(scope), left->handle_name(scope),
+                    right->handle_name(scope));
 }
 
 PackedStruct::PackedStruct(std::string struct_name,

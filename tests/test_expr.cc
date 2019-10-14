@@ -228,3 +228,12 @@ TEST(expr, invert_slice) {  // NOLINT
     auto &b = ~(a[1]);
     EXPECT_EQ(b.to_string(), "~a[1]");
 }
+
+TEST(expr, reduction) { // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 2);
+    auto &b = a.r_or();
+    EXPECT_EQ(b.width(), 1);
+    EXPECT_EQ(b.to_string(), "|a");
+}

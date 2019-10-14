@@ -151,12 +151,15 @@ private:
             auto right = expr->right;
             auto width = var->width();
             bool is_relational = is_relational_op(expr->op);
-            if (!is_relational && left->width() != width && expr->op != ExprOp::Concat) {
+            bool is_reduction = is_reduction_op(expr->op);
+            if (!is_relational && !is_reduction && left->width() != width &&
+                expr->op != ExprOp::Concat) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             left->to_string(), left->width(), width),
                                    {var, left, stmt, left->param()});
             }
-            if (!is_relational && right && right->width() != width && expr->op != ExprOp::Concat) {
+            if (!is_relational && !is_reduction && right && right->width() != width &&
+                expr->op != ExprOp::Concat) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             right->to_string(), right->width(), width),
                                    {var, right, stmt, right->param()});
@@ -842,8 +845,7 @@ private:
         if (!var) return false;
         if (var->type() == VarType::Expression) {
             auto expr = dynamic_cast<Expr*>(var);
-            return has_non_port(context, expr->left) ||
-                   has_non_port(context, expr->right);
+            return has_non_port(context, expr->left) || has_non_port(context, expr->right);
         } else if (var->type() == VarType::Slice) {
             auto slice = dynamic_cast<VarSlice*>(var);
             return has_non_port(context, slice->parent_var);
@@ -1102,7 +1104,8 @@ private:
         auto expr = stmt->predicate()->as<Expr>();
         // we assume that this is a valid case (see has_target_if)
         auto target = expr->left;
-        std::shared_ptr<SwitchStmt> switch_ = std::make_shared<SwitchStmt>(target->shared_from_this());
+        std::shared_ptr<SwitchStmt> switch_ =
+            std::make_shared<SwitchStmt>(target->shared_from_this());
         if (target->generator->debug) {
             switch_->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
@@ -2323,18 +2326,16 @@ void sort_stmts(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
-
-class RemoveEmptyBlockVisitor: public IRVisitor {
+class RemoveEmptyBlockVisitor : public IRVisitor {
 public:
-    void visit(Generator *top) override {
+    void visit(Generator* top) override {
         auto stmt_count = top->stmts_count();
         std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = top->get_stmt(i);
-            if (!dispatch_node(stmt))
-                stmts_to_remove.emplace_back(stmt);
+            if (!dispatch_node(stmt)) stmts_to_remove.emplace_back(stmt);
         }
-        for (auto const &stmt: stmts_to_remove) {
+        for (auto const& stmt : stmts_to_remove) {
             top->remove_stmt(stmt);
         }
     }
@@ -2351,7 +2352,7 @@ private:
             } else {
                 // invert the condition and make else then
                 auto cond = stmt->predicate();
-                auto &new_cond = ~(*cond);
+                auto& new_cond = ~(*cond);
                 stmt->set_predicate(new_cond.shared_from_this());
                 stmt->set_then(else_body->as<ScopedStmtBlock>());
                 stmt->set_else(std::make_shared<ScopedStmtBlock>());
@@ -2374,7 +2375,7 @@ private:
             }
             stmt->set_child(i, r);
         }
-        for (auto const &st: stmts_to_remove) {
+        for (auto const& st : stmts_to_remove) {
             stmt->remove_stmt(st);
         }
         if (stmt->empty())
@@ -2385,15 +2386,14 @@ private:
 
     std::shared_ptr<SwitchStmt> process(std::shared_ptr<SwitchStmt> stmt) {
         std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> new_body;
-        auto const &body = stmt->body();
-        for (auto &[cond, block]: body) {
+        auto const& body = stmt->body();
+        for (auto& [cond, block] : body) {
             auto r = process(block);
             if (r) {
                 new_body.emplace(cond, r->as<ScopedStmtBlock>());
             }
         }
-        if (new_body.empty())
-            return nullptr;
+        if (new_body.empty()) return nullptr;
         stmt->set_body(new_body);
         return stmt;
     }
@@ -2411,7 +2411,7 @@ private:
     }
 };
 
-void remove_empty_block(Generator *top) {
+void remove_empty_block(Generator* top) {
     RemoveEmptyBlockVisitor visitor;
     visitor.visit_root(top);
 }
