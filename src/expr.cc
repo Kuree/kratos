@@ -32,120 +32,100 @@ std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(
 }
 
 Expr &Var::operator-(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::Minus, left, right);
+    return generator->expr(ExprOp::Minus, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator-() const {
-    auto var = generator->get_var(name);
-    return generator->expr(ExprOp::Minus, var, nullptr);
+    return generator->expr(ExprOp::Minus, const_cast<Var*>(this), nullptr);
 }
 
 Expr &Var::operator~() const {
-    auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UInvert, var, nullptr);
+    return generator->expr(ExprOp::UInvert, const_cast<Var*>(this), nullptr);
 }
 
 Expr &Var::operator+() const {
-    auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UPlus, var, nullptr);
+    return generator->expr(ExprOp::UPlus, const_cast<Var*>(this), nullptr);
 }
 
 Expr &Var::r_or() const {
     auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UOr, var, nullptr);
+    return generator->expr(ExprOp::UOr, const_cast<Var*>(this), nullptr);
 }
 Expr &Var::r_and() const {
     auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UAnd, var, nullptr);
+    return generator->expr(ExprOp::UAnd, const_cast<Var*>(this), nullptr);
 }
 Expr &Var::r_xor() const {
     auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UXor, var, nullptr);
+    return generator->expr(ExprOp::UXor, const_cast<Var*>(this), nullptr);
 }
 Expr &Var::r_not() const {
     auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UNot, var, nullptr);
+    return generator->expr(ExprOp::UNot, const_cast<Var*>(this), nullptr);
 }
 
 Expr &Var::operator+(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::Add, left, right);
+    return generator->expr(ExprOp::Add, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator*(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::Multiply, left, right);
+    return generator->expr(ExprOp::Multiply, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator%(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::Mod, left, right);
+    return generator->expr(ExprOp::Mod, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator/(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::Divide, left, right);
+    return generator->expr(ExprOp::Divide, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator>>(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::LogicalShiftRight, left, right);
+    return generator->expr(ExprOp::LogicalShiftRight, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator<<(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::ShiftLeft, left, right);
+    return generator->expr(ExprOp::ShiftLeft, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator|(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::Or, left, right);
+    return generator->expr(ExprOp::Or, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator&(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::And, left, right);
+    return generator->expr(ExprOp::And, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator^(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::Xor, left, right);
+    return generator->expr(ExprOp::Xor, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::ashr(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::SignedShiftRight, left, right);
+    return generator->expr(ExprOp::SignedShiftRight, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator<(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::LessThan, left, right);
+    return generator->expr(ExprOp::LessThan, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator>(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::GreaterThan, left, right);
+    return generator->expr(ExprOp::GreaterThan, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator<=(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::LessEqThan, left, right);
+    return generator->expr(ExprOp::LessEqThan, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator>=(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::GreaterEqThan, left, right);
+    return generator->expr(ExprOp::GreaterEqThan, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::eq(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::Eq, left, right);
+    return generator->expr(ExprOp::Eq, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 Expr &Var::operator!=(const Var &var) const {
-    const auto &[left, right] = get_binary_var_ptr(var);
-    return generator->expr(ExprOp::Neq, left, right);
+    return generator->expr(ExprOp::Neq, const_cast<Var*>(this), const_cast<Var*>(&var));
 }
 
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {

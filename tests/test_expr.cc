@@ -220,3 +220,11 @@ TEST(expr, handle_name_gen) {   // NOLINT
     EXPECT_EQ(var.handle_name(&mod2), "var_");
     EXPECT_EQ(var.handle_name(&mod1), "mod.var_");
 }
+
+TEST(expr, invert_slice) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 2);
+    auto &b = ~(a[1]);
+    EXPECT_EQ(b.to_string(), "~a[1]");
+}

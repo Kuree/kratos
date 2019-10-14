@@ -103,9 +103,9 @@ std::shared_ptr<Port> Generator::get_port(const std::string &port_name) const {
     return std::static_pointer_cast<Port>(var_p);
 }
 
-Expr &Generator::expr(ExprOp op, const std::shared_ptr<Var> &left,
-                      const std::shared_ptr<Var> &right) {
-    auto expr = std::make_shared<Expr>(op, left.get(), right.get());
+Expr &Generator::expr(ExprOp op, Var *left,
+                      Var *right) {
+    auto expr = std::make_shared<Expr>(op, left, right);
     exprs_.emplace(expr);
     return *expr;
 }

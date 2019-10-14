@@ -51,7 +51,7 @@ public:
     FunctionCallVar &call(const std::string &func_name,
                           const std::map<std::string, std::shared_ptr<Var>> &args, bool has_return);
 
-    Expr &expr(ExprOp op, const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
+    Expr &expr(ExprOp op, Var *left, Var *right);
     void add_expr(const std::shared_ptr<Expr> &expr) { exprs_.emplace(expr); }
 
     // ports and vars
