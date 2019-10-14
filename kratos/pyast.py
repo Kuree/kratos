@@ -234,9 +234,9 @@ def add_scope_context(stmt, _locals):
         if isinstance(value, (int, float, str, bool)):
             # this is straight forward one
             stmt.add_scope_variable(key, str(value), False)
-        elif isinstance(value, _kratos.Var):
+        elif isinstance(value, _kratos.Var) and len(value.name) > 0:
             # it's a var
-            stmt.add_scope_variable(key, value.handle_name(), True)
+            stmt.add_scope_variable(key, value.name, True)
 
 
 def get_frame_local(num_frame=2):

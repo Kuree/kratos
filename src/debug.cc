@@ -366,9 +366,89 @@ void DebugDatabase::save_database(const std::string &filename) {
             storage.replace(br);
         }
     }
+
     // variables
     int variable_count = 0;
-    std::unordered_map<Var *, int> var_id_map;
+    std::unordered_set<Var *> var_id_set;
+    // function to create variable and flatten the hierarchy
+    auto create_variable = [&](Var *var_, const int handle_id_, std::string name_,
+                               std::string value_, bool is_context_,
+                               uint32_t breakpoint_id_ = 0) {
+        Variable v;
+        v.is_var = var_ != nullptr;
+        v.is_context = is_context_;
+        v.handle = std::make_unique<int>(handle_id_);
+        v.name = "";
+
+        auto add_context = [&]() {
+            if (is_context_) {
+                // create context mapping as well
+                ContextVariable c_v{std::make_unique<uint32_t>(breakpoint_id_),
+                                    std::make_unique<int>(v.id), name_};
+                storage.replace(c_v);
+            }
+        };
+
+        if (var_) {
+            // it is an variable
+            if (var_->size() > 1) {
+                // it's an array. need to flatten it
+                for (uint32_t i = 0; i < var_->size(); i++) {
+                    if (!name_.empty()) v.name = ::format("{0}.{1}", name_, i);
+                    v.value = ::format("{0}[{1}]", var_->name, i);
+                    v.id = variable_count++;
+                    storage.replace(v);
+                    add_context();
+                }
+            } else if (var_->is_packed()) {
+                // it's an packed array
+                if (var_->type() == VarType::PortIO) {
+                    auto p = reinterpret_cast<PortPacked *>(var_);
+                    auto const &def = p->packed_struct();
+                    for (auto const &iter : def.attributes) {
+                        auto const &attr_name = std::get<0>(iter);
+                        // we need to store lots of them
+                        if (!name_.empty()) v.name = ::format("{0}.{1}", name_, attr_name);
+                        v.value = ::format("{0}.{1}", var_->name, attr_name);
+                        v.id = variable_count++;
+                        storage.replace(v);
+                        add_context();
+                    }
+                } else if (var_->type() == VarType::Base) {
+                    auto p = reinterpret_cast<VarPacked *>(var_);
+                    auto const &def = p->packed_struct();
+                    for (auto const &iter : def.attributes) {
+                        auto const &attr_name = std::get<0>(iter);
+                        // we need to store lots of them
+                        v.name = ::format("{0}.{1}", name_, attr_name);
+                        v.value = ::format("{0}.{1}", var_->name, attr_name);
+                        v.id = variable_count++;
+                        storage.replace(v);
+                        add_context();
+                    }
+                }
+            } else {
+                // the normal one
+                v.name = name_;
+                v.value = var_->name;
+                v.id = variable_count++;
+                storage.replace(v);
+                add_context();
+            }
+            var_id_set.emplace(var_);
+        } else {
+            // directly store it
+            if (name_.empty()) {
+                throw UserException(::format("Non-variable cannot have empty name in database"));
+            }
+            v.name = name_;
+            v.value = value_;
+            v.id = variable_count++;
+            storage.replace(v);
+            add_context();
+        }
+    };
+
     for (auto const &[handle_name, gen_map] : variable_mapping_) {
         auto const &[gen, vars] = gen_map;
         if (gen_id_map.find(gen) == gen_id_map.end())
@@ -377,24 +457,15 @@ void DebugDatabase::save_database(const std::string &filename) {
         for (auto const &[front_var, var] : vars) {
             auto gen_var = gen->get_var(var);
             if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
-            // notice that we need to flatten some of the types
-            Variable variable{variable_count, std::make_unique<int>(id), var, front_var, true,
-                              false};
-            var_id_map.emplace(gen_var.get(), variable_count);
-            variable_count++;
-            storage.replace(variable);
+            create_variable(gen_var.get(), id, front_var, "", false);
         }
         auto all_vars = gen->get_all_var_names();
         for (auto const &var_name : all_vars) {
             auto var = gen->get_var(var_name);
             // continue because we already have that variable stored
-            if (var_id_map.find(var.get()) != var_id_map.end()) continue;
+            if (var_id_set.find(var.get()) != var_id_set.end()) continue;
             if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
-                Variable variable{variable_count, std::make_unique<int>(id), var_name, "", true,
-                                  false};
-                var_id_map.emplace(var.get(), variable_count);
-                variable_count++;
-                storage.replace(variable);
+                create_variable(var.get(), id, "", "", false);
             }
         }
     }
@@ -405,10 +476,7 @@ void DebugDatabase::save_database(const std::string &filename) {
         auto id = handle_id_map.at(handle_name);
         for (auto const &[name, value] : map) {
             auto var = gen->get_var(name);
-            // create a new variable
-            Variable variable{
-                variable_count++, std::make_unique<int>(id), value, name, var != nullptr, false};
-            storage.insert(variable);
+            create_variable(var.get(), id, name, value, false);
         }
     }
 
@@ -436,7 +504,7 @@ void DebugDatabase::save_database(const std::string &filename) {
         auto id = handle_id_map.at(handle);
         auto child_id = handle_id_map.at(child->handle_name());
         Hierarchy h{std::make_unique<int>(id), child->instance_name,
-                                        std::make_unique<int>(child_id)};
+                    std::make_unique<int>(child_id)};
         storage.replace(h);
     }
 
@@ -454,12 +522,8 @@ void DebugDatabase::save_database(const std::string &filename) {
 
         for (auto const &[key, entry] : values) {
             auto const &[is_var, value] = entry;
-            Variable variable{
-                variable_count++, std::make_unique<int>(instance_id), value, key, is_var, true};
-            storage.replace(variable);
-            int var_id = variable.id;
-            ContextVariable v{std::make_unique<uint32_t>(id), std::make_unique<int>(var_id), key};
-            storage.replace(v);
+            auto gen_var = is_var? gen->get_var(value).get(): nullptr;
+            create_variable(gen_var, instance_id, key, value, true, id);
         }
     }
 

@@ -20,6 +20,8 @@ def extract_symbol_table(generator: Generator):
             self_entry = {}
             variables = vars(gen)
             for name, var in variables.items():
+                # since this is python, we use self to refer to itself
+                name = "self." + name
                 if isinstance(var, _kratos.Var):
                     # I think bundle -> packed struct will not work here
                     if isinstance(var, (_kratos.PortPacked, _kratos.VarPacked,
