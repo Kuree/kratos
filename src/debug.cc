@@ -372,16 +372,15 @@ void DebugDatabase::save_database(const std::string &filename) {
     std::unordered_set<Var *> var_id_set;
     // function to create variable and flatten the hierarchy
     auto create_variable = [&](Var *var_, const int handle_id_, std::string name_,
-                               std::string value_, bool is_context_,
+                               const std::string &value_,
                                uint32_t breakpoint_id_ = 0) {
         Variable v;
         v.is_var = var_ != nullptr;
-        v.is_context = is_context_;
         v.handle = std::make_unique<int>(handle_id_);
         v.name = "";
 
         auto add_context = [&]() {
-            if (is_context_) {
+            if (!name_.empty()) {
                 // create context mapping as well
                 ContextVariable c_v{std::make_unique<uint32_t>(breakpoint_id_),
                                     std::make_unique<int>(v.id), name_};
@@ -457,7 +456,7 @@ void DebugDatabase::save_database(const std::string &filename) {
         for (auto const &[front_var, var] : vars) {
             auto gen_var = gen->get_var(var);
             if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
-            create_variable(gen_var.get(), id, front_var, "", false);
+            create_variable(gen_var.get(), id, front_var, "");
         }
         auto all_vars = gen->get_all_var_names();
         for (auto const &var_name : all_vars) {
@@ -465,7 +464,7 @@ void DebugDatabase::save_database(const std::string &filename) {
             // continue because we already have that variable stored
             if (var_id_set.find(var.get()) != var_id_set.end()) continue;
             if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
-                create_variable(var.get(), id, "", "", false);
+                create_variable(var.get(), id, "", "");
             }
         }
     }
@@ -476,7 +475,7 @@ void DebugDatabase::save_database(const std::string &filename) {
         auto id = handle_id_map.at(handle_name);
         for (auto const &[name, value] : map) {
             auto var = gen->get_var(name);
-            create_variable(var.get(), id, name, value, false);
+            create_variable(var.get(), id, name, value);
         }
     }
 
@@ -523,7 +522,7 @@ void DebugDatabase::save_database(const std::string &filename) {
         for (auto const &[key, entry] : values) {
             auto const &[is_var, value] = entry;
             auto gen_var = is_var? gen->get_var(value).get(): nullptr;
-            create_variable(gen_var, instance_id, key, value, true, id);
+            create_variable(gen_var, instance_id, key, value, id);
         }
     }
 
