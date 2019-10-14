@@ -29,8 +29,6 @@ void print_ast_node(const IRNode* node) {
     if (!node) {
         return;
     }
-    // we only support unix for now
-#ifdef __unix__
     if (!node->fn_name_ln.empty()) {
         // print out a blue line
         for (auto const& [filename, line_number] : node->fn_name_ln) {
@@ -53,12 +51,6 @@ void print_ast_node(const IRNode* node) {
             }
         }
     }
-#else
-    (void)(node);
-    (void)(RED);
-    (void)(GREEN);
-    (void)(CODE_RANGE);
-#endif
 }
 
 VarException::VarException(const std::string& message,

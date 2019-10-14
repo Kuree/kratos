@@ -157,6 +157,8 @@ void IfStmt::add_scope_variable(const std::string &name, const std::string &valu
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 
 void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
+    if (!stmt)
+        throw StmtException("Unable to add nullptr (None) to code block", {this});
     // it cannot add another block stmt
     if (stmt->type() == StatementType::Block) {
         throw StmtException("cannot add statement block to another statement block",
