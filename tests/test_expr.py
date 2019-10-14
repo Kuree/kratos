@@ -90,5 +90,12 @@ def test_explicit_array():
     assert "logic  [0:0][1:0] a" in src
 
 
+def test_neq():
+    mod = Generator("mod")
+    a = mod.var("a", 2)
+    b = a != 2
+    assert (str(b) == "a != 2'h2")
+
+
 if __name__ == "__main__":
-    test_explicit_array()
+    test_neq()
