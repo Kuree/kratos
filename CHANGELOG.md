@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.18.3] - 2019-10-13
+### Fixed
+- Fix reduction op width calculation
+
 ## [0.0.18.2] - 2019-10-13
 ### Added
 - Add ability for wrapper class to accept wrapper class as stmt inputs
