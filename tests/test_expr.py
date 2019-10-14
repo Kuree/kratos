@@ -94,8 +94,17 @@ def test_neq():
     mod = Generator("mod")
     a = mod.var("a", 2)
     b = a != 2
-    assert (str(b) == "a != 2'h2")
+    assert str(b) == "a != 2'h2"
+
+
+def test_nested_ternary():
+    from kratos import mux
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+    b = mod.var("b", 1)
+    c = a + mux(a, a, b)
+    assert str(c) == "a + (a ? a: b)"
 
 
 if __name__ == "__main__":
-    test_neq()
+    test_nested_ternary()

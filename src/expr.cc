@@ -694,9 +694,13 @@ std::shared_ptr<AssignStmt> Var::assign(Var &var, AssignmentType type) {
 std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle,
                                   bool ignore_top = false, Generator *scope = nullptr) {
     // overloaded to_string methods?
-    if (expr->op == ExprOp::Concat || expr->op == ExprOp::Conditional)
+    if (expr->op == ExprOp::Concat)
         return use_handle ? expr->handle_name(ignore_top)
                           : scope ? expr->handle_name(scope) : expr->to_string();
+    if (expr->op == ExprOp::Conditional)
+        return ::format("({0})", use_handle ? expr->handle_name(ignore_top)
+                                            : scope ? expr->handle_name(scope) : expr->to_string());
+
     auto left = expr->left;
     auto right = expr->right;
 
