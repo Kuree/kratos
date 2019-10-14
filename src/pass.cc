@@ -1611,6 +1611,7 @@ private:
         std::set<std::shared_ptr<AssignStmt>> sliced_stmts;
         extract_sliced_stmts(block, sliced_stmts);
         get_stmts_to_remove(block, stmts_to_remove, sliced_stmts);
+        for (auto const& stmt : stmts_to_remove) block->remove_stmt(stmt);
     }
 
     void extract_sliced_stmts(Generator* generator,
@@ -1680,6 +1681,7 @@ private:
     void create_new_assignment(Generator* generator,
                                const std::vector<std::shared_ptr<AssignStmt>>& stmts,
                                Var* const left, Var* const right) const {
+        if (stmts.empty()) return;
         auto new_stmt = left->assign(right->shared_from_this(), Blocking);
         generator->add_stmt(new_stmt);
         if (generator->debug) {
@@ -1695,7 +1697,10 @@ private:
     void create_new_assignment(StmtBlock* block,
                                const std::vector<std::shared_ptr<AssignStmt>>& stmts,
                                Var* const left, Var* const right) const {
-        auto new_stmt = left->assign(right->shared_from_this(), Blocking);
+        if (stmts.empty()) return;
+        // use the first assignment type. assume all the assignment has passed the
+        // mixed assignment check
+        auto new_stmt = left->assign(right->shared_from_this(), stmts[0]->assign_type());
         block->add_stmt(new_stmt);
         auto generator = get_parent(block);
         if (generator->debug) {
