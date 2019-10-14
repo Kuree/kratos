@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.18.2] - 2019-10-13
+### Added
+- Add ability for wrapper class to accept wrapper class as stmt inputs
+
+### Changed
+- Refactor debug database logic to conform with the new spec in kratos-runtime
+
+### Fixed
+- fix a bug due to memory re-work in expression (left will be null)
+
 ## [0.0.18.1] - 2019-10-12
 ### Changed
 - Refactor database table schema
