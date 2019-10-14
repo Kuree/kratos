@@ -13,6 +13,8 @@ class IfStmt:
         for stmt in args:
             if self.__generator.debug:
                 stmt.add_fn_ln(get_fn_ln())
+            if not isinstance(stmt, _kratos.Stmt):
+                stmt = stmt.stmt()
             self._stmt.add_then_stmt(stmt)
         return self
 
@@ -20,6 +22,8 @@ class IfStmt:
         for stmt in args:
             if self.__generator.debug:
                 stmt.add_fn_ln(get_fn_ln())
+            if not isinstance(stmt, _kratos.Stmt):
+                stmt = stmt.stmt()
             self._stmt.add_else_stmt(stmt)
         return self
 
@@ -34,6 +38,9 @@ class IfStmt:
 
     def stmt(self):
         return self._stmt
+
+    def add_fn_ln(self, info):
+        self._stmt.add_fn_ln(info)
 
 
 def if_(predicate: _kratos.Var):
@@ -51,7 +58,12 @@ class SwitchStmt:
     def case_(self, cond: _kratos.Var, *args: _kratos.Stmt):
         if isinstance(cond, int):
             cond = const(cond, self.__predicate.width, self.__predicate.signed)
-        case = self._stmt.add_switch_case(cond, args)
+        case = None
+        for stmt in args:
+            if not isinstance(stmt, _kratos.Stmt):
+                stmt = stmt.stmt()
+            case = self._stmt.add_switch_case(cond, stmt)
+        assert case is not None
         if self.__generator.debug:
             case.add_fn_ln(get_fn_ln())
         return self
