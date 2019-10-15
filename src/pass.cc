@@ -2513,6 +2513,8 @@ void PassManager::register_builtin_passes() {
 
     register_pass("check_inferred_latch", &check_inferred_latch);
 
+    register_pass("convert_continuous_stmt", &convert_continuous_stmt);
+
     // TODO:
     //  add inline pass
 

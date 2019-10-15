@@ -81,10 +81,14 @@ IRNode *AssignStmt::get_child(uint64_t index) {
 }
 
 void AssignStmt::set_parent(kratos::IRNode *parent) {
+    bool has_parent = parent_ != nullptr;
     Stmt::set_parent(parent);
     // push the stmt into its sources
-    right_->add_sink(as<AssignStmt>());
-    left_->add_source(as<AssignStmt>());
+    if (!has_parent) {
+        // if it has parent, it means we've already added the source and sink
+        right_->add_sink(as<AssignStmt>());
+        left_->add_source(as<AssignStmt>());
+    }
 }
 
 IfStmt::IfStmt(std::shared_ptr<Var> predicate)

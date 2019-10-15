@@ -638,4 +638,35 @@ void remove_assertion(Generator *top) {
     remove_empty_block(top);
 }
 
+class ContinuousAssignVisitor : public IRVisitor {
+public:
+    void visit(Generator *top) override {
+        std::vector<std::shared_ptr<Stmt>> assignments;
+        uint32_t stmt_count = top->stmts_count();
+        assignments.reserve(stmt_count);
+
+        for (uint32_t i = 0; i < stmt_count; i++) {
+            auto stmt = top->get_stmt(i);
+            if (stmt->parent() == top && stmt->type() == StatementType::Assign) {
+                assignments.emplace_back(stmt);
+            }
+        }
+
+        if (!assignments.empty()) {
+            auto comb = top->combinational();
+            for (auto const &stmt: assignments) {
+                top->remove_stmt(stmt);
+                comb->add_stmt(stmt);
+            }
+        }
+    }
+};
+
+void convert_continuous_stmt(Generator *top) {
+    // this will change any top level assignment into
+    // this has to be done after port decoupling
+    ContinuousAssignVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
 }  // namespace kratos
