@@ -59,7 +59,7 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
                 ::format("Top level assignment for {0} <- {1} has to be blocking", left, right),
                 {stmt->left(), stmt->right(), stmt});
     }
-    (*this) << prefix << left << " " << eq << " " ;//<< right << ";" << endl();
+    (*this) << prefix << left << " " << eq << " ";  //<< right << ";" << endl();
     auto right_wrapped = line_wrap(right, 80);
     (*this) << right_wrapped[0];
     for (uint64_t i = 1; i < right_wrapped.size(); i++) {
@@ -463,9 +463,9 @@ void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
     }
 }
 
-void SystemVerilogCodeGen::stmt_code(CommentStmt *stmt) {
-    auto const &comments = stmt->comments();
-    for (auto const &comment: comments) {
+void SystemVerilogCodeGen::stmt_code(CommentStmt* stmt) {
+    auto const& comments = stmt->comments();
+    for (auto const& comment : comments) {
         stream_ << indent() << "// " << comment << stream_.endl();
     }
 }
@@ -667,6 +667,21 @@ void SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
     }
     indent_--;
     stream_ << indent() << "} " << enum_->name << ";" << stream_.endl();
+}
+
+std::string create_stub(Generator* top, bool flatten_array) {
+    Generator gen(nullptr, top->name);
+    auto port_names = top->get_port_names();
+    for (auto const& port_name : port_names) {
+        auto port = top->get_port(port_name);
+        gen.port(port->port_direction(), port_name,
+                 flatten_array ? port->width() : port->var_width(),
+                 flatten_array ? 1 : port->size(), port->port_type(), port->is_signed());
+    }
+    // that's it
+    // now outputting the stream
+    auto res = generate_verilog(&gen);
+    return res.at(top->name);
 }
 
 }  // namespace kratos

@@ -3,7 +3,8 @@ from typing import Union, List
 import os
 import math
 import inspect
-from _kratos import mux as _mux, get_fn_ln as _get_fn_ln, comment as _comment
+from _kratos import mux as _mux, get_fn_ln as _get_fn_ln, comment as _comment, \
+    create_stub as _create_stub
 import _kratos
 import enum
 import functools
@@ -140,12 +141,21 @@ def comment(comment_str):
     return _comment(comment_str)
 
 
+def create_stub(generator, flatten_array=False, filename=""):
+    s = _create_stub(generator.internal_generator, flatten_array)
+    if filename:
+        with open(filename) as f:
+            f.write(s)
+    return s
+
+
 # bit vector style syntax
 class ConstConstructor:
     def __getitem__(self, width):
         class ConstWidth:
             def __call__(self, value, is_signed=False):
                 return _kratos.constant(value, width, is_signed)
+
         return ConstWidth()
 
 

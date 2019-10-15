@@ -127,4 +127,6 @@ by yourself to obtain the verilog code.)pbdoc");
         .def("get", [=](PyAttribute &attr) { return attr.get_py_obj(); })
         .def_readwrite("value_str", &PyAttribute::value_str);
     py::implicitly_convertible<Attribute, PyAttribute>();
+
+    m.def("create_stub", &create_stub);
 }

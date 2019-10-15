@@ -125,5 +125,7 @@ protected:
     void output_module_def(Generator* generator);
 };
 
+std::string create_stub(Generator *top, bool flatten_array);
+
 }  // namespace kratos
 #endif  // KRATOS_CODEGEN_HH

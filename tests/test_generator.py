@@ -1301,5 +1301,16 @@ def test_long_statement():
     check_gold(mod, "test_long_statement")
 
 
+def test_create_stub():
+    from kratos import create_stub
+    mod = Generator("mod")
+    mod.input("a", 16, size=16)
+    mod.output("b", 1)
+    mod.input("c", 16)
+    mod.var("d", 1)  # this should not be generated
+    check_file(create_stub(mod), "test_create_stub.sv")
+    check_file(create_stub(mod, True), "test_create_stub_flatten.sv")
+
+
 if __name__ == "__main__":
-    test_long_statement()
+    test_create_stub()
