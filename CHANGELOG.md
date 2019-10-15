@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.18.5] - 2019-10-14
+### Added
+- Add a pass to produce a verilog stub that can be fed into ancient systems
+- Add automatic long assignment wrapping
+- Add comment statement, which can be used in always block from Python
+
+### Changed
+- Syntax for python wrapper for comment has changed to avoid naming conflict
 
 ## [0.0.18.4] - 2019-10-14
 ### Added
