@@ -185,11 +185,11 @@ Here is an example on how can you can construct a switch statement:
     var_2 = self.var("value2", 16)
     stmt = SwitchStmt(var)
     # you can use a single statement
-    stmt.case(1, var_1.assign(1))
-    stmt.case(2, var_2.assign(1))
+    stmt.case_(1, var_1.assign(1))
+    stmt.case_(2, var_2.assign(1))
     # you can also pass in a list of statements
-    stmt.add_switch_case(None, [var_1.assign(0),
-                                var_2.assign(0)])
+    stmt.case_(None, [var_1.assign(0),
+                      var_2.assign(0)])
     # remember to add it to a either sequential or combinational code block!
     # we re-use the sequential block we created above.
     seq_block.add_stmt(stmt)
@@ -288,3 +288,28 @@ For assignments, you can use functional call the assign the values, such as
     in_ = mod.port("in", 1, PortDirection.In)
     comb = mod.combinational()
     comb.switch_(in_).case_(1, out_(1)).case_(0, out_(0))
+
+
+Comments
+--------
+
+Almost every statement in kratos have an attribute called `comment`, you can
+set it any comment you want. It will be generated as a comment above the
+statement. For instance:
+
+.. code-block:: Python
+
+  stmt = a.assign(b)
+  self.add_stmt(stmt)
+  stmt.comment = "this is a comment"
+  a.comment = "this is another comment"
+
+When you're using ``always`` function, you don't have access to the stmt
+object. In this case, you can use ``comment`` function. For instance,
+
+
+.. code-block:: Python
+
+    def code(self):
+        comment("Another comment")
+        self._out3 = self._in
