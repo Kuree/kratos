@@ -498,6 +498,8 @@ std::shared_ptr<Stmt> Generator::wire_ports(std::shared_ptr<Port> &port1,
 
 std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Var> &var1,
                                                         const std::shared_ptr<Var> &var2) {
+    if (!var1 || !var2)
+        throw UserException("Variable cannot be null (None)");
     Var *root1 = var1.get();
     while (root1->type() == VarType::Slice) {
         auto var = dynamic_cast<VarSlice *>(root1);

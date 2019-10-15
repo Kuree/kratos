@@ -125,9 +125,11 @@ class PortProxy:
 
     def __getitem__(self, key):
         if self.__generator.internal_generator.has_port_bundle(key):
-            return self.__generator.internal_generator.get_bundle_ref(key)
+            p = self.__generator.internal_generator.get_bundle_ref(key)
         else:
-            return self.__generator.internal_generator.get_port(key)
+            p = self.__generator.internal_generator.get_port(key)
+        assert p is not None, "{0} doesn't exist".format(key)
+        return p
 
     def __getattr__(self, key):
         return self[key]
@@ -138,10 +140,12 @@ class ParamProxy:
         self.__generator = generator
 
     def __getitem__(self, key):
-        return self.__generator.internal_generator.get_param(key)
+        p = self.__generator.internal_generator.get_param(key)
+        assert p is not None, "{0} doesn't exist".format(key)
+        return p
 
     def __getattr__(self, key):
-        return self.__generator.internal_generator.get_param(key)
+        return self[key]
 
 
 class VarProxy:
@@ -152,10 +156,12 @@ class VarProxy:
             self.__generator = generator
 
     def __getitem__(self, key):
-        return self.__generator.get_var(key)
+        v = self.__generator.get_var(key)
+        assert v is not None, "{0} doesn't exist".format(key)
+        return v
 
     def __getattr__(self, key):
-        return self.__generator.get_var(key)
+        return self[key]
 
 
 class GeneratorMeta(type):
