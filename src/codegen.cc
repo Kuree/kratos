@@ -128,7 +128,8 @@ void VerilogModule::run_passes() {
 }
 
 std::map<std::string, std::string> VerilogModule::verilog_src() {
-    return generate_verilog(generator_);
+    return verilog95_def_ ? generate_verilog(generator_, verilog95_def_)
+                          : generate_verilog(generator_);
 }
 
 SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
@@ -162,6 +163,8 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     stream_ << indent() << "(" << stream_.endl();
     generate_ports(generator);
     stream_ << indent() << ");" << stream_.endl() << stream_.endl();
+    if (verilog95_def_)
+        generate_port_verilog_95_def(generator);
     generate_enums(generator);
     generate_variables(generator);
     generate_functions(generator);
@@ -191,10 +194,28 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     std::sort(port_names.begin(), port_names.end());
     for (uint64_t i = 0; i < port_names.size(); i++) {
         auto const& port_name = port_names[i];
-        auto port = generator->get_port(port_name);
-        stream_ << std::make_pair(port.get(), (i == port_names.size() - 1) ? "" : ",");
+        if (!verilog95_def_) {
+            auto port = generator->get_port(port_name);
+            stream_ << std::make_pair(port.get(), (i == port_names.size() - 1) ? "" : ",");
+        } else {
+            stream_ << indent() << port_name;
+            if (i != port_names.size() - 1)
+                stream_ << ',';
+            stream_ << stream_.endl();
+        }
+
     }
     indent_--;
+}
+
+void SystemVerilogCodeGen::generate_port_verilog_95_def(kratos::Generator* generator) {
+    if (verilog95_def_) {
+        auto& port_names_set = generator->get_port_names();
+        for (auto const &port_name: port_names_set) {
+            auto const &port = generator->get_port(port_name);
+            stream_ << std::make_pair(port.get(), ";");
+        }
+    }
 }
 
 void SystemVerilogCodeGen::generate_variables(Generator* generator) {
@@ -669,9 +690,10 @@ void SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
     stream_ << indent() << "} " << enum_->name << ";" << stream_.endl();
 }
 
-std::string create_stub(Generator* top, bool flatten_array) {
-    Generator gen(nullptr, top->name);
+std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def) {
+    // we can't generate verilog-95 directly from the codegen here here
     auto port_names = top->get_port_names();
+    Generator gen(nullptr, top->name);
     for (auto const& port_name : port_names) {
         auto port = top->get_port(port_name);
         gen.port(port->port_direction(), port_name,
@@ -680,8 +702,9 @@ std::string create_stub(Generator* top, bool flatten_array) {
     }
     // that's it
     // now outputting the stream
-    auto res = generate_verilog(&gen);
+    auto res = generate_verilog(&gen, verilog_95_def);
     return res.at(top->name);
+
 }
 
 }  // namespace kratos

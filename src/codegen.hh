@@ -23,10 +23,15 @@ public:
     [[nodiscard]] std::map<std::string, std::string> verilog_src();
     inline PassManager& pass_manager() { return manager_; }
 
+    void set_verilog95_def(bool value) { verilog95_def_ = value; }
+    [[nodiscard]] bool verilog95_def() const { return verilog95_def_; }
+
 private:
     Generator* generator_;
 
     PassManager manager_;
+
+    bool verilog95_def_ = false;
 };
 
 class Stream : public std::stringstream {
@@ -59,6 +64,8 @@ public:
         return stream_.str();
     }
 
+    void set_verilog_def(bool value) { verilog95_def_ = value; }
+
     uint32_t indent_size = 2;
 
     std::string indent();
@@ -77,9 +84,13 @@ private:
     std::string package_name_;
     std::string header_include_name_;
 
+    // this is for ancient verilog parser
+    bool verilog95_def_ = false;
+
 protected:
     Stream stream_;
     void generate_ports(Generator* generator);
+    void generate_port_verilog_95_def(Generator* generator);
     void generate_variables(Generator* generator);
     void generate_parameters(Generator* generator);
     void generate_enums(Generator* generator);
@@ -111,9 +122,9 @@ protected:
 
     void stmt_code(FunctionCallStmt* stmt);
 
-    void stmt_code(AssertBase *stmt);
+    void stmt_code(AssertBase* stmt);
 
-    void stmt_code(CommentStmt *stmt);
+    void stmt_code(CommentStmt* stmt);
 
     void enum_code(Enum* enum_);
 
@@ -125,7 +136,7 @@ protected:
     void output_module_def(Generator* generator);
 };
 
-std::string create_stub(Generator *top, bool flatten_array);
+std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def);
 
 }  // namespace kratos
 #endif  // KRATOS_CODEGEN_HH

@@ -471,6 +471,10 @@ public:
 };
 
 std::map<std::string, std::string> generate_verilog(Generator* top) {
+    return generate_verilog(top, false);
+}
+
+std::map<std::string, std::string> generate_verilog(Generator* top, bool verilog95_def) {
     // this pass assumes that all the generators has been uniquified
     std::map<std::string, std::string> result;
     // first get all the unique generators
@@ -480,6 +484,8 @@ std::map<std::string, std::string> generate_verilog(Generator* top) {
     auto const& generator_map = unique_visitor.generator_map();
     for (auto& [module_name, module_gen] : generator_map) {
         SystemVerilogCodeGen codegen(module_gen);
+        if (verilog95_def)
+            codegen.set_verilog_def(verilog95_def);
         result.emplace(module_name, codegen.str());
     }
     return result;
@@ -487,6 +493,11 @@ std::map<std::string, std::string> generate_verilog(Generator* top) {
 
 void generate_verilog(Generator* top, const std::string& output_dir,
                       const std::string& package_name, bool debug) {
+    generate_verilog(top, output_dir, package_name, debug, false);
+}
+
+void generate_verilog(Generator* top, const std::string& output_dir,
+                      const std::string& package_name, bool debug, bool verilog95_def) {
     // input check
     if (package_name == top->name) {
         throw UserException(
@@ -503,6 +514,8 @@ void generate_verilog(Generator* top, const std::string& output_dir,
     std::map<std::string, std::string> result;
     for (const auto& [module_name, module_gen] : generator_map) {
         SystemVerilogCodeGen codegen(module_gen, package_name, header_filename);
+        if (verilog95_def)
+            codegen.set_verilog_def(verilog95_def);
         result.emplace(module_name, codegen.str());
     }
     // write out the content to the output_dir

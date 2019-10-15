@@ -1,5 +1,5 @@
-#include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
+#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include "../src/codegen.hh"
 #include "../src/except.hh"
@@ -43,7 +43,6 @@ void init_util(py::module &m) {
         .def("get_num_cpus", &get_num_cpus);
 }
 
-
 void init_context(py::module &m) {
     auto context = py::class_<Context>(m, "Context");
     context.def(py::init())
@@ -58,13 +57,14 @@ void init_context(py::module &m) {
         .def("has_hash", &Context::has_hash);
 }
 
-
 void init_code_gen(py::module &m) {
     py::class_<VerilogModule>(m, "VerilogModule")
         .def(py::init<Generator *>())
         .def("verilog_src", &VerilogModule::verilog_src)
         .def("run_passes", &VerilogModule::run_passes)
-        .def("pass_manager", &VerilogModule::pass_manager, py::return_value_policy::reference);
+        .def("pass_manager", &VerilogModule::pass_manager, py::return_value_policy::reference)
+        .def_property("verilog95_def", &VerilogModule::verilog95_def,
+                      &VerilogModule::set_verilog95_def);
 }
 
 PYBIND11_MODULE(_kratos, m) {

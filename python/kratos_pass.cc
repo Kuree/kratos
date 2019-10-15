@@ -1,12 +1,12 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include "../src/debug.hh"
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
 #include "../src/pass.hh"
 #include "../src/stmt.hh"
-#include "../src/debug.hh"
 
 #include "kratos_expr.hh"
 
@@ -30,6 +30,10 @@ void init_pass(py::module &m) {
         .def("generate_verilog", py::overload_cast<Generator *>(&generate_verilog))
         .def("generate_verilog",
              py::overload_cast<Generator *, const std::string &, const std::string &, bool>(
+                 &generate_verilog))
+        .def("generate_verilog", py::overload_cast<Generator *, bool>(&generate_verilog))
+        .def("generate_verilog",
+             py::overload_cast<Generator *, const std::string &, const std::string &, bool, bool>(
                  &generate_verilog))
         .def("transform_if_to_case", &transform_if_to_case)
         .def("remove_fanout_one_wires", &remove_fanout_one_wires)
