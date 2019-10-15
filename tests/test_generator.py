@@ -1027,7 +1027,7 @@ def test_comment():
             self._in = self.input("in", 1)
             self._out = self.output("out", 1)
             self._out2 = self.output("out2", 1)
-            # self._out3 = self.output("out3", 1)
+            self._out3 = self.output("out3", 1)
             self.var = self.var("v", 1)
 
             child = PassThroughMod()
@@ -1038,7 +1038,7 @@ def test_comment():
 
             self._in.comment = "Input port"
             self.var.comment = "variable comment"
-            # self.add_code(self.code)
+            self.add_code(self.code)
 
         def code(self):
             comment("Another comment")

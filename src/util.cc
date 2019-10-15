@@ -363,6 +363,7 @@ std::vector<std::string> line_wrap(const std::string &text, uint32_t line_width)
             }
         }
     }
+    result.emplace_back(line);
     return result;
 }
 
