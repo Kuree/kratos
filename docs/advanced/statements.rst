@@ -277,18 +277,56 @@ For assignments, you can use functional call the assign the values, such as
 
     mod = Generator("mod")
     out_ = mod.var("out", 1)
-    in_ = mod.port("in", 1, PortDirection.In)
+    in_ = mod.input("in", 1)
     comb = mod.combinational()
     comb.if_(in_ == 1).then_(out_(0)).else_(out_(1))
+
+This gives us
+
+.. code-block:: SystemVerilog
+
+    module mod (
+      input logic  in
+    );
+
+    logic   out;
+    always_comb begin
+      if (in == 1'h1) begin
+        out = 1'h0;
+      end
+      else out = 1'h1;
+    end
+    endmodule   // mod
+
+Here is an example for sequential block
 
 .. code-block:: Python
 
     mod = Generator("mod")
     out_ = mod.var("out", 1)
-    in_ = mod.port("in", 1, PortDirection.In)
-    comb = mod.combinational()
+    in_ = mod.input("in", 1)
+    clk = mod.clock("clk")
+    comb = mod.sequential((posedge, clk))
     comb.switch_(in_).case_(1, out_(1)).case_(0, out_(0))
 
+This gives us
+
+.. code-block:: SystemVerilog
+
+  module mod (
+    input logic  clk,
+    input logic  in
+  );
+
+  logic   out;
+
+  always_ff @(posedge clk) begin
+    unique case (in)
+      1'h0: out <= 1'h0;
+      1'h1: out <= 1'h1;
+    endcase
+  end
+  endmodule   // mod
 
 Comments
 --------
