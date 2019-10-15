@@ -81,4 +81,4 @@ def test_tb_sequence():
 
 
 if __name__ == "__main__":
-    test_tb_sequence()
+    test_tb_codegen()

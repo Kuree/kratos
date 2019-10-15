@@ -479,7 +479,8 @@ def transform_stmt_block(generator, fn):
     # notice that this ln is an offset
     scope = Scope(generator, filename, ln)
     _locals.update({"_self": generator, "_scope": scope})
-    exec(code_obj, _globals, _locals)
+    _globals.update(_locals)
+    exec(code_obj, _globals)
     stmts = scope.statements()
     return blk_type, sensitivity, stmts
 
@@ -525,7 +526,8 @@ def transform_function_block(generator, fn, arg_types):
     code_obj = compile(src, "<ast>", "exec")
 
     _locals.update({"_self": generator, "_scope": scope})
-    exec(code_obj, _globals, _locals)
+    _globals.update(_locals)
+    exec(code_obj, _globals)
     stmts = scope.statements()
     return arg_order, stmts
 
