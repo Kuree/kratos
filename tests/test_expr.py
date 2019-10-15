@@ -81,7 +81,7 @@ def test_explicit_array():
     a = mod.var("a", 2, explicit_array=True, packed=True)
     b = a[0, 0]
     assert b.width == 2
-    c = mod.var("c", 2)
+    c = mod.var("c", 2, explicit_array=True, packed=True)
     d = mod.var("d", 1)
     e = mod.var("e", 2)
     mod.wire(c, a)

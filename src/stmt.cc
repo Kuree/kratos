@@ -61,6 +61,18 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
                      right->name, left->width(), right->width()),
             {left.get(), right.get()});
     }
+    if (left->packed_array != right->packed_array &&
+        (left->type() == VarType::Base || left->type() == VarType::PortIO) &&
+        (right->type() == VarType::Base || right->type() == VarType::PortIO)) {
+        if (left->packed_array)
+            throw StmtException(::format("left ({0}) is packed array but right ({1}) is not.",
+                                         left->to_string(), right->to_string()),
+                                {left.get(), right.get()});
+        else
+            throw StmtException(::format("right ({1}) is packed array but left ({0}) is not.",
+                                         left->to_string(), right->to_string()),
+                                {left.get(), right.get()});
+    }
 }
 
 bool AssignStmt::equal(const std::shared_ptr<AssignStmt> &stmt) const {

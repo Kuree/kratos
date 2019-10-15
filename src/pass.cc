@@ -484,8 +484,7 @@ std::map<std::string, std::string> generate_verilog(Generator* top, bool verilog
     auto const& generator_map = unique_visitor.generator_map();
     for (auto& [module_name, module_gen] : generator_map) {
         SystemVerilogCodeGen codegen(module_gen);
-        if (verilog95_def)
-            codegen.set_verilog_def(verilog95_def);
+        if (verilog95_def) codegen.set_verilog_def(verilog95_def);
         result.emplace(module_name, codegen.str());
     }
     return result;
@@ -514,8 +513,7 @@ void generate_verilog(Generator* top, const std::string& output_dir,
     std::map<std::string, std::string> result;
     for (const auto& [module_name, module_gen] : generator_map) {
         SystemVerilogCodeGen codegen(module_gen, package_name, header_filename);
-        if (verilog95_def)
-            codegen.set_verilog_def(verilog95_def);
+        if (verilog95_def) codegen.set_verilog_def(verilog95_def);
         result.emplace(module_name, codegen.str());
     }
     // write out the content to the output_dir
@@ -711,7 +709,10 @@ public:
                     auto packed = port->as<PortPacked>();
                     parent->var_packed(new_name, packed->packed_struct());
                 } else {
-                    parent->var(new_name, port->var_width(), port->size(), port->is_signed());
+                    auto& v =
+                        parent->var(new_name, port->var_width(), port->size(), port->is_signed());
+                    v.packed_array = port->packed_array;
+                    v.set_explicit_array(port->explicit_array());
                 }
                 auto var = parent->get_var(new_name);
                 if (parent->debug) {
@@ -754,7 +755,10 @@ public:
                     auto packed = port->as<PortPacked>();
                     parent->var_packed(new_name, packed->packed_struct());
                 } else {
-                    parent->var(new_name, port->var_width(), port->size(), port->is_signed());
+                    auto& v =
+                        parent->var(new_name, port->var_width(), port->size(), port->is_signed());
+                    v.packed_array = port->packed_array;
+                    v.set_explicit_array(port->explicit_array());
                 }
                 auto var = parent->get_var(new_name);
                 if (parent->debug) {
