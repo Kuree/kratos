@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.18.4] - 2019-10-14
+### Added
+- Add assertion for port/var accessing
+
+### Changed
+- remove os restriction on exception print ast_node;
+- add check for stmt block add_stmt is null
+- Put () around ternary
+
+#### Fixed
+- Fix wire merge stmt removal and assignment type
+- Fix globals (with a hack on locals)
+- Fix ne python binding
+
 ## [0.0.18.3] - 2019-10-13
 ### Fixed
 - Fix reduction op width calculation
