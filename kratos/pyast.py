@@ -427,7 +427,7 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
                          ctx=ast.Load
                          )
     func_tree.body.append(ast.Expr(value=call_node))
-    return _locals
+    return _locals, _globals
 
 
 def inject_import_code(code_src):
@@ -461,8 +461,9 @@ def transform_stmt_block(generator, fn):
         "to be defined as def {0}(self) or {0}()".format(fn_name)
     insert_self = len(func_args) == 1
 
-    _locals = __ast_transform_blocks(generator, func_tree, fn_src, fn_name,
-                                     insert_self)
+    _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
+                                               fn_name,
+                                               insert_self)
 
     src = astor.to_source(func_tree)
     src = inject_import_code(src)
@@ -478,7 +479,7 @@ def transform_stmt_block(generator, fn):
     # notice that this ln is an offset
     scope = Scope(generator, filename, ln)
     _locals.update({"_self": generator, "_scope": scope})
-    exec(code_obj, _locals)
+    exec(code_obj, _globals, _locals)
     stmts = scope.statements()
     return blk_type, sensitivity, stmts
 
@@ -514,17 +515,17 @@ def transform_function_block(generator, fn, arg_types):
     pre_locals = {"_scope": scope}
     var_code_obj = compile(var_src, "<ast>", "exec")
     exec(var_code_obj, pre_locals)
-    _locals = __ast_transform_blocks(generator, func_tree, fn_src,
-                                     fn_name, insert_self,
-                                     transform_return=True,
-                                     pre_locals=pre_locals)
+    _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
+                                               fn_name, insert_self,
+                                               transform_return=True,
+                                               pre_locals=pre_locals)
 
     src = astor.to_source(func_tree)
     src = inject_import_code(src)
     code_obj = compile(src, "<ast>", "exec")
 
     _locals.update({"_self": generator, "_scope": scope})
-    exec(code_obj, _locals)
+    exec(code_obj, _globals, _locals)
     stmts = scope.statements()
     return arg_order, stmts
 
