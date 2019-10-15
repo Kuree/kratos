@@ -10,6 +10,8 @@
 namespace py = pybind11;
 using std::shared_ptr;
 
+std::optional<std::pair<std::string, uint32_t>> get_fn_ln(uint32_t num_frame_back);
+
 void init_stmt(py::module &m) {
     using namespace kratos;
     py::class_<Stmt, ::shared_ptr<Stmt>> stmt_(m, "Stmt");
@@ -114,4 +116,16 @@ void init_stmt(py::module &m) {
 
     py::class_<InitialStmtBlock, std::shared_ptr<InitialStmtBlock>, StmtBlock>(m,
                                                                                "InitialStmtBlock");
+
+    py::class_<CommentStmt, std::shared_ptr<CommentStmt>, Stmt>(m, "CommentStmt")
+        .def(py::init<const std::string>());
+    // help function
+    m.def("comment", [](const std::string &comment) {
+        auto stmt = std::make_shared<CommentStmt>(comment);
+        return stmt;
+    })
+    .def("comment", [](const std::string &comment, uint32_t line_width) {
+      auto stmt = std::make_shared<CommentStmt>(comment, line_width);
+      return stmt;
+    });
 }

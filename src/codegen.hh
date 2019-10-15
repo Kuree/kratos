@@ -113,6 +113,8 @@ protected:
 
     void stmt_code(AssertBase *stmt);
 
+    void stmt_code(CommentStmt *stmt);
+
     void enum_code(Enum* enum_);
 
     // reverse indexing the named blocks

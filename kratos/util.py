@@ -3,7 +3,7 @@ from typing import Union, List
 import os
 import math
 import inspect
-from _kratos import mux as _mux, get_fn_ln as _get_fn_ln
+from _kratos import mux as _mux, get_fn_ln as _get_fn_ln, comment as _comment
 import _kratos
 import enum
 import functools
@@ -136,9 +136,8 @@ def const(value: int, width: int, is_signed: bool = False):
     return _kratos.constant(value, width, is_signed)
 
 
-def comment(node, comment_str):
-    if comment:
-        node.comment = comment_str
+def comment(comment_str):
+    return _comment(comment_str)
 
 
 # bit vector style syntax

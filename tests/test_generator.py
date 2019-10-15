@@ -1027,6 +1027,7 @@ def test_comment():
             self._in = self.input("in", 1)
             self._out = self.output("out", 1)
             self._out2 = self.output("out2", 1)
+            # self._out3 = self.output("out3", 1)
             self.var = self.var("v", 1)
 
             child = PassThroughMod()
@@ -1035,8 +1036,13 @@ def test_comment():
             self.wire(self._out, child.out_)
             self.wire(self._out2, self.var)
 
-            comment(self._in, "Input port")
-            comment(self.var, "variable comment")
+            self._in.comment = "Input port"
+            self.var.comment = "variable comment"
+            # self.add_code(self.code)
+
+        def code(self):
+            comment("Another comment")
+            self._out3 = self._in
     mod = Mod()
     check_gold(mod, "test_comment", optimize_passthrough=False)
 
@@ -1286,4 +1292,4 @@ def hash_param_width():
 
 
 if __name__ == "__main__":
-    hash_param_width()
+    test_comment()

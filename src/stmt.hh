@@ -14,7 +14,8 @@ enum StatementType {
     ModuleInstantiation,
     FunctionalCall,
     Return,
-    Assert
+    Assert,
+    Comment
 };
 
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
@@ -355,6 +356,18 @@ private:
     std::map<Port *, Var *> port_mapping_;
 
     std::map<Var *, Stmt *> port_debug_;
+};
+
+class CommentStmt: public Stmt {
+public:
+    CommentStmt(const std::string &comment): CommentStmt(comment, default_width) {}
+    CommentStmt(std::string comment, uint32_t line_width);
+
+    const std::vector<std::string> &comments() { return comments_; }
+
+private:
+    std::vector<std::string> comments_;
+    constexpr static uint32_t default_width = 100;
 };
 
 }  // namespace kratos

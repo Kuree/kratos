@@ -342,6 +342,30 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *ge
     return get_port_from_mod_def(generator, module_def);
 }
 
+std::vector<std::string> line_wrap(const std::string &text, uint32_t line_width) {
+    // adapted from https://www.rosettacode.org/wiki/Word_wrap#C.2B.2B
+    std::istringstream words(text);
+    std::vector<std::string> result;
+    std::string word;
+    std::string line;
+
+    if (words >> word) {
+        line.append(word);
+        size_t space_left = line_width - word.length();
+        while (words >> word) {
+            if (space_left < word.length() + 1) {
+                result.emplace_back(line);
+                line = word;
+                space_left = line_width - word.length();
+            } else {
+                line.append(" ").append(word);
+                space_left -= word.length() + 1;
+            }
+        }
+    }
+    return result;
+}
+
 namespace color {
 Color hsv_to_rgb(double h, double s, double v) {
     auto h_i = static_cast<int>(h * 6);

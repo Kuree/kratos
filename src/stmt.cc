@@ -4,6 +4,7 @@
 #include "fmt/format.h"
 #include "generator.hh"
 #include "port.hh"
+#include "util.hh"
 
 using fmt::format;
 using std::move;
@@ -157,8 +158,7 @@ void IfStmt::add_scope_variable(const std::string &name, const std::string &valu
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 
 void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
-    if (!stmt)
-        throw StmtException("Unable to add nullptr (None) to code block", {this});
+    if (!stmt) throw StmtException("Unable to add nullptr (None) to code block", {this});
     // it cannot add another block stmt
     if (stmt->type() == StatementType::Block) {
         throw StmtException("cannot add statement block to another statement block",
@@ -518,5 +518,14 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
             throw InternalException("Inout port type not implemented");
         }
     }
+}
+
+CommentStmt::CommentStmt(std::string comment, uint32_t line_width) : Stmt(StatementType::Comment) {
+    // erase the new line
+    std::string::size_type pos = 0;
+    while ((pos = comment.find('\n', pos)) != std::string::npos) {
+        comment.erase(pos, 1);
+    }
+    comments_ = line_wrap(comment, line_width);
 }
 }  // namespace kratos

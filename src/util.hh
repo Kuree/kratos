@@ -50,6 +50,8 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *ge
 
 bool inline is_2_power(uint64_t num) { return (num && (!(num & (num - 1)))); }
 
+std::vector<std::string> line_wrap(const std::string &text, uint32_t line_width);
+
 namespace color {
 struct Color {
     unsigned char R;

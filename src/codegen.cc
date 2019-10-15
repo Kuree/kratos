@@ -239,6 +239,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         stmt_code(reinterpret_cast<ReturnStmt*>(node));
     } else if (stmt_ptr->type() == StatementType::Assert) {
         stmt_code(reinterpret_cast<AssertBase*>(node));
+    } else if (stmt_ptr->type() == StatementType::Comment) {
+        stmt_code(reinterpret_cast<CommentStmt*>(node));
     } else {
         throw StmtException("Not implemented", {node});
     }
@@ -433,6 +435,13 @@ void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
         }
     } else {
         throw StmtException("Property assertion in design files not allowed", {stmt});
+    }
+}
+
+void SystemVerilogCodeGen::stmt_code(CommentStmt *stmt) {
+    auto const &comments = stmt->comments();
+    for (auto const &comment: comments) {
+        stream_ << indent() << "// " << comment << stream_.endl();
     }
 }
 
