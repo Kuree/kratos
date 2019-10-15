@@ -194,5 +194,6 @@ void init_generator(py::module &m) {
                 return ref.get_port(name);
             },
             py::return_value_policy::reference)
-        .def("member_names", &PortBundleRef::member_names);
+        .def("member_names", &PortBundleRef::member_names)
+        .def("assign", &PortBundleRef::assign);
 }
