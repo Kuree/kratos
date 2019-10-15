@@ -1,6 +1,6 @@
 import _kratos
 from .generator import Generator, transform_stmt_block, CodeBlockType, \
-    InitialCodeBlock, comment_node, VarProxy
+    InitialCodeBlock, VarProxy
 from .util import get_fn_ln
 
 
@@ -56,7 +56,7 @@ class TestBench:
     def initial(self):
         return self.__tb.initial()
 
-    def add_code(self, fn, comment_str=""):
+    def add_code(self, fn, comment=""):
         block_type, raw_sensitives, stmts = transform_stmt_block(self, fn)
         if block_type != CodeBlockType.Initial:
             raise NotImplementedError(
@@ -72,8 +72,8 @@ class TestBench:
             node = init
         else:
             node = None
-        if comment_str:
-            comment_node(node, comment_str)
+        if comment:
+            node.comment = comment
 
     def property(self, property_name: str, sequence):
         return self.__tb.property(property_name, sequence)

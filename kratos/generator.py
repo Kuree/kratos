@@ -1,7 +1,7 @@
 import enum
 from .pyast import transform_stmt_block, CodeBlockType, add_scope_context, \
     get_frame_local
-from .util import get_fn_ln, comment as comment_node
+from .util import get_fn_ln
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
@@ -448,9 +448,9 @@ class Generator(metaclass=GeneratorMeta):
     def internal_generator(self):
         return self.__generator
 
-    def add_code(self, fn, comment_str="", label=""):
+    def add_code(self, fn, comment="", label=""):
         if self.is_cloned:
-            self.__cached_initialization.append((self.add_code, [fn]))
+            self.__cached_initialization.append((self.add_code, [fn, comment]))
             return
         block_type, raw_sensitives, stmts = transform_stmt_block(self, fn)
         if block_type == CodeBlockType.Combinational:
@@ -479,8 +479,8 @@ class Generator(metaclass=GeneratorMeta):
         if self.debug:
             for stmt in stmts:
                 add_scope_context(stmt, get_frame_local(2))
-        if comment_str:
-            comment_node(node, comment_str)
+        if comment:
+            node.comment = comment
         if label:
             self.mark_stmt(label, node)
 
@@ -501,11 +501,11 @@ class Generator(metaclass=GeneratorMeta):
     def wire(self, var_to, var_from,
              attributes: Union[List[_kratos.passes.Attribute],
                                _kratos.passes.Attribute] = None,
-             comment_str=""):
+             comment=""):
         if self.is_cloned:
             self.__cached_initialization.append((self.wire, [var_to, var_from,
                                                              attributes,
-                                                             comment_str]))
+                                                             comment]))
             return
         # this is a top level direct wire assignment
         # notice that we can figure out the direction automatically if
@@ -535,8 +535,8 @@ class Generator(metaclass=GeneratorMeta):
             for attr in attributes:
                 stmt.add_attribute(attr)
 
-        if comment_str:
-            comment_node(stmt, comment_str)
+        if comment:
+            stmt.comment = comment
 
     def add_fsm(self, fsm_name: str, clk_name=None, reset_name=None):
         if clk_name is not None and reset_name is not None:
