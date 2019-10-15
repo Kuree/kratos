@@ -27,23 +27,48 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
         stmt->verilog_ln = line_no_;
     }
 
+    std::string prefix;
+    std::string eq;
+
     if (stmt->parent() == generator_) {
         // top level
         if (stmt->assign_type() != AssignmentType::Blocking)
             throw StmtException(
                 ::format("Top level assignment for {0} <- {1} has to be blocking", left, right),
                 {stmt->left(), stmt->right(), stmt});
-        (*this) << ::format("assign {0} = {1};", left, right) << endl();
+        prefix = "assign ";
+        eq = "=";
+        /*
+        (*this) << ::format("assign {0} = ", left);
+        auto wrapped_right = line_wrap(right, 100);
+        for (uint64_t i = 0; i < wrapped_right.size() - 1; i++) {
+            // compute new indent
+            auto new_indent = codegen_->indent() + "    ";
+            (*this) << wrapped_right[i] << endl();
+        }
+        (*this) << wrapped_right.back() << ";" << endl();
+         */
     } else {
+        prefix = codegen_->indent();
         if (stmt->assign_type() == AssignmentType::Blocking)
-            (*this) << ::format("{0}{1} = {2};", codegen_->indent(), left, right) << endl();
+            eq = "=";
         else if (stmt->assign_type() == AssignmentType::NonBlocking)
-            (*this) << ::format("{0}{1} <= {2};", codegen_->indent(), left, right) << endl();
+            eq = "<=";
         else
             throw StmtException(
                 ::format("Top level assignment for {0} <- {1} has to be blocking", left, right),
                 {stmt->left(), stmt->right(), stmt});
     }
+    (*this) << prefix << left << " " << eq << " " ;//<< right << ";" << endl();
+    auto right_wrapped = line_wrap(right, 80);
+    (*this) << right_wrapped[0];
+    for (uint64_t i = 1; i < right_wrapped.size(); i++) {
+        // compute new indent
+        (*this) << endl();
+        auto new_indent = codegen_->indent() + "    ";
+        (*this) << new_indent << right_wrapped[i];
+    }
+    (*this) << ";" << endl();
     return *this;
 }
 

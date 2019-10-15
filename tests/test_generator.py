@@ -1291,5 +1291,15 @@ def hash_param_width():
     assert hash1 == hash2
 
 
+def test_long_statement():
+    from kratos import concat
+    mod = Generator("mod")
+    a = mod.input("this_is_a_long_name", 1)
+    num_concat = 6
+    b = mod.output("out", num_concat)
+    mod.wire(b, concat(*[a for _ in range(num_concat)]))
+    check_gold(mod, "test_long_statement")
+
+
 if __name__ == "__main__":
-    test_comment()
+    test_long_statement()
