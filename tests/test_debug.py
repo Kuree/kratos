@@ -299,5 +299,25 @@ def test_assert():
     assert "assert" not in src
 
 
+def test_wire():
+    mod = Generator("mod", True)
+    in_ = mod.input("in", 1)
+    out_ = mod.output("out", 1)
+    # context
+    a = 1
+    mod.wire(out_, in_)
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        filename = os.path.join(temp, "test.sv")
+        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM breakpoint")
+        assert len(c.fetchall()) == 1
+        c.execute("SELECT value FROM variable WHERE name = ?", "a")
+        v = int(c.fetchone()[0])
+        assert v == a
+
+
 if __name__ == "__main__":
-    test_context()
+    test_wire()

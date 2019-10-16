@@ -501,11 +501,13 @@ class Generator(metaclass=GeneratorMeta):
     def wire(self, var_to, var_from,
              attributes: Union[List[_kratos.passes.Attribute],
                                _kratos.passes.Attribute] = None,
-             comment=""):
+             comment="", locals_=None):
         if self.is_cloned:
+            if self.debug and locals_ is None:
+                locals_ = get_frame_local(2)
             self.__cached_initialization.append((self.wire, [var_to, var_from,
                                                              attributes,
-                                                             comment]))
+                                                             comment, locals_]))
             return
         # this is a top level direct wire assignment
         # notice that we can figure out the direction automatically if
@@ -527,7 +529,9 @@ class Generator(metaclass=GeneratorMeta):
 
         if self.debug:
             stmt.add_fn_ln(get_fn_ln())
-            add_scope_context(stmt, get_frame_local(2))
+            if locals_ is None:
+                locals_ = get_frame_local(2)
+            add_scope_context(stmt, locals_)
 
         if attributes is not None:
             if not isinstance(attributes, list):

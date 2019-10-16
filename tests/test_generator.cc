@@ -7,6 +7,7 @@
 #include "../src/port.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
+#include "../src/debug.hh"
 #include "gtest/gtest.h"
 
 using namespace kratos;
@@ -937,4 +938,21 @@ TEST(pass, remove_empty_switch_all) {   // NOLINT
     seq->add_stmt(case_);
     remove_empty_block(&mod);
     EXPECT_EQ(mod.stmts_count(), 0);
+}
+
+TEST(pass, convert_wire_always_comb) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &out = mod.var("out", 1);
+    auto &in = mod.var("in", 1);
+    auto assign = out.assign(in);
+    mod.add_stmt(assign);
+    convert_continuous_stmt(&mod);
+
+    EXPECT_EQ(mod.stmts_count(), 1);
+    auto const &stmt = mod.get_stmt(0);
+    EXPECT_EQ(stmt->type(), StatementType::Block);
+    auto block = stmt->as<StmtBlock>();
+    EXPECT_EQ(block->block_type(), StatementBlockType::Combinational);
+    EXPECT_EQ(block->get_stmt(0), assign);
 }

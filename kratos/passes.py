@@ -69,6 +69,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("merge_wire_assignments")
     # insert debug break points if needed
     if debug_db_filename:
+        pass_manager.add_pass("convert_continuous_stmt")
         pass_manager.add_pass("inject_debug_break_points")
         pass_manager.add_pass("inject_clock_break_points")
         pass_manager.add_pass("inject_assert_fail_exception")
