@@ -494,6 +494,11 @@ Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
     return *p;
 }
 
+void Const::set_is_packed(bool value) {
+    if (!value)
+        throw UserException("Unable to set const unpacked");
+}
+
 std::unordered_set<std::shared_ptr<Const>> Const::consts_ = {};
 std::shared_ptr<Generator> Const::const_generator_ = nullptr;
 
@@ -1032,6 +1037,11 @@ std::set<std::string> VarPacked::member_names() const {
         result.emplace(std::get<0>(def));
     }
     return result;
+}
+
+void VarPacked::set_is_packed(bool value) {
+    if (!value)
+        throw UserException("Unable to set packed struct unpacked");
 }
 
 Enum::Enum(kratos::Generator *generator, std::string name,

@@ -63,6 +63,11 @@ std::set<std::string> PortPacked::member_names() const {
     return result;
 }
 
+void PortPacked::set_is_packed(bool value) {
+    if (!value)
+        throw UserException("Unable to set packed struct unpacked");
+}
+
 void PortBundleDefinition::add_definition(const std::string& name, uint32_t width, uint32_t size,
                                           bool is_signed, kratos::PortDirection direction,
                                           kratos::PortType type) {

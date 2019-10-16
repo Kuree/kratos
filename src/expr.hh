@@ -135,7 +135,9 @@ public:
         return std::static_pointer_cast<T>(shared_from_this());
     }
 
-    virtual bool inline is_packed() const { return false; }
+    virtual bool inline is_struct() const { return false; }
+    virtual bool inline is_packed() const { return is_packed_; }
+    virtual void set_is_packed(bool value) { is_packed_ = value; }
     virtual bool inline is_enum() const { return false; }
     virtual bool inline is_function() const { return false; }
     virtual std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) { return var; }
@@ -149,7 +151,6 @@ public:
 
     // meta info
     // packed is only relevant when the size is larger than 1, by default it's false
-    bool packed_array = false;
     virtual std::string handle_name() const;
     virtual std::string handle_name(bool ignore_top) const;
     virtual std::string handle_name(Generator *scope) const;
@@ -204,6 +205,8 @@ private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
 
     std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
+
+    bool is_packed_ = false;
 };
 
 struct VarCasted : public Var {
@@ -301,6 +304,10 @@ public:
 
     static const Generator *const_gen() { return const_generator_.get(); }
 
+    // struct is always packed
+    bool is_packed() const override { return true; }
+    void set_is_packed(bool value) override;
+
 private:
     int64_t value_;
     // created without a generator holder
@@ -370,7 +377,7 @@ struct VarPacked : public Var, public PackedInterface {
 public:
     VarPacked(Generator *m, const std::string &name, PackedStruct packed_struct_);
 
-    bool is_packed() const override { return true; }
+    bool is_struct() const override { return true; }
 
     const PackedStruct &packed_struct() const { return struct_; }
 
@@ -383,6 +390,10 @@ public:
     VarSlice inline &operator[](uint32_t idx) override { return Var::operator[](idx); }
 
     std::set<std::string> member_names() const override;
+
+    // struct is always packed
+    bool is_packed() const override { return true; }
+    void set_is_packed(bool value) override;
 
 private:
     PackedStruct struct_;

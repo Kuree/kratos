@@ -1,5 +1,6 @@
 from kratos import Generator, signed, unsigned, verilog
 from kratos.util import reduce_or, Const, const
+import _kratos.exception
 
 
 def test_expr():
@@ -106,5 +107,30 @@ def test_nested_ternary():
     assert str(c) == "a + (a ? a: b)"
 
 
+def test_packed_unpacked():
+    import _kratos
+    mod = Generator("mod")
+    a = mod.var("a", 2, size=2, packed=True)
+    b = mod.var("b", 2, size=2)
+    c = const(2, 4)
+    d = mod.var("d", 4, explicit_array=True)
+    try:
+        a.assign(b)
+        assert False
+    except _kratos.exception.StmtException:
+        assert True
+    a.assign(4)
+    try:
+        b.assign(c)
+        assert False
+    except _kratos.exception.StmtException:
+        assert True
+    try:
+        d.assign(a)
+        assert False
+    except _kratos.exception.StmtException:
+        assert True
+
+
 if __name__ == "__main__":
-    test_nested_ternary()
+    test_packed_unpacked()

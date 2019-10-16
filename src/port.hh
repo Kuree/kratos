@@ -59,9 +59,13 @@ public:
     }
     VarSlice inline &operator[](uint32_t idx) override { return Var::operator[](idx); }
 
-    bool is_packed() const override { return true; }
+    bool is_struct() const override { return true; }
 
     std::set<std::string> member_names() const override;
+
+    // struct is always packed
+    bool is_packed() const override { return true; }
+    void set_is_packed(bool value) override;
 
 private:
     PackedStruct struct_;

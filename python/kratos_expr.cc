@@ -313,7 +313,7 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("sources", &Var::sources, py::return_value_policy::reference)
         .def("sinks", &Var::sinks, py::return_value_policy::reference)
         .def("cast", &Var::cast)
-        .def_readwrite("packed_array", &Var::packed_array)
+        .def_property("is_packed", &Var::is_packed, &Var::set_is_packed)
         .def_property_readonly(
             "generator", [](const Var &var) { return var.generator; },
             py::return_value_policy::reference)

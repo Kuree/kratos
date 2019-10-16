@@ -705,13 +705,13 @@ public:
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
-                if (port->is_packed()) {
+                if (port->is_struct()) {
                     auto packed = port->as<PortPacked>();
                     parent->var_packed(new_name, packed->packed_struct());
                 } else {
                     auto& v =
                         parent->var(new_name, port->var_width(), port->size(), port->is_signed());
-                    v.packed_array = port->packed_array;
+                    v.set_is_packed(port->is_packed());
                     v.set_explicit_array(port->explicit_array());
                 }
                 auto var = parent->get_var(new_name);
@@ -751,13 +751,13 @@ public:
                 auto parent = reinterpret_cast<Generator*>(ast_parent);
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
-                if (port->is_packed()) {
+                if (port->is_struct()) {
                     auto packed = port->as<PortPacked>();
                     parent->var_packed(new_name, packed->packed_struct());
                 } else {
                     auto& v =
                         parent->var(new_name, port->var_width(), port->size(), port->is_signed());
-                    v.packed_array = port->packed_array;
+                    v.set_is_packed(port->is_packed());
                     v.set_explicit_array(port->explicit_array());
                 }
                 auto var = parent->get_var(new_name);
@@ -1411,7 +1411,7 @@ public:
         auto const& port_names = generator->get_port_names();
         for (auto const& port_name : port_names) {
             auto port = generator->get_port(port_name);
-            if (port->is_packed()) {
+            if (port->is_struct()) {
                 auto ptr = port->as<PortPacked>();
                 auto const port_struct = ptr->packed_struct();
                 if (structs_.find(port_struct.struct_name) != structs_.end()) {

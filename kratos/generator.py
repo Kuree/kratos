@@ -325,7 +325,7 @@ class Generator(metaclass=GeneratorMeta):
         v = self.__generator.var(name, width, size, is_signed)
         if self.debug:
             v.add_fn_ln(get_fn_ln())
-        v.packed_array = packed
+        v.is_packed = packed
         v.explicit_array = explicit_array
         return v
 
@@ -353,7 +353,7 @@ class Generator(metaclass=GeneratorMeta):
                                   port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
-        p.packed_array = packed
+        p.is_packed = packed
         p.explicit_array = explicit_array
         return p
 
@@ -365,7 +365,7 @@ class Generator(metaclass=GeneratorMeta):
                                   port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
-        p.packed_array = packed
+        p.is_packed = packed
         p.explicit_array = explicit_array
         return p
 
@@ -396,7 +396,7 @@ class Generator(metaclass=GeneratorMeta):
                                   port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
-        p.packed_array = packed
+        p.is_packed = packed
         p.explicit_array = explicit_array
         return p
 

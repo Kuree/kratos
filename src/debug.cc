@@ -400,7 +400,7 @@ void DebugDatabase::save_database(const std::string &filename) {
                     storage.replace(v);
                     add_context();
                 }
-            } else if (var_->is_packed()) {
+            } else if (var_->is_struct()) {
                 // it's an packed array
                 if (var_->type() == VarType::PortIO) {
                     auto p = reinterpret_cast<PortPacked *>(var_);

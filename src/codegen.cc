@@ -95,7 +95,7 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
 
     // based on whether it's packed or not
     std::string type;
-    if (var->is_packed()) {
+    if (var->is_struct()) {
         auto v = var->as<VarPacked>();
         type = v->packed_struct().struct_name;
     } else if (var->is_enum()) {
@@ -105,7 +105,7 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
         type = "logic";
     }
     std::string format_str;
-    if ((var->size() > 1 || var->explicit_array()) && var->packed_array)
+    if ((var->size() > 1 || var->explicit_array()) && var->is_packed())
         format_str = "{0} {1} {4}{2} {3}{5};";
     else
         format_str = "{0} {1} {2} {3}{4}{5};";
@@ -183,7 +183,7 @@ std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {
     } else {
         width = std::to_string(var->var_width() - 1);
     }
-    return var->var_width() > 1 && !var->is_packed() ? ::format("[{0}:0]", width) : "";
+    return var->var_width() > 1 && !var->is_struct() ? ::format("[{0}:0]", width) : "";
 }
 
 void SystemVerilogCodeGen::generate_ports(Generator* generator) {
@@ -637,20 +637,20 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     strs.reserve(8);
     strs.emplace_back(port_dir_to_str(port->port_direction()));
     // we use logic for all inputs and outputs
-    if (!port->is_packed()) {
+    if (!port->is_struct()) {
         strs.emplace_back("logic");
     } else {
         auto ptr = reinterpret_cast<PortPacked*>(port);
         strs.emplace_back(ptr->packed_struct().struct_name);
     }
     if (port->is_signed()) strs.emplace_back("signed");
-    if ((port->size() > 1 || port->explicit_array()) && port->packed_array) {
+    if ((port->size() > 1 || port->explicit_array()) && port->is_packed()) {
         strs.emplace_back(::format("[{0}:0]", port->size() - 1));
     }
-    if (!port->is_packed()) strs.emplace_back(get_var_width_str(port));
+    if (!port->is_struct()) strs.emplace_back(get_var_width_str(port));
     strs.emplace_back(port->name);
 
-    if ((port->size() > 1 || port->explicit_array()) && !port->packed_array) {
+    if ((port->size() > 1 || port->explicit_array()) && !port->is_packed()) {
         strs.emplace_back(::format("[{0}:0]", port->size() - 1));
     }
     return join(strs.begin(), strs.end(), " ");
