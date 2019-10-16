@@ -3,7 +3,7 @@ from typing import Union, List
 import os
 import math
 import inspect
-from _kratos import mux as _mux, get_fn_ln as _get_fn_ln, comment as _comment, \
+from _kratos import mux as _mux, get_fn_ln, comment as _comment, \
     create_stub as _create_stub
 import _kratos
 import enum
@@ -84,11 +84,6 @@ def concat(*args):
     for i in range(2, len(args)):
         expr = expr.concat(args[i])
     return expr
-
-
-def get_fn_ln(depth: int = 2):
-    # need to minus one before C++ is an extra frame
-    return _get_fn_ln(depth + 1)
 
 
 def zext(var, width):

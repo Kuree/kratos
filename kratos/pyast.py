@@ -3,7 +3,8 @@ import textwrap
 import inspect
 import astor
 import _kratos
-from .util import print_src, signed, const
+from .util import print_src
+from _kratos import get_frame_local
 import copy
 import os
 import enum
@@ -237,13 +238,6 @@ def add_scope_context(stmt, _locals):
         elif isinstance(value, _kratos.Var) and len(value.name) > 0:
             # it's a var
             stmt.add_scope_variable(key, value.name, True)
-
-
-def get_frame_local(num_frame=2):
-    frame = inspect.currentframe()
-    for i in range(num_frame):
-        frame = frame.f_back
-    return frame.f_locals
 
 
 class Scope:
