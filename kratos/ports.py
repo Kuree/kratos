@@ -22,6 +22,18 @@ class PortBundle(PortBundleDefinition):
         if self.debug:
             self.definition.add_debug_info(name, get_fn_ln())
 
+    def clock(self, name, is_input=True):
+        if is_input:
+            self.input(name, 1, port_type=PortType.Clock)
+        else:
+            self.output(name, 1, port_type=PortType.Clock)
+
+    def reset(self, name, is_input=True):
+        if is_input:
+            self.input(name, 1, port_type=PortType.AsyncReset)
+        else:
+            self.output(name, 1, port_type=PortType.AsyncReset)
+
     def flip(self):
         bundle = PortBundle()
         bundle.definition = self.definition.flip()
