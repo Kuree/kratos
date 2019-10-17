@@ -16,7 +16,7 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         docker pull keyiz/garnet-flow
         docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/garnet-flow bash
 
-        docker exec -i manylinux-test bash -c 'cd kratos && mkdir build && cd build && cmake ..'
+        docker exec -i manylinux-test bash -c 'cd kratos && mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug'
         docker exec -i manylinux-test bash -c "cd kratos/build && make -j2"
         docker exec -i manylinux-test bash -c "cd kratos/build && make test"
     else
