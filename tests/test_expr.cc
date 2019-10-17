@@ -132,7 +132,7 @@ TEST(expr, port_packed) {  // NOLINT
     Context c;
     auto mod = c.generator("module");
     auto struct_ = PackedStruct("data", {{"value1", 1, false}, {"value2", 2, false}});
-    auto port = PortPacked(&mod, PortDirection::In, "in", struct_);
+    auto port = PortPackedStruct(&mod, PortDirection::In, "in", struct_);
 
     auto slice1 = PackedSlice(&port, "value2");
     auto &slice2 = port["value2"];

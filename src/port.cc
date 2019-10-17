@@ -33,7 +33,7 @@ void Port::set_active_high(bool value) {
     active_high_ = value;
 }
 
-PortPacked::PortPacked(Generator* module, PortDirection direction, const std::string& name,
+PortPackedStruct::PortPackedStruct(Generator* module, PortDirection direction, const std::string& name,
                        PackedStruct packed_struct_)
     : Port(module, direction, name, 0, 1, PortType::Data, false),
       struct_(std::move(packed_struct_)) {
@@ -45,17 +45,17 @@ PortPacked::PortPacked(Generator* module, PortDirection direction, const std::st
     var_width_ = width;
 }
 
-void PortPacked::set_port_type(PortType) {
+void PortPackedStruct::set_port_type(PortType) {
     throw UserException("Cannot set port type for packed struct");
 }
 
-PackedSlice& PortPacked::operator[](const std::string& member_name) {
+PackedSlice& PortPackedStruct::operator[](const std::string& member_name) {
     auto ptr = std::make_shared<PackedSlice>(this, member_name);
     slices_.emplace(ptr);
     return *ptr;
 }
 
-std::set<std::string> PortPacked::member_names() const {
+std::set<std::string> PortPackedStruct::member_names() const {
     std::set<std::string> result;
     for (auto& def : struct_.attributes) {
         result.emplace(std::get<0>(def));
@@ -63,7 +63,7 @@ std::set<std::string> PortPacked::member_names() const {
     return result;
 }
 
-void PortPacked::set_is_packed(bool value) {
+void PortPackedStruct::set_is_packed(bool value) {
     if (!value)
         throw UserException("Unable to set packed struct unpacked");
 }

@@ -706,7 +706,7 @@ public:
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
                 if (port->is_struct()) {
-                    auto packed = port->as<PortPacked>();
+                    auto packed = port->as<PortPackedStruct>();
                     parent->var_packed(new_name, packed->packed_struct());
                 } else {
                     auto& v =
@@ -752,7 +752,7 @@ public:
                 auto new_name =
                     parent->get_unique_variable_name(generator->instance_name, port_name);
                 if (port->is_struct()) {
-                    auto packed = port->as<PortPacked>();
+                    auto packed = port->as<PortPackedStruct>();
                     parent->var_packed(new_name, packed->packed_struct());
                 } else {
                     auto& v =
@@ -1412,7 +1412,7 @@ public:
         for (auto const& port_name : port_names) {
             auto port = generator->get_port(port_name);
             if (port->is_struct()) {
-                auto ptr = port->as<PortPacked>();
+                auto ptr = port->as<PortPackedStruct>();
                 auto const port_struct = ptr->packed_struct();
                 if (structs_.find(port_struct.struct_name) != structs_.end()) {
                     // do some checking

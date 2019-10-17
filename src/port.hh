@@ -42,9 +42,9 @@ private:
     std::optional<bool> active_high_ = std::nullopt;
 };
 
-struct PortPacked : public Port, public PackedInterface {
+struct PortPackedStruct : public Port, public PackedInterface {
 public:
-    PortPacked(Generator *module, PortDirection direction, const std::string &name,
+    PortPackedStruct(Generator *module, PortDirection direction, const std::string &name,
                PackedStruct packed_struct_);
 
     void set_port_type(PortType type) override;

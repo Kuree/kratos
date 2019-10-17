@@ -356,8 +356,8 @@ public:
 
 struct PackedSlice : public VarSlice {
 public:
-    PackedSlice(PortPacked *parent, const std::string &member_name);
-    PackedSlice(VarPacked *parent, const std::string &member_name);
+    PackedSlice(PortPackedStruct *parent, const std::string &member_name);
+    PackedSlice(VarPackedStruct *parent, const std::string &member_name);
 
     std::string to_string() const override;
 
@@ -373,9 +373,9 @@ struct PackedInterface {
     virtual ~PackedInterface() = default;
 };
 
-struct VarPacked : public Var, public PackedInterface {
+struct VarPackedStruct : public Var, public PackedInterface {
 public:
-    VarPacked(Generator *m, const std::string &name, PackedStruct packed_struct_);
+    VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_);
 
     bool is_struct() const override { return true; }
 

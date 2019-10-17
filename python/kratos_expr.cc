@@ -386,22 +386,22 @@ void init_expr(py::module &m) {
         }
     });
 
-    auto port_packed = py::class_<PortPacked, ::shared_ptr<PortPacked>, Var>(m, "PortPacked");
-    port_packed.def("port_direction", &PortPacked::port_direction)
-        .def("port_type", &PortPacked::port_type)
+    auto port_packed = py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Var>(m, "PortPackedStruct");
+    port_packed.def("port_direction", &PortPackedStruct::port_direction)
+        .def("port_type", &PortPackedStruct::port_type)
         .def(
             "__getitem__",
-            [](PortPacked & port, const std::string &name) -> auto & { return port[name]; },
+            [](PortPackedStruct & port, const std::string &name) -> auto & { return port[name]; },
             py::return_value_policy::reference)
-        .def("member_names", &PortPacked::member_names);
+        .def("member_names", &PortPackedStruct::member_names);
 
-    auto var_packed = py::class_<VarPacked, ::shared_ptr<VarPacked>, Var>(m, "VarPacked");
+    auto var_packed = py::class_<VarPackedStruct, ::shared_ptr<VarPackedStruct>, Var>(m, "VarPackedStruct");
     var_packed
         .def(
             "__getitem__",
-            [](VarPacked & port, const std::string &name) -> auto & { return port[name]; },
+            [](VarPackedStruct & port, const std::string &name) -> auto & { return port[name]; },
             py::return_value_policy::reference)
-        .def("member_names", &VarPacked::member_names);
+        .def("member_names", &VarPackedStruct::member_names);
 
     // struct info for packed
     auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");

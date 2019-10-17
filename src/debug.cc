@@ -403,7 +403,7 @@ void DebugDatabase::save_database(const std::string &filename) {
             } else if (var_->is_struct()) {
                 // it's an packed array
                 if (var_->type() == VarType::PortIO) {
-                    auto p = reinterpret_cast<PortPacked *>(var_);
+                    auto p = reinterpret_cast<PortPackedStruct *>(var_);
                     auto const &def = p->packed_struct();
                     for (auto const &iter : def.attributes) {
                         auto const &attr_name = std::get<0>(iter);
@@ -415,7 +415,7 @@ void DebugDatabase::save_database(const std::string &filename) {
                         add_context();
                     }
                 } else if (var_->type() == VarType::Base) {
-                    auto p = reinterpret_cast<VarPacked *>(var_);
+                    auto p = reinterpret_cast<VarPackedStruct *>(var_);
                     auto const &def = p->packed_struct();
                     for (auto const &iter : def.attributes) {
                         auto const &attr_name = std::get<0>(iter);

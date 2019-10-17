@@ -96,7 +96,7 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
     // based on whether it's packed or not
     std::string type;
     if (var->is_struct()) {
-        auto v = var->as<VarPacked>();
+        auto v = var->as<VarPackedStruct>();
         type = v->packed_struct().struct_name;
     } else if (var->is_enum()) {
         auto v = var->as<EnumVar>();
@@ -640,7 +640,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     if (!port->is_struct()) {
         strs.emplace_back("logic");
     } else {
-        auto ptr = reinterpret_cast<PortPacked*>(port);
+        auto ptr = reinterpret_cast<PortPackedStruct*>(port);
         strs.emplace_back(ptr->packed_struct().struct_name);
     }
     if (port->is_signed()) strs.emplace_back("signed");

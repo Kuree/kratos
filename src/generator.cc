@@ -575,23 +575,23 @@ void Generator::accept(IRVisitor *visitor) {
     if (!external()) visitor->visit(this);
 }
 
-PortPacked &Generator::port_packed(PortDirection direction, const std::string &port_name,
+PortPackedStruct &Generator::port_packed(PortDirection direction, const std::string &port_name,
                                    const PackedStruct &packed_struct_) {
     if (ports_.find(port_name) != ports_.end())
         throw VarException(::format("{0} already exists in {1}", port_name, name),
                            {vars_.at(port_name).get()});
-    auto p = std::make_shared<PortPacked>(this, direction, port_name, packed_struct_);
+    auto p = std::make_shared<PortPackedStruct>(this, direction, port_name, packed_struct_);
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
     return *p;
 }
 
-VarPacked &Generator::var_packed(const std::string &var_name,
+VarPackedStruct &Generator::var_packed(const std::string &var_name,
                                  const kratos::PackedStruct &packed_struct_) {
     if (vars_.find(var_name) != vars_.end())
         throw VarException(::format("{0} already exists in {1}", var_name, name),
                            {vars_.at(var_name).get()});
-    auto v = std::make_shared<VarPacked>(this, var_name, packed_struct_);
+    auto v = std::make_shared<VarPackedStruct>(this, var_name, packed_struct_);
     vars_.emplace(var_name, v);
     return *v;
 }

@@ -965,13 +965,13 @@ PackedStruct::PackedStruct(std::string struct_name,
                            std::vector<std::tuple<std::string, uint32_t, bool>> attributes)
     : struct_name(std::move(struct_name)), attributes(std::move(attributes)) {}
 
-PackedSlice::PackedSlice(PortPacked *parent, const std::string &member_name)
+PackedSlice::PackedSlice(PortPackedStruct *parent, const std::string &member_name)
     : VarSlice(parent, 0, 0), member_name_(member_name) {
     auto const &struct_ = parent->packed_struct();
     set_up(struct_, member_name);
 }
 
-PackedSlice::PackedSlice(kratos::VarPacked *parent, const std::string &member_name)
+PackedSlice::PackedSlice(kratos::VarPackedStruct *parent, const std::string &member_name)
     : VarSlice(parent, 0, 0), member_name_(member_name) {
     auto const &struct_ = parent->packed_struct();
     set_up(struct_, member_name);
@@ -1003,10 +1003,10 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
 
 shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
     if (var->type() == PortIO) {
-        auto v = var->as<PortPacked>();
+        auto v = var->as<PortPackedStruct>();
         return v->operator[](member_name_).shared_from_this();
     } else {
-        auto v = var->as<VarPacked>();
+        auto v = var->as<VarPackedStruct>();
         return v->operator[](member_name_).shared_from_this();
     }
 }
@@ -1015,13 +1015,13 @@ std::string PackedSlice::to_string() const {
     return ::format("{0}.{1}", parent_var->to_string(), member_name_);
 }
 
-PackedSlice &VarPacked::operator[](const std::string &member_name) {
+PackedSlice &VarPackedStruct::operator[](const std::string &member_name) {
     auto ptr = std::make_shared<PackedSlice>(this, member_name);
     slices_.emplace(ptr);
     return *ptr;
 }
 
-VarPacked::VarPacked(Generator *m, const std::string &name, PackedStruct packed_struct_)
+VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_)
     : Var(m, name, 0, 1, false), struct_(std::move(packed_struct_)) {
     // compute the width
     uint32_t width = 0;
@@ -1031,7 +1031,7 @@ VarPacked::VarPacked(Generator *m, const std::string &name, PackedStruct packed_
     var_width_ = width;
 }
 
-std::set<std::string> VarPacked::member_names() const {
+std::set<std::string> VarPackedStruct::member_names() const {
     std::set<std::string> result;
     for (auto const &def : struct_.attributes) {
         result.emplace(std::get<0>(def));
@@ -1039,7 +1039,7 @@ std::set<std::string> VarPacked::member_names() const {
     return result;
 }
 
-void VarPacked::set_is_packed(bool value) {
+void VarPackedStruct::set_is_packed(bool value) {
     if (!value)
         throw UserException("Unable to set packed struct unpacked");
 }

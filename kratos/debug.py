@@ -24,7 +24,8 @@ def extract_symbol_table(generator: Generator):
                 name = "self." + name
                 if isinstance(var, _kratos.Var):
                     # I think bundle -> packed struct will not work here
-                    if isinstance(var, (_kratos.PortPacked, _kratos.VarPacked,
+                    if isinstance(var, (_kratos.PortPackedStruct,
+                                        _kratos.VarPackedStruct,
                                         _kratos.PortBundleRef)):
                         member_names = var.member_names()
                         for var_name in member_names:

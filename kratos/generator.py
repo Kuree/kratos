@@ -401,7 +401,7 @@ class Generator(metaclass=GeneratorMeta):
         return p
 
     def port_packed(self, name: str, direction: PortDirection,
-                    struct_packed: _kratos.PortPacked):
+                    struct_packed: _kratos.PortPackedStruct):
         p = self.__generator.port_packed(direction.value, name,
                                          struct_packed)
         if self.debug:
