@@ -128,6 +128,54 @@ functions. In addition, it utilizes named block to group outputs signals
 together in generated SystemVerilog. This will make debugging with waveform
 much easier.
 
+Access State Variables
+======================
+Because Kratos allows users to modify FSM at any time, generally speaking the
+realization of FSM happens at the very end. However, sometimes users may want
+to access to state variable when calculating other outputs. To no so, you can
+realize the FSM by hand using ``fsm.realize()`` function. Once it's realized
+``fsm.current_sate`` becomes accessible. To ensure type safety, you need to
+use the enum type to create your variable. An example is shown below:
+
+.. code-block:: Python
+
+    mod = Generator("mod", debug=True)
+    out_ = mod.output("out", 2)
+    in_ = mod.input("in", 2)
+    # fsm requires a clk and async rst
+    clk = mod.clock("clk")
+    rst = mod.reset("rst")
+    # add a dummy fsm with reset low
+    fsm = mod.add_fsm("Color", reset_high=False)
+    # realize fsm now
+    fsm.realize()
+    current_state = fsm.current_state
+    # create an enum var based on current_state
+    state_enum = current_state.enum_type()
+    t = mod.enum_var("s", state_enum)
+    c = mod.var("counter", 1)
+
+    @always((posedge, clk), (negedge, rst))
+    def counter():
+        if rst.r_not():
+            c = 0
+        elif t == state_enum.Red:
+            c = c + 1
+
+    mod.add_code(counter)
+
+In the example, we realize the FSM and then obtain the current state variable.
+We can get the enum type by calling ``current_state.enum_type()``. Then, we
+can create the enum variable ``t`` using ``[gen/self].enum_var()`` function
+call by specifying name and enum type. After that, you can use the enum
+variable when comparing with the enum values defined by your FSM. You can
+use `.` notation to access the enum value from the enum types.
+
+.. warning::
+
+  Once the FSM is realized by the user, any changes to the FSM may have
+  unexpected behavior.
+
 Moore machine to Mealy
 ======================
 
