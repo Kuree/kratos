@@ -45,12 +45,16 @@ public:
     // either moore or mealy
     void set_moore(bool is_moore) { moore_ = is_moore; }
     bool is_moore() const { return moore_; }
+    void set_reset_high(bool value) { reset_high_ = value; }
 
     // nested FSM
     FSM *parent_fsm() const { return parent_fsm_; }
     void add_child_fsm(FSM *fsm);
     std::vector<FSMState *> get_all_child_states(bool include_extra_state = false) const;
     std::vector<FSM *> get_all_child_fsm() const;
+
+    // helper variable
+    EnumVar *current_state_var() const { return current_state_; }
 
 private:
     std::string fsm_name_;
@@ -64,10 +68,13 @@ private:
     std::shared_ptr<FSMState> start_state_ = nullptr;
     std::pair<std::string, uint32_t> start_state_debug_ = {"", 0};
 
+    EnumVar *current_state_ = nullptr;
+
     std::unordered_map<std::string, std::pair<std::string, uint32_t>> fn_name_ln_;
 
     bool realized_ = false;
     bool moore_ = true;
+    bool reset_high_ = true;
 
     void generate_state_transition(
         Enum &enum_def, EnumVar &current_state, EnumVar &next_state,

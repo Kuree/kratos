@@ -85,6 +85,8 @@ std::vector<FSMState*> FSM::get_all_child_states(bool include_extra_state) const
 }
 
 void FSM::realize() {
+    // never realize again
+    if (realized_) return;
     // generate the statements to the generator
     // first, get state and next state variable
     // compute number of states
@@ -138,6 +140,7 @@ void FSM::realize() {
     auto current_state_name = generator_->get_unique_variable_name(fsm_name_, "current_state");
     auto next_state_name = generator_->get_unique_variable_name(fsm_name_, "next_state");
     auto& current_state = generator_->enum_var(current_state_name, enum_def.shared_from_this());
+    current_state_ = &current_state;
     auto& next_state = generator_->enum_var(next_state_name, enum_def.shared_from_this());
     if (generator_->debug) {
         current_state.fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
@@ -150,14 +153,29 @@ void FSM::realize() {
     // else
     //   current_state <= next_state
     auto seq = generator_->sequential();
+    bool reset_high = true;
     seq->add_condition({BlockEdgeType::Posedge, clk_});
     if (reset_->type() == VarType::PortIO &&
-        (reset_->as<Port>()->active_high() && !(*reset_->as<Port>()->active_high())))
+        ((reset_->as<Port>()->active_high() && !(*reset_->as<Port>()->active_high())) ||
+         !reset_high_)) {
         seq->add_condition({BlockEdgeType::Negedge, reset_});
-    else
+        reset_high = false;
+    } else {
         seq->add_condition({BlockEdgeType::Posedge, reset_});
+        reset_high = true;
+    }
+    if (generator_->debug) {
+        seq->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+    }
 
-    auto seq_if = std::make_shared<IfStmt>(reset_);
+    std::shared_ptr<Var> predicate;
+    if (reset_high) {
+        predicate = reset_;
+    } else {
+        predicate = (reset_->r_not()).as<Var>();
+    }
+
+    auto seq_if = std::make_shared<IfStmt>(predicate);
     {
         auto start_state_name = state_name_mapping.at(start_state_.get());
         auto stmt =
@@ -177,6 +195,8 @@ void FSM::realize() {
     }
     // add it to the seq
     seq->add_stmt(seq_if);
+    if (generator_->debug)
+        seq_if->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
 
     // combination logic to compute next state
     generate_state_transition(enum_def, current_state, next_state, state_name_mapping);

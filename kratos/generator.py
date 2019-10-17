@@ -430,6 +430,9 @@ class Generator(metaclass=GeneratorMeta):
     def enum(self, name: str, values: Dict[str, int], width):
         return self.__generator.enum(name, values, width)
 
+    def enum_var(self, name: str, def_: _kratos.Enum):
+        return self.__generator.enum_var(name, def_)
+
     def get_var(self, name):
         return self.__generator.get_var(name)
 
@@ -542,13 +545,16 @@ class Generator(metaclass=GeneratorMeta):
         if comment:
             stmt.comment = comment
 
-    def add_fsm(self, fsm_name: str, clk_name=None, reset_name=None):
+    def add_fsm(self, fsm_name: str, clk_name=None, reset_name=None,
+                reset_high=True):
         if clk_name is not None and reset_name is not None:
             clk = self.__generator.get_var(clk_name)
             reset = self.__generator.get_var(reset_name)
-            return FSM(self, self.__generator.fsm(fsm_name, clk, reset))
+            fsm = FSM(self, self.__generator.fsm(fsm_name, clk, reset))
         else:
-            return FSM(self, self.__generator.fsm(fsm_name))
+            fsm = FSM(self, self.__generator.fsm(fsm_name))
+        fsm.set_reset_high(reset_high)
+        return fsm
 
     def add_stmt(self, stmt):
         if self.is_cloned:
@@ -803,7 +809,7 @@ class Generator(metaclass=GeneratorMeta):
 def always(*sensitivity):
     for edge, var in sensitivity:
         assert isinstance(edge, BlockEdgeType)
-        assert isinstance(var, str)
+        assert isinstance(var, (str, _kratos.Var))
 
     def wrapper(fn):
         return fn

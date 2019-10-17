@@ -47,6 +47,13 @@ class FSM:
     def add_child_fsm(self, fsm):
         self.__fsm.add_child_fsm(fsm.__fsm)
 
+    def realize(self):
+        self.__fsm.realize()
+
+    @property
+    def current_state(self):
+        return self.__fsm.current_state
+
     @property
     def is_moore(self):
         return self.__fsm.is_moore()
@@ -54,6 +61,9 @@ class FSM:
     @is_moore.setter
     def is_moore(self, value):
         self.__fsm.set_moore(value)
+
+    def set_reset_high(self, value: bool):
+        self.__fsm.set_reset_high(value)
 
 
 class FSMState:

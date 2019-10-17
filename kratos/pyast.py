@@ -578,6 +578,8 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         blk_type = CodeBlockType.Sequential
         raw_sensitivity = call_obj.args
         result = []
+        # TODO: fix me. the frame num calculation is a hack
+        local = get_frame_local(4)
         for entry in raw_sensitivity:
             assert len(entry.elts) == 2
             edge_node, signal_name_node = entry.elts
@@ -586,7 +588,15 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
             else:
                 edge_type = edge_node.attr
             edge_type = edge_type.capitalize()
-            signal_name = signal_name_node.s
+            if isinstance(signal_name_node, ast.Name):
+                name = signal_name_node.id
+                assert name in local, "{0} not found".format(name)
+                n = eval(name, local)
+                assert isinstance(n, _kratos.Var),\
+                    "{0} is not a variable".format(name)
+                signal_name = str(n)
+            else:
+                signal_name = signal_name_node.s
             result.append((edge_type, signal_name))
         return blk_type, result
 

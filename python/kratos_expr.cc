@@ -386,7 +386,8 @@ void init_expr(py::module &m) {
         }
     });
 
-    auto port_packed = py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Var>(m, "PortPackedStruct");
+    auto port_packed =
+        py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Var>(m, "PortPackedStruct");
     port_packed.def("port_direction", &PortPackedStruct::port_direction)
         .def("port_type", &PortPackedStruct::port_type)
         .def(
@@ -395,7 +396,8 @@ void init_expr(py::module &m) {
             py::return_value_policy::reference)
         .def("member_names", &PortPackedStruct::member_names);
 
-    auto var_packed = py::class_<VarPackedStruct, ::shared_ptr<VarPackedStruct>, Var>(m, "VarPackedStruct");
+    auto var_packed =
+        py::class_<VarPackedStruct, ::shared_ptr<VarPackedStruct>, Var>(m, "VarPackedStruct");
     var_packed
         .def(
             "__getitem__",
@@ -430,10 +432,19 @@ void init_expr(py::module &m) {
         cond.generator->add_expr(expr);
         return expr;
     });
+
+    py::class_<EnumVar, ::shared_ptr<EnumVar>, Var>(m, "EnumVar")
+        .def("enum_type", &EnumVar::enum_type);
+
+    py::class_<EnumConst, ::shared_ptr<EnumConst>, Var>(m, "EnumConst");
 }
 
 void init_enum_type(py::module &m) {
     using namespace kratos;
     auto enum_ = py::class_<Enum, std::shared_ptr<Enum>>(m, "Enum");
-    enum_.def_readonly("name", &Enum::name);
+    enum_.def_readonly("name", &Enum::name)
+        .def("__getitem__",
+             [](Enum &enum_, const std::string &name) { return enum_.get_enum(name); })
+        .def("__getattr__",
+             [](Enum &enum_, const std::string &name) { return enum_.get_enum(name); });
 }

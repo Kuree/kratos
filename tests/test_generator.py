@@ -1313,5 +1313,36 @@ def test_create_stub():
     check_file(create_stub(mod, verilog95_def=True), "test_create_stub_95.sv")
 
 
+def test_fsm_state():
+    from kratos import negedge
+    mod = Generator("mod", debug=True)
+    out_ = mod.output("out", 2)
+    in_ = mod.input("in", 2)
+    # fsm requires a clk and async rst
+    clk = mod.clock("clk")
+    rst = mod.reset("rst")
+    # add a dummy fsm
+    fsm = mod.add_fsm("Color", reset_high=False)
+    # setup FSM
+    setup_fsm(fsm, out_, in_)
+    # realize fsm now
+    fsm.realize()
+    current_state = fsm.current_state
+    # create an enum var based on current_state
+    state_enum = current_state.enum_type()
+    t = mod.enum_var("s", state_enum)
+    c = mod.var("counter", 1)
+
+    @always((posedge, clk), (negedge, rst))
+    def counter():
+        if rst.r_not():
+            c = 0
+        elif t == state_enum.Red:
+            c = c + 1
+
+    mod.add_code(counter)
+    check_gold(mod, "test_fsm_state")
+
+
 if __name__ == "__main__":
-    test_create_stub()
+    test_fsm_state()

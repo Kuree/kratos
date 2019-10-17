@@ -38,7 +38,12 @@ void init_fsm(py::module &m) {
         .def("set_moore", &FSM::set_moore)
         .def("is_moore", &FSM::is_moore)
         .def("add_child_fsm", &FSM::add_child_fsm)
-        .def("get_all_child_fsm", &FSM::get_all_child_fsm);
+        .def("get_all_child_fsm", &FSM::get_all_child_fsm)
+        .def_property_readonly("current_state", &FSM::current_state_var,
+                               // don't want Python to free it
+                               py::return_value_policy::reference)
+        .def("realize", &FSM::realize)
+        .def("set_reset_high", &FSM::set_reset_high);
 
     py::class_<FSMState, std::shared_ptr<FSMState>>(m, "FSMState")
         .def("next",
