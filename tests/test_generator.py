@@ -1330,14 +1330,16 @@ def test_fsm_state():
     current_state = fsm.current_state
     # create an enum var based on current_state
     state_enum = current_state.enum_type()
-    t = mod.enum_var("s", state_enum)
+    # can create a variable from the enum definition
+    # notice that variable s will be optimized away if not used
+    s = mod.enum_var("s", state_enum)
     c = mod.var("counter", 1)
 
     @always((posedge, clk), (negedge, rst))
     def counter():
         if rst.r_not():
             c = 0
-        elif t == state_enum.Red:
+        elif current_state == state_enum.Red:
             c = c + 1
 
     mod.add_code(counter)

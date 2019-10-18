@@ -12,7 +12,6 @@ typedef enum logic {
 Color_state   Color_current_state;
 Color_state   Color_next_state;
 logic   counter;
-Color_state   s;
 
 always_ff @(posedge clk, negedge rst) begin
   if (!rst) begin
@@ -50,7 +49,7 @@ always_ff @(posedge clk, negedge rst) begin
   if (!rst) begin
     counter <= 1'h0;
   end
-  else if (s == Red) begin
+  else if (Color_current_state == Red) begin
     counter <= counter + 1'h1;
   end
 end

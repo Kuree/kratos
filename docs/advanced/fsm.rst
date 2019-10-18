@@ -152,24 +152,26 @@ use the enum type to create your variable. An example is shown below:
     current_state = fsm.current_state
     # create an enum var based on current_state
     state_enum = current_state.enum_type()
-    t = mod.enum_var("s", state_enum)
+    # can create a variable from the enum definition
+    # notice that variable s will be optimized away if not used
+    s = mod.enum_var("s", state_enum)
     c = mod.var("counter", 1)
 
     @always((posedge, clk), (negedge, rst))
     def counter():
         if rst.r_not():
             c = 0
-        elif t == state_enum.Red:
+        elif current_state == state_enum.Red:
             c = c + 1
 
     mod.add_code(counter)
 
 In the example, we realize the FSM and then obtain the current state variable.
-We can get the enum type by calling ``current_state.enum_type()``. Then, we
-can create the enum variable ``t`` using ``[gen/self].enum_var()`` function
-call by specifying name and enum type. After that, you can use the enum
-variable when comparing with the enum values defined by your FSM. You can
-use `.` notation to access the enum value from the enum types.
+We can get the enum type by calling ``current_state.enum_type()``. After that,
+you can use the enum variable when comparing with the enum values defined by
+your FSM. You can use `.` notation to access the enum value from the enum
+types. Notice that you can use the ``state_enum``, which is an enum type to
+create enum variable with that type.
 
 .. warning::
 
