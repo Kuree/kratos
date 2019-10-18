@@ -372,7 +372,7 @@ void DebugDatabase::save_database(const std::string &filename) {
     std::unordered_set<Var *> var_id_set;
     // function to create variable and flatten the hierarchy
     auto create_variable = [&](Var *var_, const int handle_id_, std::string name_,
-                               std::string value_, bool is_context_,
+                               const std::string &value_, bool is_context_,
                                uint32_t breakpoint_id_ = 0) {
         Variable v;
         v.is_var = var_ != nullptr;

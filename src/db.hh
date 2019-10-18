@@ -66,7 +66,7 @@ auto inline init_storage(const std::string &filename) {
         make_table("variable", make_column("id", &Variable::id, primary_key()),
                    make_column("handle", &Variable::handle), make_column("value", &Variable::value),
                    make_column("name", &Variable::name),
-                   make_column("is_var", &Variable::is_var),
+                   make_column("is_verilog_var", &Variable::is_var),
                    make_column("is_context", &Variable::is_context),
                    foreign_key(&Variable::handle).references(&Instance::id)),
         make_table("connection", make_column("handle_from", &Connection::handle_from),
