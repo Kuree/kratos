@@ -126,6 +126,7 @@ public:
 
     static void move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_connection);
     static void move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_connection);
+    virtual void move_linked_to(Var *new_var);
     virtual void add_sink(const std::shared_ptr<AssignStmt> &stmt) { sinks_.emplace(stmt); }
     virtual void add_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.emplace(stmt); }
     void add_concat_var(const std::shared_ptr<VarConcat> &var) { concat_vars_.emplace(var); }
@@ -216,6 +217,7 @@ public:
                                        AssignmentType type) override;
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void set_parent(Var* parent) { parent_var_ = parent; }
 
     std::string to_string() const override;
 

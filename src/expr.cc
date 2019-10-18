@@ -495,8 +495,7 @@ Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
 }
 
 void Const::set_is_packed(bool value) {
-    if (!value)
-        throw UserException("Unable to set const unpacked");
+    if (!value) throw UserException("Unable to set const unpacked");
 }
 
 std::unordered_set<std::shared_ptr<Const>> Const::consts_ = {};
@@ -788,8 +787,14 @@ void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_va
         change_var_expr(expr->right->as<Expr>(), target, new_var);
     }
 
-    if (expr->left == target) expr->left = new_var;
-    if (expr->right && expr->right == target) expr->right = new_var;
+    if (expr->left == target) {
+        expr->left = new_var;
+        expr->left->move_linked_to(new_var);
+    }
+    if (expr->right && expr->right == target) {
+        expr->right = new_var;
+        expr->right->move_linked_to(new_var);
+    }
 
     // need to change the parent as well
     if (expr->left->type() == VarType::Slice) {
@@ -798,8 +803,8 @@ void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_va
     if (expr->right && expr->right->type() == VarType::Slice) {
         set_var_parent(expr->right, target, new_var, false);
     }
+    // we did some tricks on the concatenation, need to update them there
     if (expr->op == ExprOp::Concat) {
-        // special treatment
         auto concat = expr->as<VarConcat>();
         concat->replace_var(target->shared_from_this(), new_var->shared_from_this());
     }
@@ -809,10 +814,12 @@ void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
     auto &right = stmt->right();
     if (right->type() == VarType::Base || right->type() == VarType::PortIO ||
         right->type() == VarType::ConstValue) {
-        if (right == target)
+        if (right == target) {
             stmt->set_right(new_var->shared_from_this());
-        else
+            right->move_linked_to(new_var);
+        } else {
             throw InternalException("Target not found");
+        }
     } else if (right->type() == VarType::Slice) {
         set_var_parent(right, target, new_var, true);
     } else if (right->type() == VarType::Expression) {
@@ -824,10 +831,12 @@ void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
     auto &left = stmt->left();
     if (left->type() == VarType::Base || left->type() == VarType::PortIO ||
         left->type() == VarType::ConstValue) {
-        if (left == target)
+        if (left == target) {
             stmt->set_left(new_var->shared_from_this());
-        else
+            left->move_linked_to(new_var);
+        } else {
             throw InternalException("Target not found");
+        }
     } else if (left->type() == VarType::Slice) {
         set_var_parent(left, target, new_var, true);
     } else if (left->type() == VarType::Expression) {
@@ -895,6 +904,50 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
         }
         parent->add_stmt(stmt);
     }
+}
+
+void Var::move_linked_to(kratos::Var *new_var) {
+    // this one doesn't do much checking
+    // user code code should check instead
+    if (new_var->width() != width()) {
+        throw VarException(::format("Try to move linked variable to a variable that "
+                                    "doesn't match width. Need {0}, got {1}",
+                                    width(), new_var->width()),
+                           {this, new_var});
+    }
+    if (new_var->is_signed() != is_signed()) {
+        throw VarException(::format("Try to move linked variable to a variable that "
+                                    "doesn't match sign. Need {0}, got {1}",
+                                    is_signed() ? "signed" : "unsigned",
+                                    new_var->is_signed() ? "signed" : "unsigned"),
+                           {this, new_var});
+    }
+    // move all references held in var to the new var
+    // and change the parents
+    for (auto &slice : slices_) {
+        slice->set_parent(new_var);
+    }
+    new_var->slices_ = std::set<std::shared_ptr<VarSlice>>(slices_.begin(), slices_.end());
+    slices_.clear();
+
+    // change concat'ed vars
+    // we use overloaded ones
+    for (auto &concat : concat_vars_) {
+        concat->move_linked_to(new_var);
+        printf("here\n");
+        concat->replace_var(shared_from_this(), new_var->shared_from_this());
+    }
+    new_var->concat_vars_ =
+        std::unordered_set<std::shared_ptr<VarConcat>>(concat_vars_.begin(), concat_vars_.end());
+    concat_vars_.clear();
+
+    // casted
+    for (auto &iter : casted_) {
+        auto var = iter.second;
+        var->set_parent(new_var);
+        new_var->casted_.emplace(iter);
+    }
+    casted_.clear();
 }
 
 void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
@@ -1040,8 +1093,7 @@ std::set<std::string> VarPackedStruct::member_names() const {
 }
 
 void VarPackedStruct::set_is_packed(bool value) {
-    if (!value)
-        throw UserException("Unable to set packed struct unpacked");
+    if (!value) throw UserException("Unable to set packed struct unpacked");
 }
 
 Enum::Enum(kratos::Generator *generator, std::string name,

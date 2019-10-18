@@ -237,3 +237,18 @@ TEST(expr, reduction) { // NOLINT
     EXPECT_EQ(b.width(), 1);
     EXPECT_EQ(b.to_string(), "|a");
 }
+
+TEST(expr, move_src) { // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 2);
+    auto &b = mod.var("b", 2);
+    auto &c = mod.var("c", 2);
+    auto &d = mod.var("d", 2);
+    auto stmt = a[0].assign(b[0]);
+    mod.add_stmt(stmt);
+    Var::move_src_to(&a, &c, &mod, false);
+    Var::move_sink_to(&b, &d, &mod, false);
+    EXPECT_EQ(stmt->left()->to_string(), "c[0]");
+    EXPECT_EQ(stmt->right()->to_string(), "d[0]");
+}
