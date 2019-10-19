@@ -4,7 +4,7 @@ import _kratos.exception
 
 
 def test_expr():
-    mod = Generator("module")
+    mod = Generator("mod")
     a = mod.var("a", 2)
     b = mod.var("b", 2)
     expr = a + b
@@ -12,7 +12,7 @@ def test_expr():
 
 
 def test_slice():
-    mod = Generator("module")
+    mod = Generator("mod")
     a = mod.var("a", 2)
     b = a[0]
     assert b.width == 1
@@ -22,7 +22,7 @@ def test_slice():
 
 
 def test_assign():
-    mod = Generator("module")
+    mod = Generator("mod")
     a = mod.var("a", 2)
     b = mod.var("b", 2)
     assign = a.assign(b)
@@ -31,21 +31,21 @@ def test_assign():
 
 
 def test_signed():
-    mod = Generator("module")
+    mod = Generator("mod")
     a = mod.var("a", 2)
     c = signed(a)
     assert str(c) == "signed'(a)"
 
 
 def test_unsigned():
-    mod = Generator("module")
+    mod = Generator("mod")
     a = mod.var("a", 2, is_signed=True)
     c = unsigned(a)
     assert str(c) == "unsigned'(a)"
 
 
 def test_reduce_or():
-    mod = Generator("module")
+    mod = Generator("mod")
     a = mod.var("a", 2)
     b = mod.var("b", 2)
     expr = reduce_or(a, b)
@@ -61,7 +61,7 @@ def test_const():
 
 
 def test_width():
-    mod = Generator("module", True)
+    mod = Generator("mod", True)
     a = mod.var("a", 1)
     a.width = 2
     file_names = list(a.fn_name_ln)

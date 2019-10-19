@@ -28,14 +28,14 @@ TEST(generator, load) {  // NOLINT
 
 TEST(generator, port) {  // NOLINT
     Context c;
-    auto &mod = c.generator("module");
+    auto &mod = c.generator("mod");
     mod.port(PortDirection::In, "in", 1);
     mod.port(PortDirection::Out, "out", 1);
 }
 
 TEST(generator, rename_var) {  // NOLINT
     Context c;
-    auto &mod = c.generator("module");
+    auto &mod = c.generator("mod");
     auto &a = mod.var("a", 2);
     auto &b = mod.var("b", 2);
     auto &d = mod.var("d", 1);
@@ -49,7 +49,7 @@ TEST(generator, rename_var) {  // NOLINT
 
 TEST(generator, remove_stmt) {  // NOLINT
     Context c;
-    auto &mod = c.generator("module");
+    auto &mod = c.generator("mod");
     auto &a = mod.var("a", 2);
     auto &b = mod.var("b", 2);
     auto stmt = a.assign(b);
@@ -79,7 +79,7 @@ TEST(generator, param) {  // NOLINT
 
 TEST(pass, assignment_fix) {  // NOLINT
     Context c;
-    auto &mod = c.generator("module");
+    auto &mod = c.generator("mod");
     auto &port1 = mod.port(PortDirection::In, "in", 1);
     auto &port2 = mod.port(PortDirection::Out, "out", 1);
 
@@ -91,7 +91,7 @@ TEST(pass, assignment_fix) {  // NOLINT
 
 TEST(pass, unused_var) {  // NOLINT
     Context c;
-    auto &mod = c.generator("module");
+    auto &mod = c.generator("mod");
     auto &port1 = mod.port(PortDirection::In, "in", 1);
     auto &port2 = mod.port(PortDirection::Out, "out", 1);
     auto &var1 = mod.var("c", 1);
@@ -773,7 +773,7 @@ TEST(generator, non_synthesizable) {  // NOLINT
 
 TEST(generator, latch) {  // NOLINT
     Context c;
-    auto &mod = c.generator("module");
+    auto &mod = c.generator("mod");
     auto &in = mod.port(PortDirection::In, "in", 2);
     auto &out = mod.port(PortDirection::Out, "out", 1);
     auto &out2 = mod.port(PortDirection::Out, "out2", 1);
@@ -796,7 +796,7 @@ TEST(generator, latch) {  // NOLINT
 
 TEST(generator, latch_rst) {  // NOLINT
     Context c;
-    auto &mod = c.generator("module");
+    auto &mod = c.generator("mod");
     auto &in = mod.port(PortDirection::In, "in", 1);
     auto &out = mod.port(PortDirection::Out, "out", 1);
     auto &clk = mod.port(PortDirection::In, "clk", 1, 1, PortType::Clock, false);

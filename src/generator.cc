@@ -8,6 +8,7 @@
 #include "fsm.hh"
 #include "stmt.hh"
 #include "util.hh"
+#include "syntax.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -57,6 +58,13 @@ Generator Generator::from_verilog(Context *context, const std::string &src_file,
     }
 
     return mod;
+}
+
+Generator::Generator(kratos::Context *context, const std::string &name)
+    : IRNode(IRNodeKind::GeneratorKind), name(name), instance_name(name), context_(context) {
+    if (!is_valid_variable_name(name)) {
+        throw UserException(::format("{0} is a SystemVerilog keyword", name));
+    }
 }
 
 Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size) {

@@ -22,8 +22,7 @@ public:
                                   const std::vector<std::string> &lib_files,
                                   const std::map<std::string, PortType> &port_types);
 
-    Generator(Context *context, const std::string &name)
-        : IRNode(IRNodeKind::GeneratorKind), name(name), instance_name(name), context_(context) {}
+    Generator(Context *context, const std::string &name);
 
     Var &var(const std::string &var_name, uint32_t width, uint32_t size);
     Var &var(const std::string &var_name, uint32_t width) { return var(var_name, width, 1); }
