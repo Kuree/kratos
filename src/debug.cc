@@ -329,7 +329,6 @@ std::unordered_map<uint32_t, Generator *> build_id_map(
 
 void DebugDatabase::save_database(const std::string &filename) {
     auto storage = init_storage(filename);
-
     storage.sync_schema();
     // insert tables
     // use transaction to speed up
@@ -448,7 +447,6 @@ void DebugDatabase::save_database(const std::string &filename) {
             add_context();
         }
     };
-
     for (auto const &[handle_name, gen_map] : variable_mapping_) {
         auto const &[gen, vars] = gen_map;
         if (gen_id_map.find(gen) == gen_id_map.end())

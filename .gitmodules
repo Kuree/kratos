@@ -12,7 +12,7 @@
 	url = https://github.com/Kuree/cxxpool
 [submodule "extern/sqlite_orm"]
 	path = extern/sqlite_orm
-	url = https://github.com/fnc12/sqlite_orm
+	url = https://github.com/Kuree/sqlite_orm
 [submodule "extern/sqlite"]
 	path = extern/sqlite
 	url = https://github.com/Kuree/sqlite

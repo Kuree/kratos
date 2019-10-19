@@ -451,11 +451,11 @@ class Generator(metaclass=GeneratorMeta):
     def internal_generator(self):
         return self.__generator
 
-    def add_code(self, fn, comment="", label=""):
+    def add_code(self, fn, comment="", label="", fn_ln=None):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_code, [fn, comment]))
             return
-        block_type, raw_sensitives, stmts = transform_stmt_block(self, fn)
+        block_type, raw_sensitives, stmts = transform_stmt_block(self, fn, fn_ln)
         if block_type == CodeBlockType.Combinational:
             # it's a combinational block
             comb = CombinationalCodeBlock(self)

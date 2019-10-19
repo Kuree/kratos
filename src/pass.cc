@@ -1066,7 +1066,11 @@ void check_active_high(Generator* top) {
 
 class TransformIfCase : public IRVisitor {
 public:
-    void visit(CombinationalStmtBlock* stmts) override {
+    void visit(CombinationalStmtBlock* stmts) override { transform_block(stmts); }
+    void visit(SequentialStmtBlock* stmts) override { transform_block(stmts); }
+
+private:
+    void static transform_block(StmtBlock* stmts) {
         for (uint64_t i = 0; i < stmts->child_count(); i++) {
             auto stmt = reinterpret_cast<Stmt*>(stmts->get_child(i));
             Var* target = nullptr;
@@ -1077,9 +1081,6 @@ public:
             }
         }
     }
-    void visit(SequentialStmtBlock*) override {}
-
-private:
     bool static has_target_if(Stmt* stmt, Var*& var,
                               std::unordered_set<std::shared_ptr<Stmt>>& if_stmts) {
         // keep track of which statement are used later to transform into switch statement
@@ -1124,6 +1125,8 @@ private:
         std::shared_ptr<SwitchStmt> switch_ =
             std::make_shared<SwitchStmt>(target->shared_from_this());
         if (target->generator->debug) {
+            switch_->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
+                stmt->fn_name_ln.begin(), stmt->fn_name_ln.end());
             switch_->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
 

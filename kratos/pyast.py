@@ -436,7 +436,7 @@ class CodeBlockType(enum.Enum):
     Initial = enum.auto()
 
 
-def transform_stmt_block(generator, fn):
+def transform_stmt_block(generator, fn, fn_ln=None):
     fn_src = inspect.getsource(fn)
     fn_name = fn.__name__
     func_tree = ast.parse(textwrap.dedent(fn_src))
@@ -465,8 +465,8 @@ def transform_stmt_block(generator, fn):
     # transform the statement list
     # if in debug mode, we trace the filename
     if debug:
-        filename = get_fn(fn)
-        ln = get_ln(fn)
+        filename = get_fn(fn) if fn_ln is None else fn_ln[0]
+        ln = get_ln(fn) if fn_ln is None else fn_ln[1]
     else:
         filename = ""
         ln = 0

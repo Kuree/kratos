@@ -8,7 +8,6 @@
 
 using fmt::format;
 using std::move;
-using std::runtime_error;
 
 namespace kratos {
 
@@ -26,7 +25,8 @@ Generator *Stmt::generator_parent() const {
         }
     }
     if (!p || p->ir_node_kind() != IRNodeKind::GeneratorKind) {
-        throw ::runtime_error("Internal Error: cannot find parent for stmt");
+        throw StmtException("Internal Error: cannot find parent for stmt",
+                            {const_cast<Stmt *>(this)});
     }
     return dynamic_cast<Generator *>(p);
 }
@@ -208,7 +208,10 @@ void StmtBlock::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
 }
 
 void StmtBlock::set_child(uint64_t index, const std::shared_ptr<Stmt> &stmt) {
-    if (index < stmts_.size()) stmts_[index] = stmt;
+    if (index < stmts_.size()) {
+        stmts_[index] = stmt;
+        stmt->set_parent(this);
+    }
 }
 
 void StmtBlock::add_scope_variable(const std::string &name, const std::string &value, bool is_var,
@@ -246,7 +249,9 @@ ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switc
                                              const std::shared_ptr<Stmt> &stmt) {
     stmt->set_parent(this);
     if (body_.find(switch_case) == body_.end()) {
-        body_.emplace(switch_case, std::make_shared<ScopedStmtBlock>());
+        auto block = std::make_shared<ScopedStmtBlock>();
+        block->set_parent(this);
+        body_.emplace(switch_case, block);
     }
     if (stmt->type() == StatementType::Block) {
         // merge the block
