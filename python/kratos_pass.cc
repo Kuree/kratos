@@ -55,7 +55,8 @@ void init_pass(py::module &m) {
         .def("extract_debug_break_points", &extract_debug_break_points)
         .def("insert_verilator_public", &insert_verilator_public)
         .def("remove_assertion", &remove_assertion)
-        .def("check_inferred_latch", &check_inferred_latch);
+        .def("check_inferred_latch", &check_inferred_latch)
+        .def("find_driver_signal", &find_driver_signal);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
 This class gives you the fined control over which pass to run and in which order.

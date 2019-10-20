@@ -18,6 +18,7 @@ void inject_clock_break_points(Generator *top, const std::shared_ptr<Port> &port
 void inject_assert_fail_exception(Generator *top);
 void remove_assertion(Generator *top);
 void convert_continuous_stmt(Generator *top);
+std::unordered_map<Var*, std::unordered_set<Var*>> find_driver_signal(Generator *top);
 
 // for verilator
 void insert_verilator_public(Generator *top);

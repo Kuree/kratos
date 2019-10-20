@@ -217,7 +217,7 @@ public:
                                        AssignmentType type) override;
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
-    void set_parent(Var* parent) { parent_var_ = parent; }
+    void set_parent(Var *parent) { parent_var_ = parent; }
 
     std::string to_string() const override;
 
@@ -252,6 +252,9 @@ public:
 
     uint32_t var_high() { return var_high_; }
     uint32_t var_low() { return var_low_; }
+
+    uint64_t child_count() override { return 1; }
+    IRNode *get_child(uint64_t index) override { return index == 0 ? parent_var : nullptr; }
 
     std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override {
         return var->operator[](op_).shared_from_this();
@@ -332,19 +335,19 @@ public:
 
     std::string inline value_str() const { return Const::to_string(); }
 
-    const std::unordered_set<Var*> &param_vars() const { return param_vars_; }
+    const std::unordered_set<Var *> &param_vars() const { return param_vars_; }
     void add_param_var(Var *var) { param_vars_.emplace(var); }
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);
 
-    const Param* parent_param() const { return parent_param_; }
+    const Param *parent_param() const { return parent_param_; }
 
 private:
     std::string parameter_name_;
 
-    std::unordered_set<Var*> param_vars_;
-    std::unordered_set<Param*> param_params_;
-    Param* parent_param_ = nullptr;
+    std::unordered_set<Var *> param_vars_;
+    std::unordered_set<Param *> param_params_;
+    Param *parent_param_ = nullptr;
 };
 
 struct PackedStruct {
@@ -404,8 +407,8 @@ private:
 struct Expr : public Var {
 public:
     ExprOp op;
-    Var* left;
-    Var* right;
+    Var *left;
+    Var *right;
 
     Expr(ExprOp op, Var *left, Var *right);
     std::string to_string() const override;
@@ -436,10 +439,15 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
-    std::vector<Var*> &vars() { return vars_; }
+    std::vector<Var *> &vars() { return vars_; }
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
     VarConcat &concat(Var &var) override;
+
+    uint64_t child_count() override { return vars_.size(); }
+    IRNode *get_child(uint64_t index) override {
+        return index < vars_.size() ? vars_[index] : nullptr;
+    }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
@@ -448,7 +456,7 @@ public:
     std::string handle_name(Generator *scope) const override;
 
 private:
-    std::vector<Var*> vars_;
+    std::vector<Var *> vars_;
 };
 
 struct ConditionalExpr : public Expr {
@@ -461,7 +469,7 @@ struct ConditionalExpr : public Expr {
     std::string handle_name(bool ignore_top) const override;
     std::string handle_name(Generator *scope) const override;
 
-    Var* condition;
+    Var *condition;
 };
 
 struct EnumConst : public Const {

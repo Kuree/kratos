@@ -138,6 +138,48 @@ void insert_verilator_public(Generator *top) {
     visitor.visit_root(top);
 }
 
+class VarSourceVisitor: public IRVisitor {
+public:
+    void visit(Var *var) override {
+        if (map_.find(var) != map_.end()) return;
+        auto const &sources = var->sources();
+        for (auto const &stmt: sources) {
+            auto right = stmt->right();
+            get_source_var(right, map_[var]);
+        }
+    }
+
+    const std::unordered_map<Var*, std::unordered_set<Var*>> &map() const { return map_; }
+
+private:
+    std::unordered_map<Var*, std::unordered_set<Var*>> map_;
+
+    class VarComponentVisitor: public IRVisitor {
+    public:
+        std::unordered_set<Var*> &vars() { return vars_; };
+        void visit(Var *var) override {
+            if (var->type() == VarType::Base) {
+                vars_.emplace(var);
+            }
+        }
+    private:
+        std::unordered_set<Var*> vars_;
+    };
+
+    void static get_source_var(const Var *var, std::unordered_set<Var*> &set) {
+        if (var->type() == VarType::ConstValue || var->type() == VarType::Parameter) return;
+        VarComponentVisitor visitor;
+        visitor.visit_root(const_cast<Var*>(var));
+        set.merge(visitor.vars());
+    }
+};
+
+std::unordered_map<Var*, std::unordered_set<Var*>> find_driver_signal(Generator *top) {
+    VarSourceVisitor visitor;
+    visitor.visit_root(top);
+    return visitor.map();
+}
+
 void DebugDatabase::set_break_points(Generator *top) { set_break_points(top, ".py"); }
 
 void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {

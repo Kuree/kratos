@@ -1,8 +1,9 @@
+#include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
 #include "../src/stmt.hh"
+#include "../src/debug.hh"
 #include "gtest/gtest.h"
-#include "../src/except.hh"
 
 using namespace kratos;
 
@@ -184,24 +185,23 @@ TEST(expr, slice_by_var) {  // NOLINT
     EXPECT_EQ(slice.to_string(), "a[b]");
 }
 
-TEST(expr, keyword) {   // NOLINT
+TEST(expr, keyword) {  // NOLINT
     Context c;
     auto mod = c.generator("mod");
 
     EXPECT_THROW(mod.var("var", 1), UserException);
 }
 
-TEST(expr, handle_name) {   // NOLINT
+TEST(expr, handle_name) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("mod1");
     auto &mod2 = c.generator("mod2");
     mod1.add_child_generator("mod", mod2.shared_from_this());
     auto &var = mod2.var("var_", 1);
     EXPECT_EQ(var.handle_name(), "mod1.mod.var_");
-
 }
 
-TEST(expr, param_width) {   // NOLINT
+TEST(expr, param_width) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod1");
     auto &param = mod.parameter("WIDTH", 4);
@@ -211,7 +211,7 @@ TEST(expr, param_width) {   // NOLINT
     EXPECT_EQ(p.width(), 4);
 }
 
-TEST(expr, handle_name_gen) {   // NOLINT
+TEST(expr, handle_name_gen) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("mod1");
     auto &mod2 = c.generator("mod2");
@@ -229,7 +229,7 @@ TEST(expr, invert_slice) {  // NOLINT
     EXPECT_EQ(b.to_string(), "~a[1]");
 }
 
-TEST(expr, reduction) { // NOLINT
+TEST(expr, reduction) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &a = mod.var("a", 2);
@@ -238,7 +238,7 @@ TEST(expr, reduction) { // NOLINT
     EXPECT_EQ(b.to_string(), "|a");
 }
 
-TEST(expr, move_src) { // NOLINT
+TEST(expr, move_src) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 2);
@@ -251,4 +251,25 @@ TEST(expr, move_src) { // NOLINT
     Var::move_sink_to(&b, &d, &mod, false);
     EXPECT_EQ(stmt->left()->to_string(), "c[0]");
     EXPECT_EQ(stmt->right()->to_string(), "d[0]");
+}
+
+TEST(expr, extract_source) {  // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 8);
+    auto &b = mod.var("b", 2);
+    auto &c = mod.var("c", 2);
+    auto &d = mod.var("d", 2);
+    auto &e = mod.var("e", 2);
+    auto &f = mod.var("f", 4);
+    mod.add_stmt(a.assign(b.concat(c).concat(d).concat(e + d)));
+    mod.add_stmt(f.assign(c.concat(e + d[0].concat(d[1]))));
+    auto result = find_driver_signal(&mod);
+    EXPECT_EQ(result.size(), 2);
+    EXPECT_TRUE(result.find(&a) != result.end());
+    auto sources = result.at(&a);
+    EXPECT_EQ(sources.size(), 4);
+    EXPECT_TRUE(result.find(&f) != result.end());
+    sources = result.at(&f);
+    EXPECT_EQ(sources.size(), 3);
 }
