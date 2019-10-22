@@ -1346,5 +1346,21 @@ def test_fsm_state():
     check_gold(mod, "test_fsm_state")
 
 
+def test_not_if():
+    mod = Generator("mod")
+    a = mod.output("a", 1)
+    clk = mod.clock("clk")
+    rst = mod.reset("rst", is_async=False)  # synchronous reset
+
+    @always((posedge, clk))
+    def code():
+        if not rst:
+            a = 1
+        else:
+            a = 0
+    mod.add_code(code)
+    check_gold(mod, "test_not_if")
+
+
 if __name__ == "__main__":
-    test_fsm_state()
+    test_not_if()

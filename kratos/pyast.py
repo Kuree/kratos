@@ -83,7 +83,22 @@ class IfNodeVisitor(ast.NodeTransformer):
         self.local["self"] = self.generator
 
     def __change_if_predicate(self, node):
-        if not isinstance(node, ast.Compare):
+        if isinstance(node, ast.UnaryOp):
+            # notice that if the user uses `not var`, due to Python
+            # implementation, it will return True/False, we need to
+            # change that into r_not call
+            if isinstance(node.op, ast.Not):
+                target = node.operand
+                target_src = astor.to_source(target)
+                target_eval = eval(target_src, self.local)
+                if isinstance(target_eval, _kratos.Var):
+                    return ast.Call(func=ast.Attribute(value=target,
+                                                       attr="r_not",
+                                                       cts=ast.Load()),
+                                    args=[], keywords=[], ctx=ast.Load())
+            else:
+                return node
+        elif not isinstance(node, ast.Compare):
             return node
         op = node.ops[0]
         if not isinstance(op, ast.Eq):
@@ -99,6 +114,7 @@ class IfNodeVisitor(ast.NodeTransformer):
                             args=node.comparators,
                             keywords=[],
                             ctx=ast.Load)
+        return node
 
     def visit_If(self, node: ast.If):
         predicate = node.test
