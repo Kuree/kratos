@@ -165,6 +165,40 @@ function call and set the ``size`` to the array size that's greater than
   checking in downstream tools. However, users can override this by setting
   ``packed=True`` during the variable or port construction.
 
+Enums
+-----
+
+Enums are type-checked and compiled directly into SystemVerilog ``enum``
+directly. Currently are limited to generate scope and cannot be shared
+across different generators. This many change in the future.
+
+To use enum, first you need to define an enum definition, then you create
+enum variables based on the enum definition. You can only assign enum
+values to these enum variables:
+
+.. code-block:: Python
+
+     mod = Generator("mod")
+     state = mod.enum("STATE", {"IDLE": 0, "READY": 1})
+     v = mod.enum_var("v", state)
+     mod.add_stmt(v.assign(state.IDLE))
+
+This gives us:
+
+.. code-block:: SystemVerilog
+
+     module mod (
+     );
+
+     typedef enum logic {
+       IDLE = 1'h0,
+       READY = 1'h1
+     } STATE;
+     STATE   v;
+     assign v = IDLE;
+     endmodule   // mod
+
+
 Child generators
 ================
 

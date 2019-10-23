@@ -1,7 +1,7 @@
 import enum
 from .pyast import transform_stmt_block, CodeBlockType, add_scope_context, \
     get_frame_local
-from .util import get_fn_ln
+from .util import get_fn_ln, clog2
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
@@ -427,7 +427,9 @@ class Generator(metaclass=GeneratorMeta):
             param.add_fn_ln((fn, ln))
         return param
 
-    def enum(self, name: str, values: Dict[str, int], width):
+    def enum(self, name: str, values: Dict[str, int], width=None):
+        if width is None:
+            width = clog2(len(values))
         return self.__generator.enum(name, values, width)
 
     def enum_var(self, name: str, def_: _kratos.Enum):
