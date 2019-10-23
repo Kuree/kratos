@@ -64,6 +64,21 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
             },
             py::return_value_policy::reference)  // NOLINT
         .def(
+            "__truediv__",
+            [](const int64_t &left, Var &right) -> Expr & {
+                return convert_int_to_const(left, right) / right;
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__truediv__", [](const Var &left, const Var &right) -> Expr & { return left / right; },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
+            "__truediv__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return left / convert_int_to_const(left, right);
+            },
+            py::return_value_policy::reference)  // NOLINT
+        .def(
             "__mul__",
             [](const int64_t &left, Var &right) -> Expr & {
                 return convert_int_to_const(left, right) * right;

@@ -2097,9 +2097,8 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
             auto enum_def = enum_var->enum_type();
             targeted_cases = enum_def->values.size();
         } else {
-            targeted_cases = 1u << stmt_->target()->size();
+            targeted_cases = 1u << stmt_->target()->width();
         }
-
         if (full_branch) {
             return cases.find(nullptr) != cases.end() || found_case == targeted_cases;
         } else {
