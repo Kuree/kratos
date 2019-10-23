@@ -1,6 +1,6 @@
 from kratos import Generator, PortDirection, PortType, always, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute, zext, posedge, PortBundle, const, comment,\
+    PackedStruct, Port, Attribute, ext, posedge, PortBundle, const, comment,\
     enable_runtime_debug
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
@@ -652,7 +652,7 @@ def test_zero_ext():
     mod = Generator("mod", debug=True)
     out_ = mod.port("out", 2, PortDirection.Out)
     in_ = mod.port("in", 1, PortDirection.In)
-    mod.wire(out_, zext(in_, 2))
+    mod.wire(out_, ext(in_, 2))
 
     mod_src = verilog(mod)
     is_valid_verilog(mod_src)

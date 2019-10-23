@@ -45,11 +45,13 @@ enum ExprOp : uint64_t {
     Conditional,
 
     // special
-    Concat
+    Concat,
+    Extend
 };
 
 bool is_relational_op(ExprOp op);
 bool is_reduction_op(ExprOp op);
+bool is_expand_op(ExprOp op);
 
 enum VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted };
 
@@ -103,6 +105,8 @@ public:
     virtual VarSlice &operator[](const std::shared_ptr<Var> &var);
     // concat
     virtual VarConcat &concat(Var &var);
+    // extend
+    virtual VarExtend &extend(uint32_t width);
 
     std::shared_ptr<Var> cast(VarCastType cast_type);
 
@@ -206,6 +210,7 @@ private:
     std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
 
     std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
+    std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> extended_;
 
     bool is_packed_ = false;
 };
@@ -457,6 +462,23 @@ public:
 
 private:
     std::vector<Var *> vars_;
+};
+
+struct VarExtend: public Expr {
+public:
+    VarExtend(const std::shared_ptr<Var> &var, uint32_t width);
+
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+    void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
+
+    uint64_t child_count() override { return 1; }
+    IRNode *get_child(uint64_t index) override { return index == 0? parent_: nullptr; }
+
+    std::string to_string() const override;
+
+private:
+    Var* parent_;
 };
 
 struct ConditionalExpr : public Expr {

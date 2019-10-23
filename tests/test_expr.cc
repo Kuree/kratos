@@ -273,3 +273,8 @@ TEST(expr, extract_source) {  // NOLINT
     sources = result.at(&f);
     EXPECT_EQ(sources.size(), 3);
 }
+
+TEST(expr, extend) {    // NOLINT
+    auto &a = constant(4, 4).extend(8);
+    EXPECT_EQ(a.to_string(), "8'(4'h4)");
+}

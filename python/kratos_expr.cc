@@ -293,6 +293,7 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("__call__", py::overload_cast<const shared_ptr<Var> &>(&Var::assign))
         .def("type", &Var::type)
         .def("concat", &Var::concat, py::return_value_policy::reference)
+        .def("extend", &Var::extend, py::return_value_policy::reference)
         .def_readwrite("name", &Var::name)
         .def_property(
             "width", [](Var &var) { return var.var_width(); },
@@ -437,6 +438,8 @@ void init_expr(py::module &m) {
         .def("enum_type", &EnumVar::enum_type);
 
     py::class_<EnumConst, ::shared_ptr<EnumConst>, Var>(m, "EnumConst");
+
+    py::class_<VarExtend, ::shared_ptr<VarExtend>, Var>(m, "VarExtend");
 }
 
 void init_enum_type(py::module &m) {

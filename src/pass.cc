@@ -152,14 +152,15 @@ private:
             auto width = var->width();
             bool is_relational = is_relational_op(expr->op);
             bool is_reduction = is_reduction_op(expr->op);
+            bool is_expand = is_expand_op(expr->op);
             if (!is_relational && !is_reduction && left->width() != width &&
-                expr->op != ExprOp::Concat) {
+                !is_expand) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             left->to_string(), left->width(), width),
                                    {var, left, stmt, left->param()});
             }
             if (!is_relational && !is_reduction && right && right->width() != width &&
-                expr->op != ExprOp::Concat) {
+                !is_expand) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             right->to_string(), right->width(), width),
                                    {var, right, stmt, right->param()});

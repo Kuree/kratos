@@ -86,14 +86,8 @@ def concat(*args):
     return expr
 
 
-def zext(var, width):
-    if var.width > width:
-        raise ValueError("Cannot extend {0}".format(var))
-    elif var.width == width:
-        return var
-    else:
-        diff = width - var.width
-        return const(0, diff, var.signed).concat(var)
+def ext(var, target_width):
+    return var.extend(target_width)
 
 
 def mux(cond, left, right):

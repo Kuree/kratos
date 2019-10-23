@@ -19,6 +19,7 @@ struct Const;
 struct Parameter;
 struct VarSlice;
 struct VarConcat;
+struct VarExtend;
 struct VarCasted;
 struct Port;
 struct PortBundleDefinition;

@@ -29,6 +29,11 @@ bool is_reduction_op(ExprOp op) {
     return ops.find(op) != ops.end();
 }
 
+bool is_expand_op(ExprOp op) {
+    static std::unordered_set<ExprOp> ops = {ExprOp::Concat, ExprOp::Extend};
+    return ops.find(op) != ops.end();
+}
+
 std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(
     const Var &var) const {
     auto left = const_cast<Var *>(this)->shared_from_this();
@@ -180,6 +185,16 @@ VarConcat &Var::concat(Var &var) {
     auto concat_ptr = std::make_shared<VarConcat>(shared_from_this(), ptr->shared_from_this());
     concat_vars_.emplace(concat_ptr);
     return *concat_ptr;
+}
+
+VarExtend& Var::extend(uint32_t width) {
+    if (extended_.find(width) != extended_.end()) {
+        return *extended_.at(width);
+    } else {
+        auto p = std::make_shared<VarExtend>(shared_from_this(), width);
+        extended_.emplace(width, p);
+        return *p;
+    }
 }
 
 std::string Var::to_string() const { return name; }
@@ -679,6 +694,41 @@ void VarConcat::replace_var(const std::shared_ptr<Var> &target, const std::share
     if (pos != vars_.end()) {
         *pos = item.get();
     }
+}
+
+VarExtend::VarExtend(const std::shared_ptr<Var> &var, uint32_t width)
+    : Expr(ExprOp::Extend, var.get(), nullptr), parent_(var.get()) {
+    if (width < parent_->width()) {
+        throw VarException(::format("Cannot extend {0} (width={1}) to {2}", parent_->to_string(),
+                                    parent_->width(), width),
+                           {parent_});
+    }
+    var_width_ = width;
+    is_signed_ = parent_->is_signed();
+    if (parent_->size() > 1 || (parent_->is_packed() && parent_->type() != VarType::ConstValue)) {
+        throw VarException(::format("Cannot extend an array ({0})", parent_->to_string()),
+                           {parent_});
+    }
+}
+
+void VarExtend::add_source(const std::shared_ptr<AssignStmt> &) {
+    throw StmtException(
+        ::format("Cannot add source to an extended variable ({0})", parent_->to_string()),
+        {parent_});
+}
+
+void VarExtend::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    parent_->add_sink(stmt);
+}
+
+void VarExtend::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
+    if (target.get() == parent_) {
+        parent_ = item.get();
+    }
+}
+
+std::string VarExtend::to_string() const {
+    return ::format("{0}'({1})", width(), parent_->to_string());
 }
 
 std::string Const::to_string() const {
