@@ -270,6 +270,16 @@ And the debug info shows all the information as well:
      8: [('/home/keyi/workspace/kratos/tests/test_generator.py', 563)],
      9: [('/home/keyi/workspace/kratos/tests/test_generator.py', 566), ('/home/keyi/workspace/kratos/src/expr.cc', 485)]}
 
+Use an IDE Debugger
+--------------
+
+.. image:: https://cdn.jsdelivr.net/gh/Kuree/kratos-vscode@master/images/demo.gif
+     :alt: demo
+
+Check out the kratos ecosystem below to see how to use an IDE to debug kratos design
+with ncsim/VCS!
+
+
 Ecosystem
 ---------
 
