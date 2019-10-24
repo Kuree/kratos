@@ -110,10 +110,6 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
 
     then_body_->set_parent(this);
     else_body_->set_parent(this);
-
-    // just to add the sinks
-    auto stmt = predicate_->generator->get_auxiliary_var(predicate_->width())->assign(predicate_);
-    stmt->set_parent(this);
 }
 
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
@@ -239,10 +235,6 @@ SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
     if (target->type() == VarType::ConstValue)
         throw StmtException(::format("switch target cannot be const value {0}", target->name),
                             {this, target.get()});
-
-    // just to add the sinks
-    auto stmt = target->generator->get_auxiliary_var(target->width())->assign(target);
-    stmt->set_parent(this);
 }
 
 ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
