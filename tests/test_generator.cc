@@ -956,3 +956,10 @@ TEST(pass, convert_wire_always_comb) {  // NOLINT
     EXPECT_EQ(block->block_type(), StatementBlockType::Combinational);
     EXPECT_EQ(block->get_stmt(0), assign);
 }
+
+TEST(enum_, duplicated_name) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    mod.enum_("E1", {{"A", 1}, {"B", 2}}, 2);
+    EXPECT_THROW(mod.enum_("E2", {{"A", 1}}, 1), UserException);
+}

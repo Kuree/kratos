@@ -7,8 +7,8 @@
 #include "fmt/format.h"
 #include "fsm.hh"
 #include "stmt.hh"
-#include "util.hh"
 #include "syntax.hh"
+#include "util.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -111,8 +111,7 @@ std::shared_ptr<Port> Generator::get_port(const std::string &port_name) const {
     return std::static_pointer_cast<Port>(var_p);
 }
 
-Expr &Generator::expr(ExprOp op, Var *left,
-                      Var *right) {
+Expr &Generator::expr(ExprOp op, Var *left, Var *right) {
     auto expr = std::make_shared<Expr>(op, left, right);
     exprs_.emplace(expr);
     return *expr;
@@ -134,6 +133,33 @@ Param &Generator::parameter(const std::string &parameter_name, uint32_t width, b
 Enum &Generator::enum_(const std::string &enum_name,
                        const std::map<std::string, uint64_t> &definition, uint32_t width) {
     auto p = std::make_shared<Enum>(this, enum_name, definition, width);
+    // check name conflicts
+    std::set<std::string> names;
+    std::set<std::string> used_names;
+    for (auto const &iter : definition) {
+        names.emplace(iter.first);
+    }
+    // find all enum definition used in the generator
+    // name mapping
+    std::unordered_map<std::string, Enum *> name_mapping;
+    for (auto const &iter : enums_) {
+        auto const &enum_ = iter.second;
+        auto const &values = enum_->values;
+        for (auto const &iter2 : values) {
+            used_names.emplace(iter2.first);
+            name_mapping.emplace(iter2.first, enum_.get());
+        }
+    }
+    // if there is an overlap/intersection
+    std::set<std::string> overlap;
+    std::set_intersection(names.begin(), names.end(), used_names.begin(), used_names.end(),
+                          std::inserter(overlap, overlap.begin()));
+    if (!overlap.empty()) {
+        // pick a random one, don't care
+        auto used_name = *overlap.begin();
+        auto const &enum_def = name_mapping.at(used_name);
+        throw UserException(::format("{0} has been used in {1}.{0}", used_name, enum_def->name));
+    }
     enums_.emplace(enum_name, p);
     return *p;
 }
@@ -506,8 +532,7 @@ std::shared_ptr<Stmt> Generator::wire_ports(std::shared_ptr<Port> &port1,
 
 std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Var> &var1,
                                                         const std::shared_ptr<Var> &var2) {
-    if (!var1 || !var2)
-        throw UserException("Variable cannot be null (None)");
+    if (!var1 || !var2) throw UserException("Variable cannot be null (None)");
     Var *root1 = var1.get();
     while (root1->type() == VarType::Slice) {
         auto var = dynamic_cast<VarSlice *>(root1);
@@ -584,7 +609,7 @@ void Generator::accept(IRVisitor *visitor) {
 }
 
 PortPackedStruct &Generator::port_packed(PortDirection direction, const std::string &port_name,
-                                   const PackedStruct &packed_struct_) {
+                                         const PackedStruct &packed_struct_) {
     if (ports_.find(port_name) != ports_.end())
         throw VarException(::format("{0} already exists in {1}", port_name, name),
                            {vars_.at(port_name).get()});
@@ -595,7 +620,7 @@ PortPackedStruct &Generator::port_packed(PortDirection direction, const std::str
 }
 
 VarPackedStruct &Generator::var_packed(const std::string &var_name,
-                                 const kratos::PackedStruct &packed_struct_) {
+                                       const kratos::PackedStruct &packed_struct_) {
     if (vars_.find(var_name) != vars_.end())
         throw VarException(::format("{0} already exists in {1}", var_name, name),
                            {vars_.at(var_name).get()});
@@ -697,8 +722,8 @@ std::vector<std::string> Generator::get_ports(kratos::PortType type) const {
     return result;
 }
 
-std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(
-    const std::string &port_name, const PortBundleDefinition& def) {
+std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(const std::string &port_name,
+                                                              const PortBundleDefinition &def) {
     if (port_bundle_mapping_.find(port_name) != port_bundle_mapping_.end())
         throw UserException(::format("{0} already exists in {1}", port_name, name));
     auto definition = def.definition();
