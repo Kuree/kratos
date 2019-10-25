@@ -1077,7 +1077,14 @@ private:
             std::unordered_set<std::shared_ptr<Stmt>> if_stmts;
             if (has_target_if(stmt, target, if_stmts)) {
                 auto switch_stmt = change_if_to_switch(stmt->as<IfStmt>(), if_stmts);
-                stmts->set_child(i, switch_stmt);
+                // we only replace it if it's fully specified or has default case
+                // this may seems to be inefficient through
+                // TODO: optimize the computation
+                auto const &body = switch_stmt->body();
+                uint64_t cases = body.size();
+                uint64_t expected_case = 1u << target->width();
+                if (cases >= expected_case || body.find(nullptr) != body.end())
+                    stmts->set_child(i, switch_stmt);
             }
         }
     }
