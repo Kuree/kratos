@@ -73,20 +73,32 @@ void init_stmt(py::module &m) {
         .def("block_type", &StmtBlock::block_type)
         .def("add_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&StmtBlock::add_stmt))
         .def("remove_stmt", &StmtBlock::remove_stmt)
-        .def("add_stmt", [](StmtBlock &stmt, const std::shared_ptr<FunctionCallVar> &var) {
-            // need to convert it into a function call statement
-            auto st = std::make_shared<FunctionCallStmt>(var);
-            stmt.add_stmt(st);
-        })
-        .def("__getitem__", [](StmtBlock &stmt, int index) {
-            if (stmt.empty()) {
-                throw UserException("Index of out range");
-            }
-            while (index < 0) {
-                index += stmt.size();
-            }
-            return stmt.get_stmt(index);
-        })
+        .def("add_stmt",
+             [](StmtBlock &stmt, const std::shared_ptr<FunctionCallVar> &var) {
+                 // need to convert it into a function call statement
+                 auto st = std::make_shared<FunctionCallStmt>(var);
+                 stmt.add_stmt(st);
+             })
+        .def("__getitem__",
+             [](StmtBlock &stmt, int index) {
+                 if (stmt.empty()) {
+                     throw UserException("Index of out range");
+                 }
+                 while (index < 0) {
+                     index += stmt.size();
+                 }
+                 return stmt.get_stmt(index);
+             })
+        .def("__setitem__",
+             [](StmtBlock &stmt, int index, const std::shared_ptr<Stmt> &value) {
+                 if (stmt.empty()) {
+                     throw UserException("Index of out range");
+                 }
+                 while (index < 0) {
+                     index += stmt.size();
+                 }
+                 stmt.set_child(index, value);
+             })
         .def("__len__", [](StmtBlock &stmt) { return stmt.size(); });
 
     py::class_<CombinationalStmtBlock, ::shared_ptr<CombinationalStmtBlock>, StmtBlock>(
@@ -133,11 +145,10 @@ void init_stmt(py::module &m) {
         .def(py::init<const std::string>());
     // help function
     m.def("comment", [](const std::string &comment) {
-        auto stmt = std::make_shared<CommentStmt>(comment);
+         auto stmt = std::make_shared<CommentStmt>(comment);
+         return stmt;
+     }).def("comment", [](const std::string &comment, uint32_t line_width) {
+        auto stmt = std::make_shared<CommentStmt>(comment, line_width);
         return stmt;
-    })
-    .def("comment", [](const std::string &comment, uint32_t line_width) {
-      auto stmt = std::make_shared<CommentStmt>(comment, line_width);
-      return stmt;
     });
 }
