@@ -282,6 +282,7 @@ TEST(pass, if_case) {  // NOLINT
     if_stmt->add_then_stmt(out.assign(constant(0, 3)));
     auto if_stmt2 = std::make_shared<IfStmt>(in.eq(constant(1, 3)));
     if_stmt2->add_then_stmt(out.assign(constant(1, 3)));
+    if_stmt2->add_else_stmt(out.assign(constant(0, 3)));
     if_stmt->add_else_stmt(if_stmt2);
     auto stmt_list = std::make_shared<CombinationalStmtBlock>();
     stmt_list->add_stmt(if_stmt);
@@ -291,7 +292,8 @@ TEST(pass, if_case) {  // NOLINT
     auto stmt = reinterpret_cast<Stmt *>(mod.get_child(0)->get_child(0));
     EXPECT_TRUE(stmt->type() == StatementType::Switch);
     auto switch_ = stmt->as<SwitchStmt>();
-    EXPECT_EQ(switch_->body().size(), 2);
+    EXPECT_EQ(switch_->body().size(), 3);
+    EXPECT_TRUE(switch_->body().find(nullptr) != switch_->body().end());
 
     fix_assignment_type(&mod);
     auto result = generate_verilog(&mod);
