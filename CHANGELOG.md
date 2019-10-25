@@ -5,6 +5,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.0.19] - 2019-10-25
+### Added
+- Add old verilog style module definition code gen (also stub)
+- Add comment node
+- Add pass to move top level assignemtn to always_comb
+- Add check for mixing packed/unpacked array
+- Add helper function in port bundle for creating clock and reset (#110)
+- Allow variable to be passed in always function
+- Allow users realize fsm during design and expose state and enum variable
+- Add a pass to find out signal drivers
+- Add support not in pyast
+- Add proper extension using SV syntax
+- Add detection for duplicated enum names (#114)
+- Add Python3.8 support
+- Add a pass to merge if statement
+
+### Changed
+- Change the how comment works in top level blocks
+- Change how packed variable works internally
+- `get_local()` is now implement in C++
+- Rename var/port packed  with packed struct
+- Generator names are now checked for keywords
+- if to case/switch only happens if it's fully specified or has trailing else (#115)
+
+### Fixed
+- Fix bug in port decoupling algorithm where variable meta doesn't get carried over
+- Fix linked variable move (#105)
+- Fix a bug where if predicate may not return a node in pyast
+
 ## [0.0.18.5] - 2019-10-14
 ### Added
 - Add a pass to produce a verilog stub that can be fed into ancient systems
