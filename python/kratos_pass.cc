@@ -56,6 +56,7 @@ void init_pass(py::module &m) {
         .def("insert_verilator_public", &insert_verilator_public)
         .def("remove_assertion", &remove_assertion)
         .def("check_inferred_latch", &check_inferred_latch)
+        .def("merge_if_block", &merge_if_block)
         .def("find_driver_signal", &find_driver_signal);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(

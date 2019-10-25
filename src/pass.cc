@@ -1181,7 +1181,7 @@ private:
                 // first pass to merge the if statements with the same constant value
                 // build index on the const values
                 std::unordered_map<int64_t, IfStmt*> mapping;
-                for (auto const &[stmt, const_]: stmts) {
+                for (const auto &[stmt, const_] : stmts) {
                     auto const_value = const_->value();
                     if (mapping.find(const_value) == mapping.end()) {
                         mapping.emplace(const_value, stmt.get());
@@ -1201,8 +1201,8 @@ private:
                 }
 
                 // second pass to nest the if statement
-                for (auto const &iter2: stmts) {
-                    auto const &stmt = iter2.first;
+                for (uint64_t i = 1; i < stmts.size(); i++) {
+                    auto const &stmt = stmts[i].first;
                     if (merged_if.find(stmt.get()) != merged_if.end()) {
                         continue;
                     }

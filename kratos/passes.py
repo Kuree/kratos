@@ -45,6 +45,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     if optimize_passthrough:
         pass_manager.add_pass("remove_pass_through_modules")
     if optimize_if:
+        pass_manager.add_pass("merge_if_block")
         pass_manager.add_pass("transform_if_to_case")
     # fsm elaboration has to happen before unused vars removal
     pass_manager.add_pass("zero_out_stubs")

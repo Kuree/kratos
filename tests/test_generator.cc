@@ -963,3 +963,50 @@ TEST(enum_, duplicated_name) {  // NOLINT
     mod.enum_("E1", {{"A", 1}, {"B", 2}}, 2);
     EXPECT_THROW(mod.enum_("E2", {{"A", 1}}, 1), UserException);
 }
+
+TEST(pass, merge_if_1) {    // NOLINT
+    // this test merge the same if condition
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 2);
+    auto &b = mod.var("b", 2);
+    auto comb = mod.combinational();
+    auto if_ = std::make_shared<IfStmt>(a.eq(constant(1, 2)));
+    auto assign1 = b.assign(constant(1, 2));
+    if_->add_then_stmt(assign1);
+    auto if2 = std::make_shared<IfStmt>(a.eq(constant(1, 2)));
+    auto assign2 = b.assign(constant(1, 2));
+    if2->add_then_stmt(assign2);
+    comb->add_stmt(if_);
+    comb->add_stmt(if2);
+    merge_if_block(&mod);
+    EXPECT_EQ(comb->size(), 1);
+    EXPECT_EQ(comb->get_child(0), if_.get());
+    EXPECT_EQ(if_->then_body()->size(), 2);
+    EXPECT_EQ(if_->then_body()->get_child(0), assign1.get());
+    EXPECT_EQ(if_->then_body()->get_child(1), assign2.get());
+}
+
+TEST(pass, merge_if_2) {    // NOLINT
+// this test merge the same if condition
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 2);
+    auto &b = mod.var("b", 2);
+    auto comb = mod.combinational();
+    auto if_ = std::make_shared<IfStmt>(a.eq(constant(1, 2)));
+    auto assign1 = b.assign(constant(1, 2));
+    if_->add_then_stmt(assign1);
+    auto if2 = std::make_shared<IfStmt>(a.eq(constant(2, 2)));
+    auto assign2 = b.assign(constant(2, 2));
+    if2->add_then_stmt(assign2);
+    comb->add_stmt(if_);
+    comb->add_stmt(if2);
+    merge_if_block(&mod);
+    EXPECT_EQ(comb->size(), 1);
+    EXPECT_EQ(comb->get_child(0), if_.get());
+    EXPECT_EQ(if_->then_body()->size(), 1);
+    EXPECT_EQ(if_->else_body()->size(), 1);
+    EXPECT_EQ(if_->then_body()->get_child(0), assign1.get());
+    EXPECT_EQ(if_->else_body()->get_child(0), if2.get());
+}

@@ -917,7 +917,7 @@ def test_fsm():
     # setup FSM
     setup_fsm(fsm, out_, in_)
 
-    check_gold(mod, "test_fsm")
+    check_gold(mod, "test_fsm", optimize_if=False)
     # output fsm graph
     dot = fsm.dot_graph()
     check_file(dot, "test_fsm.dot")
@@ -938,7 +938,7 @@ def test_fsm_mealy():
     setup_fsm(fsm, out_, in_)
     # use mealy
     fsm.is_moore = False
-    check_gold(mod, "test_fsm_mealy")
+    check_gold(mod, "test_fsm_mealy", optimize_if=False)
 
 
 def test_function():
@@ -1115,7 +1115,7 @@ def test_nested_fsm():
 
     dot = fsm.dot_graph()
     check_file(dot, "test_nested_fsm.dot")
-    check_gold(mod, "test_nested_fsm")
+    check_gold(mod, "test_nested_fsm", optimize_if=False)
 
 
 def test_symbol_table():
@@ -1343,7 +1343,7 @@ def test_fsm_state():
             c = c + 1
 
     mod.add_code(counter)
-    check_gold(mod, "test_fsm_state")
+    check_gold(mod, "test_fsm_state", optimize_if=False)
 
 
 def test_not_if():
