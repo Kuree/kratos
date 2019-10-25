@@ -153,14 +153,12 @@ private:
             bool is_relational = is_relational_op(expr->op);
             bool is_reduction = is_reduction_op(expr->op);
             bool is_expand = is_expand_op(expr->op);
-            if (!is_relational && !is_reduction && left->width() != width &&
-                !is_expand) {
+            if (!is_relational && !is_reduction && left->width() != width && !is_expand) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             left->to_string(), left->width(), width),
                                    {var, left, stmt, left->param()});
             }
-            if (!is_relational && !is_reduction && right && right->width() != width &&
-                !is_expand) {
+            if (!is_relational && !is_reduction && right && right->width() != width && !is_expand) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             right->to_string(), right->width(), width),
                                    {var, right, stmt, right->param()});
@@ -1069,6 +1067,7 @@ class TransformIfCase : public IRVisitor {
 public:
     void visit(CombinationalStmtBlock* stmts) override { transform_block(stmts); }
     void visit(SequentialStmtBlock* stmts) override { transform_block(stmts); }
+    void visit(ScopedStmtBlock* stmts) override { transform_block(stmts); }
 
 private:
     void static transform_block(StmtBlock* stmts) {
@@ -1155,6 +1154,92 @@ private:
 
 void transform_if_to_case(Generator* top) {
     TransformIfCase visitor;
+    visitor.visit_root(top);
+}
+
+class MergeIfVisitor : public IRVisitor {
+public:
+    void visit(CombinationalStmtBlock* stmts) override { transform_block(stmts); }
+    void visit(SequentialStmtBlock* stmts) override { transform_block(stmts); }
+    void visit(ScopedStmtBlock* stmts) override { transform_block(stmts); }
+
+private:
+    using IfStmtType = std::pair<std::shared_ptr<IfStmt>, std::shared_ptr<Const>>;
+    // The if statements has to satisfy the following requirements in order to merge
+    // in the same block
+    // if target is the same
+    // all equality comparison and against an constant
+    void static transform_block(StmtBlock* block) {
+        std::map<Var*, std::vector<IfStmtType>> result;
+        get_targeted_if(block, result);
+        std::unordered_set<IfStmt*> merged_if;
+        for (auto const& iter : result) {
+            auto stmts = iter.second;
+            if (stmts.size() > 1) {
+                // we have stmts to merge
+                auto top_if = stmts[0].first;
+                // first pass to merge the if statements with the same constant value
+                // build index on the const values
+                std::unordered_map<int64_t, IfStmt*> mapping;
+                for (auto const &[stmt, const_]: stmts) {
+                    auto const_value = const_->value();
+                    if (mapping.find(const_value) == mapping.end()) {
+                        mapping.emplace(const_value, stmt.get());
+                    } else {
+                        // merge the current one into the one we already have
+                        auto if_ = mapping.at(const_value);
+                        auto const &then = stmt->then_body();
+                        for (auto const &st: *then) {
+                            if_->add_then_stmt(st);
+                        }
+                        auto const &else_ = stmt->else_body();
+                        for (auto const &st: *else_) {
+                            if_->add_else_stmt(st);
+                        }
+                        merged_if.emplace(stmt.get());
+                    }
+                }
+
+                // second pass to nest the if statement
+                for (auto const &iter2: stmts) {
+                    auto const &stmt = iter2.first;
+                    if (merged_if.find(stmt.get()) != merged_if.end()) {
+                        continue;
+                    }
+                    // put the one in the top if
+                    top_if->add_else_stmt(stmt);
+                    merged_if.emplace(stmt.get());
+                }
+            }
+        }
+        // remove merged if
+        for (auto const &stmt: merged_if) {
+            block->remove_stmt(stmt->shared_from_this());
+        }
+    }
+
+    void static get_targeted_if(StmtBlock* block, std::map<Var*, std::vector<IfStmtType>>& result) {
+        for (auto const& stmt : *block) {
+            if (stmt->type() == StatementType::If) {
+                auto if_ = stmt->as<IfStmt>();
+                auto predicate = if_->predicate();
+                if (predicate->type() == VarType::Expression) {
+                    auto expr = predicate->as<Expr>();
+                    if (expr->op == ExprOp::Eq && expr->right &&
+                        expr->right->type() == VarType::ConstValue) {
+                        // this is what we want
+                        auto target_var = expr->left;
+                        result[target_var].emplace_back(
+                            std::make_pair(if_, expr->right->as<Const>()));
+                    }
+                }
+            }
+        }
+    }
+};
+
+void merge_if_block(Generator* top) {
+    MergeIfVisitor visitor;
     visitor.visit_root(top);
 }
 
@@ -2491,6 +2576,8 @@ void PassManager::register_builtin_passes() {
     register_pass("check_mixed_assignment", &check_mixed_assignment);
 
     register_pass("merge_wire_assignments", &merge_wire_assignments);
+
+    register_pass("merge_if_block", &merge_if_block);
 
     register_pass("zero_generator_inputs", &zero_generator_inputs);
 

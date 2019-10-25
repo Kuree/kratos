@@ -78,6 +78,8 @@ void check_always_sensitivity(Generator *top);
 // These code below are optional passes that make the code more readable
 void transform_if_to_case(Generator* top);
 
+void merge_if_block(Generator* top);
+
 void remove_fanout_one_wires(Generator* top);
 
 void remove_pass_through_modules(Generator* top);
