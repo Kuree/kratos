@@ -43,6 +43,8 @@ void init_stmt(py::module &m) {
         .def(py::init<::shared_ptr<Var>>())
         .def("predicate", &IfStmt::predicate, py::return_value_policy::reference)
         .def("then_body", &IfStmt::then_body)
+        .def_property_readonly("then_", &IfStmt::then_body)
+        .def_property_readonly("else_", &IfStmt::else_body)
         .def("else_body", &IfStmt::else_body)
         .def("add_then_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::add_then_stmt))
         .def("add_else_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&IfStmt::add_else_stmt))
@@ -75,7 +77,17 @@ void init_stmt(py::module &m) {
             // need to convert it into a function call statement
             auto st = std::make_shared<FunctionCallStmt>(var);
             stmt.add_stmt(st);
-        });
+        })
+        .def("__getitem__", [](StmtBlock &stmt, int index) {
+            if (stmt.empty()) {
+                throw UserException("Index of out range");
+            }
+            while (index < 0) {
+                index += stmt.size();
+            }
+            return stmt.get_stmt(index);
+        })
+        .def("__len__", [](StmtBlock &stmt) { return stmt.size(); });
 
     py::class_<CombinationalStmtBlock, ::shared_ptr<CombinationalStmtBlock>, StmtBlock>(
         m, "CombinationalStmtBlock")

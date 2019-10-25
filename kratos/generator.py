@@ -93,6 +93,9 @@ class CodeBlock:
         self.add_stmt(stmt.stmt(), depth=3)
         return stmt
 
+    def __getitem__(self, item):
+        return self._block[item]
+
 
 class SequentialCodeBlock(CodeBlock):
     def __init__(self, generator, sensitivity_list,
@@ -488,6 +491,7 @@ class Generator(metaclass=GeneratorMeta):
             node.comment = comment
         if label:
             self.mark_stmt(label, node)
+        return node
 
     def __assign(self, var_from, var_to):
         correct_dir, correct_assign = self.__generator.correct_wire_direction(
