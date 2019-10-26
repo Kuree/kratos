@@ -306,6 +306,8 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
     std::string to_string() const override;
+    std::string handle_name(bool) const override { return to_string(); }
+    std::string handle_name(Generator *) const override { return to_string(); }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 

@@ -58,6 +58,7 @@ private:
 class AssertValueStmt : public AssertBase {
 public:
     explicit AssertValueStmt(const std::shared_ptr<Var> &expr);
+    AssertValueStmt();
 
     AssertType assert_type() override { return AssertType::AssertValue; }
 

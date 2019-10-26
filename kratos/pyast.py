@@ -19,7 +19,7 @@ class ForNodeVisitor(ast.NodeTransformer):
         def visit_Name(self, node):
             if node.id == self.target.id:
                 if isinstance(self.value, int):
-                    return ast.Num(n=self.value, lineno=node.lineno)
+                    return ast.Constant(value=self.value, lineno=node.lineno)
                 else:
                     return ast.Str(s=self.value, lineno=node.lineno)
             return node
@@ -146,7 +146,8 @@ class IfNodeVisitor(ast.NodeTransformer):
         else_expression = node.orelse
 
         if self.generator.debug:
-            keywords = [ast.keyword(arg="f_ln", value=ast.Num(n=node.lineno))]
+            keywords = [ast.keyword(arg="f_ln",
+                                    value=ast.Constant(value=node.lineno))]
         else:
             keywords = []
 
@@ -176,7 +177,7 @@ class AssignNodeVisitor(ast.NodeTransformer):
                             astor.to_source(node))
         args = node.targets[:] + [node.value]
         if self.debug:
-            args.append(ast.Num(n=node.lineno))
+            args.append(ast.Constant(value=node.lineno))
         return ast.Expr(
             value=ast.Call(func=ast.Attribute(
                 value=ast.Name(id="scope",
@@ -198,7 +199,7 @@ class AssertNodeVisitor(ast.NodeTransformer):
             # we need to transform it to scope.assert_()
             args = node.args
             if self.debug:
-                args.append(ast.Num(n=node.lineno))
+                args.append(ast.Constant(value=node.lineno))
             return ast.Call(func=ast.Attribute(
                 value=ast.Name(id="scope", ctx=ast.Load()),
                 attr="assert_",
@@ -206,6 +207,33 @@ class AssertNodeVisitor(ast.NodeTransformer):
                 args=args,
                 keywords=[])
         return node
+
+
+class ExceptionNodeVisitor(ast.NodeTransformer):
+    def __init__(self, generator, debug):
+        super().__init__()
+        self.generator = generator
+        self.debug = debug
+
+    def visit_Raise(self, node: ast.Raise):
+        func = node.exc
+        if not isinstance(func, ast.Call):
+            raise SyntaxError(astor.to_source(node) + " not supported")
+        name = func.func
+        if not isinstance(name, ast.Name):
+            raise SyntaxError(astor.to_source(node) + " not supported")
+        if name.id != "Exception":
+            raise SyntaxError(astor.to_source(node) + " not supported")
+        # change it to assert 0
+        args = [ast.Constant(0)]
+        if self.debug:
+            args.append(ast.Constant(value=node.lineno))
+        return ast.Call(func=ast.Attribute(
+            value=ast.Name(id="scope", ctx=ast.Load()),
+            attr="assert_",
+            cts=ast.Load()),
+            args=args,
+            keywords=[])
 
 
 class ReturnNodeVisitor(ast.NodeTransformer):
@@ -217,7 +245,7 @@ class ReturnNodeVisitor(ast.NodeTransformer):
         value = node.value
         args = [value]
         if self.debug:
-            args.append(ast.Num(n=node.lineno))
+            args.append(ast.Constant(value=node.lineno))
 
         return ast.Expr(value=ast.Call(func=ast.Attribute(
             value=ast.Name(id=self.scope_name,
@@ -322,7 +350,10 @@ class Scope:
         return stmt
 
     def assert_(self, value, f_ln=None, **kargs):
-        assert isinstance(value, _kratos.Var)
+        assert isinstance(value, (_kratos.Var, int))
+        if isinstance(value, int):
+            assert value == 0
+            value = _kratos.constant(0, 1, False)
         stmt = _kratos.AssertValueStmt(value)
         if self.filename:
             stmt.add_fn_ln((self.filename, f_ln + self.ln - 1), True)
@@ -415,6 +446,8 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     # transform the assert_ function to get fn_ln
     assert_visitor = AssertNodeVisitor(generator, debug)
     fn_body = assert_visitor.visit(fn_body)
+    exception_visitor = ExceptionNodeVisitor(generator, debug)
+    fn_body = exception_visitor.visit(fn_body)
 
     # mark the local variables
     target_nodes = for_visitor.target_node
@@ -552,7 +585,8 @@ def declare_var_definition(var_def, arg_order):
                                                   ctx=ast.Load()),
                                    attr="input",
                                    cts=ast.Load()),
-                                   args=[ast.Str(s=name), ast.Num(n=width),
+                                   args=[ast.Str(s=name),
+                                         ast.Constant(value=width),
                                          ast.NameConstant(value=is_signed)],
                                    keywords=[])))
     return body

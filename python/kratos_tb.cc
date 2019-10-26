@@ -32,6 +32,7 @@ void init_tb(py::module &m) {
 
     py::class_<AssertValueStmt, Stmt, std::shared_ptr<AssertValueStmt>>(m, "AssertValueStmt")
         .def(py::init<const std::shared_ptr<Var> &>())
+        .def(py::init<>())
         .def("value", &AssertValueStmt::value);
 
     py::class_<AssertPropertyStmt, Stmt, std::shared_ptr<AssertPropertyStmt>>(m,

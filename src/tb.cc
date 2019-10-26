@@ -14,6 +14,8 @@ AssertValueStmt::AssertValueStmt(const std::shared_ptr<Var> &expr) : assert_var_
     if (expr->width() != 1) throw VarException("Assert variable has to be width 1", {expr.get()});
 }
 
+AssertValueStmt::AssertValueStmt() : AssertValueStmt(constant(0, 1).as<Const>()) {}
+
 AssertPropertyStmt::AssertPropertyStmt(const std::shared_ptr<Property> &property)
     : property_(property.get()) {}
 

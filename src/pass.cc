@@ -1074,22 +1074,19 @@ private:
         for (uint64_t i = 0; i < stmts->child_count(); i++) {
             auto stmt = reinterpret_cast<Stmt*>(stmts->get_child(i));
             Var* target = nullptr;
-            std::unordered_set<std::shared_ptr<Stmt>> if_stmts;
-            if (has_target_if(stmt, target, if_stmts)) {
-                auto switch_stmt = change_if_to_switch(stmt->as<IfStmt>(), if_stmts);
-                // we only replace it if it's fully specified or has default case
-                // this may seems to be inefficient through
-                // TODO: optimize the computation
-                auto const &body = switch_stmt->body();
-                uint64_t cases = body.size();
+            std::vector<std::shared_ptr<IfStmt>> if_stmts;
+            if (has_target_if(stmt, target, if_stmts) && target) {
+                uint64_t cases = if_stmts.size();
                 uint64_t expected_case = 1u << target->width();
-                if (cases >= expected_case || body.find(nullptr) != body.end())
+                bool has_else = !(if_stmts.back()->else_body()->empty());
+                if (expected_case > 1 && (cases >= expected_case || has_else)) {
+                    auto switch_stmt = change_if_to_switch(stmt->as<IfStmt>(), if_stmts);
                     stmts->set_child(i, switch_stmt);
+                }
             }
         }
     }
-    bool static has_target_if(Stmt* stmt, Var*& var,
-                              std::unordered_set<std::shared_ptr<Stmt>>& if_stmts) {
+    bool static has_target_if(Stmt* stmt, Var*& var, std::vector<std::shared_ptr<IfStmt>>& if_stmts) {
         // keep track of which statement are used later to transform into switch statement
         if (stmt->type() != StatementType::If && if_stmts.size() <= 1)
             return false;
@@ -1114,7 +1111,7 @@ private:
             return false;
         if (if_->else_body()->size() > 1) return false;
 
-        if_stmts.emplace(if_);
+        if_stmts.emplace_back(if_);
         if (if_->else_body()->empty()) {
             return true;
         } else if (if_->then_body()->size() > 1) {
@@ -1125,7 +1122,7 @@ private:
     }
 
     std::shared_ptr<SwitchStmt> static change_if_to_switch(
-        std::shared_ptr<IfStmt> stmt, const std::unordered_set<std::shared_ptr<Stmt>>& if_stmts) {
+        std::shared_ptr<IfStmt> stmt, const std::vector<std::shared_ptr<IfStmt>>& if_stmts) {
         auto expr = stmt->predicate()->as<Expr>();
         // we assume that this is a valid case (see has_target_if)
         auto target = expr->left;
@@ -1137,11 +1134,12 @@ private:
             switch_->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
 
-        while (if_stmts.find(stmt) != if_stmts.end()) {
+        while (std::find(if_stmts.begin(), if_stmts.end(), stmt) != if_stmts.end()) {
             auto condition = expr->right->as<Const>();
             switch_->add_switch_case(condition, stmt->then_body());
             if (!stmt->else_body()->empty() &&
-                if_stmts.find((*stmt->else_body())[0]) == if_stmts.end()) {
+                std::find(if_stmts.begin(), if_stmts.end(), (*stmt->else_body())[0]) ==
+                    if_stmts.end()) {
                 // we have reached the end
                 // add default statement
                 switch_->add_switch_case(nullptr, stmt->else_body());
@@ -1188,19 +1186,19 @@ private:
                 // first pass to merge the if statements with the same constant value
                 // build index on the const values
                 std::unordered_map<int64_t, IfStmt*> mapping;
-                for (const auto &[stmt, const_] : stmts) {
+                for (const auto& [stmt, const_] : stmts) {
                     auto const_value = const_->value();
                     if (mapping.find(const_value) == mapping.end()) {
                         mapping.emplace(const_value, stmt.get());
                     } else {
                         // merge the current one into the one we already have
                         auto if_ = mapping.at(const_value);
-                        auto const &then = stmt->then_body();
-                        for (auto const &st: *then) {
+                        auto const& then = stmt->then_body();
+                        for (auto const& st : *then) {
                             if_->add_then_stmt(st);
                         }
-                        auto const &else_ = stmt->else_body();
-                        for (auto const &st: *else_) {
+                        auto const& else_ = stmt->else_body();
+                        for (auto const& st : *else_) {
                             if_->add_else_stmt(st);
                         }
                         merged_if.emplace(stmt.get());
@@ -1209,7 +1207,7 @@ private:
 
                 // second pass to nest the if statement
                 for (uint64_t i = 1; i < stmts.size(); i++) {
-                    auto const &stmt = stmts[i].first;
+                    auto const& stmt = stmts[i].first;
                     if (merged_if.find(stmt.get()) != merged_if.end()) {
                         continue;
                     }
@@ -1220,7 +1218,7 @@ private:
             }
         }
         // remove merged if
-        for (auto const &stmt: merged_if) {
+        for (auto const& stmt : merged_if) {
             block->remove_stmt(stmt->shared_from_this());
         }
     }

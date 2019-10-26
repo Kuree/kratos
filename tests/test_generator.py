@@ -1362,5 +1362,17 @@ def test_not_if():
     check_gold(mod, "test_not_if")
 
 
+def test_exception():
+    mod = Generator("mod", True)
+    in_ = mod.input("in", 1)
+
+    def code():
+        if in_ == 1:
+            raise Exception()
+
+    mod.add_code(code)
+    check_gold(mod, "test_exception")
+
+
 if __name__ == "__main__":
     test_not_if()
