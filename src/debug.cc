@@ -182,6 +182,36 @@ std::unordered_map<Var*, std::unordered_set<Var*>> find_driver_signal(Generator 
     return visitor.map();
 }
 
+void mock_hierarchy(Generator* top, const std::string &top_name) {
+    // can only perform on the top layer
+    auto instance_name = top->instance_name;
+    if (instance_name.find('.') == std::string::npos) {
+        return;
+    }
+    // need to tokenize based on the instance names
+    auto names = get_tokens(instance_name, ".");
+    if (names.size() < 2)
+        throw InternalException("Cannot tokenize string " + instance_name);
+    Context *context = top->context();
+    top->instance_name = names.back();
+    int start_index = static_cast<int>(names.size() - 2);
+    Generator *pre = top;
+    for (int i = start_index; i >= 0; i--) {
+        // create a new generator
+        std::string name = names[i];
+        if (i == 0 && !top_name.empty())
+            name = top_name;
+        Generator *gen;
+        if (context->generator_name_exists(name)) {
+            gen = (*(context->get_generators_by_name(name).begin())).get();
+        } else {
+            gen = &context->generator(name);
+        }
+        gen->add_child_generator(pre->instance_name, pre->shared_from_this());
+        pre = gen;
+    }
+}
+
 void DebugDatabase::set_break_points(Generator *top) { set_break_points(top, ".py"); }
 
 void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {

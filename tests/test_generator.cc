@@ -1012,3 +1012,15 @@ TEST(pass, merge_if_2) {    // NOLINT
     EXPECT_EQ(if_->then_body()->get_child(0), assign1.get());
     EXPECT_EQ(if_->else_body()->get_child(0), if2.get());
 }
+
+TEST(debug, mock_hierarchy) {   // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    mod.instance_name = "mod1.mod2.mod3";
+    mock_hierarchy(&mod, "dut");
+    EXPECT_EQ(c.get_generators_by_name("dut").size(), 1);
+    EXPECT_EQ(mod.instance_name, "mod3");
+    auto p = mod.parent_generator();
+    EXPECT_TRUE(p != nullptr);
+    EXPECT_EQ(p->instance_name, "mod2");
+}

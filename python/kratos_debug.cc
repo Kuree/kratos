@@ -17,7 +17,8 @@ void init_debug(py::module &m) {
         .def("inject_clock_break_points",
              py::overload_cast<Generator *, const std::shared_ptr<Port> &>(
                  &inject_clock_break_points))
-        .def("inject_assert_fail_exception", &inject_assert_fail_exception);
+        .def("inject_assert_fail_exception", &inject_assert_fail_exception)
+        .def("mock_hierarchy", &mock_hierarchy);
 
     py::class_<DebugDatabase>(m, "DebugDataBase")
         .def(py::init<>())
