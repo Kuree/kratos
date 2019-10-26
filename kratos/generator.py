@@ -484,7 +484,7 @@ class Generator(metaclass=GeneratorMeta):
                 seq.add_stmt(stmt, False)
             node = seq
         # add context vars
-        if self.debug:
+        if self.debug and fn_ln is None:
             for stmt in stmts:
                 add_scope_context(stmt, get_frame_local(2))
         if comment:
@@ -510,7 +510,7 @@ class Generator(metaclass=GeneratorMeta):
     def wire(self, var_to, var_from,
              attributes: Union[List[_kratos.passes.Attribute],
                                _kratos.passes.Attribute] = None,
-             comment="", locals_=None):
+             comment="", locals_=None, fn_ln=None):
         if self.is_cloned:
             if self.debug and locals_ is None:
                 locals_ = get_frame_local(2)
@@ -537,10 +537,13 @@ class Generator(metaclass=GeneratorMeta):
             stmt = self.__assign(var_to, var_from)
 
         if self.debug:
-            stmt.add_fn_ln(get_fn_ln())
-            if locals_ is None:
-                locals_ = get_frame_local(2)
-            add_scope_context(stmt, locals_)
+            if fn_ln is not None:
+                stmt.add_fn_ln(fn_ln)
+            else:
+                stmt.add_fn_ln(get_fn_ln())
+                if locals_ is None:
+                    locals_ = get_frame_local(2)
+                add_scope_context(stmt, locals_)
 
         if attributes is not None:
             if not isinstance(attributes, list):

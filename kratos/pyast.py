@@ -285,17 +285,20 @@ def add_scope_context(stmt, _locals):
 
 
 class Scope:
-    def __init__(self, generator, filename, ln):
+    def __init__(self, generator, filename, ln, add_local):
         self.stmt_list = []
         self.generator = generator
         self.filename = filename
         if self.filename:
             assert os.path.isfile(self.filename)
         self.ln = ln
+        self.add_local = add_local
 
         self._level = 0
 
     def if_(self, target, *args, f_ln=None, **kargs):
+        add_local = self.add_local
+
         class IfStatement:
             def __init__(self, scope):
                 self._if = _kratos.IfStmt(target)
@@ -305,7 +308,8 @@ class Scope:
                     self._if.add_fn_ln((scope.filename,
                                         f_ln + scope.ln - 1), True)
                     # this is additional info passed in
-                    add_scope_context(self._if, kargs)
+                    if add_local:
+                        add_scope_context(self._if, kargs)
 
                 self.scope = scope
                 for stmt in args:
@@ -342,11 +346,12 @@ class Scope:
         if self.filename:
             assert f_ln is not None
             stmt.add_fn_ln((self.filename, f_ln + self.ln - 1), True)
-            # obtain the previous call frame info
-            __local = get_frame_local()
-            add_scope_context(stmt, __local)
-            # this is additional info passed in
-            add_scope_context(stmt, kargs)
+            if self.add_local:
+                # obtain the previous call frame info
+                __local = get_frame_local()
+                add_scope_context(stmt, __local)
+                # this is additional info passed in
+                add_scope_context(stmt, kargs)
         return stmt
 
     def assert_(self, value, f_ln=None, **kargs):
@@ -357,11 +362,12 @@ class Scope:
         stmt = _kratos.AssertValueStmt(value)
         if self.filename:
             stmt.add_fn_ln((self.filename, f_ln + self.ln - 1), True)
-            # obtain the previous call frame info
-            __local = get_frame_local()
-            add_scope_context(stmt, __local)
-            # this is additional info passed in
-            add_scope_context(stmt, kargs)
+            if self.add_local:
+                # obtain the previous call frame info
+                __local = get_frame_local()
+                add_scope_context(stmt, __local)
+                # this is additional info passed in
+                add_scope_context(stmt, kargs)
         return stmt
 
     def add_stmt(self, stmt):
@@ -373,7 +379,7 @@ class Scope:
 
 class FuncScope(Scope):
     def __init__(self, generator, func_name, filename, ln):
-        super().__init__(generator, filename, ln)
+        super().__init__(generator, filename, ln, generator.debug)
         if generator is not None:
             self.__func = generator.internal_generator.function(func_name)
 
@@ -492,6 +498,7 @@ def transform_stmt_block(generator, fn, fn_ln=None):
     fn_body = func_tree.body[0]
     # needs debug
     debug = generator.debug
+    store_local = debug and fn_ln is None
     # extract the sensitivity list from the decorator
     blk_type, sensitivity = extract_sensitivity_from_dec(fn_body.decorator_list,
                                                          fn_name)
@@ -520,7 +527,7 @@ def transform_stmt_block(generator, fn, fn_ln=None):
         filename = ""
         ln = 0
     # notice that this ln is an offset
-    scope = Scope(generator, filename, ln)
+    scope = Scope(generator, filename, ln, store_local)
     _locals.update({"_self": generator, "_scope": scope})
     _globals.update(_locals)
     exec(code_obj, _globals)
