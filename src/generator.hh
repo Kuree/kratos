@@ -16,6 +16,7 @@ class Generator : public std::enable_shared_from_this<Generator>, public IRNode 
 public:
     std::string name;
     std::string instance_name;
+    int generator_id = -1;
 
     static Generator from_verilog(Context *context, const std::string &src_file,
                                   const std::string &top_name,

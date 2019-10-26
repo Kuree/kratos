@@ -54,6 +54,8 @@ class Context {
 private:
     std::unordered_map<std::string, std::set<std::shared_ptr<Generator>>> modules_;
     std::unordered_map<const Generator*, uint64_t> generator_hash_;
+    int max_instance_id_ = 0;
+    int max_stmt_id_ = 0;
 
 public:
     Context() = default;
@@ -68,6 +70,11 @@ public:
     bool has_hash(const Generator* generator) const;
     uint64_t get_hash(const Generator* generator) const;
     void inline clear_hash() { generator_hash_.clear(); }
+
+    // managing the id for multiple invocation of dump database
+    int &max_instance_id() { return max_instance_id_; }
+    int &max_stmt_id() { return max_stmt_id_; }
+    void reset_id();
 
     // for debugging
     uint64_t hash_table_size() const { return generator_hash_.size(); }

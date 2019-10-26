@@ -95,9 +95,15 @@ std::unordered_set<std::string> Context::get_generator_names() const {
     return result;
 }
 
+void Context::reset_id() {
+    max_stmt_id_ = 0;
+    max_instance_id_ = 0;
+}
+
 void Context::clear() {
     modules_.clear();
     clear_hash();
+    reset_id();
 }
 
 }  // namespace kratos

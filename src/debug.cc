@@ -14,6 +14,8 @@ namespace kratos {
 
 class DebugBreakInjectVisitor : public IRVisitor {
 public:
+    explicit DebugBreakInjectVisitor(Context *context): context_(context) {}
+
     void visit(CombinationalStmtBlock *stmt) override { insert_statements(stmt); }
 
     void visit(SequentialStmtBlock *stmt) override { insert_statements(stmt); }
@@ -30,7 +32,7 @@ private:
         new_blocks.reserve(block->size() * 2);
 
         for (auto const &stmt : *block) {
-            uint32_t stmt_id = count_++;
+            uint32_t stmt_id = context_->max_stmt_id()++;
             // make a function call
             auto bp_stmt = get_function_call_stmt(parent, stmt_id);
             // FIXME: See #89
@@ -75,14 +77,14 @@ private:
         return get_root_block(parent_stmt);
     }
 
-    uint32_t count_ = 0;
-
     const std::string var_name_ = break_point_func_arg;
     const uint32_t var_size_ = 32;
+
+    Context *context_;
 };
 
 void inject_debug_break_points(Generator *top) {
-    DebugBreakInjectVisitor visitor;
+    DebugBreakInjectVisitor visitor(top->context());
     visitor.visit_root(top);
 }
 
@@ -383,7 +385,11 @@ void DebugDatabase::save_database(const std::string &filename) {
     std::unordered_map<Generator *, uint32_t> gen_id_map;
     std::unordered_map<std::string, uint32_t> handle_id_map;
     for (auto const &gen : generators_) {
-        int id = gen_id_map.size();
+        if (gen->generator_id < 0) {
+            // assign a new ID
+            gen->generator_id = gen->context()->max_instance_id()++;
+        }
+        int id = gen->generator_id;
         gen_id_map.emplace(gen, id);
         handle_id_map.emplace(gen->handle_name(), id);
         Instance inst{id, gen->handle_name()};
