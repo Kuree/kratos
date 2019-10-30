@@ -15,7 +15,6 @@ struct BreakPoint {
     uint32_t id;
     std::string filename;
     uint32_t line_num;
-    std::unique_ptr<int> definition_id;
 };
 
 struct Variable {
@@ -61,8 +60,7 @@ auto inline init_storage(const std::string &filename) {
                    make_column("value", &MetaData::value)),
         make_table("breakpoint", make_column("id", &BreakPoint::id, primary_key()),
                    make_column("filename", &BreakPoint::filename),
-                   make_column("line_num", &BreakPoint::line_num),
-                   make_column("definition_id", &BreakPoint::definition_id)),
+                   make_column("line_num", &BreakPoint::line_num)),
         make_table("variable", make_column("id", &Variable::id, primary_key()),
                    make_column("handle", &Variable::handle), make_column("value", &Variable::value),
                    make_column("name", &Variable::name),

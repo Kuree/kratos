@@ -58,11 +58,15 @@ private:
             func->set_port_ordering({{break_point_instance_id_arg, 0}, {break_point_func_arg, 1}});
         }
         auto &id_const = constant(stmt_id, var_size_);
-        auto &i_id_const = constant(generator->generator_id, var_size_);
-        auto &var = generator->call(break_point_func_name,
-                                    {{var_name_, id_const.shared_from_this()},
-                                     {break_point_instance_id_arg, i_id_const.shared_from_this()}},
-                                    false);
+        auto i_id_const = generator->get_param(break_point_param_name);
+        if (!i_id_const) {
+            throw UserException(::format("{0} not found for {1}", break_point_param_name,
+                                         generator->handle_name()));
+        }
+        auto &var = generator->call(
+            break_point_func_name,
+            {{var_name_, id_const.shared_from_this()}, {break_point_instance_id_arg, i_id_const}},
+            false);
         return std::make_shared<FunctionCallStmt>(var.as<FunctionCallVar>());
     }
 
@@ -480,19 +484,10 @@ void DebugDatabase::save_database(const std::string &filename) {
     }
 
     // break points
-    auto id_to_gen = build_id_map(generator_break_points_);
     for (auto const &[stmt, id] : break_points_) {
         if (stmt_mapping_.find(stmt) != stmt_mapping_.end()) {
             auto const &[fn, ln] = stmt_mapping_.at(stmt);
-            if (id_to_gen.find(id) == id_to_gen.end())
-                throw InternalException(::format("Unable to find breakpoint {0}", id));
-            auto gen = id_to_gen.at(id);
-            auto handle_name = gen->handle_name();
-            if (definition_ids.find(gen) == definition_ids.end())
-                throw InternalException(
-                    ::format("Unable to find definition id for {0}", gen->handle_name()));
-            auto definition_id = definition_ids.at(gen);
-            BreakPoint br{id, fn, ln, std::make_unique<int>(definition_id)};
+            BreakPoint br{id, fn, ln};
             storage.replace(br);
         }
     }

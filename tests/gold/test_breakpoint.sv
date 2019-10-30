@@ -7,9 +7,9 @@ module mod #(parameter KRATOS_INSTANCE_ID = 32'h0)
 
 logic   val;
 always_comb begin
-  breakpoint_trace (32'h0, 32'h0);
+  breakpoint_trace (KRATOS_INSTANCE_ID, 32'h0);
   out = in;
-  breakpoint_trace (32'h0, 32'h1);
+  breakpoint_trace (KRATOS_INSTANCE_ID, 32'h1);
   val = in;
 end
 endmodule   // mod
