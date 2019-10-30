@@ -207,6 +207,25 @@ std::unordered_map<Var *, std::unordered_set<Var *>> find_driver_signal(Generato
     return visitor.map();
 }
 
+std::map<Generator *, uint32_t> compute_definition_id(const Context *context) {
+    // we assume the hash is already computed
+    auto names_set = context->get_generator_names();
+    // sort the names
+    std::vector<std::string> names = std::vector<std::string>(names_set.begin(), names_set.end());
+    std::sort(names.begin(), names.end());
+
+    uint32_t id = 0;
+    std::map<Generator *, uint32_t> result;
+    for (auto const &name : names) {
+        auto const &gens = context->get_generators_by_name(name);
+        for (auto const &gen : gens) {
+            result.emplace(gen.get(), id);
+        }
+        id++;
+    }
+    return result;
+}
+
 void mock_hierarchy(Generator *top, const std::string &top_name) {
     // can only perform on the top layer
     auto instance_name = top->instance_name;
@@ -256,6 +275,8 @@ void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {
             }
         }
     }
+    // set context
+    context_ = top->context();
 }
 
 void DebugDatabase::set_variable_mapping(
@@ -435,6 +456,11 @@ void DebugDatabase::save_database(const std::string &filename) {
     storage.insert(top_name);
 
     // insert generator ids
+    // first we compute the definition id
+    if (!context_) {
+        throw UserException("Context is null. Please insert breakpoints first");
+    }
+    auto definition_ids = compute_definition_id(context_);
     std::unordered_map<Generator *, uint32_t> gen_id_map;
     std::unordered_map<std::string, uint32_t> handle_id_map;
     for (auto const &gen : generators_) {
@@ -445,7 +471,11 @@ void DebugDatabase::save_database(const std::string &filename) {
         int id = gen->generator_id;
         gen_id_map.emplace(gen, id);
         handle_id_map.emplace(gen->handle_name(), id);
-        Instance inst{id, gen->handle_name()};
+        if (definition_ids.find(gen) == definition_ids.end())
+            throw InternalException(
+                ::format("Unable to find definition id for {0}", gen->handle_name()));
+        int const def_id = definition_ids.at(gen);
+        Instance inst{id, def_id, gen->handle_name()};
         storage.replace(inst);
     }
 
@@ -458,11 +488,11 @@ void DebugDatabase::save_database(const std::string &filename) {
                 throw InternalException(::format("Unable to find breakpoint {0}", id));
             auto gen = id_to_gen.at(id);
             auto handle_name = gen->handle_name();
-            if (gen_id_map.find(gen) == gen_id_map.end())
+            if (definition_ids.find(gen) == definition_ids.end())
                 throw InternalException(
-                    ::format("Unable to find generator {0}", gen->handle_name()));
-            auto handle_id = gen_id_map.at(gen);
-            BreakPoint br{id, fn, ln, std::make_unique<int>(handle_id)};
+                    ::format("Unable to find definition id for {0}", gen->handle_name()));
+            auto definition_id = definition_ids.at(gen);
+            BreakPoint br{id, fn, ln, std::make_unique<int>(definition_id)};
             storage.replace(br);
         }
     }

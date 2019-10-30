@@ -46,6 +46,7 @@ def extract_symbol_table(generator: Generator):
 
 def enable_runtime_debug(generator: Generator):
     # insert breakpoints
+    _kratos.inject_instance_ids(generator.internal_generator)
     _kratos.inject_debug_break_points(generator.internal_generator)
 
 

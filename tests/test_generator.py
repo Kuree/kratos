@@ -1128,7 +1128,7 @@ def test_symbol_table():
 
 
 def test_breakpoint():
-    from _kratos.passes import extract_debug_break_points
+    from _kratos.passes import extract_debug_break_points, hash_generators_sequential
     mod = Generator("mod", True)
     comb = mod.combinational()
     stmt0 = mod.output("out", 1).assign(mod.input("in", 1))
@@ -1136,6 +1136,7 @@ def test_breakpoint():
     stmt1 = mod.var("val", 1).assign(mod.ports["in"])
     comb.add_stmt(stmt1)
 
+    hash_generators_sequential(mod.internal_generator)
     enable_runtime_debug(mod)
     table = extract_debug_break_points(mod.internal_generator)
     assert len(table) == 2

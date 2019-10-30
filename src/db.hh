@@ -48,6 +48,7 @@ struct ContextVariable {
 
 struct Instance {
     int id;
+    int definition_id;
     std::string handle_name;
 };
 
@@ -61,8 +62,7 @@ auto inline init_storage(const std::string &filename) {
         make_table("breakpoint", make_column("id", &BreakPoint::id, primary_key()),
                    make_column("filename", &BreakPoint::filename),
                    make_column("line_num", &BreakPoint::line_num),
-                   make_column("handle", &BreakPoint::definition_id),
-                   foreign_key(&BreakPoint::definition_id).references(&Instance::id)),
+                   make_column("definition_id", &BreakPoint::definition_id)),
         make_table("variable", make_column("id", &Variable::id, primary_key()),
                    make_column("handle", &Variable::handle), make_column("value", &Variable::value),
                    make_column("name", &Variable::name),
@@ -85,6 +85,7 @@ auto inline init_storage(const std::string &filename) {
                    foreign_key(&ContextVariable::variable_id).references(&Variable::id),
                    foreign_key(&ContextVariable::breakpoint_id).references(&BreakPoint::id)),
         make_table("instance", make_column("id", &Instance::id, primary_key()),
+                   make_column("definition_id", &Instance::definition_id),
                    make_column("handle_name", &Instance::handle_name)));
     return storage;
 }
