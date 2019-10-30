@@ -9,8 +9,11 @@ constexpr char break_point_func_name[] = "breakpoint_trace";
 constexpr char break_point_clock_func_name[] = "breakpoint_clock";
 constexpr char exception_func_name[] = "exception";
 constexpr char break_point_func_arg[] = "stmt_id";
+constexpr char break_point_param_name[] = "KRATOS_INSTANCE_ID";
+constexpr char break_point_instance_id_arg[] = "instance_id";
 
 void inject_debug_break_points(Generator *top);
+void inject_instance_ids(Generator *top);
 std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top);
 void inject_clock_break_points(Generator *top);
 void inject_clock_break_points(Generator *top, const std::string &clk_name);

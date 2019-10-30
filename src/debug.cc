@@ -14,7 +14,7 @@ namespace kratos {
 
 class DebugBreakInjectVisitor : public IRVisitor {
 public:
-    explicit DebugBreakInjectVisitor(Context *context): context_(context) {}
+    explicit DebugBreakInjectVisitor(Context *context) : context_(context) {}
 
     void visit(CombinationalStmtBlock *stmt) override { insert_statements(stmt); }
 
@@ -53,12 +53,16 @@ private:
         if (!generator->has_function(break_point_func_name)) {
             // create the function in the generator
             auto func = generator->dpi_function(break_point_func_name);
+            func->input(break_point_instance_id_arg, var_size_, false);
             func->input(var_name_, var_size_, false);
-            func->set_port_ordering({{break_point_func_arg, 0}});
+            func->set_port_ordering({{break_point_instance_id_arg, 0}, {break_point_func_arg, 1}});
         }
         auto &id_const = constant(stmt_id, var_size_);
+        auto &i_id_const = constant(generator->generator_id, var_size_);
         auto &var = generator->call(break_point_func_name,
-                                    {{var_name_, id_const.shared_from_this()}}, false);
+                                    {{var_name_, id_const.shared_from_this()},
+                                     {break_point_instance_id_arg, i_id_const.shared_from_this()}},
+                                    false);
         return std::make_shared<FunctionCallStmt>(var.as<FunctionCallVar>());
     }
 
@@ -86,6 +90,26 @@ private:
 void inject_debug_break_points(Generator *top) {
     DebugBreakInjectVisitor visitor(top->context());
     visitor.visit_root(top);
+}
+
+class InstanceIdVisitor : public IRVisitor {
+public:
+    void visit(Generator *gen) override {
+        if (gen->generator_id < 0) {
+            Context *context = gen->context();
+            auto id = context->max_instance_id()++;
+            gen->generator_id = id;
+            // create a parameter
+            auto &p = gen->parameter(break_point_param_name, 32);
+            p.set_value(id);
+        }
+    }
+};
+
+void inject_instance_ids(Generator *top) {
+    // this can be done in parallel
+    InstanceIdVisitor visitor;
+    visitor.visit_generator_root_p(top);
 }
 
 class ExtractDebugVisitor : public IRVisitor {
@@ -140,49 +164,50 @@ void insert_verilator_public(Generator *top) {
     visitor.visit_root(top);
 }
 
-class VarSourceVisitor: public IRVisitor {
+class VarSourceVisitor : public IRVisitor {
 public:
     void visit(Var *var) override {
         if (map_.find(var) != map_.end()) return;
         auto const &sources = var->sources();
-        for (auto const &stmt: sources) {
+        for (auto const &stmt : sources) {
             auto right = stmt->right();
             get_source_var(right, map_[var]);
         }
     }
 
-    const std::unordered_map<Var*, std::unordered_set<Var*>> &map() const { return map_; }
+    const std::unordered_map<Var *, std::unordered_set<Var *>> &map() const { return map_; }
 
 private:
-    std::unordered_map<Var*, std::unordered_set<Var*>> map_;
+    std::unordered_map<Var *, std::unordered_set<Var *>> map_;
 
-    class VarComponentVisitor: public IRVisitor {
+    class VarComponentVisitor : public IRVisitor {
     public:
-        std::unordered_set<Var*> &vars() { return vars_; };
+        std::unordered_set<Var *> &vars() { return vars_; };
         void visit(Var *var) override {
             if (var->type() == VarType::Base) {
                 vars_.emplace(var);
             }
         }
+
     private:
-        std::unordered_set<Var*> vars_;
+        std::unordered_set<Var *> vars_;
     };
 
-    void static get_source_var(const Var *var, std::unordered_set<Var*> &set) {
+    void static get_source_var(const Var *var, std::unordered_set<Var *> &set) {
         if (var->type() == VarType::ConstValue || var->type() == VarType::Parameter) return;
         VarComponentVisitor visitor;
-        visitor.visit_root(const_cast<Var*>(var));
+        visitor.visit_root(const_cast<Var *>(var));
         set.merge(visitor.vars());
     }
 };
 
-std::unordered_map<Var*, std::unordered_set<Var*>> find_driver_signal(Generator *top) {
+std::unordered_map<Var *, std::unordered_set<Var *>> find_driver_signal(Generator *top) {
     VarSourceVisitor visitor;
     visitor.visit_root(top);
     return visitor.map();
 }
 
-void mock_hierarchy(Generator* top, const std::string &top_name) {
+void mock_hierarchy(Generator *top, const std::string &top_name) {
     // can only perform on the top layer
     auto instance_name = top->instance_name;
     if (instance_name.find('.') == std::string::npos) {
@@ -190,8 +215,7 @@ void mock_hierarchy(Generator* top, const std::string &top_name) {
     }
     // need to tokenize based on the instance names
     auto names = get_tokens(instance_name, ".");
-    if (names.size() < 2)
-        throw InternalException("Cannot tokenize string " + instance_name);
+    if (names.size() < 2) throw InternalException("Cannot tokenize string " + instance_name);
     Context *context = top->context();
     top->instance_name = names.back();
     int start_index = static_cast<int>(names.size() - 2);
@@ -199,8 +223,7 @@ void mock_hierarchy(Generator* top, const std::string &top_name) {
     for (int i = start_index; i >= 0; i--) {
         // create a new generator
         std::string name = names[i];
-        if (i == 0 && !top_name.empty())
-            name = top_name;
+        if (i == 0 && !top_name.empty()) name = top_name;
         Generator *gen;
         if (context->generator_name_exists(name)) {
             gen = (*(context->get_generators_by_name(name).begin())).get();
@@ -598,7 +621,7 @@ void DebugDatabase::save_database(const std::string &filename) {
 
         for (auto const &[key, entry] : values) {
             auto const &[is_var, value] = entry;
-            auto gen_var = is_var? gen->get_var(value).get(): nullptr;
+            auto gen_var = is_var ? gen->get_var(value).get() : nullptr;
             create_variable(gen_var, instance_id, key, value, true, id);
         }
     }
@@ -730,7 +753,7 @@ public:
 
         if (!assignments.empty()) {
             auto comb = top->combinational();
-            for (auto const &stmt: assignments) {
+            for (auto const &stmt : assignments) {
                 top->remove_stmt(stmt);
                 comb->add_stmt(stmt);
             }

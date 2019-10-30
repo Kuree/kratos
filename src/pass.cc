@@ -2600,6 +2600,8 @@ void PassManager::register_builtin_passes() {
 
     register_pass("inject_debug_break_points", &inject_debug_break_points);
 
+    register_pass("inject_instance_ids", &inject_instance_ids);
+
     register_pass("inject_clock_break_points", &inject_clock_break_points);
 
     register_pass("inject_assert_fail_exception", &inject_assert_fail_exception);
