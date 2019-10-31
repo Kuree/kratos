@@ -7,7 +7,6 @@
 #include "pass.hh"
 #include "tb.hh"
 #include "util.hh"
-#include <mutex>
 
 using fmt::format;
 
@@ -114,6 +113,7 @@ public:
             p.set_value(id);
         }
     }
+
 private:
     Context *context_;
     std::mutex mutex_;
@@ -671,13 +671,21 @@ public:
             auto gen = base->generator_parent();
             if (!gen->has_function(exception_func_name)) {
                 auto func = gen->dpi_function(exception_func_name);
+                func->input(break_point_instance_id_arg, var_size_, false);
                 func->input(var_name_, var_size_, false);
+                func->set_port_ordering({{break_point_instance_id_arg, 0}, {var_name_, 1}});
             }
             // get the stmt from the assert
             auto id = stmt->stmt_id();
             auto &id_const = constant(id, var_size_);
-            auto &var =
-                gen->call(exception_func_name, {{var_name_, id_const.shared_from_this()}}, false);
+            auto instance_id = gen->get_param(break_point_param_name);
+            if (!instance_id) {
+                throw UserException("Cannot find " + std::string(break_point_param_name));
+            }
+            auto &var = gen->call(exception_func_name,
+                                  {{break_point_instance_id_arg, instance_id},
+                                   {var_name_, id_const.shared_from_this()}},
+                                  false);
             auto st = std::make_shared<FunctionCallStmt>(var.as<FunctionCallVar>());
             stmt->set_else(st);
         }
