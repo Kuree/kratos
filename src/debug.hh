@@ -22,7 +22,6 @@ void inject_assert_fail_exception(Generator *top);
 void remove_assertion(Generator *top);
 void convert_continuous_stmt(Generator *top);
 std::unordered_map<Var*, std::unordered_set<Var*>> find_driver_signal(Generator *top);
-std::map<Generator*, uint32_t> compute_definition_id(Generator *top);
 // this is a pass for systems that don't fully integrate kratos as their backend but only
 // want to partially use Kratos' debuggability
 // it will fake a hierarchy

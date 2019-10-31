@@ -293,10 +293,6 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
 }
 
 void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
-    // assume that it's already de-coupled the module instantiation
-    if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator != generator_) ||
-        (stmt->right()->type() == VarType::PortIO && stmt->right()->generator != generator_))
-        return;
     if (stmt->left()->type() == VarType::PortIO) {
         auto port = stmt->left()->as<Port>();
         if (port->port_direction() == PortDirection::In && stmt->left()->generator == generator_) {

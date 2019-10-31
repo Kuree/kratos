@@ -7,6 +7,7 @@
 #include "pass.hh"
 #include "tb.hh"
 #include "util.hh"
+#include <mutex>
 
 using fmt::format;
 
@@ -19,6 +20,8 @@ public:
     void visit(CombinationalStmtBlock *stmt) override { insert_statements(stmt); }
 
     void visit(SequentialStmtBlock *stmt) override { insert_statements(stmt); }
+
+    void visit(InitialStmtBlock *stmt) override { insert_statements(stmt); }
 
     void visit(ScopedStmtBlock *stmt) override { insert_statements(stmt); }
 
@@ -98,21 +101,27 @@ void inject_debug_break_points(Generator *top) {
 
 class InstanceIdVisitor : public IRVisitor {
 public:
+    explicit InstanceIdVisitor(Context *context) : context_(context), mutex_() {}
+
     void visit(Generator *gen) override {
         if (gen->generator_id < 0) {
-            Context *context = gen->context();
-            auto id = context->max_instance_id()++;
+            mutex_.lock();
+            auto id = context_->max_instance_id()++;
+            mutex_.unlock();
             gen->generator_id = id;
             // create a parameter
             auto &p = gen->parameter(break_point_param_name, 32);
             p.set_value(id);
         }
     }
+private:
+    Context *context_;
+    std::mutex mutex_;
 };
 
 void inject_instance_ids(Generator *top) {
     // this can be done in parallel
-    InstanceIdVisitor visitor;
+    InstanceIdVisitor visitor(top->context());
     visitor.visit_generator_root_p(top);
 }
 
@@ -209,25 +218,6 @@ std::unordered_map<Var *, std::unordered_set<Var *>> find_driver_signal(Generato
     VarSourceVisitor visitor;
     visitor.visit_root(top);
     return visitor.map();
-}
-
-std::map<Generator *, uint32_t> compute_definition_id(const Context *context) {
-    // we assume the hash is already computed
-    auto names_set = context->get_generator_names();
-    // sort the names
-    std::vector<std::string> names = std::vector<std::string>(names_set.begin(), names_set.end());
-    std::sort(names.begin(), names.end());
-
-    uint32_t id = 0;
-    std::map<Generator *, uint32_t> result;
-    for (auto const &name : names) {
-        auto const &gens = context->get_generators_by_name(name);
-        for (auto const &gen : gens) {
-            result.emplace(gen.get(), id);
-        }
-        id++;
-    }
-    return result;
 }
 
 void mock_hierarchy(Generator *top, const std::string &top_name) {
@@ -438,17 +428,6 @@ void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
     hierarchy_ = visitor.hierarchy();
 }
 
-std::unordered_map<uint32_t, Generator *> build_id_map(
-    const std::unordered_map<Generator *, std::set<uint32_t>> &map) {
-    std::unordered_map<uint32_t, Generator *> result;
-    for (auto const &[gen, ids] : map) {
-        for (auto const &id : ids) {
-            result.emplace(id, gen);
-        }
-    }
-    return result;
-}
-
 void DebugDatabase::save_database(const std::string &filename) {
     auto storage = init_storage(filename);
     storage.sync_schema();
@@ -460,11 +439,6 @@ void DebugDatabase::save_database(const std::string &filename) {
     storage.insert(top_name);
 
     // insert generator ids
-    // first we compute the definition id
-    if (!context_) {
-        throw UserException("Context is null. Please insert breakpoints first");
-    }
-    auto definition_ids = compute_definition_id(context_);
     std::unordered_map<Generator *, uint32_t> gen_id_map;
     std::unordered_map<std::string, uint32_t> handle_id_map;
     for (auto const &gen : generators_) {
@@ -475,11 +449,7 @@ void DebugDatabase::save_database(const std::string &filename) {
         int id = gen->generator_id;
         gen_id_map.emplace(gen, id);
         handle_id_map.emplace(gen->handle_name(), id);
-        if (definition_ids.find(gen) == definition_ids.end())
-            throw InternalException(
-                ::format("Unable to find definition id for {0}", gen->handle_name()));
-        int const def_id = definition_ids.at(gen);
-        Instance inst{id, def_id, gen->handle_name()};
+        Instance inst{id, gen->handle_name()};
         storage.replace(inst);
     }
 

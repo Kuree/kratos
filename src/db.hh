@@ -47,7 +47,6 @@ struct ContextVariable {
 
 struct Instance {
     int id;
-    int definition_id;
     std::string handle_name;
 };
 
@@ -83,7 +82,6 @@ auto inline init_storage(const std::string &filename) {
                    foreign_key(&ContextVariable::variable_id).references(&Variable::id),
                    foreign_key(&ContextVariable::breakpoint_id).references(&BreakPoint::id)),
         make_table("instance", make_column("id", &Instance::id, primary_key()),
-                   make_column("definition_id", &Instance::definition_id),
                    make_column("handle_name", &Instance::handle_name)));
     return storage;
 }

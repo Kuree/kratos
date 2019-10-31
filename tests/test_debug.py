@@ -319,5 +319,36 @@ def test_wire():
         assert v == a
 
 
+def test_inst_id():
+    def create_mod():
+        m = Generator("mod", True)
+        in_ = m.input("in", 1)
+        out = m.output("out", 1)
+        comb = m.combinational()
+        comb.add_stmt(out.assign(in_))
+        return m
+    mod = Generator("parent", True)
+    input_ = mod.input("in", 1)
+    output = mod.output("out", 1)
+    mods = [create_mod() for _ in range(2)]
+    expr = None
+    for i, m_ in enumerate(mods):
+        mod.add_child("mod{0}".format(i), m_)
+        mod.wire(input_, m_.ports["in"])
+        if expr is None:
+            expr = m_.ports["out"]
+        else:
+            expr = expr & m_.ports["out"]
+    mod.wire(output, expr)
+
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        filename = os.path.join(temp, "test.sv")
+        verilog(mod, filename=filename, debug_db_filename=debug_db, optimize_passthrough=False)
+        with open(filename) as f:
+            src = f.read()
+            assert "breakpoint_trace (KRATOS_INSTANCE_ID, 32'h0);" in src
+
+
 if __name__ == "__main__":
-    test_wire()
+    test_inst_id()

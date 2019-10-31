@@ -221,7 +221,7 @@ TEST(pass, decouple1) {  // NOLINT
     EXPECT_EQ(mod1.stmts_count(), 3);
     decouple_generator_ports(&mod1);
     check_mixed_assignment(&mod1);
-    EXPECT_EQ(mod1.stmts_count(), 5);
+    EXPECT_EQ(mod1.stmts_count(), 2);
     auto new_var = mod1.get_var("inst1_in");
     EXPECT_TRUE(new_var != nullptr);
 

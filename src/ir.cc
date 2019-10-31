@@ -21,8 +21,11 @@ void IRVisitor::visit_root(IRNode *root) {
     root->accept(this);
     uint64_t child_count = root->child_count();
     level++;
+    std::vector<IRNode*> visits(child_count);
     for (uint64_t i = 0; i < child_count; i++) {
-        auto child = root->get_child(i);
+        visits[i] = root->get_child(i);
+    }
+    for (auto &child: visits) {
         if (visited_.find(child) == visited_.end()) {
             visited_.emplace(child);
             visit_root(child);

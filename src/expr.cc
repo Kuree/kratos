@@ -984,7 +984,6 @@ void Var::move_linked_to(kratos::Var *new_var) {
     // we use overloaded ones
     for (auto &concat : concat_vars_) {
         concat->move_linked_to(new_var);
-        printf("here\n");
         concat->replace_var(shared_from_this(), new_var->shared_from_this());
     }
     new_var->concat_vars_ =

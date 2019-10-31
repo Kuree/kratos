@@ -30,3 +30,8 @@ add_executable(test_tb test_tb.cc)
 target_link_libraries(test_tb gtest kratos gtest_main)
 gtest_discover_tests(test_tb
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vectors)
+
+add_executable(test_debug test_debug.cc)
+target_link_libraries(test_debug gtest kratos gtest_main)
+gtest_discover_tests(test_tb
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vectors)
