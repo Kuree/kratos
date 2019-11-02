@@ -24,8 +24,8 @@ mod1 child2 (
 endmodule   // Top
 
 module mod1 (
-  input logic  in,
-  output logic  out
+  input logic in,
+  output logic out
 );
 
 assign out = in;

@@ -64,8 +64,8 @@ public:
         const std::vector<uint32_t> &size, bool is_signed);
     Var(Generator *m, const std::string &name, uint32_t var_width, uint32_t size, bool is_signed,
         VarType type);
-    Var(Generator *m, const std::string &name, uint32_t var_width,
-        const std::vector<uint32_t> &size, bool is_signed, VarType type);
+    Var(Generator *m, const std::string &name, uint32_t var_width, std::vector<uint32_t> size,
+        bool is_signed, VarType type);
 
     std::string name;
     uint32_t &var_width() { return var_width_; }

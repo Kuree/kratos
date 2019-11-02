@@ -277,7 +277,7 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
             var_high_ = high;
         } else {
             uint32_t base_width = parent->var_width();
-            for (uint32_t i = 1; i < parent->size().size(); i++) base_width *= parent->size()[i];
+            for (uint64_t i = 1; i < parent->size().size(); i++) base_width *= parent->size()[i];
             var_low_ = low * base_width;
             var_high_ = (high + 1) * base_width - 1;
         }
@@ -290,7 +290,7 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
         } else {
             auto slice = dynamic_cast<VarSlice *>(parent);
             uint32_t base_width = parent->var_width();
-            for (uint32_t i = 1; i < parent->size().size(); i++) base_width *= parent->size()[i];
+            for (uint64_t i = 1; i < parent->size().size(); i++) base_width *= parent->size()[i];
             var_low_ = slice->var_low() + low * base_width;
             var_high_ = slice->var_low() + (high + 1) * base_width - 1;
         }
@@ -443,12 +443,12 @@ Var::Var(Generator *module, const std::string &name, uint32_t var_width, uint32_
     : Var(module, name, var_width, std::vector<uint32_t>{size}, is_signed, type) {}
 
 Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
-         const std::vector<uint32_t> &size, bool is_signed, kratos::VarType type)
+         std::vector<uint32_t> size, bool is_signed, kratos::VarType type)
     : IRNode(IRNodeKind::VarKind),
       name(name),
       generator(m),
       var_width_(var_width),
-      size_(size),
+      size_(std::move(size)),
       is_signed_(is_signed),
       type_(type) {
     // only constant allows to be null generator

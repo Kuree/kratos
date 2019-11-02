@@ -20,6 +20,14 @@ void init_generator(py::module &m) {
         .def("var",
              py::overload_cast<const std::string &, uint32_t, uint32_t, bool>(&Generator::var),
              py::return_value_policy::reference)
+        .def("var",
+             py::overload_cast<const std::string &, uint32_t, const std::vector<uint32_t> &>(
+                 &Generator::var),
+             py::return_value_policy::reference)
+        .def("var",
+             py::overload_cast<const std::string &, uint32_t, const std::vector<uint32_t> &, bool>(
+                 &Generator::var),
+             py::return_value_policy::reference)
         .def(
             "var",
             [](Generator &gen, const std::string &name, const std::shared_ptr<Param> &width,
@@ -35,6 +43,10 @@ void init_generator(py::module &m) {
         .def("port",
              py::overload_cast<PortDirection, const std::string &, uint32_t, uint32_t, PortType,
                                bool>(&Generator::port),
+             py::return_value_policy::reference)
+        .def("port",
+             py::overload_cast<PortDirection, const std::string &, uint32_t,
+                               const std::vector<uint32_t> &, PortType, bool>(&Generator::port),
              py::return_value_policy::reference)
         .def(
             "port",
