@@ -264,6 +264,7 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
         size_ = std::vector<uint32_t>(parent->size().begin(), parent->size().end());
         size_[0] = high - low + 1;
         var_width_ = parent->var_width();
+        is_packed_ = parent->is_packed();
     }
     // compute the var high and var_low
     if (parent->type() != VarType::Slice) {
@@ -332,6 +333,7 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         var_low_ = 0;
     } else {
         var_width_ = parent->var_width();
+        is_packed_ = parent->is_packed();
         // peel one layer
         if (parent->size().size() > 1)
             size_ = std::vector<uint32_t>(parent->size().begin() + 1, parent->size().end());

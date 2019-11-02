@@ -136,7 +136,9 @@ def test_md_array():
     mod = Generator("mod")
     a = mod.var("a", 16, size=(4, 2), packed=True)
     b = mod.var("b", 16, size=(4, 2), packed=True)
+    c = mod.var("c", 16, size=(2,), packed=True)
     mod.wire(b, a)
+    mod.wire(c, a[1])
     src = verilog(mod)["mod"]
     assert "logic [3:0][1:0][15:0] a;" in src
 

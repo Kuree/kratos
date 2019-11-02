@@ -210,11 +210,11 @@ protected:
     // parametrization
     Param *param_ = nullptr;
 
+    bool is_packed_ = false;
+
 private:
     std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
     std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> extended_;
-
-    bool is_packed_ = false;
 };
 
 struct VarCasted : public Var {
