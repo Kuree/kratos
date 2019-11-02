@@ -77,7 +77,7 @@ Var &Generator::var(const std::string &var_name, uint32_t width,
 }
 
 Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed) {
-    const auto &lst = {size};
+    const auto &lst = std::vector<uint32_t>{size};
     return var(var_name, width, lst, is_signed);
 }
 
@@ -112,7 +112,7 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
 
 Port &Generator::port(PortDirection direction, const std::string &port_name, uint32_t width,
                       uint32_t size, PortType type, bool is_signed) {
-    const auto &lst = {size};
+    const auto &lst = std::vector<uint32_t>{size};
     return port(direction, port_name, width, lst, type, is_signed);
 }
 
