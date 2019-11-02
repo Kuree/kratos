@@ -1,8 +1,8 @@
 module TOP (
 );
 
-logic   in;
-logic   out;
+logic in;
+logic out;
 mod dut (
   .in(in),
   .out(out)

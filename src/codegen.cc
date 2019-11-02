@@ -86,12 +86,7 @@ Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
     return *this;
 }
 
-Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
-    if (!var->comment.empty()) (*this) << "// " << strip_newline(var->comment) << endl();
-
-    if (generator_->debug) {
-        var->verilog_ln = line_no_;
-    }
+std::string Stream::get_var_decl(kratos::Var* var) {
 
     // based on whether it's packed or not
     std::string type;
@@ -104,20 +99,47 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
     } else {
         type = "logic";
     }
-    std::string format_str;
-    if ((var->size() > 1 || var->explicit_array()) && var->is_packed())
-        format_str = "{0} {1} {4}{2} {3}{5};";
-    else
-        format_str = "{0} {1} {2} {3}{4}{5};";
-    (*this) << var->before_var_str()
-            << ::format(format_str, type, var->is_signed() ? "signed" : "",
-                        var->is_enum() ? "" : SystemVerilogCodeGen::get_var_width_str(var.get()),
-                        var->name,
-                        (var->size() == 1 && !var->explicit_array())
-                            ? ""
-                            : ::format("[{0}:0]", var->size() - 1),
-                        var->after_var_str())
-            << endl();
+
+    std::vector<std::string> str = {type};
+    if (var->is_signed()) str.emplace_back("signed");
+    std::string var_width = SystemVerilogCodeGen::get_var_width_str(var);
+    if (var->size().front() > 1 || var->size().size() > 1 || var->explicit_array()) {
+        // it's an array
+        if (var->is_packed()) {
+            std::string array_str;
+            for (auto const& w : var->size())
+                array_str.append(SystemVerilogCodeGen::get_width_str(w));
+            if (!var_width.empty()) array_str.append(var_width);
+            str.emplace_back(array_str);
+            str.emplace_back(var->name);
+        } else {
+            if (!var_width.empty()) str.emplace_back(var_width);
+            str.emplace_back(var->name);
+            std::string array_str;
+            for (auto const& w : var->size())
+                array_str.append(SystemVerilogCodeGen::get_width_str(w));
+            str.emplace_back(array_str);
+        }
+    } else {
+        // scalar
+        if (!var_width.empty() && !var->is_enum()) str.emplace_back(var_width);
+        str.emplace_back(var->name);
+    }
+
+    auto var_str = join(str.begin(), str.end(), " ");
+    return var_str;
+}
+
+Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
+    if (!var->comment.empty()) (*this) << "// " << strip_newline(var->comment) << endl();
+
+    if (generator_->debug) {
+        var->verilog_ln = line_no_;
+    }
+
+    auto var_str = get_var_decl(var.get());
+
+    (*this) << var->before_var_str() << var_str << var->after_var_str() << ";" << endl();
     return *this;
 }
 
@@ -163,8 +185,7 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     stream_ << indent() << "(" << stream_.endl();
     generate_ports(generator);
     stream_ << indent() << ");" << stream_.endl() << stream_.endl();
-    if (verilog95_def_)
-        generate_port_verilog_95_def(generator);
+    if (verilog95_def_) generate_port_verilog_95_def(generator);
     generate_enums(generator);
     generate_variables(generator);
     generate_functions(generator);
@@ -186,6 +207,10 @@ std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {
     return var->var_width() > 1 && !var->is_struct() ? ::format("[{0}:0]", width) : "";
 }
 
+std::string SystemVerilogCodeGen::get_width_str(uint32_t width) {
+    return ::format("[{0}:0]", width - 1);
+}
+
 void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     indent_++;
     // sort the names
@@ -199,11 +224,9 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
             stream_ << std::make_pair(port.get(), (i == port_names.size() - 1) ? "" : ",");
         } else {
             stream_ << indent() << port_name;
-            if (i != port_names.size() - 1)
-                stream_ << ',';
+            if (i != port_names.size() - 1) stream_ << ',';
             stream_ << stream_.endl();
         }
-
     }
     indent_--;
 }
@@ -211,8 +234,8 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
 void SystemVerilogCodeGen::generate_port_verilog_95_def(kratos::Generator* generator) {
     if (verilog95_def_) {
         auto& port_names_set = generator->get_port_names();
-        for (auto const &port_name: port_names_set) {
-            auto const &port = generator->get_port(port_name);
+        for (auto const& port_name : port_names_set) {
+            auto const& port = generator->get_port(port_name);
             stream_ << std::make_pair(port.get(), ";");
         }
     }
@@ -640,14 +663,23 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         strs.emplace_back(ptr->packed_struct().struct_name);
     }
     if (port->is_signed()) strs.emplace_back("signed");
-    if ((port->size() > 1 || port->explicit_array()) && port->is_packed()) {
-        strs.emplace_back(::format("[{0}:0]", port->size() - 1));
+    if ((port->size().front() > 1 || port->size().size() > 1 || port->explicit_array()) &&
+        port->is_packed()) {
+        std::string str;
+        for (auto const& w : port->size()) str.append(get_width_str(w));
+        strs.emplace_back(str);
     }
-    if (!port->is_struct()) strs.emplace_back(get_var_width_str(port));
+    if (!port->is_struct()) {
+        auto const& var_width_str = get_var_width_str(port);
+        if (!var_width_str.empty()) strs.emplace_back(var_width_str);
+    }
     strs.emplace_back(port->name);
 
-    if ((port->size() > 1 || port->explicit_array()) && !port->is_packed()) {
-        strs.emplace_back(::format("[{0}:0]", port->size() - 1));
+    if ((port->size().front() > 1 || port->size().size() > 1 || port->explicit_array()) &&
+        !port->is_packed()) {
+        std::string str;
+        for (auto const& w : port->size()) str.append(get_width_str(w));
+        strs.emplace_back(str);
     }
     return join(strs.begin(), strs.end(), " ");
 }
@@ -692,15 +724,15 @@ std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def)
     Generator gen(nullptr, top->name);
     for (auto const& port_name : port_names) {
         auto port = top->get_port(port_name);
+        auto const& lst = std::vector<uint32_t>{1};
         gen.port(port->port_direction(), port_name,
                  flatten_array ? port->width() : port->var_width(),
-                 flatten_array ? 1 : port->size(), port->port_type(), port->is_signed());
+                 flatten_array ? lst : port->size(), port->port_type(), port->is_signed());
     }
     // that's it
     // now outputting the stream
     auto res = generate_verilog(&gen, verilog_95_def);
     return res.at(top->name);
-
 }
 
 }  // namespace kratos

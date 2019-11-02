@@ -41,6 +41,8 @@ public:
     Stream& operator<<(const std::pair<Port*, std::string>& port);
     Stream& operator<<(const std::shared_ptr<Var>& var);
 
+    static std::string get_var_decl(Var* var);
+
     inline char endl() {
         line_no_++;
         return '\n';
@@ -75,6 +77,7 @@ public:
     // helper function
     std::string static get_port_str(Port* port);
     static std::string get_var_width_str(const Var* var);
+    static std::string get_width_str(uint32_t width);
 
 private:
     uint32_t indent_ = 0;

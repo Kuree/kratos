@@ -1,6 +1,6 @@
 module mod (
-  input logic  in,
-  output logic  out
+  input logic in,
+  output logic out
 );
 
 typedef enum logic[1:0] {

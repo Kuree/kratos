@@ -1,6 +1,6 @@
 typedef struct packed {
-    logic [15:0]  read;
-    logic [15:0]  data;
+    logic [15:0] read;
+    logic [15:0] data;
 } config_data;
 
 module mod (

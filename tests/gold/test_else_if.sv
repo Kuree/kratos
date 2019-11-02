@@ -1,7 +1,7 @@
 module elseif (
-  input logic  in0,
-  input logic  in1,
-  output logic  out
+  input logic in0,
+  input logic in1,
+  output logic out
 );
 
 always_comb begin

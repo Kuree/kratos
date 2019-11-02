@@ -1,7 +1,7 @@
 module test (
-  input logic  clk,
-  input logic  in,
-  output logic  out
+  input logic clk,
+  input logic in,
+  output logic out
 );
 
 

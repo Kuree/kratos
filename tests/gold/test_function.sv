@@ -6,7 +6,7 @@ module mod (
 
 function update_out(
   input logic [1:0] value,
-  input logic  predicate
+  input logic predicate
 );
 begin
   out2 = value;

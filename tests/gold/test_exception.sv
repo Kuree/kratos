@@ -1,5 +1,5 @@
 module mod (
-  input logic  in
+  input logic in
 );
 
 always_comb begin

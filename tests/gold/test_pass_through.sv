@@ -1,6 +1,6 @@
 module top (
-  input logic  in,
-  output logic  out
+  input logic in,
+  output logic out
 );
 
 assign out = in;

@@ -1,11 +1,11 @@
 module register (
-  input logic  clk,
+  input logic clk,
   input logic [15:0] in,
   output logic [15:0] out,
-  input logic  rst
+  input logic rst
 );
 
-logic  [15:0] val;
+logic [15:0] val;
 
 always_ff @(posedge clk, posedge rst) begin
   if (rst) begin

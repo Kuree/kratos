@@ -1,6 +1,6 @@
 module mod1 (
-  input logic  in,
-  output logic  out
+  input logic in,
+  output logic out
 );
 
 always_comb begin

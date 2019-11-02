@@ -60,16 +60,20 @@ enum VarCastType { Signed, Unsigned, Clock, AsyncReset };
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
     Var(Generator *m, const std::string &name, uint32_t var_width, uint32_t size, bool is_signed);
+    Var(Generator *m, const std::string &name, uint32_t var_width,
+        const std::vector<uint32_t> &size, bool is_signed);
     Var(Generator *m, const std::string &name, uint32_t var_width, uint32_t size, bool is_signed,
         VarType type);
+    Var(Generator *m, const std::string &name, uint32_t var_width,
+        const std::vector<uint32_t> &size, bool is_signed, VarType type);
 
     std::string name;
     uint32_t &var_width() { return var_width_; }
-    uint32_t &size() { return size_; }
+    std::vector<uint32_t> &size() { return size_; }
+    const std::vector<uint32_t> &size() const { return size_; }
     bool &is_signed() { return is_signed_; };
-    uint32_t width() const { return var_width_ * size_; };
+    uint32_t width() const;
     uint32_t var_width() const { return var_width_; }
-    uint32_t size() const { return size_; }
     bool is_signed() const { return is_signed_; };
 
     // overload all the operators
@@ -184,7 +188,7 @@ public:
 
 protected:
     uint32_t var_width_;
-    uint32_t size_;
+    std::vector<uint32_t> size_;
     bool is_signed_;
 
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
@@ -207,8 +211,6 @@ protected:
     Param *param_ = nullptr;
 
 private:
-    std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> get_binary_var_ptr(const Var &var) const;
-
     std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
     std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> extended_;
 
@@ -466,7 +468,7 @@ private:
     std::vector<Var *> vars_;
 };
 
-struct VarExtend: public Expr {
+struct VarExtend : public Expr {
 public:
     VarExtend(const std::shared_ptr<Var> &var, uint32_t width);
 
@@ -475,12 +477,12 @@ public:
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
     uint64_t child_count() override { return 1; }
-    IRNode *get_child(uint64_t index) override { return index == 0? parent_: nullptr; }
+    IRNode *get_child(uint64_t index) override { return index == 0 ? parent_ : nullptr; }
 
     std::string to_string() const override;
 
 private:
-    Var* parent_;
+    Var *parent_;
 };
 
 struct ConditionalExpr : public Expr {

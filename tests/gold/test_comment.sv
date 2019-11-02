@@ -1,13 +1,13 @@
 module mod (
   // Input port
-  input logic  in,
-  output logic  out,
-  output logic  out2,
-  output logic  out3
+  input logic in,
+  output logic out,
+  output logic out2,
+  output logic out3
 );
 
 // variable comment
-logic   v;
+logic v;
 assign out2 = v;
 always_comb begin
   // Another comment
@@ -22,8 +22,8 @@ mod1 child (
 endmodule   // mod
 
 module mod1 (
-  input logic  in,
-  output logic  out
+  input logic in,
+  output logic out
 );
 
 assign out = in;

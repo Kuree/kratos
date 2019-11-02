@@ -1,12 +1,12 @@
 module test (
-  input logic  clk,
-  input logic  in,
-  output logic  out,
-  input logic  rst
+  input logic clk,
+  input logic in,
+  output logic out,
+  input logic rst
 );
 
-logic   a;
-logic   b;
+logic a;
+logic b;
 
 always_ff @(posedge clk, posedge rst) begin
   if (rst) begin

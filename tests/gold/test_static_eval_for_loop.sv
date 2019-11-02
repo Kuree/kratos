@@ -1,5 +1,5 @@
 module mod1 (
-  input logic  in,
+  input logic in,
   output logic [3:0] out
 );
 

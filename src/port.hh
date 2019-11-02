@@ -21,6 +21,9 @@ public:
     Port(Generator *module, PortDirection direction, const std::string &name, uint32_t width,
          uint32_t size, PortType type, bool is_signed);
 
+    Port(Generator *module, PortDirection direction, const std::string &name, uint32_t width,
+         const std::vector<uint32_t> &size, PortType type, bool is_signed);
+
     PortDirection port_direction() const { return direction_; }
     PortType port_type() const { return type_; }
 
@@ -45,7 +48,7 @@ private:
 struct PortPackedStruct : public Port, public PackedInterface {
 public:
     PortPackedStruct(Generator *module, PortDirection direction, const std::string &name,
-               PackedStruct packed_struct_);
+                     PackedStruct packed_struct_);
 
     void set_port_type(PortType type) override;
 

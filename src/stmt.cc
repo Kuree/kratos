@@ -61,8 +61,8 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
                      right->name, left->width(), right->width()),
             {left.get(), right.get()});
     }
-    if (((left->size() > 1 || left->explicit_array()) ||
-         (right->size() > 1 || right->explicit_array())) &&
+    if (((left->size().front() > 1 || left->size().size() > 1 || left->explicit_array()) ||
+         (right->size().front() > 1 || right->size().size() > 1 || right->explicit_array())) &&
         left->is_packed() != right->is_packed()) {
         if (left->is_packed())
             throw StmtException(::format("left ({0}) is packed array but right ({1}) is not.",

@@ -26,17 +26,24 @@ public:
     Generator(Context *context, const std::string &name);
 
     Var &var(const std::string &var_name, uint32_t width, uint32_t size);
+    Var &var(const std::string &var_name, uint32_t width, const std::vector<uint32_t> &size);
     Var &var(const std::string &var_name, uint32_t width) { return var(var_name, width, 1); }
     Var &var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed);
+    Var &var(const std::string &var_name, uint32_t width, const std::vector<uint32_t> &size,
+             bool is_signed);
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width) {
         return port(direction, port_name, width, 1);
     }
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
                uint32_t size);
+    Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
+               const std::vector<uint32_t> &size);
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width, uint32_t size,
                PortType type, bool is_signed);
+    Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
+               const std::vector<uint32_t> &size, PortType type, bool is_signed);
     PortPackedStruct &port_packed(PortDirection direction, const std::string &port_name,
-                            const PackedStruct &packed_struct_);
+                                  const PackedStruct &packed_struct_);
     VarPackedStruct &var_packed(const std::string &var_name, const PackedStruct &packed_struct_);
     Param &parameter(const std::string &parameter_name, uint32_t width);
     Param &parameter(const std::string &parameter_name, uint32_t width, bool is_signed);
@@ -108,7 +115,8 @@ public:
     uint64_t inline get_child_generator_size() const { return children_.size(); }
     bool has_child_generator(const std::shared_ptr<Generator> &child);
     bool has_child_generator(const std::string &child_name);
-    void rename_child_generator(const std::shared_ptr<Generator>& child, const std::string &new_name);
+    void rename_child_generator(const std::shared_ptr<Generator> &child,
+                                const std::string &new_name);
     void accept_generator(IRVisitor *visitor) { visitor->visit(this); }
 
     // AST stuff
@@ -127,7 +135,7 @@ public:
     Context *context() const { return context_; }
 
     IRNode *parent() override { return parent_generator_; }
-    const Generator* parent_generator() const { return parent_generator_; }
+    const Generator *parent_generator() const { return parent_generator_; }
 
     bool is_stub() const { return is_stub_; }
     void set_is_stub(bool value) { is_stub_ = value; }
@@ -159,8 +167,8 @@ public:
     bool inline has_port_bundle(const std::string &port_name) {
         return port_bundle_mapping_.find(port_name) != port_bundle_mapping_.end();
     }
-    std::shared_ptr<PortBundleRef> add_bundle_port_def(
-        const std::string &port_name, const PortBundleDefinition &def);
+    std::shared_ptr<PortBundleRef> add_bundle_port_def(const std::string &port_name,
+                                                       const PortBundleDefinition &def);
     std::shared_ptr<PortBundleRef> add_bundle_port_def(
         const std::string &port_name, const PortBundleDefinition &def,
         const std::pair<std::string, uint32_t> &debug_info);
@@ -193,7 +201,7 @@ public:
     void set_def_instance(Generator *def) { def_instance_ = def; }
     std::string handle_name() const;
     std::string handle_name(bool ignore_top) const;
-    std::shared_ptr<Var> get_auxiliary_var(uint32_t width, bool signed_=false);
+    std::shared_ptr<Var> get_auxiliary_var(uint32_t width, bool signed_ = false);
 
 private:
     std::vector<std::string> lib_files_;

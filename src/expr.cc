@@ -34,11 +34,10 @@ bool is_expand_op(ExprOp op) {
     return ops.find(op) != ops.end();
 }
 
-std::pair<std::shared_ptr<Var>, std::shared_ptr<Var>> Var::get_binary_var_ptr(
-    const Var &var) const {
-    auto left = const_cast<Var *>(this)->shared_from_this();
-    auto right = const_cast<Var *>(&var)->shared_from_this();
-    return {left, right};
+uint32_t Var::width() const {
+    uint32_t w = var_width_;
+    for (auto const &i : size_) w *= i;
+    return w;
 }
 
 Expr &Var::operator-(const Var &var) const {
@@ -146,15 +145,16 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
         throw VarException(::format("low ({0}) cannot be larger than ({1})", low, high), {this});
     }
     // if the size is not 1, we are slicing off size, not width
-    if (size_ == 1) {
+    if (size_.size() == 1 && size_.front() == 1) {
         if (high >= width()) {
             throw VarException(
                 ::format("high ({0}) has to be smaller than width ({1})", high, width()), {this});
         }
     } else {
-        if (high > size_) {
+        if (high > size_.front()) {
             throw VarException(
-                ::format("high ({0}) has to be smaller than size ({1})", high, size_), {this});
+                ::format("high ({0}) has to be smaller than size ({1})", high, size_.front()),
+                {this});
         }
     }
     // create a new one
@@ -187,7 +187,7 @@ VarConcat &Var::concat(Var &var) {
     return *concat_ptr;
 }
 
-VarExtend& Var::extend(uint32_t width) {
+VarExtend &Var::extend(uint32_t width) {
     if (extended_.find(width) != extended_.end()) {
         return *extended_.at(width);
     } else {
@@ -249,44 +249,50 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     // compute the width
     // notice that if the user has explicit set it to be an array
     // we need to honer their wish
-    if (parent->size() == 1 && parent->explicit_array()) {
+    if (parent->size().size() == 1 && parent->size().front() == 1 && parent->explicit_array()) {
         if (high != 0 || low != 0) {
             throw VarException(::format("Parent {0} is a scalar but used marked as an explicit "
                                         "array, only [0, 0] allowed",
                                         parent->to_string()),
                                {parent});
         }
-    } else if (parent->size() == 1) {
+    } else if (parent->size().size() == 1 && parent->size().front() == 1) {
         // this is the actual slice
         var_width_ = high - low + 1;
     } else {
-        size_ = high - low + 1;
+        // readjust the top slice
+        size_ = std::vector<uint32_t>(parent->size().begin(), parent->size().end());
+        size_[0] = high - low + 1;
         var_width_ = parent->var_width();
     }
     // compute the var high and var_low
     if (parent->type() != VarType::Slice) {
         // use width to compute
         // honer user's wish
-        if (parent->size() == 1 && parent->explicit_array()) {
+        if (parent->size().size() == 1 && parent->size().front() == 1 && parent->explicit_array()) {
             var_low_ = 0;
             var_high_ = var_width_ - 1;
-        } else if (parent->size() == 1) {
+        } else if (parent->size().size() == 1 && parent->size().front() == 1) {
             var_low_ = low;
             var_high_ = high;
         } else {
-            var_low_ = low * parent->var_width();
-            var_high_ = (high + 1) * parent->var_width() - 1;
+            uint32_t base_width = parent->var_width();
+            for (uint32_t i = 1; i < parent->size().size(); i++) base_width *= parent->size()[i];
+            var_low_ = low * base_width;
+            var_high_ = (high + 1) * base_width - 1;
         }
     } else {
         // it's a slice
-        if (parent->size() == 1) {
+        if (parent->size().size() == 1 && parent->size().front() == 1) {
             auto slice = dynamic_cast<VarSlice *>(parent);
             var_low_ = low + slice->var_low();
             var_high_ = (high + 1) + slice->var_low();
         } else {
             auto slice = dynamic_cast<VarSlice *>(parent);
-            var_low_ = slice->var_low() + low * parent->var_width();
-            var_high_ = slice->var_low() + (high + 1) * parent->var_width() - 1;
+            uint32_t base_width = parent->var_width();
+            for (uint32_t i = 1; i < parent->size().size(); i++) base_width *= parent->size()[i];
+            var_low_ = slice->var_low() + low * base_width;
+            var_high_ = slice->var_low() + (high + 1) * base_width - 1;
         }
     }
 }
@@ -317,25 +323,30 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
     // there is an issue about the var_high and var_low; the problem will only show up during
     // the connectivity check
     // TODO: fix this
-    if (parent->size() == 1 && !parent->explicit_array()) {
+    if (parent->size().size() == 1 && parent->size().front() == 1 && !parent->explicit_array()) {
         // slice through the 1D array
         // so the width will be 1
         var_width_ = 1;
-        size_ = 1;
+        size_ = {1};
         var_high_ = 0;
         var_low_ = 0;
     } else {
         var_width_ = parent->var_width();
-        size_ = 1;
+        // peel one layer
+        if (parent->size().size() > 1)
+            size_ = std::vector<uint32_t>(parent->size().begin() + 1, parent->size().end());
+        else
+            size_ = {1};
         var_high_ = var_width_ - 1;
         var_low_ = 0;
         // we need to compute the clog2 here
-        uint32_t required_width = std::max<uint32_t>(1, std::ceil(std::log2(parent->size())));
+        uint32_t required_width =
+            std::max<uint32_t>(1, std::ceil(std::log2(parent->size().front())));
         if (required_width != sliced_var_->width()) {
             // error message copied from verilator
             throw VarException(
                 ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
-                         parent->size() - 1, required_width, sliced_var_->width()),
+                         parent->size().front() - 1, required_width, sliced_var_->width()),
                 {parent, slice});
         }
     }
@@ -356,7 +367,8 @@ std::string VarVarSlice::to_string() const {
 }
 
 Expr::Expr(ExprOp op, Var *left, Var *right)
-    : Var(left->generator, "", left->var_width(), left->size(), left->is_signed()),
+    : Var(left->generator, "", left->var_width(), left->size(), left->is_signed(),
+          VarType::Expression),
       op(op),
       left(left),
       right(right) {
@@ -380,11 +392,13 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
 }
 
 Expr::Expr(Var *left, Var *right)
-    : Var(left->generator, "", left->width() / left->size(), left->size(), left->is_signed()),
+    : Var(left->generator, "", left->var_width(), left->size(), left->is_signed(),
+          VarType::Expression),
       op(ExprOp::Add),
       left(left),
       right(right) {
     type_ = VarType::Expression;
+    size_ = std::vector<uint32_t>(left->size().begin(), left->size().end());
     set_parent();
 }
 
@@ -420,20 +434,28 @@ Var::Var(Generator *module, const std::string &name, uint32_t var_width, uint32_
          bool is_signed)
     : Var(module, name, var_width, size, is_signed, VarType::Base) {}
 
+Var::Var(Generator *module, const std::string &name, uint32_t var_width,
+         const std::vector<uint32_t> &size, bool is_signed)
+    : Var(module, name, var_width, size, is_signed, VarType::Base) {}
+
 Var::Var(Generator *module, const std::string &name, uint32_t var_width, uint32_t size,
          bool is_signed, VarType type)
+    : Var(module, name, var_width, std::vector<uint32_t>{size}, is_signed, type) {}
+
+Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
+         const std::vector<uint32_t> &size, bool is_signed, kratos::VarType type)
     : IRNode(IRNodeKind::VarKind),
       name(name),
-      generator(module),
+      generator(m),
       var_width_(var_width),
       size_(size),
       is_signed_(is_signed),
       type_(type) {
     // only constant allows to be null generator
-    if (module == nullptr && type != VarType::ConstValue)
+    if (m == nullptr && type != VarType::ConstValue)
         throw UserException(::format("module is null for {0}", name));
     if (!is_valid_variable_name(name))
-        throw UserException(::format("{0} is a SystemVerilog keyward", name));
+        throw UserException(::format("{0} is a SystemVerilog keyword", name));
 }
 
 IRNode *Var::parent() { return generator; }
@@ -526,10 +548,10 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     } else if (cast_type_ == Unsigned) {
         is_signed_ = false;
     } else if (cast_type_ == VarCastType::AsyncReset || cast_type_ == VarCastType::Clock) {
-        if (parent->size() != 1) {
+        if (parent->size().size() != 1 || parent->size().front() != 1) {
             throw VarException(::format("Can only cast bit width 1 to "
                                         "Clock or AsyncReset. {0} is {1}",
-                                        parent->to_string(), parent->size()),
+                                        parent->to_string(), parent->size().front()),
                                {parent});
         }
     }
@@ -705,7 +727,8 @@ VarExtend::VarExtend(const std::shared_ptr<Var> &var, uint32_t width)
     }
     var_width_ = width;
     is_signed_ = parent_->is_signed();
-    if (parent_->size() > 1 || (parent_->is_packed() && parent_->type() != VarType::ConstValue)) {
+    if (parent_->size().size() > 1 || parent_->size().front() > 1 ||
+        (parent_->is_packed() && parent_->type() != VarType::ConstValue)) {
         throw VarException(::format("Cannot extend an array ({0})", parent_->to_string()),
                            {parent_});
     }
@@ -717,9 +740,7 @@ void VarExtend::add_source(const std::shared_ptr<AssignStmt> &) {
         {parent_});
 }
 
-void VarExtend::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    parent_->add_sink(stmt);
-}
+void VarExtend::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_->add_sink(stmt); }
 
 void VarExtend::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
     if (target.get() == parent_) {
@@ -1226,7 +1247,8 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
         auto dpi = func_def->as<DPIFunctionStmtBlock>();
         if (dpi->return_width()) {
             var_width_ = dpi->return_width();
-            size_ = 1;
+            // FIXME: always size 1?
+            size_ = {1};
             is_signed_ = false;
         }
     }

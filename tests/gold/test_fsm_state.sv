@@ -1,17 +1,17 @@
 module mod (
-  input logic  clk,
+  input logic clk,
   input logic [1:0] in,
   output logic [1:0] out,
-  input logic  rst
+  input logic rst
 );
 
 typedef enum logic {
   Blue = 1'h0,
   Red = 1'h1
 } Color_state;
-Color_state   Color_current_state;
-Color_state   Color_next_state;
-logic   counter;
+Color_state Color_current_state;
+Color_state Color_next_state;
+logic counter;
 
 always_ff @(posedge clk, negedge rst) begin
   if (!rst) begin

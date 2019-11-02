@@ -1,9 +1,9 @@
 module mod (
-  input logic  in,
+  input logic in,
   output logic [1:0] out
 );
 
-logic   child_out;
+logic child_out;
 assign out[0] = child_out;
 assign out[1] = in;
 mod1 child (
@@ -14,8 +14,8 @@ mod1 child (
 endmodule   // mod
 
 module mod1 (
-  input logic  in,
-  output logic  out
+  input logic in,
+  output logic out
 );
 
 assign out = in;

@@ -1,7 +1,7 @@
 module mod (
-  output logic  a,
-  input logic  clk,
-  input logic  rst
+  output logic a,
+  input logic clk,
+  input logic rst
 );
 
 

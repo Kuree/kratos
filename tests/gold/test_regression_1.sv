@@ -3,10 +3,10 @@ module Top (
   output logic [1:0] o_data_out
 );
 
-logic   child1_in;
-logic   child1_out;
-logic   child2_in;
-logic   child2_out;
+logic child1_in;
+logic child1_out;
+logic child2_in;
+logic child2_out;
 assign child1_in = i_data_in[0];
 assign o_data_out[0] = child1_out;
 assign child2_in = i_data_in[1];

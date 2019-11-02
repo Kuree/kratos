@@ -1,11 +1,11 @@
 module test (
-  input logic  clk,
-  input logic  in,
-  output logic  out
+  input logic clk,
+  input logic in,
+  output logic out
 );
 
-logic   a;
-logic   b;
+logic a;
+logic b;
 
 always_ff @(posedge clk) begin
   a <= in;

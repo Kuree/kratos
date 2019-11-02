@@ -88,7 +88,7 @@ def test_explicit_array():
     mod.wire(c, a)
     mod.wire(e, a[d])
     src = verilog(mod)["mod"]
-    assert "logic  [0:0][1:0] a" in src
+    assert "logic [0:0][1:0] a" in src
 
 
 def test_neq():

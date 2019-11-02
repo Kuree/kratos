@@ -164,7 +164,7 @@ public:
 
     void visit(Port *var) override {
         // currently the runtime only support scalar variables
-        if (var->size() != 1) return;
+        if (var->size().size() != 1 || var->size().front() > 1) return;
         insert_str(var);
     }
 
@@ -486,9 +486,10 @@ void DebugDatabase::save_database(const std::string &filename) {
 
         if (var_) {
             // it is an variable
-            if (var_->size() > 1) {
+            if (var_->size().size() > 1 || var_->size().front() > 1) {
                 // it's an array. need to flatten it
-                for (uint32_t i = 0; i < var_->size(); i++) {
+                // TODO: fix this
+                for (uint32_t i = 0; i < var_->size().front(); i++) {
                     if (!name_.empty()) v.name = ::format("{0}.{1}", name_, i);
                     v.value = ::format("{0}[{1}]", var_->name, i);
                     v.id = variable_count++;

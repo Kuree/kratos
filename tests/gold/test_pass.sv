@@ -1,6 +1,6 @@
 module mod1 (
-  input logic  in,
-  output logic  test
+  input logic in,
+  output logic test
 );
 
 assign test = in;

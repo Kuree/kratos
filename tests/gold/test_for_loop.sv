@@ -1,8 +1,8 @@
 module mod (
-  input logic  in0,
-  input logic  in1,
-  input logic  in2,
-  input logic  in3,
+  input logic in0,
+  input logic in1,
+  input logic in2,
+  input logic in3,
   output logic [3:0] out
 );
 

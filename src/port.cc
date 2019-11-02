@@ -23,6 +23,18 @@ Port::Port(Generator* module, PortDirection direction, const ::string& name, uin
     }
 }
 
+Port::Port(kratos::Generator* module, kratos::PortDirection direction, const std::string& name,
+           uint32_t width, const std::vector<uint32_t> &size, kratos::PortType type,
+           bool is_signed): Var(module, name, width, size, is_signed, VarType::PortIO),
+                            direction_(direction),
+                            type_(type) {
+    if ((type == PortType::AsyncReset || type == PortType::Clock || type == PortType::ClockEnable ||
+         type == PortType::Reset) &&
+        width > 1) {
+        throw UserException(::format("{0}'s width has be 1, got {1}", name, width));
+    }
+}
+
 void Port::set_port_type(PortType type) { type_ = type; }
 
 void Port::set_active_high(bool value) {

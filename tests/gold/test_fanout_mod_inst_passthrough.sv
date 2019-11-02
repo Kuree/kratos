@@ -1,10 +1,10 @@
 module mod2 (
-  input logic  in,
-  output logic  out
+  input logic in,
+  output logic out
 );
 
-logic   mod1_in;
-logic   mod3_in;
+logic mod1_in;
+logic mod3_in;
 assign mod1_in = in;
 assign mod3_in = in;
 always_comb begin

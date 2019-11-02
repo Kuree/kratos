@@ -373,7 +373,7 @@ public:
                         std::function<void(uint32_t, uint32_t)> wire_zero = [=](uint32_t h,
                                                                                 uint32_t l) {
                             uint32_t ll, hh;
-                            if (port->size() == 1) {
+                            if (port->size().size() == 1 && port->size().front() == 1) {
                                 ll = l;
                                 hh = h;
                             } else {
@@ -1601,12 +1601,19 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
     for (auto const& [name, struct_] : structs) {
         // TODO:
         //  Use Stream class in the codegen instead to track the debugging info
+        //  Share the same code gen logic with Stream
         std::string entry;
         entry.append("typedef struct packed {\n");
 
         for (auto const& [attribute_name, width, is_signed] : struct_.attributes) {
-            entry.append(::format("    logic [{0}:0] {1} {2};\n", width - 1,
-                                  is_signed ? "signed" : "", attribute_name));
+            std::vector<std::string> str = {"    logic"};
+            if (width > 1)
+                str.emplace_back(::format("[{0}:0]", width - 1));
+            if (is_signed)
+                str.emplace_back("signed");
+            str.emplace_back(attribute_name);
+            auto entry_str = join(str.begin(), str.end(), " ");
+            entry.append(entry_str + ";\n");
         }
         entry.append(::format("}} {0};\n", name));
         result.emplace(name, entry);
@@ -2051,7 +2058,7 @@ public:
                         break;
                     }
                 }
-                if (port->size() != 1) {
+                if (port->size().size() != 1 || port->size().front() > 1) {
                     // TODO: upgrade packed struct to support array
                     same_direction = false;
                     break;

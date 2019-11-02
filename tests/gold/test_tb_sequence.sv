@@ -1,9 +1,9 @@
 module TOP (
 );
 
-logic   clk;
-logic   in;
-logic   out;
+logic clk;
+logic in;
+logic out;
 mod dut (
   .clk(clk),
   .in(in),

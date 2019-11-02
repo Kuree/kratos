@@ -5,7 +5,7 @@ module mod (
   input logic [1:0] warr
 );
 
-logic  [3:0] reg_file[3:0];
+logic [3:0] reg_file [3:0];
 always_comb begin
   reg_file[warr] = in;
   out = reg_file[raddr];
