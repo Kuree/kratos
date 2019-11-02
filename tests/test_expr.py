@@ -132,5 +132,15 @@ def test_packed_unpacked():
         assert True
 
 
+def test_md_array():
+    mod = Generator("mod")
+    a = mod.var("a", 16, size=(4, 2), packed=True)
+    b = mod.var("b", 16, size=(4, 2), packed=True)
+    mod.wire(b, a)
+    src = verilog(mod)["mod"]
+    assert "logic [3:0][1:0][15:0] a;" in src
+
+
 if __name__ == "__main__":
-    test_packed_unpacked()
+    test_md_array()
+

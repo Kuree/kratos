@@ -278,3 +278,11 @@ TEST(expr, extend) {    // NOLINT
     auto &a = constant(4, 4).extend(8);
     EXPECT_EQ(a.to_string(), "8'(4'h4)");
 }
+
+TEST(expr, md_array) {    // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 16, {4, 2});
+    EXPECT_EQ(a.size()[0], 4);
+    EXPECT_EQ(a.size()[1], 2);
+}

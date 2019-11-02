@@ -488,14 +488,25 @@ void DebugDatabase::save_database(const std::string &filename) {
             // it is an variable
             if (var_->size().size() > 1 || var_->size().front() > 1) {
                 // it's an array. need to flatten it
-                // TODO: fix this
-                for (uint32_t i = 0; i < var_->size().front(); i++) {
-                    if (!name_.empty()) v.name = ::format("{0}.{1}", name_, i);
-                    v.value = ::format("{0}[{1}]", var_->name, i);
-                    v.id = variable_count++;
-                    storage.replace(v);
-                    add_context();
-                }
+                // use recursion to do it
+                std::function<void(const std::string&, const std::string&, uint32_t)>
+                    add_data_point = [&](const std::string &value, const std::string &name,
+                                         uint32_t index) {
+                    if (index >= var_->size().size()) return;
+                    auto width = var_->size()[index];
+                    for (uint32_t i = 0; i < width; i++) {
+                        v.name = ::format("{0}.{1}", name, i);
+                        v.value = ::format("{0}[{1}]", value, i);
+                        v.id = variable_count++;
+                        storage.replace(v);
+                        add_context();
+
+                        auto new_name = ::format("{0}.{1}", name, i);
+                        auto new_value = ::format("{0}[1]", value, i);
+                        add_data_point(new_name, new_value, index + 1);
+                    }
+                };
+                add_data_point(var_->name, name_, 0);
             } else if (var_->is_struct()) {
                 // it's an packed array
                 if (var_->type() == VarType::PortIO) {
