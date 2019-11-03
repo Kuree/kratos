@@ -259,12 +259,25 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     } else if (parent->size().size() == 1 && parent->size().front() == 1) {
         // this is the actual slice
         var_width_ = high - low + 1;
+        is_packed_ = false;
     } else {
-        // readjust the top slice
-        size_ = std::vector<uint32_t>(parent->size().begin(), parent->size().end());
-        size_[0] = high - low + 1;
-        var_width_ = parent->var_width();
-        is_packed_ = parent->is_packed();
+        if (high == low) {
+            if (parent->size().size() == 1) {
+                size_ = {1};
+                is_packed_ = false;
+            }
+            else {
+                size_ = std::vector<uint32_t>(parent->size().begin() + 1, parent->size().end());
+                is_packed_ = parent->is_packed();
+            }
+            var_width_ = parent->var_width();
+        } else {
+            // readjust the top slice
+            size_ = std::vector<uint32_t>(parent->size().begin(), parent->size().end());
+            size_.back() = high - low + 1;
+            var_width_ = parent->var_width();
+            is_packed_ = parent->is_packed();
+        }
     }
     // compute the var high and var_low
     if (parent->type() != VarType::Slice) {

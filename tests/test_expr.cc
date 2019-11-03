@@ -280,9 +280,20 @@ TEST(expr, extend) {    // NOLINT
 }
 
 TEST(expr, md_array) {    // NOLINT
-    Context c;
-    auto &mod = c.generator("mod");
+    Context context;
+    auto &mod = context.generator("mod");
     auto &a = mod.var("a", 16, {4, 2});
     EXPECT_EQ(a.size()[0], 4);
     EXPECT_EQ(a.size()[1], 2);
+    auto &b = mod.var("b", 16, {4, 2});
+    auto &c = mod.var("c", 16, {4, 2});
+    b.set_is_packed(true);
+    c.set_is_packed(true);
+    // mixture packed and unpacked
+    EXPECT_THROW(a.assign(b), StmtException);
+    EXPECT_THROW(a[0].assign(b[0]), StmtException);
+    EXPECT_NO_THROW(a[0][0].assign(b[0][0]));
+    auto &slice = b[{1, 0}];
+    EXPECT_EQ(slice.size()[1], 2);
+    EXPECT_NO_THROW((b[{1, 0}].assign(c[{1, 0}])));
 }

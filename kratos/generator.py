@@ -322,7 +322,7 @@ class Generator(metaclass=GeneratorMeta):
         return self.__generator.get_stmt(index)
 
     def var(self, name: str, width: Union[int, _kratos.Param],
-            is_signed: bool = False, size: int = 1,
+            is_signed: bool = False, size: Union[int, Union[List, Tuple]] = 1,
             packed: bool = False, explicit_array: bool = False) -> _kratos.Var:
 
         v = self.__generator.var(name, width, size, is_signed)
@@ -349,7 +349,7 @@ class Generator(metaclass=GeneratorMeta):
     def port(self, name: str, width: Union[int, _kratos.Param],
              direction: PortDirection,
              port_type: PortType = PortType.Data,
-             is_signed: bool = False, size: int = 1,
+             is_signed: bool = False, size: Union[int, Union[List, Tuple]] = 1,
              packed: bool = False,
              explicit_array: bool = False) -> _kratos.Port:
         p = self.__generator.port(direction.value, name, width, size,
