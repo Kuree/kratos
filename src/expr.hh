@@ -486,6 +486,7 @@ public:
     IRNode *get_child(uint64_t index) override { return index == 0 ? parent_ : nullptr; }
 
     std::string to_string() const override;
+    Var* parent_var() { return parent_; }
 
 private:
     Var *parent_;

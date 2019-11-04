@@ -9,7 +9,7 @@ namespace kratos {
 
 class DependencyVisitor : public IRVisitor {
 public:
-    DependencyVisitor(): dependency_() {}
+    DependencyVisitor() : dependency_() {}
 
     void visit(Generator *generator) override {
         // visit the top and find out top level assignments
@@ -17,7 +17,10 @@ public:
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto const &stmt = generator->get_stmt(i);
             if (stmt->type() == StatementType::Assign) {
-                get_dep(reinterpret_cast<AssignStmt *>(stmt.get()));
+                auto assign = stmt->as<AssignStmt>();
+                auto dep = get_dep(assign.get());
+                for (auto const &v: dep)
+                    dependency_[v].emplace(stmt.get());
             } else if (stmt->type() == StatementType::Block) {
                 auto block = stmt->as<StmtBlock>();
                 if (block->block_type() == StatementBlockType::Sequential) {
@@ -90,13 +93,13 @@ private:
         void visit(IfStmt *stmt) override {
             auto predicate = stmt->predicate();
             auto parent_var = predicate->get_var_root_parent();
-            vars_.emplace(const_cast<Var*>(parent_var));
+            vars_.emplace(const_cast<Var *>(parent_var));
         }
 
         void visit(SwitchStmt *stmt) override {
             auto target = stmt->target();
             auto parent_var = target->get_var_root_parent();
-            vars_.emplace(const_cast<Var*>(parent_var));
+            vars_.emplace(const_cast<Var *>(parent_var));
         }
 
         void visit(AssignStmt *stmt) override {
@@ -156,7 +159,7 @@ std::pair<uint32_t, uint32_t> compute_var_high_low(
         for (; i < index.size(); i++) {
             auto const &[slice_high, slice_low] = index[i];
             var_low += slice_low;
-            var_high = var_low + slice_high + 1;
+            var_high = var_low + (slice_high - slice_low);
         }
     }
 
@@ -164,6 +167,7 @@ std::pair<uint32_t, uint32_t> compute_var_high_low(
 }
 
 std::optional<uint64_t> Simulator::get_value(kratos::Var *var) const {
+    if (!var) return std::nullopt;
     // only scalar
     if (var->size().size() != 1 || var->size().front() > 1) return std::nullopt;
 
@@ -202,7 +206,10 @@ std::optional<uint64_t> Simulator::get_value(kratos::Var *var) const {
         auto value = values[base];
         return (value >> var_low) & (0xFFFFFFFFFFFFFFFF >> (var_high + 1));
     } else {
-        return values_.at(var);
+        if (values_.find(var) == values_.end())
+            return std::nullopt;
+        else
+            return values_.at(var);
     }
 }
 
@@ -260,6 +267,7 @@ void Simulator::set_value(kratos::Var *var, std::optional<uint64_t> op_value) {
 }
 
 std::optional<std::vector<uint64_t>> Simulator::get_complex_value(kratos::Var *var) const {
+    if (!var) return std::nullopt;
     if (var->size().size() == 1 && var->size().front() == 1) {
         // this is a scalar
         auto v = get_value(var);
@@ -378,6 +386,122 @@ void Simulator::trigger_event(kratos::Var *var) {
     auto deps = dependency_.at(var);
     for (auto const &stmt : deps) {
         event_queue_.emplace(stmt);
+    }
+}
+
+void Simulator::eval() {
+    while (!event_queue_.empty()) {
+        auto stmt = event_queue_.front();
+        event_queue_.pop();
+        process_stmt(stmt);
+    }
+}
+
+void Simulator::process_stmt(kratos::Stmt *stmt) {
+    switch (stmt->type()) {
+        case StatementType::Assign: {
+            auto assign = reinterpret_cast<AssignStmt *>(stmt);
+            process_stmt(assign);
+            break;
+        }
+        default:
+            throw std::runtime_error("Not implemented");
+    }
+}
+
+void Simulator::process_stmt(kratos::AssignStmt *stmt) {
+    auto right = stmt->right();
+    auto val = eval_expr(right);
+    if (val) {
+        set_complex_value(stmt->left(), val);
+    }
+}
+
+std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
+    if (var->type() == VarType::Expression) {
+        auto expr = reinterpret_cast<Expr *>(var);
+        // there are couple special ones
+        if (expr->op == ExprOp::Concat) {
+            auto var_concat = reinterpret_cast<VarConcat *>(expr);
+            auto vars = std::vector<Var *>(var_concat->vars().begin(), var_concat->vars().end());
+            std::reverse(vars.begin(), vars.end());
+            uint32_t shift_amount = 0;
+            uint64_t value = 0;
+            for (auto var_ : vars) {
+                auto v = get_value(var_);
+                if (v) {
+                    value |= (*v) << shift_amount;
+                    shift_amount += var_->width();
+                } else {
+                    return std::nullopt;
+                }
+            }
+            return std::vector<uint64_t>{value};
+        } else if (expr->op == ExprOp::Extend) {
+            // depends on whether it's a signed value or not
+            auto extend = reinterpret_cast<VarExtend *>(var);
+            auto base_var = extend->parent_var();
+            auto value = get_complex_value(base_var);
+            if (!value) return std::nullopt;
+            if (var->is_signed()) {
+                // do signed extension
+                if ((*value).size() > 1) {
+                    throw std::runtime_error("Not implemented");
+                }
+                auto v = (*value)[0];
+                if (v >> (var->width() - 1)) {
+                    // do a signed extension
+                    for (uint32_t i = base_var->width(); i < var->width(); i++) {
+                        v |= 1u << i;
+                    }
+                }
+                return std::vector<uint64_t>{v};
+            } else {
+                return value;
+            }
+        } else {
+            auto left_val = get_complex_value(expr->left);
+            if (!left_val) return left_val;
+            auto right_val = get_complex_value(expr->right);
+            if (!is_reduction_op(expr->op)) {
+                if (!right_val) return std::nullopt;
+                if ((*left_val).size() > 1) throw std::runtime_error("Not implemented");
+                if ((*right_val).size() > 1) throw std::runtime_error("Not implemented");
+                auto left_value = (*left_val)[0];
+                auto right_value = (*right_val)[0];
+                uint64_t result;
+                switch(expr->op) {
+                    case ExprOp::Add: {
+                        result = left_value + right_value;
+                        break;
+                    }
+                    case ExprOp::And: {
+                        result = left_value & right_value;
+                        break;
+                    }
+                    case ExprOp::Divide: {
+                        result = left_value / right_value;
+                        break;
+                    }
+                    case ExprOp::Eq: {
+                        result = left_value == right_value;
+                        break;
+                    }
+                    default: {
+                        throw std::runtime_error("Not implemented");
+                    }
+                }
+                result = result & ((0xFFFFFFFFFFFFFFFF) >> (64 - var->width()));
+                return std::vector<uint64_t>{result};
+            } else if (is_reduction_op(expr->op)) {
+                throw std::runtime_error("Not implemented");
+            } else {
+                throw std::runtime_error("Not implemented");
+            }
+        }
+
+    } else {
+        return get_complex_value(var);
     }
 }
 
