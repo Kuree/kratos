@@ -1,6 +1,7 @@
 #include "sim.hh"
 #include "except.hh"
 #include "fmt/format.h"
+#include "pass.hh"
 #include "stmt.hh"
 
 using fmt::format;
@@ -19,8 +20,7 @@ public:
             if (stmt->type() == StatementType::Assign) {
                 auto assign = stmt->as<AssignStmt>();
                 auto dep = get_dep(assign.get());
-                for (auto const &v: dep)
-                    dependency_[v].emplace(stmt.get());
+                for (auto const &v : dep) dependency_[v].emplace(stmt.get());
             } else if (stmt->type() == StatementType::Block) {
                 auto block = stmt->as<StmtBlock>();
                 if (block->block_type() == StatementBlockType::Sequential) {
@@ -115,6 +115,8 @@ private:
 };
 
 Simulator::Simulator(kratos::Generator *generator) {
+    // fix the assignment type
+    fix_assignment_type(generator);
     // compute the dependency
     DependencyVisitor visitor;
     // visit in parallel to build up and dep table
@@ -254,15 +256,26 @@ void Simulator::set_value(kratos::Var *var, std::optional<uint64_t> op_value) {
             throw InternalException("Unable to resolve variable slicing");
         auto base = var_low / 64;
         auto v = values[base];
+        auto temp = *v;
         // compute the mask
         uint64_t mask = (0xFFFFFFFFFFFFFFFF >> (var_high + 1)) >> var_low;
         *v = *v & (~mask);
         value = value & (0xFFFFFFFFFFFFFFFF >> (var_high - var_low + 1));
         *v = *v | (value << var_low);
-        trigger_event(root);
+        if (*v != temp) trigger_event(root);
     } else {
-        values_[var] = value;
-        trigger_event(var);
+        bool has_changed = false;
+        if (values_.find(var) != values_.end()) {
+            auto temp = values_.at(var);
+            if (temp != value) {
+                values_[var] = value;
+                has_changed = true;
+            }
+        } else {
+            values_[var] = value;
+            has_changed = true;
+        }
+        if (has_changed) trigger_event(var);
     }
 }
 
@@ -348,20 +361,31 @@ void Simulator::set_complex_value(kratos::Var *var,
             complex_values_.emplace(var, v);
         }
     }
-    if (values.size() != value.size()) throw UserException("Misaligned slicing");
-    for (uint32_t i = low; i <= high; i++) {
-        *(values[i]) = value[i];
+
+    // get values
+    if (var->type() != VarType::Slice) {
+        values.reserve(base);
+        auto &v_ref = complex_values_.at(var);
+        for (uint64_t i = 0; i < base; i++) values.emplace_back(&v_ref[i]);
     }
-    trigger_event(fill_var);
+
+    if (values.size() != value.size()) throw UserException("Misaligned slicing");
+    bool has_changed = false;
+    for (uint32_t i = low; i <= high; i++) {
+        if (*(values[i]) != value[i]) {
+            *(values[i]) = value[i];
+            has_changed = true;
+        }
+    }
+    if (has_changed) trigger_event(fill_var);
 }
 
 std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(Var *var) const {
-    std::vector<std::pair<uint32_t, uint32_t>> result;
     if (var->type() != VarType::Slice) {
         return {};
     }
     auto slice = var->as<VarSlice>();
-    auto slices = get_slice_index(slice->parent_var);
+    auto result = get_slice_index(slice->parent_var);
     uint32_t high, low;
     if (slice->sliced_by_var()) {
         auto var_slice = slice->as<VarVarSlice>();
@@ -387,10 +411,15 @@ void Simulator::trigger_event(kratos::Var *var) {
     for (auto const &stmt : deps) {
         event_queue_.emplace(stmt);
     }
+    simulation_depth_++;
 }
 
 void Simulator::eval() {
+    simulation_depth_ = 0;
     while (!event_queue_.empty()) {
+        if (simulation_depth_ > MAX_SIMULATION_DEPTH) {
+            throw UserException("Simulation doesn't converge");
+        }
         auto stmt = event_queue_.front();
         event_queue_.pop();
         process_stmt(stmt);
@@ -404,6 +433,27 @@ void Simulator::process_stmt(kratos::Stmt *stmt) {
             process_stmt(assign);
             break;
         }
+        case StatementType::Block: {
+            auto block = reinterpret_cast<StmtBlock *>(stmt);
+            if (block->block_type() == StatementBlockType::Combinational) {
+                process_stmt(reinterpret_cast<CombinationalStmtBlock *>(block));
+            } else if (block->block_type() == StatementBlockType::Sequential) {
+                process_stmt(reinterpret_cast<SequentialStmtBlock *>(block));
+            } else {
+                process_stmt(block);
+            }
+            break;
+        }
+        case StatementType::If: {
+            auto if_ = reinterpret_cast<IfStmt *>(stmt);
+            process_stmt(if_);
+            break;
+        }
+        case StatementType::Switch: {
+            auto switch_ = reinterpret_cast<SwitchStmt *>(stmt);
+            process_stmt(switch_);
+            break;
+        }
         default:
             throw std::runtime_error("Not implemented");
     }
@@ -413,8 +463,93 @@ void Simulator::process_stmt(kratos::AssignStmt *stmt) {
     auto right = stmt->right();
     auto val = eval_expr(right);
     if (val) {
-        set_complex_value(stmt->left(), val);
+        if (stmt->assign_type() != AssignmentType::NonBlocking)
+            set_complex_value(stmt->left(), val);
+        else
+            nba_values_.emplace(stmt->left(), *val);
     }
+}
+
+void Simulator::process_stmt(kratos::StmtBlock *block) {
+    for (auto &stmt : *block) {
+        process_stmt(stmt.get());
+    }
+}
+
+void Simulator::process_stmt(kratos::CombinationalStmtBlock *block) {
+    process_stmt(reinterpret_cast<StmtBlock *>(block));
+}
+
+void Simulator::process_stmt(kratos::IfStmt *if_) {
+    auto target = if_->predicate();
+    auto val = get_value(target.get());
+    if (val && (*val)) {
+        auto const &then_ = if_->then_body();
+        process_stmt(then_.get());
+    } else {
+        auto const &else_ = if_->else_body();
+        process_stmt(else_.get());
+    }
+}
+
+void Simulator::process_stmt(kratos::SwitchStmt *switch_) {
+    auto target = switch_->target().get();
+    auto val = get_value(target);
+    auto const &body = switch_->body();
+    if (!val) {
+        // go to default case
+        if (body.find(nullptr) != body.end()) {
+            auto stmt = body.at(nullptr);
+            process_stmt(stmt.get());
+        }
+    } else {
+        auto value = *val;
+        for (auto const &[cond, stmt] : body) {
+            // we compare bits
+            int64_t cond_val = cond->value();
+            int64_t *v_p = &cond_val;
+            uint64_t bits = *(reinterpret_cast<uint64_t *>(v_p));
+            bits &= (0xFFFFFFFFFFFFFFFF >> target->width());
+            if (value == bits) {
+                process_stmt(stmt.get());
+                return;
+            }
+        }
+        // default case
+        if (body.find(nullptr) != body.end()) {
+            auto stmt = body.at(nullptr);
+            process_stmt(stmt.get());
+        }
+    }
+}
+
+void Simulator::process_stmt(kratos::SequentialStmtBlock *block) {
+    // only trigger it if it's actually high/low
+    auto const &conditions = block->get_conditions();
+    bool trigger = false;
+    for (auto const &[edge, var] : conditions) {
+        if (edge == BlockEdgeType::Posedge) {
+            auto val = get_value(var.get());
+            if (val && *val) {
+                trigger = true;
+                break;
+            }
+        } else {
+            auto val = get_value(var.get());
+            if (val && (~(*val))) {
+                trigger = true;
+                break;
+            }
+        }
+    }
+    if (!trigger) return;
+    process_stmt(reinterpret_cast<StmtBlock *>(block));
+
+    for (auto const &[var, value] : nba_values_) {
+        set_complex_value(var, value);
+    }
+    // clear the nba regions
+    nba_values_.clear();
 }
 
 std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
@@ -470,7 +605,7 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
                 auto left_value = (*left_val)[0];
                 auto right_value = (*right_val)[0];
                 uint64_t result;
-                switch(expr->op) {
+                switch (expr->op) {
                     case ExprOp::Add: {
                         result = left_value + right_value;
                         break;

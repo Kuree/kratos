@@ -5,6 +5,7 @@
 #include <queue>
 
 namespace kratos {
+constexpr uint64_t MAX_SIMULATION_DEPTH = 0xFFFFFFFF;
 class Simulator {
 public:
     explicit Simulator(Generator *generator);
@@ -25,15 +26,19 @@ private:
     void trigger_event(Var *var);
 
     void process_stmt(Stmt* stmt);
-    void process_stmt(IfStmt *) {}
-    void process_stmt(SwitchStmt *) {}
+    void process_stmt(IfStmt * if_);
+    void process_stmt(SwitchStmt *switch_);
     void process_stmt(AssignStmt * stmt);
-    void process_stmt(AssignStmt *stmt, std::unordered_map<Var*, std::vector<uint64_t>> &values);
-    void process_stmt(CombinationalStmtBlock *) {}
-    void process_stmt(SequentialStmtBlock *) {}
+    void process_stmt(StmtBlock *block);
+
+    void process_stmt(CombinationalStmtBlock *block);
+    void process_stmt(SequentialStmtBlock *block);
 
 
     std::optional<std::vector<uint64_t>> eval_expr(Var *var);
+    std::unordered_map<Var*, std::vector<uint64_t>> nba_values_;
+
+    uint64_t simulation_depth_ = 0;
 };
 }  // namespace kratos
 
