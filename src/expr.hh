@@ -170,6 +170,7 @@ public:
     Param *param() const { return param_; }
     void set_explicit_array(bool value) { explicit_array_ = value; }
     bool explicit_array() const { return explicit_array_; }
+    virtual std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const { return {}; }
 
     // for slice
     virtual const Var *get_var_root_parent() const { return this; }
@@ -226,6 +227,8 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void set_parent(Var *parent) { parent_var_ = parent; }
 
+    const Var *get_var_root_parent() const override { return parent_var_; }
+
     std::string to_string() const override;
 
     VarCastType cast_type() const { return cast_type_; }
@@ -267,6 +270,8 @@ public:
         return var->operator[](op_).shared_from_this();
     }
 
+    std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const override;
+
     const Var *get_var_root_parent() const override;
     virtual bool sliced_by_var() const { return false; }
 
@@ -292,6 +297,7 @@ public:
     }
 
     bool sliced_by_var() const override { return true; }
+    Var *sliced_var() const { return sliced_var_; }
 
 private:
     Var *sliced_var_;

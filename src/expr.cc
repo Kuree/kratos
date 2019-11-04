@@ -330,6 +330,12 @@ const Var *VarSlice::get_var_root_parent() const {
     return parent;
 }
 
+std::vector<std::pair<uint32_t, uint32_t>> VarSlice::get_slice_index() const {
+    std::vector<std::pair<uint32_t, uint32_t>> result = parent_var->get_slice_index();
+    result.emplace_back(std::make_pair(high, low));
+    return result;
+}
+
 VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
     : VarSlice(parent, 0, 0), sliced_var_(slice) {
     // check the size or width
