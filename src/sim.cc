@@ -19,8 +19,9 @@ public:
             auto const &stmt = generator->get_stmt(i);
             if (stmt->type() == StatementType::Assign) {
                 auto assign = stmt->as<AssignStmt>();
-                auto dep = get_dep(assign.get());
+                auto const &[dep, linked] = get_dep(assign.get());
                 for (auto const &v : dep) dependency_[v].emplace(stmt.get());
+                linked_dependency_.insert(linked.begin(), linked.end());
             } else if (stmt->type() == StatementType::Block) {
                 auto block = stmt->as<StmtBlock>();
                 if (block->block_type() == StatementBlockType::Sequential) {
@@ -37,6 +38,7 @@ public:
         visitor.visit_root(block);
         auto const &vars = visitor.vars();
         for (auto const &var : vars) dependency_[var].emplace(block);
+        linked_dependency_.insert(visitor.linked_vars().begin(), visitor.linked_vars().end());
     }
 
     void visit_block(SequentialStmtBlock *block) {
@@ -46,22 +48,32 @@ public:
         }
     }
 
-    static std::unordered_set<Var *> get_dep(AssignStmt *stmt) {
+    using DepSet =
+        std::pair<std::unordered_set<Var *>, std::unordered_map<Var *, std::unordered_set<Var *>>>;
+
+    static DepSet get_dep(AssignStmt *stmt) {
         // only interested in the right hand side
         auto var = stmt->right();
         std::unordered_set<Var *> deps;
-        get_var_deps(var, deps);
-        return deps;
+        std::unordered_map<Var *, std::unordered_set<Var *>> linked_deps;
+        get_var_deps(var, deps, linked_deps);
+        return {deps, linked_deps};
     }
 
     const std::unordered_map<Var *, std::unordered_set<Stmt *>> &dependency() const {
         return dependency_;
     }
 
+    const std::unordered_map<Var *, std::unordered_set<Var *>> &linked_dependency() const {
+        return linked_dependency_;
+    }
+
 private:
     std::unordered_map<Var *, std::unordered_set<Stmt *>> dependency_;
+    std::unordered_map<Var *, std::unordered_set<Var *>> linked_dependency_;
 
-    void static get_var_deps(Var *var, std::unordered_set<Var *> &dep) {
+    void static get_var_deps(Var *var, std::unordered_set<Var *> &dep,
+                             std::unordered_map<Var *, std::unordered_set<Var *>> &linked_dep) {
         switch (var->type()) {
             case VarType::Base:
             case VarType::PortIO: {
@@ -70,21 +82,36 @@ private:
             }
             case VarType ::Expression: {
                 auto const &expr = reinterpret_cast<Expr *>(var);
-                get_var_deps(expr->left, dep);
+                get_var_deps(expr->left, dep, linked_dep);
                 if (expr->right) {
-                    get_var_deps(expr->right, dep);
+                    get_var_deps(expr->right, dep, linked_dep);
                 }
                 break;
             }
             case VarType::BaseCasted:
             case VarType ::Slice: {
-                auto base = const_cast<Var *>(var->get_var_root_parent());
-                get_var_deps(base, dep);
+                // compute linked dependency
+                compute_linked_dep(reinterpret_cast<VarSlice *>(var), linked_dep);
+                dep.emplace(var);
                 break;
             }
             default: {
                 // do nothing
             }
+        }
+    }
+
+    static void compute_linked_dep(
+        VarSlice *slice, std::unordered_map<Var *, std::unordered_set<Var *>> &linked_dep) {
+        auto parent = slice->parent_var;
+        if (parent->type() == VarType::Slice) {
+            if (slice->sliced_by_var()) {
+                auto var_slice = reinterpret_cast<VarVarSlice *>(slice);
+                auto p = var_slice->sliced_var();
+                linked_dep[p].emplace(slice);
+            }
+            linked_dep[parent].emplace(slice);
+            compute_linked_dep(reinterpret_cast<VarSlice *>(parent), linked_dep);
         }
     }
 
@@ -103,14 +130,17 @@ private:
         }
 
         void visit(AssignStmt *stmt) override {
-            auto dep = DependencyVisitor::get_dep(stmt);
+            auto const &[dep, linked] = DependencyVisitor::get_dep(stmt);
             for (auto const &var : dep) vars_.emplace(var);
+            linked_vars_.insert(linked.begin(), linked.end());
         }
 
         std::unordered_set<Var *> &vars() { return vars_; }
+        std::unordered_map<Var*, std::unordered_set<Var*>> &linked_vars() { return linked_vars_; }
 
     private:
         std::unordered_set<Var *> vars_;
+        std::unordered_map<Var*, std::unordered_set<Var*>> linked_vars_;
     };
 };
 
@@ -122,6 +152,7 @@ Simulator::Simulator(kratos::Generator *generator) {
     // visit in parallel to build up and dep table
     visitor.visit_generator_root_p(generator);
     dependency_ = visitor.dependency();
+    linked_dependency_ = visitor.linked_dependency();
 }
 
 std::pair<uint32_t, uint32_t> compute_var_high_low(
@@ -406,11 +437,21 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(Var *var) 
 }
 
 void Simulator::trigger_event(kratos::Var *var) {
-    if (dependency_.find(var) == dependency_.end()) return;
-    auto deps = dependency_.at(var);
-    for (auto const &stmt : deps) {
-        event_queue_.emplace(stmt);
+    if (dependency_.find(var) != dependency_.end()) {
+        auto deps = dependency_.at(var);
+        for (auto const &stmt : deps) {
+            event_queue_.emplace(stmt);
+        }
     }
+
+    if (linked_dependency_.find(var) != linked_dependency_.end()) {
+        auto vars = linked_dependency_.at(var);
+        for (auto &v: vars) {
+            trigger_event(v);
+        }
+    }
+
+    // trigger linked events as well
     simulation_depth_++;
 }
 

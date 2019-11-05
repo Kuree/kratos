@@ -21,6 +21,8 @@ private:
     std::unordered_map<Var*, std::vector<uint64_t>> complex_values_;
     std::queue<Stmt*> event_queue_;
     std::unordered_map<Var*, std::unordered_set<Stmt*>> dependency_;
+    // linked dependency is for partial updates
+    std::unordered_map<Var*, std::unordered_set<Var*>> linked_dependency_;
 
     std::vector<std::pair<uint32_t, uint32_t>> get_slice_index(Var* var) const;
     void trigger_event(Var *var);
