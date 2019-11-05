@@ -27,6 +27,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             verilog95_def: bool = False,
             filename: str = None,
             output_dir: str = None,
+            insert_debug_info: bool = False,
             debug_db_filename: str = "",
             debug_top_name: str = "TOP",
             use_parallel: bool = True):
@@ -69,7 +70,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("check_function_return")
     pass_manager.add_pass("merge_wire_assignments")
     # insert debug break points if needed
-    if debug_db_filename:
+    if insert_debug_info:
         pass_manager.add_pass("convert_continuous_stmt")
         pass_manager.add_pass("inject_instance_ids")
         pass_manager.add_pass("inject_debug_break_points")

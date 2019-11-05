@@ -13,7 +13,7 @@ def test_db_dump():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         # hashing and generate verilog
-        verilog(mod, debug_db_filename=debug_db)
+        verilog(mod, insert_debug_info=True, debug_db_filename=debug_db)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
         c.execute("SELECT * from breakpoint")
@@ -50,7 +50,8 @@ def test_debug_mock():
         filename = os.path.join(temp, "test.sv")
         # inject verilator public
         _kratos.passes.insert_verilator_public(mod.internal_generator)
-        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        verilog(mod, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db)
 
 
 def test_seq_debug():
@@ -87,7 +88,8 @@ def test_seq_debug():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        verilog(mod, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
         c.execute("SELECT * FROM breakpoint WHERE id=7")
@@ -103,7 +105,8 @@ def test_metadata():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        verilog(mod, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
         c.execute("SELECT value FROM metadata WHERE name = ?", ["top_name"])
@@ -134,7 +137,8 @@ def test_context():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        verilog(mod, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
         c.execute("SELECT * FROM context")
@@ -168,7 +172,8 @@ def test_hierarchy_conn():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(parent, filename=filename, debug_db_filename=debug_db)
+        verilog(parent, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
         c.execute("SELECT * FROM hierarchy")
@@ -206,7 +211,8 @@ def test_clock_interaction():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(parent, filename=filename, debug_db_filename=debug_db)
+        verilog(parent, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db)
 
 
 def test_design_hierarchy():
@@ -259,7 +265,8 @@ def test_design_hierarchy():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(parent, filename=filename, debug_db_filename=debug_db)
+        verilog(parent, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
         c.execute("SELECT * FROM hierarchy")
@@ -282,7 +289,8 @@ def test_assert():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        verilog(mod, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db)
         with open(filename) as f:
             content = f.read()
             assert "assert (out == in) else" in content
@@ -309,7 +317,8 @@ def test_wire():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(mod, filename=filename, debug_db_filename=debug_db)
+        verilog(mod, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
         c.execute("SELECT * FROM breakpoint")
@@ -344,8 +353,8 @@ def test_inst_id():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(mod, filename=filename, debug_db_filename=debug_db,
-                optimize_passthrough=False)
+        verilog(mod, filename=filename, insert_debug_info=True,
+                debug_db_filename=debug_db, optimize_passthrough=False)
         with open(filename) as f:
             src = f.read()
             assert "breakpoint_trace (KRATOS_INSTANCE_ID, 32'h0);" in src
@@ -356,5 +365,13 @@ def test_inst_id():
         assert len(res) == 3
 
 
+def test_empty():
+    from kratos.debug import dump_external_database
+    mod = Generator("mod", True)
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        dump_external_database([mod], "dut", debug_db)
+
+
 if __name__ == "__main__":
-    test_inst_id()
+    test_empty()

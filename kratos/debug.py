@@ -1,5 +1,6 @@
 import _kratos
 from .generator import Generator
+from typing import List
 
 
 def extract_symbol_table(generator: Generator):
@@ -69,3 +70,13 @@ def dump_debug_database(generator: Generator, top_name: str, filename: str):
     db.set_generator_hierarchy(generator.internal_generator)
     db.set_stmt_context(generator.internal_generator)
     db.save_database(filename)
+
+
+def dump_external_database(generators: List[Generator], top_name: str, filename: str):
+    # create a dummy generator at the top
+    top = Generator(top_name, True)
+    for gen in generators:
+        # remove top name with given one
+        instance_name = gen.instance_name.split(".")[1:]
+        top.add_child_generator(".".join(instance_name), gen)
+    dump_debug_database(top, top_name, filename)
