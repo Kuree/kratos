@@ -489,23 +489,23 @@ void DebugDatabase::save_database(const std::string &filename) {
             if (var_->size().size() > 1 || var_->size().front() > 1) {
                 // it's an array. need to flatten it
                 // use recursion to do it
-                std::function<void(const std::string&, const std::string&, uint32_t)>
-                    add_data_point = [&](const std::string &value, const std::string &name,
-                                         uint32_t index) {
-                    if (index >= var_->size().size()) return;
-                    auto width = var_->size()[index];
-                    for (uint32_t i = 0; i < width; i++) {
-                        v.name = ::format("{0}.{1}", name, i);
-                        v.value = ::format("{0}[{1}]", value, i);
-                        v.id = variable_count++;
-                        storage.replace(v);
-                        add_context();
+                std::function<void(const std::string &, const std::string &, uint32_t)>
+                    add_data_point =
+                        [&](const std::string &value, const std::string &name, uint32_t index) {
+                            if (index >= var_->size().size()) return;
+                            auto width = var_->size()[index];
+                            for (uint32_t i = 0; i < width; i++) {
+                                v.name = ::format("{0}.{1}", name, i);
+                                v.value = ::format("{0}[{1}]", value, i);
+                                v.id = variable_count++;
+                                storage.replace(v);
+                                add_context();
 
-                        auto new_name = ::format("{0}.{1}", name, i);
-                        auto new_value = ::format("{0}[1]", value, i);
-                        add_data_point(new_name, new_value, index + 1);
-                    }
-                };
+                                auto new_name = ::format("{0}.{1}", name, i);
+                                auto new_value = ::format("{0}[1]", value, i);
+                                add_data_point(new_name, new_value, index + 1);
+                            }
+                        };
                 add_data_point(var_->name, name_, 0);
             } else if (var_->is_struct()) {
                 // it's an packed array
@@ -631,6 +631,13 @@ void DebugDatabase::save_database(const std::string &filename) {
             auto gen_var = is_var ? gen->get_var(value).get() : nullptr;
             create_variable(gen_var, instance_id, key, value, true, id);
         }
+    }
+
+    // instance id set
+    for (auto const &[stmt, id] : break_points_) {
+        auto gen_id = stmt->generator_parent()->generator_id;
+        InstanceSetEntry entry{std::make_unique<int>(gen_id), std::make_unique<int>(id)};
+        storage.replace(entry);
     }
 
     guard.commit();

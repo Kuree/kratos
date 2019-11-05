@@ -65,6 +65,7 @@ private:
     std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
     std::unordered_set<Generator*> generators_;
 
+
     std::string top_name_ = "TOP";
     Context *context_ = nullptr;
 };

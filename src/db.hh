@@ -50,6 +50,11 @@ struct Instance {
     std::string handle_name;
 };
 
+struct InstanceSetEntry {
+    std::unique_ptr<int> instance_id;
+    std::unique_ptr<int> breakpoint_id;
+};
+
 // initialize the database
 auto inline init_storage(const std::string &filename) {
     using namespace sqlite_orm;
@@ -82,7 +87,11 @@ auto inline init_storage(const std::string &filename) {
                    foreign_key(&ContextVariable::variable_id).references(&Variable::id),
                    foreign_key(&ContextVariable::breakpoint_id).references(&BreakPoint::id)),
         make_table("instance", make_column("id", &Instance::id, primary_key()),
-                   make_column("handle_name", &Instance::handle_name)));
+                   make_column("handle_name", &Instance::handle_name)),
+        make_table("instance_set", make_column("instance_id", &InstanceSetEntry::instance_id),
+            make_column("breakpoint_id", &InstanceSetEntry::breakpoint_id),
+            foreign_key(&InstanceSetEntry::instance_id).references(&Instance::id),
+            foreign_key(&InstanceSetEntry::breakpoint_id).references(&BreakPoint::id)));
     return storage;
 }
 

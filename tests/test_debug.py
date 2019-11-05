@@ -344,10 +344,16 @@ def test_inst_id():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        verilog(mod, filename=filename, debug_db_filename=debug_db, optimize_passthrough=False)
+        verilog(mod, filename=filename, debug_db_filename=debug_db,
+                optimize_passthrough=False)
         with open(filename) as f:
             src = f.read()
             assert "breakpoint_trace (KRATOS_INSTANCE_ID, 32'h0);" in src
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM instance_set")
+        res = c.fetchall()
+        assert len(res) == 3
 
 
 if __name__ == "__main__":
