@@ -104,13 +104,13 @@ private:
     static void compute_linked_dep(
         VarSlice *slice, std::unordered_map<Var *, std::unordered_set<Var *>> &linked_dep) {
         auto parent = slice->parent_var;
+        linked_dep[parent].emplace(slice);
         if (parent->type() == VarType::Slice) {
             if (slice->sliced_by_var()) {
                 auto var_slice = reinterpret_cast<VarVarSlice *>(slice);
                 auto p = var_slice->sliced_var();
                 linked_dep[p].emplace(slice);
             }
-            linked_dep[parent].emplace(slice);
             compute_linked_dep(reinterpret_cast<VarSlice *>(parent), linked_dep);
         }
     }
@@ -136,11 +136,11 @@ private:
         }
 
         std::unordered_set<Var *> &vars() { return vars_; }
-        std::unordered_map<Var*, std::unordered_set<Var*>> &linked_vars() { return linked_vars_; }
+        std::unordered_map<Var *, std::unordered_set<Var *>> &linked_vars() { return linked_vars_; }
 
     private:
         std::unordered_set<Var *> vars_;
-        std::unordered_map<Var*, std::unordered_set<Var*>> linked_vars_;
+        std::unordered_map<Var *, std::unordered_set<Var *>> linked_vars_;
     };
 };
 
@@ -153,6 +153,12 @@ Simulator::Simulator(kratos::Generator *generator) {
     visitor.visit_generator_root_p(generator);
     dependency_ = visitor.dependency();
     linked_dependency_ = visitor.linked_dependency();
+    // build reversed linked dependency
+    for (auto const &[par, set] : linked_dependency_) {
+        for (auto const &v : set) {
+            linked_dependency_[v].emplace(par);
+        }
+    }
 }
 
 std::pair<uint32_t, uint32_t> compute_var_high_low(
@@ -199,7 +205,7 @@ std::pair<uint32_t, uint32_t> compute_var_high_low(
     return {var_high, var_low};
 }
 
-std::optional<uint64_t> Simulator::get_value(kratos::Var *var) const {
+std::optional<uint64_t> Simulator::get_value_(kratos::Var *var) const {
     if (!var) return std::nullopt;
     // only scalar
     if (var->size().size() != 1 || var->size().front() > 1) return std::nullopt;
@@ -214,14 +220,14 @@ std::optional<uint64_t> Simulator::get_value(kratos::Var *var) const {
         auto root = const_cast<Var *>(var->get_var_root_parent());
         std::vector<uint64_t> values;
         if (root->type() == VarType::ConstValue || root->type() == VarType::Parameter) {
-            auto value = get_value(var);
+            auto value = get_value_(var);
             if (!value)
                 throw InternalException(
                     ::format("Unable to get value for {0}", var->handle_name()));
             values = {*value};
         } else if (root->size().size() == 1 && root->size().front() == 1) {
             // this is size one
-            auto value = get_value(root);
+            auto value = get_value_(root);
             if (!value) return std::nullopt;
             values = {*value};
         } else if (complex_values_.find(root) == complex_values_.end()) {
@@ -246,11 +252,11 @@ std::optional<uint64_t> Simulator::get_value(kratos::Var *var) const {
     }
 }
 
-void Simulator::set_value(kratos::Var *var, std::optional<uint64_t> op_value) {
+void Simulator::set_value_(kratos::Var *var, std::optional<uint64_t> op_value) {
     if (!op_value) return;
     auto value = *op_value;
     if (var->size().size() != 1 || var->size().front() != 1) {
-        set_complex_value(var, std::vector<uint64_t>{value});
+        set_complex_value_(var, std::vector<uint64_t>{value});
         return;
     }
     if (var->type() == VarType::Parameter || var->type() == VarType::ConstValue) {
@@ -310,11 +316,11 @@ void Simulator::set_value(kratos::Var *var, std::optional<uint64_t> op_value) {
     }
 }
 
-std::optional<std::vector<uint64_t>> Simulator::get_complex_value(kratos::Var *var) const {
+std::optional<std::vector<uint64_t>> Simulator::get_complex_value_(kratos::Var *var) const {
     if (!var) return std::nullopt;
     if (var->size().size() == 1 && var->size().front() == 1) {
         // this is a scalar
-        auto v = get_value(var);
+        auto v = get_value_(var);
         if (v)
             return std::vector<uint64_t>{*v};
         else
@@ -338,13 +344,13 @@ std::optional<std::vector<uint64_t>> Simulator::get_complex_value(kratos::Var *v
     }
 }
 
-void Simulator::set_complex_value(kratos::Var *var,
-                                  const std::optional<std::vector<uint64_t>> &op_value) {
+void Simulator::set_complex_value_(kratos::Var *var,
+                                   const std::optional<std::vector<uint64_t>> &op_value) {
     if (!op_value) return;
     auto value = *op_value;
     if (var->size().size() == 1 && var->size().front() == 1) {
         if (value.size() > 1) throw UserException("Cannot set multiple values to a scalar");
-        set_value(var, value[0]);
+        set_value_(var, value[0]);
         return;
     }
     std::vector<uint64_t *> values;
@@ -421,7 +427,7 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(Var *var) 
     if (slice->sliced_by_var()) {
         auto var_slice = slice->as<VarVarSlice>();
         auto v = var_slice->sliced_var();
-        auto index = get_value(v);
+        auto index = get_value_(v);
         // the index variable is empty
         if (!index) {
             return {};
@@ -438,16 +444,21 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(Var *var) 
 
 void Simulator::trigger_event(kratos::Var *var) {
     if (dependency_.find(var) != dependency_.end()) {
-        auto deps = dependency_.at(var);
+        auto const &deps = dependency_.at(var);
         for (auto const &stmt : deps) {
             event_queue_.emplace(stmt);
         }
     }
 
     if (linked_dependency_.find(var) != linked_dependency_.end()) {
-        auto vars = linked_dependency_.at(var);
-        for (auto &v: vars) {
-            trigger_event(v);
+        auto const &vars = linked_dependency_.at(var);
+        for (auto &v : vars) {
+            if (dependency_.find(var) != dependency_.end()) {
+                auto const &deps = dependency_.at(v);
+                for (auto const &stmt : deps) {
+                    event_queue_.emplace(stmt);
+                }
+            }
         }
     }
 
@@ -464,6 +475,33 @@ void Simulator::eval() {
         auto stmt = event_queue_.front();
         event_queue_.pop();
         process_stmt(stmt);
+    }
+}
+
+std::optional<uint64_t> Simulator::get(kratos::Var *var) const { return get_value_(var); }
+
+std::optional<std::vector<uint64_t>> Simulator::get_array(kratos::Var *var) const {
+    return get_complex_value_(var);
+}
+
+void Simulator::set(kratos::Var *var, std::optional<uint64_t> value) {
+    set_value_(var, value);
+    // if it's a slice, need to trigger more
+    trigger_sliced_var(var);
+    eval();
+}
+
+void Simulator::set(kratos::Var *var, const std::optional<std::vector<uint64_t>> &value) {
+    set_complex_value_(var, value);
+    trigger_sliced_var(var);
+    eval();
+}
+
+void Simulator::trigger_sliced_var(kratos::Var *var) {
+    // TODO: fix this
+    if (var->type() == VarType::Slice) {
+        auto parent = const_cast<Var*>(var->get_var_root_parent());
+        trigger_event(parent);
     }
 }
 
@@ -505,7 +543,7 @@ void Simulator::process_stmt(kratos::AssignStmt *stmt) {
     auto val = eval_expr(right);
     if (val) {
         if (stmt->assign_type() != AssignmentType::NonBlocking)
-            set_complex_value(stmt->left(), val);
+            set_complex_value_(stmt->left(), val);
         else
             nba_values_.emplace(stmt->left(), *val);
     }
@@ -523,7 +561,7 @@ void Simulator::process_stmt(kratos::CombinationalStmtBlock *block) {
 
 void Simulator::process_stmt(kratos::IfStmt *if_) {
     auto target = if_->predicate();
-    auto val = get_value(target.get());
+    auto val = get_value_(target.get());
     if (val && (*val)) {
         auto const &then_ = if_->then_body();
         process_stmt(then_.get());
@@ -535,7 +573,7 @@ void Simulator::process_stmt(kratos::IfStmt *if_) {
 
 void Simulator::process_stmt(kratos::SwitchStmt *switch_) {
     auto target = switch_->target().get();
-    auto val = get_value(target);
+    auto val = get_value_(target);
     auto const &body = switch_->body();
     if (!val) {
         // go to default case
@@ -570,13 +608,13 @@ void Simulator::process_stmt(kratos::SequentialStmtBlock *block) {
     bool trigger = false;
     for (auto const &[edge, var] : conditions) {
         if (edge == BlockEdgeType::Posedge) {
-            auto val = get_value(var.get());
+            auto val = get_value_(var.get());
             if (val && *val) {
                 trigger = true;
                 break;
             }
         } else {
-            auto val = get_value(var.get());
+            auto val = get_value_(var.get());
             if (val && (~(*val))) {
                 trigger = true;
                 break;
@@ -587,7 +625,7 @@ void Simulator::process_stmt(kratos::SequentialStmtBlock *block) {
     process_stmt(reinterpret_cast<StmtBlock *>(block));
 
     for (auto const &[var, value] : nba_values_) {
-        set_complex_value(var, value);
+        set_complex_value_(var, value);
     }
     // clear the nba regions
     nba_values_.clear();
@@ -604,7 +642,7 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
             uint32_t shift_amount = 0;
             uint64_t value = 0;
             for (auto var_ : vars) {
-                auto v = get_value(var_);
+                auto v = get_value_(var_);
                 if (v) {
                     value |= (*v) << shift_amount;
                     shift_amount += var_->width();
@@ -617,7 +655,7 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
             // depends on whether it's a signed value or not
             auto extend = reinterpret_cast<VarExtend *>(var);
             auto base_var = extend->parent_var();
-            auto value = get_complex_value(base_var);
+            auto value = get_complex_value_(base_var);
             if (!value) return std::nullopt;
             if (var->is_signed()) {
                 // do signed extension
@@ -636,9 +674,9 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
                 return value;
             }
         } else {
-            auto left_val = get_complex_value(expr->left);
+            auto left_val = get_complex_value_(expr->left);
             if (!left_val) return left_val;
-            auto right_val = get_complex_value(expr->right);
+            auto right_val = get_complex_value_(expr->right);
             if (!is_reduction_op(expr->op)) {
                 if (!right_val) return std::nullopt;
                 if ((*left_val).size() > 1) throw std::runtime_error("Not implemented");
@@ -677,7 +715,7 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
         }
 
     } else {
-        return get_complex_value(var);
+        return get_complex_value_(var);
     }
 }
 

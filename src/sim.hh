@@ -9,12 +9,20 @@ constexpr uint64_t MAX_SIMULATION_DEPTH = 0xFFFFFFFF;
 class Simulator {
 public:
     explicit Simulator(Generator *generator);
-    void set_value(Var* var, std::optional<uint64_t> op_value);
-    void set_complex_value(Var* var, const std::optional<std::vector<uint64_t>> &op_value);
-    std::optional<uint64_t> get_value(Var *var) const;
-    std::optional<std::vector<uint64_t>> get_complex_value(Var *var) const;
+
+    // public facing set and get values
+    void set(Var* var, std::optional<uint64_t> value);
+    void set(Var* var, const std::optional<std::vector<uint64_t>> &value);
+    std::optional<uint64_t> get(Var *var) const;
+    std::optional<std::vector<uint64_t>> get_array(Var *var) const;
 
     void eval();
+
+protected:
+    void set_value_(Var* var, std::optional<uint64_t> op_value);
+    void set_complex_value_(Var* var, const std::optional<std::vector<uint64_t>> &op_value);
+    std::optional<uint64_t> get_value_(Var *var) const;
+    std::optional<std::vector<uint64_t>> get_complex_value_(Var *var) const;
 
 private:
     std::unordered_map<Var*, uint64_t> values_;
@@ -36,6 +44,9 @@ private:
     void process_stmt(CombinationalStmtBlock *block);
     void process_stmt(SequentialStmtBlock *block);
 
+    // only used when user is controlling the values, i.e. the slicing doesn't exist in the
+    // design
+    void trigger_sliced_var(Var* var);
 
     std::optional<std::vector<uint64_t>> eval_expr(Var *var);
     std::unordered_map<Var*, std::vector<uint64_t>> nba_values_;
