@@ -10,6 +10,7 @@ from .ports import PortBundle
 from .tb import TestBench, assert_, delay
 from .debug import enable_runtime_debug
 from .pyast import add_scope_context
+from .sim import Simulator
 
 # directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog

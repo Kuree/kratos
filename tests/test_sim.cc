@@ -101,7 +101,7 @@ TEST(sim, array_access) {   // NOLINT
 
     Simulator sim(&mod);
     uint32_t constexpr value = 5;
-    sim.set(&b, 2);
+    sim.set(&b, 2ul);
     sim.set(&a[b.shared_from_this()], value);
 
     auto res = sim.get(&a[b.shared_from_this()]);

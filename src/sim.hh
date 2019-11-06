@@ -12,7 +12,9 @@ public:
 
     // public facing set and get values
     void set(Var* var, std::optional<uint64_t> value);
+    void set_i(Var* var, std::optional<int64_t> value);
     void set(Var* var, const std::optional<std::vector<uint64_t>> &value);
+    void set_i(Var* var, const std::optional<std::vector<int64_t>> &value);
     std::optional<uint64_t> get(Var *var) const;
     std::optional<std::vector<uint64_t>> get_array(Var *var) const;
 

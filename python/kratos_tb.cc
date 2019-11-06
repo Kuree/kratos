@@ -5,7 +5,7 @@
 
 namespace py = pybind11;
 
-// exception module
+// test bench module
 void init_tb(py::module &m) {
     using namespace kratos;
     py::class_<TestBench>(m, "TestBench")

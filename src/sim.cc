@@ -502,10 +502,36 @@ void Simulator::set(kratos::Var *var, std::optional<uint64_t> value) {
     eval();
 }
 
+void Simulator::set_i(kratos::Var *var, std::optional<int64_t> value) {
+    if (value) {
+        auto v = *value;
+        auto u_v = *(reinterpret_cast<uint64_t*>(&v));
+        u_v = truncate(u_v, var->width());
+        set_value_(var, u_v);
+        eval();
+    }
+}
+
 void Simulator::set(kratos::Var *var, const std::optional<std::vector<uint64_t>> &value) {
     set_complex_value_(var, value);
     eval();
 }
+
+void Simulator::set_i(kratos::Var *var, const std::optional<std::vector<int64_t>> &value) {
+    if (value) {
+        auto vs = *value;
+        std::vector<uint64_t> u_vs;
+        u_vs.reserve(vs.size());
+        for (auto v: vs) {
+            auto u_v = *(reinterpret_cast<uint64_t*>(v));
+            u_v = truncate(u_v, var->width());
+            u_vs.emplace_back(u_v);
+        }
+        set_complex_value_(var, u_vs);
+        eval();
+    }
+}
+
 
 void Simulator::process_stmt(kratos::Stmt *stmt) {
     switch (stmt->type()) {
