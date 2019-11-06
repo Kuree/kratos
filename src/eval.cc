@@ -8,14 +8,21 @@ uint64_t invert(uint64_t value, uint32_t width) {
     return v;
 }
 
+uint64_t two_complement(uint64_t value, uint32_t width) {
+    uint64_t inverted = invert(value, width) + 1;
+    return inverted & (UINT64_MASK >> (UINT64_WIDTH - width));
+}
+
+uint64_t truncate(uint64_t value, uint32_t width) {
+    return value & (UINT64_MASK >> (UINT64_WIDTH - width));
+}
+
 uint64_t eval_bin_op(uint64_t left_value, uint64_t right_value, ExprOp op, uint32_t width,
                      bool signed_) {
     bool left_negative = signed_ && left_value >> (width - 1);
     bool right_negative = signed_ && right_value >> (width - 1);
-    uint64_t left_abs_value =
-        left_negative ? (left_negative ^ (UINT64_MASK << (width - 1))) : left_value;
-    uint64_t right_abs_value =
-        right_negative ? (right_negative ^ (UINT64_MASK << (width - 1))) : width;
+    uint64_t left_abs_value = left_negative ? two_complement(left_value, width) : left_value;
+    uint64_t right_abs_value = right_negative ? two_complement(right_value, width) : right_value;
     uint64_t signed_bit = static_cast<uint64_t>(left_negative ^ right_negative) << (width - 1);
     auto const mask = UINT64_MASK >> (64u - width);
     uint64_t result;
@@ -31,7 +38,7 @@ uint64_t eval_bin_op(uint64_t left_value, uint64_t right_value, ExprOp op, uint3
             break;
         case ExprOp::Divide:
             result = left_abs_value / right_abs_value;
-            result |= signed_bit;
+            if (signed_bit) result = two_complement(result, width);
             break;
         case ExprOp::Eq:
             result = left_value == right_value;

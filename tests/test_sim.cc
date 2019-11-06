@@ -128,7 +128,7 @@ TEST(eval, bin_op) {  // NOLINT
     size_t seed = 42;
     std::mt19937 rnd;  // NOLINT
     rnd.seed(seed);
-    auto constexpr width = 4;
+    auto constexpr width = 10;
     auto constexpr mask = UINT64_MASK >> (64u - width);
     auto constexpr num_test = 420u;
     std::vector<std::pair<int64_t, int64_t>> input_pairs(num_test);
@@ -149,10 +149,8 @@ TEST(eval, bin_op) {  // NOLINT
     std::map<ExprOp, std::function<int64_t(int64_t, int64_t)>> func_map = {
         {ExprOp::Add, [](int64_t value1, int64_t value2) { return value1 + value2; }},
         {ExprOp::Minus, [](int64_t value1, int64_t value2) { return value1 - value2; }},
-        {ExprOp::And, [](int64_t value1, int64_t value2) { return value1 & value2; }}}; // NOLINT
-
-        // TODO:
-        // DIV has a bug?
+        {ExprOp::And, [](int64_t value1, int64_t value2) { return value1 & value2; }}, // NOLINT
+        {ExprOp::Divide, [](int64_t value1, int64_t value2) { return value1 / value2; }}};
 
     for (auto const &[op, func] : func_map) {
         // signed
@@ -167,13 +165,13 @@ TEST(eval, bin_op) {  // NOLINT
             EXPECT_EQ(gold, result);
         }
         // unsigned
-        for (uint64_t i = 0; i < input_pairs.size(); i++) {
-            auto const &[v1_, v2_] = input_pairs[i];
-            auto const &[v1, v2] = eval_pairs[i];
-            auto gold = func(v1_, v2_);
-            if (gold < 0) {
-                gold = (*reinterpret_cast<uint64_t *>(&gold)) & mask;
-            }
+        for (auto [v1_, v2_] : input_pairs) {
+            v1_ += mask / 2;
+            v2_ += mask / 2;
+            auto v1 = static_cast<uint64_t>(v1_);
+            auto v2 = static_cast<uint64_t>(v2_);
+            if (v2 == 0) continue;
+            auto gold = truncate(func(v1_, v2_), width);
             auto result = eval_bin_op(v1, v2, op, width, false);
             EXPECT_EQ(gold, result);
         }
