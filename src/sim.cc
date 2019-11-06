@@ -3,6 +3,7 @@
 #include "fmt/format.h"
 #include "pass.hh"
 #include "stmt.hh"
+#include "util.hh"
 
 using fmt::format;
 
@@ -48,14 +49,14 @@ public:
         }
     }
 
-    using DepSet =
-        std::pair<std::unordered_set<Var *>, std::unordered_map<Var *, std::unordered_set<Var *>>>;
+    using DepSet = std::pair<std::unordered_set<Var *>,
+                             std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>>>;
 
     static DepSet get_dep(AssignStmt *stmt) {
         // only interested in the right hand side
         auto var = stmt->right();
         std::unordered_set<Var *> deps;
-        std::unordered_map<Var *, std::unordered_set<Var *>> linked_deps;
+        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> linked_deps;
         get_var_deps(var, deps, linked_deps);
         return {deps, linked_deps};
     }
@@ -64,16 +65,18 @@ public:
         return dependency_;
     }
 
-    const std::unordered_map<Var *, std::unordered_set<Var *>> &linked_dependency() const {
+    const std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> &linked_dependency()
+        const {
         return linked_dependency_;
     }
 
 private:
     std::unordered_map<Var *, std::unordered_set<Stmt *>> dependency_;
-    std::unordered_map<Var *, std::unordered_set<Var *>> linked_dependency_;
+    std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> linked_dependency_;
 
-    void static get_var_deps(Var *var, std::unordered_set<Var *> &dep,
-                             std::unordered_map<Var *, std::unordered_set<Var *>> &linked_dep) {
+    void static get_var_deps(
+        Var *var, std::unordered_set<Var *> &dep,
+        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> &linked_dep) {
         switch (var->type()) {
             case VarType::Base:
             case VarType::PortIO: {
@@ -102,16 +105,24 @@ private:
     }
 
     static void compute_linked_dep(
-        VarSlice *slice, std::unordered_map<Var *, std::unordered_set<Var *>> &linked_dep) {
-        auto parent = slice->parent_var;
-        linked_dep[parent].emplace(slice);
-        if (parent->type() == VarType::Slice) {
-            if (slice->sliced_by_var()) {
-                auto var_slice = reinterpret_cast<VarVarSlice *>(slice);
-                auto p = var_slice->sliced_var();
-                linked_dep[p].emplace(slice);
+        VarSlice *slice,
+        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> &linked_dep) {
+        auto var_high = slice->var_high();
+        auto var_low = slice->var_low();
+        auto root = const_cast<Var *>(slice->get_var_root_parent());
+        for (uint32_t i = var_low; i <= var_high; i++) {
+            linked_dep[root].emplace(i, slice);
+        }
+        // if indexed by a var
+        if (slice->sliced_by_var()) {
+            auto var_slice = reinterpret_cast<VarVarSlice *>(slice);
+            auto p = var_slice->sliced_var();
+            var_high = p->var_high();
+            var_low = p->var_low();
+            root = const_cast<Var *>(p->get_var_root_parent());
+            for (uint32_t i = var_low; i <= var_high; i++) {
+                linked_dep[root].emplace(i, slice);
             }
-            compute_linked_dep(reinterpret_cast<VarSlice *>(parent), linked_dep);
         }
     }
 
@@ -136,11 +147,13 @@ private:
         }
 
         std::unordered_set<Var *> &vars() { return vars_; }
-        std::unordered_map<Var *, std::unordered_set<Var *>> &linked_vars() { return linked_vars_; }
+        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> &linked_vars() {
+            return linked_vars_;
+        }
 
     private:
         std::unordered_set<Var *> vars_;
-        std::unordered_map<Var *, std::unordered_set<Var *>> linked_vars_;
+        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> linked_vars_;
     };
 };
 
@@ -153,56 +166,6 @@ Simulator::Simulator(kratos::Generator *generator) {
     visitor.visit_generator_root_p(generator);
     dependency_ = visitor.dependency();
     linked_dependency_ = visitor.linked_dependency();
-    // build reversed linked dependency
-    for (auto const &[par, set] : linked_dependency_) {
-        for (auto const &v : set) {
-            linked_dependency_[v].emplace(par);
-        }
-    }
-}
-
-std::pair<uint32_t, uint32_t> compute_var_high_low(
-    Var *root, const std::vector<std::pair<uint32_t, uint32_t>> &index) {
-    // outer to inner
-    // flatten the index
-    auto const &var_sizes = root->size();
-    // compute the actual index
-    uint32_t index_base = 0;
-    uint32_t var_low = 0;
-    uint32_t var_high = 0;
-    uint32_t index_to_size = 0;
-    uint64_t i = 0;
-    while (i < index.size()) {
-        auto const &[slice_high, slice_low] = index[i];
-        if (slice_high > slice_low) {
-            index_base += slice_low;
-        } else {
-            // compute the real index
-            uint32_t base = 1;
-            index_to_size++;
-            // if we have bit slicing, we need to stop
-            if (index_to_size >= var_sizes.size()) break;
-            for (uint64_t j = index_to_size; j < var_sizes.size(); j++) {
-                base *= var_sizes[j];
-            }
-            var_low += base * slice_low;
-            var_high = var_low + (var_high + 1) * base;
-        }
-        i++;
-    }
-    // normalize to bits
-    var_high *= root->var_width();
-    var_low *= root->var_width();
-
-    if (i < index.size()) {
-        for (; i < index.size(); i++) {
-            auto const &[slice_high, slice_low] = index[i];
-            var_low += slice_low;
-            var_high = var_low + (slice_high - slice_low);
-        }
-    }
-
-    return {var_high, var_low};
 }
 
 std::optional<uint64_t> Simulator::get_value_(kratos::Var *var) const {
@@ -239,11 +202,13 @@ std::optional<uint64_t> Simulator::get_value_(kratos::Var *var) const {
         auto index = get_slice_index(var);
         if (index.empty()) return std::nullopt;
         auto const [var_high, var_low] = compute_var_high_low(root, index);
-        if (var_high + 1 - var_low > root->var_width())
+        if (var_high + 1 - var_low > root->width())
             throw InternalException("Unable to resolve variable slicing");
-        auto base = var_low / 64;
+        auto base = var_low / root->var_width();
+        auto low = var_low % root->var_width();
+        auto high = var_high % root->var_width();
         auto value = values[base];
-        return (value >> var_low) & (0xFFFFFFFFFFFFFFFF >> (var_high + 1));
+        return (value >> low) & (0xFFFFFFFFFFFFFFFF >> (high + 1));
     } else {
         if (values_.find(var) == values_.end())
             return std::nullopt;
@@ -288,10 +253,12 @@ void Simulator::set_value_(kratos::Var *var, std::optional<uint64_t> op_value) {
         // obtain the index
         auto index = get_slice_index(var);
         if (index.empty()) throw InternalException("Empty slice");
-        auto const [var_high, var_low] = compute_var_high_low(root, index);
-        if (var_high + 1 - var_low > root->var_width())
+        auto [var_high, var_low] = compute_var_high_low(root, index);
+        if (var_high + 1 - var_low > root->width())
             throw InternalException("Unable to resolve variable slicing");
-        auto base = var_low / 64;
+        auto base = var_low / root->var_width();
+        var_high = var_high - base * root->var_width();
+        var_low = var_low - base * root->var_width();
         auto v = values[base];
         auto temp = *v;
         // compute the mask
@@ -299,20 +266,34 @@ void Simulator::set_value_(kratos::Var *var, std::optional<uint64_t> op_value) {
         *v = *v & (~mask);
         value = value & (0xFFFFFFFFFFFFFFFF >> (var_high - var_low + 1));
         *v = *v | (value << var_low);
-        if (*v != temp) trigger_event(root);
+        if (*v != temp) {
+            std::unordered_set<uint32_t> changed_bits;
+            uint64_t m = (*v) ^ temp;
+            for (uint32_t bit = 0; bit < root->width(); bit++) {
+                if ((m >> bit) & 1u) {
+                    changed_bits.emplace(bit);
+                }
+            }
+            trigger_event(root, changed_bits);
+        }
     } else {
-        bool has_changed = false;
+        std::unordered_set<uint32_t> changed_bits;
         if (values_.find(var) != values_.end()) {
             auto temp = values_.at(var);
             if (temp != value) {
                 values_[var] = value;
-                has_changed = true;
+                uint64_t m = value ^ temp;
+                for (uint32_t bit = 0; bit < var->width(); bit++) {
+                    if ((m >> bit) & 1u) {
+                        changed_bits.emplace(bit);
+                    }
+                }
             }
         } else {
             values_[var] = value;
-            has_changed = true;
+            for (uint32_t i = 0; i < var->width(); i++) changed_bits.emplace(i);
         }
-        if (has_changed) trigger_event(var);
+        trigger_event(var, changed_bits);
     }
 }
 
@@ -337,7 +318,10 @@ std::optional<std::vector<uint64_t>> Simulator::get_complex_value_(kratos::Var *
             throw InternalException("Misaligned vector slicing");
         if (complex_values_.find(root) == complex_values_.end()) return std::nullopt;
         auto values = complex_values_.at(root);
-        return std::vector<uint64_t>(values.begin() + var_low, values.end() + var_high + 1);
+        // compute the slice range
+        auto low = var_low / root->var_width();
+        auto high = var_high / root->var_width();
+        return std::vector<uint64_t>(values.begin() + low, values.end() + high + 1);
     } else {
         if (complex_values_.find(var) == complex_values_.end()) return std::nullopt;
         return complex_values_.at(var);
@@ -407,14 +391,21 @@ void Simulator::set_complex_value_(kratos::Var *var,
     }
 
     if (values.size() != value.size()) throw UserException("Misaligned slicing");
-    bool has_changed = false;
+    std::unordered_set<uint32_t> changed_bits;
+    uint32_t var_width = fill_var->var_width();
+
     for (uint32_t i = low; i <= high; i++) {
         if (*(values[i]) != value[i]) {
+            uint32_t bit_mask = (*values[i]) ^ value[i];
             *(values[i]) = value[i];
-            has_changed = true;
+            for (uint32_t bit = 0; bit < var_width; bit++) {
+                if ((bit_mask >> bit) & 1u) {
+                    changed_bits.emplace(bit + var_width * i);
+                }
+            }
         }
     }
-    if (has_changed) trigger_event(fill_var);
+    trigger_event(fill_var, changed_bits);
 }
 
 std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(Var *var) const {
@@ -442,21 +433,29 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(Var *var) 
     return result;
 }
 
-void Simulator::trigger_event(kratos::Var *var) {
+void Simulator::trigger_event(kratos::Var *var, const std::unordered_set<uint32_t> &bits_mask) {
+    if (bits_mask.empty()) return;
+
     if (dependency_.find(var) != dependency_.end()) {
         auto const &deps = dependency_.at(var);
         for (auto const &stmt : deps) {
-            event_queue_.emplace(stmt);
+            if (scope_.find(stmt) == scope_.end()) event_queue_.emplace(stmt);
         }
     }
 
-    if (linked_dependency_.find(var) != linked_dependency_.end()) {
-        auto const &vars = linked_dependency_.at(var);
-        for (auto &v : vars) {
-            if (dependency_.find(var) != dependency_.end()) {
+    auto root = const_cast<Var *>(var->get_var_root_parent());
+    if (linked_dependency_.find(root) != linked_dependency_.end()) {
+        auto const &vars = linked_dependency_.at(root);
+        std::unordered_set<Var *> vs;
+        for (auto &[bit, v] : vars) {
+            if (bits_mask.find(bit) != bits_mask.end()) vs.emplace(v);
+        }
+
+        for (auto const &v : vs) {
+            if (dependency_.find(v) != dependency_.end()) {
                 auto const &deps = dependency_.at(v);
                 for (auto const &stmt : deps) {
-                    event_queue_.emplace(stmt);
+                    if (scope_.find(stmt) == scope_.end()) event_queue_.emplace(stmt);
                 }
             }
         }
@@ -476,6 +475,7 @@ void Simulator::eval() {
         event_queue_.pop();
         process_stmt(stmt);
     }
+    scope_.clear();
 }
 
 std::optional<uint64_t> Simulator::get(kratos::Var *var) const { return get_value_(var); }
@@ -486,23 +486,12 @@ std::optional<std::vector<uint64_t>> Simulator::get_array(kratos::Var *var) cons
 
 void Simulator::set(kratos::Var *var, std::optional<uint64_t> value) {
     set_value_(var, value);
-    // if it's a slice, need to trigger more
-    trigger_sliced_var(var);
     eval();
 }
 
 void Simulator::set(kratos::Var *var, const std::optional<std::vector<uint64_t>> &value) {
     set_complex_value_(var, value);
-    trigger_sliced_var(var);
     eval();
-}
-
-void Simulator::trigger_sliced_var(kratos::Var *var) {
-    // TODO: fix this
-    if (var->type() == VarType::Slice) {
-        auto parent = const_cast<Var*>(var->get_var_root_parent());
-        trigger_event(parent);
-    }
 }
 
 void Simulator::process_stmt(kratos::Stmt *stmt) {
@@ -556,7 +545,9 @@ void Simulator::process_stmt(kratos::StmtBlock *block) {
 }
 
 void Simulator::process_stmt(kratos::CombinationalStmtBlock *block) {
+    scope_.emplace(block);
     process_stmt(reinterpret_cast<StmtBlock *>(block));
+    scope_.erase(block);
 }
 
 void Simulator::process_stmt(kratos::IfStmt *if_) {

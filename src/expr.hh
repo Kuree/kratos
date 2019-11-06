@@ -171,6 +171,8 @@ public:
     void set_explicit_array(bool value) { explicit_array_ = value; }
     bool explicit_array() const { return explicit_array_; }
     virtual std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const { return {}; }
+    virtual uint32_t var_high() const { return width() - 1; }
+    virtual uint32_t var_low() const { return 0; }
 
     // for slice
     virtual const Var *get_var_root_parent() const { return this; }
@@ -260,8 +262,8 @@ public:
 
     std::string to_string() const override;
 
-    uint32_t var_high() { return var_high_; }
-    uint32_t var_low() { return var_low_; }
+    uint32_t var_high() const override { return var_high_; }
+    uint32_t var_low() const override { return var_low_; }
 
     uint64_t child_count() override { return 1; }
     IRNode *get_child(uint64_t index) override { return index == 0 ? parent_var : nullptr; }

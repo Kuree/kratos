@@ -42,6 +42,9 @@ bool is_valid_verilog(const std::map<std::string, std::string> &src);
 
 void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt);
 
+std::pair<uint32_t, uint32_t> compute_var_high_low(
+    Var *root, const std::vector<std::pair<uint32_t, uint32_t>> &index);
+
 std::vector<std::string> get_tokens(const std::string &line, const std::string &delimiter);
 
 std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *generator,

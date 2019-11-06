@@ -30,10 +30,12 @@ private:
     std::queue<Stmt*> event_queue_;
     std::unordered_map<Var*, std::unordered_set<Stmt*>> dependency_;
     // linked dependency is for partial updates
-    std::unordered_map<Var*, std::unordered_set<Var*>> linked_dependency_;
+    std::unordered_map<Var*, std::unordered_map<uint32_t, Var*>> linked_dependency_;
+    // this is prevent self triggering in always block
+    std::unordered_set<Stmt*> scope_;
 
     std::vector<std::pair<uint32_t, uint32_t>> get_slice_index(Var* var) const;
-    void trigger_event(Var *var);
+    void trigger_event(Var *var, const std::unordered_set<uint32_t> &bit_mask);
 
     void process_stmt(Stmt* stmt);
     void process_stmt(IfStmt * if_);
@@ -43,10 +45,6 @@ private:
 
     void process_stmt(CombinationalStmtBlock *block);
     void process_stmt(SequentialStmtBlock *block);
-
-    // only used when user is controlling the values, i.e. the slicing doesn't exist in the
-    // design
-    void trigger_sliced_var(Var* var);
 
     std::optional<std::vector<uint64_t>> eval_expr(Var *var);
     std::unordered_map<Var*, std::vector<uint64_t>> nba_values_;

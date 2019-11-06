@@ -1,8 +1,22 @@
 #include "../src/sim.hh"
 #include "../src/stmt.hh"
+#include "../src/util.hh"
 #include "gtest/gtest.h"
 
 using namespace kratos;
+
+TEST(sim, slicing_bit) {  // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 3);
+    auto [high, low] = compute_var_high_low(&a, {{1, 1}});
+    EXPECT_EQ(high, 1);
+    EXPECT_EQ(low, 1);
+    auto &b = mod.var("b", 4, {2, 2});
+    std::tie(high, low) = compute_var_high_low(&b, {{1, 1}, {1, 1}});
+    EXPECT_EQ(high, 4 * 4 - 1);
+    EXPECT_EQ(low, 4 * 3);
+}
 
 TEST(sim, value_scalar) {  // NOLINT
     Context context;
@@ -22,7 +36,7 @@ TEST(sim, value_scalar) {  // NOLINT
     EXPECT_EQ(*res, 2);
 }
 
-TEST(sim, DISABLED_value_array) {  // NOLINT
+TEST(sim, value_array) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 4, {2, 2});
@@ -35,13 +49,12 @@ TEST(sim, DISABLED_value_array) {  // NOLINT
     uint32_t constexpr value = 5;
     sim.set(&(b[1][1]), std::vector<uint64_t>{value});
 
-    // TODO: FIXME
     auto res = sim.get(&c);
     EXPECT_TRUE(res != std::nullopt);
     EXPECT_EQ(*res, value);
 }
 
-TEST(sim, DISABLED_combinational_order_wrong) {  // NOLINT
+TEST(sim, combinational_order_wrong) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 4, {2, 2});

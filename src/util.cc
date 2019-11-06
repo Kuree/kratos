@@ -167,6 +167,51 @@ bool is_valid_verilog(const std::map<std::string, std::string> &src) {
     return is_valid_verilog(final_src);
 }
 
+std::pair<uint32_t, uint32_t> compute_var_high_low(
+    Var *root, const std::vector<std::pair<uint32_t, uint32_t>> &index) {
+    // outer to inner
+    // flatten the index
+    auto const &var_sizes = root->size();
+    std::vector<uint32_t> bases(var_sizes.size());
+    uint32_t base = 1;
+    for (int i = static_cast<int>(var_sizes.size()) - 1; i >= 0; i--) {
+        bases[i] = base * root->var_width();
+        base *= var_sizes[i];
+    }
+
+    uint32_t var_low = 0;
+    uint32_t var_high = 0;
+    uint32_t index_to_size = 0;
+    uint64_t i = 0;
+    while (i < index.size()) {
+        auto const &[slice_high, slice_low] = index[i];
+        if (slice_high > slice_low) {
+            var_low += slice_low * bases[index_to_size] * root->var_width();
+            var_high = var_low +
+                       (slice_high - slice_low + 1) * bases[index_to_size] * root->var_width() - 1;
+        } else if (slice_high == slice_low && index_to_size < var_sizes.size() &&
+                   var_sizes[index_to_size] > 1) {
+            var_low += slice_low * bases[index_to_size];
+            var_high = var_low +
+                       (slice_high - slice_low + 1) * bases[index_to_size] - 1;
+            index_to_size++;
+        } else {
+            break;
+        }
+        i++;
+    }
+
+    if (i < index.size()) {
+        for (; i < index.size(); i++) {
+            auto const &[slice_high, slice_low] = index[i];
+            var_low += slice_low;
+            var_high = var_low + (slice_high - slice_low);
+        }
+    }
+
+    return {var_high, var_low};
+}
+
 std::string port_type_to_str(PortType type) {
     switch (type) {
         case PortType::Reset:
@@ -204,12 +249,12 @@ void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt) {
         if (p_stmt->type() == StatementType::Switch) {
             auto p = dynamic_cast<SwitchStmt *>(p_stmt);
             if (!p)
-                throw InternalException("stmt is not switch but is marked as StatementType::Switch");
+                throw InternalException(
+                    "stmt is not switch but is marked as StatementType::Switch");
             p->remove_stmt(stmt);
         } else if (p_stmt->type() == StatementType::If) {
             auto p = dynamic_cast<IfStmt *>(p_stmt);
-            if (!p)
-                throw InternalException("stmt is not if but is marked as StatementType::If");
+            if (!p) throw InternalException("stmt is not if but is marked as StatementType::If");
             p->remove_stmt(stmt);
         } else {
             if (p_stmt->type() != StatementType::Block) {
@@ -217,7 +262,8 @@ void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt) {
             }
             auto p = dynamic_cast<StmtBlock *>(p_stmt);
             if (!p)
-                throw InternalException("stmt is not block but is marked as StatementType::StatementType::Block");
+                throw InternalException(
+                    "stmt is not block but is marked as StatementType::StatementType::Block");
             p->remove_stmt(stmt);
         }
     }
@@ -373,32 +419,44 @@ Color hsv_to_rgb(double h, double s, double v) {
     auto f = h * 6 - h_i;
     auto p = v * (1 - s);
     auto q = v * (1 - f * s);
-    auto t = v * (1 - (1 - f ) * s);
+    auto t = v * (1 - (1 - f) * s);
     double r_, g_, b_;
 
-    switch(h_i) {
+    switch (h_i) {
         case 0: {
-            r_ = v; g_ = t; b_ = p;
+            r_ = v;
+            g_ = t;
+            b_ = p;
             break;
         }
         case 1: {
-            r_ = q; g_ = v; b_ = p;
+            r_ = q;
+            g_ = v;
+            b_ = p;
             break;
         }
         case 2: {
-            r_ = p; g_ = v; b_ = t;
+            r_ = p;
+            g_ = v;
+            b_ = t;
             break;
         }
         case 3: {
-            r_ = p; g_ = q; b_ = v;
+            r_ = p;
+            g_ = q;
+            b_ = v;
             break;
         }
         case 4: {
-            r_ = t; g_ = p; b_ = v;
+            r_ = t;
+            g_ = p;
+            b_ = v;
             break;
         }
         case 5: {
-            r_ = v; g_ = p; b_ = q;
+            r_ = v;
+            g_ = p;
+            b_ = q;
             break;
         }
         default:
@@ -409,7 +467,7 @@ Color hsv_to_rgb(double h, double s, double v) {
     auto b = static_cast<unsigned char>(b_ * 255);
     return {r, g, b};
 }
-}
+}  // namespace color
 
 namespace fs {
 std::string which(const std::string &name) {
@@ -492,4 +550,4 @@ std::string abspath(const std::string &filename) {
 }
 
 }  // namespace fs
-}
+}  // namespace kratos
