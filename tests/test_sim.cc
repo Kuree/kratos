@@ -93,6 +93,22 @@ TEST(sim, combinational_order_correct) {  // NOLINT
     EXPECT_EQ(*res, value);
 }
 
+TEST(sim, array_access) {   // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 4, 4);
+    auto &b = mod.var("b", 2);
+
+    Simulator sim(&mod);
+    uint32_t constexpr value = 5;
+    sim.set(&b, 2);
+    sim.set(&a[b.shared_from_this()], value);
+
+    auto res = sim.get(&a[b.shared_from_this()]);
+    EXPECT_TRUE(res != std::nullopt);
+    EXPECT_EQ(*res, value);
+}
+
 TEST(sim, sequential) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
@@ -149,8 +165,16 @@ TEST(eval, bin_op) {  // NOLINT
     std::map<ExprOp, std::function<int64_t(int64_t, int64_t)>> func_map = {
         {ExprOp::Add, [](int64_t value1, int64_t value2) { return value1 + value2; }},
         {ExprOp::Minus, [](int64_t value1, int64_t value2) { return value1 - value2; }},
-        {ExprOp::And, [](int64_t value1, int64_t value2) { return value1 & value2; }}, // NOLINT
-        {ExprOp::Divide, [](int64_t value1, int64_t value2) { return value1 / value2; }}};
+        {ExprOp::Multiply, [](int64_t value1, int64_t value2) { return value1 * value2; }},
+        {ExprOp::Divide, [](int64_t value1, int64_t value2) { return value1 / value2; }},
+        {ExprOp::And, [](int64_t value1, int64_t value2) { return value1 & value2; }},  // NOLINT
+        {ExprOp::Or, [](int64_t value1, int64_t value2) { return value1 | value2; }},   // NOLINT
+        {ExprOp::Xor, [](int64_t value1, int64_t value2) { return value1 ^ value2; }},  // NOLINT
+        {ExprOp::Eq, [](int64_t value1, int64_t value2) { return value1 == value2; }},
+        {ExprOp::GreaterEqThan, [](int64_t value1, int64_t value2) { return value1 >= value2; }},
+        {ExprOp::GreaterThan, [](int64_t value1, int64_t value2) { return value1 > value2; }},
+        {ExprOp::LessEqThan, [](int64_t value1, int64_t value2) { return value1 <= value2; }},
+        {ExprOp::LessThan, [](int64_t value1, int64_t value2) { return value1 < value2; }}};
 
     for (auto const &[op, func] : func_map) {
         // signed
@@ -159,7 +183,7 @@ TEST(eval, bin_op) {  // NOLINT
             auto const &[v1, v2] = eval_pairs[i];
             auto gold = func(v1_, v2_);
             auto result = eval_bin_op(v1, v2, op, width, true);
-            if (gold < 0) {
+            if (gold < 0 || static_cast<uint64_t>(abs(gold)) > mask) {
                 gold = (*reinterpret_cast<uint64_t *>(&gold)) & mask;
             }
             EXPECT_EQ(gold, result);

@@ -33,12 +33,22 @@ uint64_t eval_bin_op(uint64_t left_value, uint64_t right_value, ExprOp op, uint3
         case ExprOp::Minus:
             result = (left_value - right_value) & mask;
             break;
-        case ExprOp::And:
-            result = left_value & right_value;
+        case ExprOp::Multiply:
+            result = left_abs_value * right_abs_value;
+            if (signed_bit) result = two_complement(result, width);
             break;
         case ExprOp::Divide:
             result = left_abs_value / right_abs_value;
             if (signed_bit) result = two_complement(result, width);
+            break;
+        case ExprOp::And:
+            result = left_value & right_value;
+            break;
+        case ExprOp::Or:
+            result = left_value | right_value;
+            break;
+        case ExprOp::Xor:
+            result = left_value ^ right_value;
             break;
         case ExprOp::Eq:
             result = left_value == right_value;
@@ -68,9 +78,11 @@ uint64_t eval_bin_op(uint64_t left_value, uint64_t right_value, ExprOp op, uint3
                          : !left_negative && right_negative ? true : result ^ left_negative;
             break;
         case ExprOp::SignedShiftRight:
-        case ExprOp::LogicalShiftRight:
             result = left_abs_value >> right_value;
             if (left_negative) result |= UINT64_MASK << (width - 1 - right_value);
+            break;
+        case ExprOp::LogicalShiftRight:
+            result = left_value >> right_value;
             break;
         default: {
             throw std::runtime_error("Not implemented");
