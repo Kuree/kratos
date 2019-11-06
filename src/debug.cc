@@ -774,9 +774,9 @@ public:
         }
 
         if (!assignments.empty()) {
-            auto comb = top->combinational();
             for (auto const &stmt : assignments) {
                 top->remove_stmt(stmt);
+                auto comb = top->combinational();
                 comb->add_stmt(stmt);
             }
         }
