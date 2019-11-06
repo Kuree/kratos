@@ -486,7 +486,7 @@ FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionCallVar> &var)
     : Stmt(StatementType::FunctionalCall), func_(var->func()->as<FunctionStmtBlock>()), var_(var) {}
 
 ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *parent)
-    : Stmt(StatementType::ModuleInstantiation), target_(target), parent_(parent) {
+    : Stmt(StatementType::ModuleInstantiation), target_(target) {
     auto const &port_names = target->get_port_names();
     for (auto const &port_name : port_names) {
         auto const &port_shared = target->get_port(port_name);
@@ -512,6 +512,8 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
                 if (parent->debug) {
                     port_debug_.emplace(port, stmt.get());
                 }
+                // add it to the mapping list
+                connection_stmt_.emplace(stmt.get());
             } else {
                 // you need to run a de-slice pass on the module references first
                 throw InternalException(
@@ -539,6 +541,7 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
             throw InternalException("Inout port type not implemented");
         }
     }
+    target->has_instantiated() = true;
 }
 
 CommentStmt::CommentStmt(std::string comment, uint32_t line_width) : Stmt(StatementType::Comment) {

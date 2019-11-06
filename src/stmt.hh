@@ -348,19 +348,20 @@ public:
     const std::map<Var *, Stmt *> &port_debug() const { return port_debug_; }
 
     const Generator *target() { return target_; }
-    const Generator *module_parent() { return parent_; }
+
+    const std::unordered_set<AssignStmt *> &connection_stmt() const { return connection_stmt_; }
 
 private:
     Generator *target_;
-    Generator *parent_;
     std::map<Port *, Var *> port_mapping_;
 
     std::map<Var *, Stmt *> port_debug_;
+    std::unordered_set<AssignStmt *> connection_stmt_;
 };
 
-class CommentStmt: public Stmt {
+class CommentStmt : public Stmt {
 public:
-    CommentStmt(const std::string &comment): CommentStmt(comment, default_width) {}
+    explicit CommentStmt(const std::string &comment) : CommentStmt(comment, default_width) {}
     CommentStmt(std::string comment, uint32_t line_width);
 
     const std::vector<std::string> &comments() { return comments_; }

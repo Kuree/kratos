@@ -202,6 +202,8 @@ public:
     std::string handle_name() const;
     std::string handle_name(bool ignore_top) const;
     std::shared_ptr<Var> get_auxiliary_var(uint32_t width, bool signed_ = false);
+    bool has_instantiated() const { return has_instantiated_; }
+    bool &has_instantiated() { return has_instantiated_; }
 
 private:
     std::vector<std::string> lib_files_;
@@ -228,6 +230,9 @@ private:
     // used for shallow cloning
     std::unordered_set<std::shared_ptr<Generator>> clones_;
     bool is_cloned_ = false;
+
+    // used to identify whether a module instantiation is created
+    bool has_instantiated_ = false;
 
     // meta values
     // named blocks

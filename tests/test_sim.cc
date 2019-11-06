@@ -1,3 +1,5 @@
+#include <random>
+#include "../src/eval.hh"
 #include "../src/sim.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
@@ -120,4 +122,60 @@ TEST(sim, sequential) {  // NOLINT
     res = sim.get(&c);
     EXPECT_TRUE(res != std::nullopt);
     EXPECT_EQ(*res, value);
+}
+
+TEST(eval, bin_op) {  // NOLINT
+    size_t seed = 42;
+    std::mt19937 rnd;  // NOLINT
+    rnd.seed(seed);
+    auto constexpr width = 4;
+    auto constexpr mask = UINT64_MASK >> (64u - width);
+    auto constexpr num_test = 420u;
+    std::vector<std::pair<int64_t, int64_t>> input_pairs(num_test);
+    std::vector<std::pair<uint64_t, uint64_t>> eval_pairs(num_test);
+    for (uint32_t i = 0; i < num_test; i++) {
+        int64_t value1_ = static_cast<int64_t>(rnd() % mask) - mask / 2;
+        uint64_t value1 = *(reinterpret_cast<uint64_t *>(&value1_)) & mask;
+        int64_t value2_ = 0;
+        uint64_t value2 = 0;
+        while (value2_ == 0) {
+            value2_ = static_cast<int64_t>(rnd() % mask) - mask / 2;
+            value2 = *(reinterpret_cast<uint64_t *>(&value2_)) & mask;
+        }
+        input_pairs[i] = {value1_, value2_};
+        eval_pairs[i] = {value1, value2};
+    }
+
+    std::map<ExprOp, std::function<int64_t(int64_t, int64_t)>> func_map = {
+        {ExprOp::Add, [](int64_t value1, int64_t value2) { return value1 + value2; }},
+        {ExprOp::Minus, [](int64_t value1, int64_t value2) { return value1 - value2; }},
+        {ExprOp::And, [](int64_t value1, int64_t value2) { return value1 & value2; }}}; // NOLINT
+
+        // TODO:
+        // DIV has a bug?
+
+    for (auto const &[op, func] : func_map) {
+        // signed
+        for (uint64_t i = 0; i < input_pairs.size(); i++) {
+            auto const &[v1_, v2_] = input_pairs[i];
+            auto const &[v1, v2] = eval_pairs[i];
+            auto gold = func(v1_, v2_);
+            auto result = eval_bin_op(v1, v2, op, width, true);
+            if (gold < 0) {
+                gold = (*reinterpret_cast<uint64_t *>(&gold)) & mask;
+            }
+            EXPECT_EQ(gold, result);
+        }
+        // unsigned
+        for (uint64_t i = 0; i < input_pairs.size(); i++) {
+            auto const &[v1_, v2_] = input_pairs[i];
+            auto const &[v1, v2] = eval_pairs[i];
+            auto gold = func(v1_, v2_);
+            if (gold < 0) {
+                gold = (*reinterpret_cast<uint64_t *>(&gold)) & mask;
+            }
+            auto result = eval_bin_op(v1, v2, op, width, false);
+            EXPECT_EQ(gold, result);
+        }
+    }
 }

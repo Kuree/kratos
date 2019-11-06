@@ -1,4 +1,5 @@
 #include "sim.hh"
+#include "eval.hh"
 #include "except.hh"
 #include "fmt/format.h"
 #include "pass.hh"
@@ -20,9 +21,7 @@ public:
             auto const &stmt = generator->get_stmt(i);
             if (stmt->type() == StatementType::Assign) {
                 auto assign = stmt->as<AssignStmt>();
-                auto const &[dep, linked] = get_dep(assign.get());
-                for (auto const &v : dep) dependency_[v].emplace(stmt.get());
-                linked_dependency_.insert(linked.begin(), linked.end());
+                visit_assign(assign.get());
             } else if (stmt->type() == StatementType::Block) {
                 auto block = stmt->as<StmtBlock>();
                 if (block->block_type() == StatementBlockType::Sequential) {
@@ -30,25 +29,11 @@ public:
                 } else if (block->block_type() == StatementBlockType::Combinational) {
                     visit_block(block->as<CombinationalStmtBlock>().get());
                 }
+            } else if (stmt->type() == StatementType::ModuleInstantiation) {
+                visit_module_instantiation(stmt->as<ModuleInstantiationStmt>().get());
             }
         }
     }
-
-    void visit_block(CombinationalStmtBlock *block) {
-        CombinationBlockVisitor visitor;
-        visitor.visit_root(block);
-        auto const &vars = visitor.vars();
-        for (auto const &var : vars) dependency_[var].emplace(block);
-        linked_dependency_.insert(visitor.linked_vars().begin(), visitor.linked_vars().end());
-    }
-
-    void visit_block(SequentialStmtBlock *block) {
-        auto &lst = block->get_conditions();
-        for (auto const &iter : lst) {
-            dependency_[iter.second.get()].emplace(block);
-        }
-    }
-
     using DepSet = std::pair<std::unordered_set<Var *>,
                              std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>>>;
 
@@ -73,6 +58,34 @@ public:
 private:
     std::unordered_map<Var *, std::unordered_set<Stmt *>> dependency_;
     std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> linked_dependency_;
+
+    void visit_block(CombinationalStmtBlock *block) {
+        CombinationBlockVisitor visitor;
+        visitor.visit_root(block);
+        auto const &vars = visitor.vars();
+        for (auto const &var : vars) dependency_[var].emplace(block);
+        linked_dependency_.insert(visitor.linked_vars().begin(), visitor.linked_vars().end());
+    }
+
+    void visit_block(SequentialStmtBlock *block) {
+        auto &lst = block->get_conditions();
+        for (auto const &iter : lst) {
+            dependency_[iter.second.get()].emplace(block);
+        }
+    }
+
+    void visit_assign(AssignStmt *assign) {
+        auto const &[dep, linked] = get_dep(assign);
+        for (auto const &v : dep) dependency_[v].emplace(assign);
+        linked_dependency_.insert(linked.begin(), linked.end());
+    }
+
+    void visit_module_instantiation(ModuleInstantiationStmt *stmt) {
+        auto connection_stmts = stmt->connection_stmt();
+        for (auto const &assign : connection_stmts) {
+            visit_assign(assign);
+        }
+    }
 
     void static get_var_deps(
         Var *var, std::unordered_set<Var *> &dep,
@@ -674,29 +687,8 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
                 if ((*right_val).size() > 1) throw std::runtime_error("Not implemented");
                 auto left_value = (*left_val)[0];
                 auto right_value = (*right_val)[0];
-                uint64_t result;
-                switch (expr->op) {
-                    case ExprOp::Add: {
-                        result = left_value + right_value;
-                        break;
-                    }
-                    case ExprOp::And: {
-                        result = left_value & right_value;
-                        break;
-                    }
-                    case ExprOp::Divide: {
-                        result = left_value / right_value;
-                        break;
-                    }
-                    case ExprOp::Eq: {
-                        result = left_value == right_value;
-                        break;
-                    }
-                    default: {
-                        throw std::runtime_error("Not implemented");
-                    }
-                }
-                result = result & ((0xFFFFFFFFFFFFFFFF) >> (64 - var->width()));
+                auto result = eval_bin_op(left_value, right_value, expr->op, expr->width(),
+                                          expr->is_signed());
                 return std::vector<uint64_t>{result};
             } else if (is_reduction_op(expr->op)) {
                 throw std::runtime_error("Not implemented");

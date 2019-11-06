@@ -433,6 +433,8 @@ class ModuleInstantiationVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
         for (auto& child : generator->get_child_generators()) {
+            // skip if already instantiated
+            if (child->has_instantiated()) continue;
             // create instantiation statement
             auto stmt = std::make_shared<ModuleInstantiationStmt>(child.get(), generator);
             if (generator->debug) {
