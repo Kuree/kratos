@@ -2,6 +2,8 @@
 
 namespace kratos {
 
+auto constexpr UINT64_WIDTH_ = 64;
+
 uint64_t invert(uint64_t value, uint32_t width) {
     auto v = ~value;
     v ^= UINT64_MASK << width;
@@ -10,11 +12,11 @@ uint64_t invert(uint64_t value, uint32_t width) {
 
 uint64_t two_complement(uint64_t value, uint32_t width) {
     uint64_t inverted = invert(value, width) + 1;
-    return inverted & (UINT64_MASK >> (UINT64_WIDTH - width));
+    return inverted & (UINT64_MASK >> (UINT64_WIDTH_ - width));
 }
 
 uint64_t truncate(uint64_t value, uint32_t width) {
-    return value & (UINT64_MASK >> (UINT64_WIDTH - width));
+    return value & (UINT64_MASK >> (UINT64_WIDTH_ - width));
 }
 
 uint64_t eval_bin_op(uint64_t left_value, uint64_t right_value, ExprOp op, uint32_t width,
