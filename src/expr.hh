@@ -52,6 +52,7 @@ enum ExprOp : uint64_t {
 bool is_relational_op(ExprOp op);
 bool is_reduction_op(ExprOp op);
 bool is_expand_op(ExprOp op);
+bool is_unary_op(ExprOp op);
 
 enum VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted };
 

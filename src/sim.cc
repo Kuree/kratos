@@ -505,7 +505,7 @@ void Simulator::set(kratos::Var *var, std::optional<uint64_t> value) {
 void Simulator::set_i(kratos::Var *var, std::optional<int64_t> value) {
     if (value) {
         auto v = *value;
-        auto u_v = *(reinterpret_cast<uint64_t*>(&v));
+        auto u_v = *(reinterpret_cast<uint64_t *>(&v));
         u_v = truncate(u_v, var->width());
         set_value_(var, u_v);
         eval();
@@ -522,8 +522,8 @@ void Simulator::set_i(kratos::Var *var, const std::optional<std::vector<int64_t>
         auto vs = *value;
         std::vector<uint64_t> u_vs;
         u_vs.reserve(vs.size());
-        for (auto v: vs) {
-            auto u_v = *(reinterpret_cast<uint64_t*>(v));
+        for (auto v : vs) {
+            auto u_v = *(reinterpret_cast<uint64_t *>(v));
             u_v = truncate(u_v, var->width());
             u_vs.emplace_back(u_v);
         }
@@ -531,7 +531,6 @@ void Simulator::set_i(kratos::Var *var, const std::optional<std::vector<int64_t>
         eval();
     }
 }
-
 
 void Simulator::process_stmt(kratos::Stmt *stmt) {
     switch (stmt->type()) {
@@ -707,7 +706,7 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
             auto left_val = get_complex_value_(expr->left);
             if (!left_val) return left_val;
             auto right_val = get_complex_value_(expr->right);
-            if (!is_reduction_op(expr->op)) {
+            if (!is_unary_op(expr->op)) {
                 if (!right_val) return std::nullopt;
                 if ((*left_val).size() > 1) throw std::runtime_error("Not implemented");
                 if ((*right_val).size() > 1) throw std::runtime_error("Not implemented");
@@ -716,10 +715,10 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
                 auto result = eval_bin_op(left_value, right_value, expr->op, expr->width(),
                                           expr->is_signed());
                 return std::vector<uint64_t>{result};
-            } else if (is_reduction_op(expr->op)) {
-                throw std::runtime_error("Not implemented");
             } else {
-                throw std::runtime_error("Not implemented");
+                auto left_value = (*left_val)[0];
+                auto result = eval_unary_op(left_value, expr->op, expr->width());
+                return std::vector<uint64_t>(result);
             }
         }
 

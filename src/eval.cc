@@ -19,6 +19,27 @@ uint64_t truncate(uint64_t value, uint32_t width) {
     return value & (UINT64_MASK >> (UINT64_WIDTH_ - width));
 }
 
+uint64_t eval_unary_op(uint64_t value, ExprOp op, uint32_t width) {
+    switch(op) {
+        case ExprOp::UMinus:
+            return two_complement(value, width);
+        case ExprOp::UAnd:
+            return static_cast<uint32_t>(__builtin_popcount(value)) == width;
+        case ExprOp::UInvert:
+            return invert(value, width);
+        case ExprOp::UNot:
+             return !value;
+        case ExprOp::UOr:
+            return (bool)(value);
+        case ExprOp::UPlus:
+            return value;
+        case ExprOp::UXor: {
+            return __builtin_popcount(value) % 2;
+        }
+        default: throw std::runtime_error("Not implemented");
+    }
+}
+
 uint64_t eval_bin_op(uint64_t left_value, uint64_t right_value, ExprOp op, uint32_t width,
                      bool signed_) {
     bool left_negative = signed_ && left_value >> (width - 1);

@@ -25,8 +25,7 @@ def test_sim_reg():
     val = sim.get(reg.out)
     assert val is None
     # reset
-    sim.set(reg.rst, 1)
-    sim.set(reg.rst, 0)
+    sim.reset()
     val = sim.get(reg.out)
     assert val == 0
     # put in some values
@@ -36,8 +35,7 @@ def test_sim_reg():
         # 1 cycle delay
         assert val == v - 1
         # toggle the clock
-        sim.set(reg.clk, 1)
-        sim.set(reg.clk, 0)
+        sim.cycle()
         val = sim.get(reg.out)
         assert val == v
 

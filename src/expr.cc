@@ -34,6 +34,13 @@ bool is_expand_op(ExprOp op) {
     return ops.find(op) != ops.end();
 }
 
+bool is_unary_op(ExprOp op) {
+    static std::unordered_set<ExprOp> ops = {ExprOp::UXor,  ExprOp::UPlus, ExprOp::UOr,
+                                             ExprOp::UNot,  ExprOp::UXor,  ExprOp::UInvert,
+                                             ExprOp::UMinus};
+    return ops.find(op) != ops.end();
+}
+
 uint32_t Var::width() const {
     uint32_t w = var_width_;
     for (auto const &i : size_) w *= i;
@@ -265,8 +272,7 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
             if (parent->size().size() == 1) {
                 size_ = {1};
                 is_packed_ = false;
-            }
-            else {
+            } else {
                 size_ = std::vector<uint32_t>(parent->size().begin() + 1, parent->size().end());
                 is_packed_ = parent->is_packed();
             }
