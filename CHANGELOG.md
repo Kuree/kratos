@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.20] - 2019-11-07
+### Added
+- Add past transform to change exception into assertion (#116)
+- Add a pass to fix the design hierarchy if Kratos is only used partially
+- Add instance_id to breakpoint/assertin to support concurrency
+- Add support for ndarray in kratos
+- Add an event-driven IR-level simulator (#120)
+
+### Changed
+- Disable context variable if a particular fn_ln is given
+- Gnerator ids are re-used acorss multile runs on dumped debug database
+- Remove stmt after port decoupling
+
+### Fixed
+- Fix a bug where adding a child to an IR node may affect its visit order
+
 ## [0.0.19] - 2019-10-25
 ### Added
 - Add old verilog style module definition code gen (also stub)
