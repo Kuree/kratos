@@ -87,7 +87,6 @@ Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
 }
 
 std::string Stream::get_var_decl(kratos::Var* var) {
-
     // based on whether it's packed or not
     std::string type;
     if (var->is_struct()) {
@@ -725,9 +724,10 @@ std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def)
     for (auto const& port_name : port_names) {
         auto port = top->get_port(port_name);
         auto const& lst = std::vector<uint32_t>{1};
-        gen.port(port->port_direction(), port_name,
-                 flatten_array ? port->width() : port->var_width(),
-                 flatten_array ? lst : port->size(), port->port_type(), port->is_signed());
+        auto& p = gen.port(
+            port->port_direction(), port_name, flatten_array ? port->width() : port->var_width(),
+            flatten_array ? lst : port->size(), port->port_type(), port->is_signed());
+        p.set_is_packed(port->is_packed());
     }
     // that's it
     // now outputting the stream
