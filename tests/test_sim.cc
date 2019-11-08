@@ -151,6 +151,26 @@ TEST(sim, pull_up) {    // NOLINT
     EXPECT_EQ(*v, 1);
 }
 
+TEST(sim, if_) {  // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    auto &in = mod.port(PortDirection::In, "in", 1);
+    auto comb = mod.combinational();
+    auto if_ = std::make_shared<IfStmt>((in.eq(constant(1, 1))).shared_from_this());
+    if_->add_then_stmt(a.assign(b));
+    comb->add_stmt(if_);
+
+    Simulator sim(&mod);
+    auto v = sim.get(&a);
+    EXPECT_EQ(v, std::nullopt);
+    sim.set(&in, 1);
+    sim.set(&b, 1);
+    v = sim.get(&a);
+    EXPECT_EQ(*v, 1);
+}
+
 TEST(eval, bin_op) {  // NOLINT
     size_t seed = 42;
     std::mt19937 rnd;  // NOLINT

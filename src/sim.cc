@@ -193,6 +193,13 @@ std::optional<uint64_t> Simulator::get_value_(kratos::Var *var) const {
     } else if (var->type() == VarType::ConstValue) {
         auto const_ = var->as<Const>();
         return const_->value();
+    } else if (var->type() == VarType::Expression) {
+        auto result = eval_expr(var);
+        if (result) {
+            return (*result)[0];
+        } else {
+            return std::nullopt;
+        }
     } else if (var->type() == VarType::Slice) {
         auto root = const_cast<Var *>(var->get_var_root_parent());
         std::vector<uint64_t> values;
@@ -688,7 +695,7 @@ void Simulator::init_pull_up_value(Generator *generator) {
     visitor.visit_generator_root(generator);
 }
 
-std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
+std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) const {
     if (var->type() == VarType::Expression) {
         auto expr = reinterpret_cast<Expr *>(var);
         // there are couple special ones

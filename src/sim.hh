@@ -48,7 +48,7 @@ private:
     void process_stmt(CombinationalStmtBlock *block);
     void process_stmt(SequentialStmtBlock *block);
 
-    std::optional<std::vector<uint64_t>> eval_expr(Var *var);
+    std::optional<std::vector<uint64_t>> eval_expr(Var *var) const;
     std::unordered_map<Var*, std::vector<uint64_t>> nba_values_;
 
     // pull-up registers
