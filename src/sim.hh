@@ -51,6 +51,9 @@ private:
     std::optional<std::vector<uint64_t>> eval_expr(Var *var);
     std::unordered_map<Var*, std::vector<uint64_t>> nba_values_;
 
+    // pull-up registers
+    void init_pull_up_value(Generator *generator);
+
     uint64_t simulation_depth_ = 0;
 };
 }  // namespace kratos

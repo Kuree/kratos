@@ -140,6 +140,17 @@ TEST(sim, sequential) {  // NOLINT
     EXPECT_EQ(*res, value);
 }
 
+TEST(sim, pull_up) {    // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 1);
+    mod.add_stmt(a.assign(constant(1, 1)));
+
+    Simulator sim(&mod);
+    auto v = sim.get(&a);
+    EXPECT_EQ(*v, 1);
+}
+
 TEST(eval, bin_op) {  // NOLINT
     size_t seed = 42;
     std::mt19937 rnd;  // NOLINT

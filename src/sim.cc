@@ -179,6 +179,7 @@ Simulator::Simulator(kratos::Generator *generator) {
     visitor.visit_generator_root_p(generator);
     dependency_ = visitor.dependency();
     linked_dependency_ = visitor.linked_dependency();
+    init_pull_up_value(generator);
 }
 
 std::optional<uint64_t> Simulator::get_value_(kratos::Var *var) const {
@@ -658,6 +659,33 @@ void Simulator::process_stmt(kratos::SequentialStmtBlock *block) {
     }
     // clear the nba regions
     nba_values_.clear();
+}
+
+class InitValueVisitor : public IRVisitor {
+public:
+    explicit InitValueVisitor(std::function<void(AssignStmt *)> fn) : fn_(std::move(fn)) {}
+
+    void visit(Generator *gen) override {
+        uint64_t stmt_count = gen->stmts_count();
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = gen->get_stmt(i);
+            if (stmt->type() == StatementType::Assign) {
+                auto assign = stmt->as<AssignStmt>();
+                if (assign->right()->type() == VarType::ConstValue) {
+                    fn_(assign.get());
+                }
+            }
+        }
+    }
+
+private:
+    std::function<void(AssignStmt *)> fn_;
+};
+
+void Simulator::init_pull_up_value(Generator *generator) {
+    auto fn = [&](AssignStmt *stmt) { this->process_stmt(stmt); };
+    InitValueVisitor visitor(fn);
+    visitor.visit_generator_root(generator);
 }
 
 std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) {
