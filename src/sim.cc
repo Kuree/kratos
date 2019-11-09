@@ -654,7 +654,7 @@ void Simulator::process_stmt(kratos::SequentialStmtBlock *block, Var *var_) {
             }
         } else {
             auto val = get_value_(var.get());
-            if (val && (~(*val))) {
+            if (val && (!(*val))) {
                 trigger = true;
                 break;
             }
