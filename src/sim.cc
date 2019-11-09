@@ -753,7 +753,7 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) cons
             } else {
                 auto left_value = (*left_val)[0];
                 auto result = eval_unary_op(left_value, expr->op, expr->width());
-                return std::vector<uint64_t>(result);
+                return std::vector<uint64_t>{result};
             }
         }
 
