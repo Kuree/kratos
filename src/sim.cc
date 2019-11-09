@@ -460,7 +460,7 @@ void Simulator::trigger_event(kratos::Var *var, const std::unordered_set<uint32_
     if (dependency_.find(var) != dependency_.end()) {
         auto const &deps = dependency_.at(var);
         for (auto const &stmt : deps) {
-            if (scope_.find(stmt) == scope_.end()) event_queue_.emplace(stmt);
+            if (scope_.find(stmt) == scope_.end()) event_queue_.emplace(std::make_pair(var, stmt));
         }
     }
 
@@ -476,7 +476,8 @@ void Simulator::trigger_event(kratos::Var *var, const std::unordered_set<uint32_
             if (dependency_.find(v) != dependency_.end()) {
                 auto const &deps = dependency_.at(v);
                 for (auto const &stmt : deps) {
-                    if (scope_.find(stmt) == scope_.end()) event_queue_.emplace(stmt);
+                    if (scope_.find(stmt) == scope_.end())
+                        event_queue_.emplace(std::make_pair(var, stmt));
                 }
             }
         }
@@ -492,9 +493,9 @@ void Simulator::eval() {
         if (simulation_depth_ > MAX_SIMULATION_DEPTH) {
             throw UserException("Simulation doesn't converge");
         }
-        auto stmt = event_queue_.front();
+        auto &[var, stmt] = event_queue_.front();
         event_queue_.pop();
-        process_stmt(stmt);
+        process_stmt(stmt, var);
     }
     scope_.clear();
 }
@@ -540,32 +541,32 @@ void Simulator::set_i(kratos::Var *var, const std::optional<std::vector<int64_t>
     }
 }
 
-void Simulator::process_stmt(kratos::Stmt *stmt) {
+void Simulator::process_stmt(kratos::Stmt *stmt, Var *var) {
     switch (stmt->type()) {
         case StatementType::Assign: {
             auto assign = reinterpret_cast<AssignStmt *>(stmt);
-            process_stmt(assign);
+            process_stmt(assign, var);
             break;
         }
         case StatementType::Block: {
             auto block = reinterpret_cast<StmtBlock *>(stmt);
             if (block->block_type() == StatementBlockType::Combinational) {
-                process_stmt(reinterpret_cast<CombinationalStmtBlock *>(block));
+                process_stmt(reinterpret_cast<CombinationalStmtBlock *>(block), var);
             } else if (block->block_type() == StatementBlockType::Sequential) {
-                process_stmt(reinterpret_cast<SequentialStmtBlock *>(block));
+                process_stmt(reinterpret_cast<SequentialStmtBlock *>(block), var);
             } else {
-                process_stmt(block);
+                process_stmt(block, var);
             }
             break;
         }
         case StatementType::If: {
             auto if_ = reinterpret_cast<IfStmt *>(stmt);
-            process_stmt(if_);
+            process_stmt(if_, var);
             break;
         }
         case StatementType::Switch: {
             auto switch_ = reinterpret_cast<SwitchStmt *>(stmt);
-            process_stmt(switch_);
+            process_stmt(switch_, var);
             break;
         }
         default:
@@ -573,7 +574,7 @@ void Simulator::process_stmt(kratos::Stmt *stmt) {
     }
 }
 
-void Simulator::process_stmt(kratos::AssignStmt *stmt) {
+void Simulator::process_stmt(kratos::AssignStmt *stmt, Var *) {
     auto right = stmt->right();
     auto val = eval_expr(right);
     if (val) {
@@ -584,31 +585,31 @@ void Simulator::process_stmt(kratos::AssignStmt *stmt) {
     }
 }
 
-void Simulator::process_stmt(kratos::StmtBlock *block) {
+void Simulator::process_stmt(kratos::StmtBlock *block, Var *var) {
     for (auto &stmt : *block) {
-        process_stmt(stmt.get());
+        process_stmt(stmt.get(), var);
     }
 }
 
-void Simulator::process_stmt(kratos::CombinationalStmtBlock *block) {
+void Simulator::process_stmt(kratos::CombinationalStmtBlock *block, Var *var) {
     scope_.emplace(block);
-    process_stmt(reinterpret_cast<StmtBlock *>(block));
+    process_stmt(reinterpret_cast<StmtBlock *>(block), var);
     scope_.erase(block);
 }
 
-void Simulator::process_stmt(kratos::IfStmt *if_) {
+void Simulator::process_stmt(kratos::IfStmt *if_, Var *var) {
     auto target = if_->predicate();
     auto val = get_value_(target.get());
     if (val && (*val)) {
         auto const &then_ = if_->then_body();
-        process_stmt(then_.get());
+        process_stmt(then_.get(), var);
     } else {
         auto const &else_ = if_->else_body();
-        process_stmt(else_.get());
+        process_stmt(else_.get(), var);
     }
 }
 
-void Simulator::process_stmt(kratos::SwitchStmt *switch_) {
+void Simulator::process_stmt(kratos::SwitchStmt *switch_, Var *var) {
     auto target = switch_->target().get();
     auto val = get_value_(target);
     auto const &body = switch_->body();
@@ -616,7 +617,7 @@ void Simulator::process_stmt(kratos::SwitchStmt *switch_) {
         // go to default case
         if (body.find(nullptr) != body.end()) {
             auto stmt = body.at(nullptr);
-            process_stmt(stmt.get());
+            process_stmt(stmt.get(), var);
         }
     } else {
         auto value = *val;
@@ -627,23 +628,24 @@ void Simulator::process_stmt(kratos::SwitchStmt *switch_) {
             uint64_t bits = *(reinterpret_cast<uint64_t *>(v_p));
             bits &= (0xFFFFFFFFFFFFFFFF >> target->width());
             if (value == bits) {
-                process_stmt(stmt.get());
+                process_stmt(stmt.get(), var);
                 return;
             }
         }
         // default case
         if (body.find(nullptr) != body.end()) {
             auto stmt = body.at(nullptr);
-            process_stmt(stmt.get());
+            process_stmt(stmt.get(), var);
         }
     }
 }
 
-void Simulator::process_stmt(kratos::SequentialStmtBlock *block) {
+void Simulator::process_stmt(kratos::SequentialStmtBlock *block, Var *var_) {
     // only trigger it if it's actually high/low
     auto const &conditions = block->get_conditions();
     bool trigger = false;
     for (auto const &[edge, var] : conditions) {
+        if (var.get() != var_) continue;
         if (edge == BlockEdgeType::Posedge) {
             auto val = get_value_(var.get());
             if (val && *val) {
@@ -659,7 +661,7 @@ void Simulator::process_stmt(kratos::SequentialStmtBlock *block) {
         }
     }
     if (!trigger) return;
-    process_stmt(reinterpret_cast<StmtBlock *>(block));
+    process_stmt(reinterpret_cast<StmtBlock *>(block), var_);
 
     for (auto const &[var, value] : nba_values_) {
         set_complex_value_(var, value);
@@ -690,7 +692,7 @@ private:
 };
 
 void Simulator::init_pull_up_value(Generator *generator) {
-    auto fn = [&](AssignStmt *stmt) { this->process_stmt(stmt); };
+    auto fn = [&](AssignStmt *stmt) { this->process_stmt(stmt, nullptr); };
     InitValueVisitor visitor(fn);
     visitor.visit_generator_root(generator);
 }
