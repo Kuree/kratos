@@ -1,6 +1,7 @@
-typedef enum logic {
-  IDLE = 1'h0,
-  WAIT = 1'h1
+typedef enum logic[1:0] {
+  IDLE = 2'h0,
+  WAIT = 2'h1,
+  WORK = 2'h2
 } State;
 
 module mod (

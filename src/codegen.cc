@@ -653,7 +653,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     if (!port->is_struct() && !port->is_enum()) {
         strs.emplace_back("logic");
     } else if (port->is_enum()) {
-        auto enum_def = dynamic_cast<EnumType*>(port);
+        auto enum_def = dynamic_cast<EnumPort*>(port);
         if (!enum_def) throw InternalException("Unable to convert port to enum_def");
         strs.emplace_back(enum_def->enum_type()->name);
     } else {
@@ -667,7 +667,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         for (auto const& w : port->size()) str.append(get_width_str(w));
         strs.emplace_back(str);
     }
-    if (!port->is_struct()) {
+    if (!port->is_struct() && !port->is_enum()) {
         auto const& var_width_str = get_var_width_str(port);
         if (!var_width_str.empty()) strs.emplace_back(var_width_str);
     }
@@ -704,7 +704,7 @@ std::string SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
     std::stringstream stream_;
     stream_ << "typedef enum logic" << logic_str << " {\n";
     uint32_t count = 0;
-    constexpr char indent[] = "  ";
+    auto const indent = "  ";
     for (auto& [name, c] : enum_->values) {
         stream_ << indent << name << " = " << c->value_string();
         if (++count != enum_->values.size()) stream_ << ",";

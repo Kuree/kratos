@@ -1377,7 +1377,7 @@ def test_exception():
 
 def test_enum_port():
     mod = Generator("mod")
-    enum = mod.enum("State", {"IDLE": 0, "WAIT": 1}, width=1)
+    enum = mod.enum("State", {"IDLE": 0, "WAIT": 1, "WORK": 2})
     in_ = mod.input("in", enum)
     out = mod.output("out", enum)
     mod.wire(out, in_)
