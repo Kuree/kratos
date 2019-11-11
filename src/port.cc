@@ -24,10 +24,10 @@ Port::Port(Generator* module, PortDirection direction, const ::string& name, uin
 }
 
 Port::Port(kratos::Generator* module, kratos::PortDirection direction, const std::string& name,
-           uint32_t width, const std::vector<uint32_t> &size, kratos::PortType type,
-           bool is_signed): Var(module, name, width, size, is_signed, VarType::PortIO),
-                            direction_(direction),
-                            type_(type) {
+           uint32_t width, const std::vector<uint32_t>& size, kratos::PortType type, bool is_signed)
+    : Var(module, name, width, size, is_signed, VarType::PortIO),
+      direction_(direction),
+      type_(type) {
     if ((type == PortType::AsyncReset || type == PortType::Clock || type == PortType::ClockEnable ||
          type == PortType::Reset) &&
         width > 1) {
@@ -45,8 +45,32 @@ void Port::set_active_high(bool value) {
     active_high_ = value;
 }
 
-PortPackedStruct::PortPackedStruct(Generator* module, PortDirection direction, const std::string& name,
-                       PackedStruct packed_struct_)
+EnumPort::EnumPort(kratos::Generator* m, kratos::PortDirection direction, const std::string& name,
+                   const std::shared_ptr<Enum>& enum_type)
+    : Port(m, direction, name, enum_type->width(), 1, PortType::Data, false),
+      enum_type_(enum_type.get()) {}
+
+std::shared_ptr<AssignStmt> EnumPort::assign(const std::shared_ptr<Var>& var, AssignmentType type) {
+    // TODO: refactor this
+    if (!var->is_enum())
+        throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
+    if (var->type() == VarType::ConstValue) {
+        auto p = var->as<EnumConst>();
+        if (p->enum_def()->name != enum_type_->name)
+            throw VarException("Cannot assign different enum type", {this, var.get()});
+    } else {
+        auto p = dynamic_cast<EnumType*>(var.get());
+        if (!p)
+            throw InternalException("Unable to obtain enum definition");
+        if (p->enum_type()->name != enum_type_->name) {
+            throw VarException("Cannot assign different enum type", {this, var.get()});
+        }
+    }
+    return Var::assign(var, type);
+}
+
+PortPackedStruct::PortPackedStruct(Generator* module, PortDirection direction,
+                                   const std::string& name, PackedStruct packed_struct_)
     : Port(module, direction, name, 0, 1, PortType::Data, false),
       struct_(std::move(packed_struct_)) {
     // compute the width
@@ -76,8 +100,7 @@ std::set<std::string> PortPackedStruct::member_names() const {
 }
 
 void PortPackedStruct::set_is_packed(bool value) {
-    if (!value)
-        throw UserException("Unable to set packed struct unpacked");
+    if (!value) throw UserException("Unable to set packed struct unpacked");
 }
 
 void PortBundleDefinition::add_definition(const std::string& name, uint32_t width, uint32_t size,

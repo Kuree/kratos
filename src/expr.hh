@@ -489,7 +489,7 @@ public:
     IRNode *get_child(uint64_t index) override { return index == 0 ? parent_ : nullptr; }
 
     std::string to_string() const override;
-    Var* parent_var() { return parent_; }
+    Var *parent_var() { return parent_; }
 
 private:
     Var *parent_;
@@ -541,7 +541,12 @@ private:
     uint32_t width_;
 };
 
-struct EnumVar : public Var {
+struct EnumType {
+public:
+    [[nodiscard]] virtual const Enum *enum_type() const = 0;
+};
+
+struct EnumVar : public Var, public EnumType {
 public:
     bool inline is_enum() const override { return true; }
 
@@ -551,7 +556,7 @@ public:
     std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
                                        AssignmentType type) override;
 
-    const inline Enum *enum_type() const { return enum_type_; }
+    const inline Enum *enum_type() const override { return enum_type_; }
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:

@@ -58,6 +58,10 @@ void init_generator(py::module &m) {
                 return p;
             },
             py::return_value_policy::reference)
+        .def("port",
+             py::overload_cast<PortDirection, const std::string &, const std::shared_ptr<Enum> &>(
+                 &Generator::port),
+             py::return_value_policy::reference)
         .def("parameter",
              py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
              py::return_value_policy::reference)

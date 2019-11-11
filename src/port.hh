@@ -45,6 +45,24 @@ private:
     std::optional<bool> active_high_ = std::nullopt;
 };
 
+// diamond virtual inheritance is close to impossible in pybind. duplicate the logic here
+struct EnumPort : public Port, public EnumType {
+public:
+    bool inline is_enum() const override { return true; }
+
+    EnumPort(Generator *m, PortDirection direction, const std::string &name,
+             const std::shared_ptr<Enum> &enum_type);
+
+    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
+                                       AssignmentType type) override;
+
+    const inline Enum *enum_type() const override { return enum_type_; }
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+private:
+    Enum *enum_type_;
+};
+
 struct PortPackedStruct : public Port, public PackedInterface {
 public:
     PortPackedStruct(Generator *module, PortDirection direction, const std::string &name,

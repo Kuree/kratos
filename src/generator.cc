@@ -127,6 +127,17 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
     return *p;
 }
 
+EnumPort& Generator::port(kratos::PortDirection direction, const std::string &port_name,
+                          const std::shared_ptr<kratos::Enum> &def) {
+    if (ports_.find(port_name) != ports_.end())
+        throw VarException(::format("{0} already exists in {1}", port_name, name),
+                           {vars_.at(port_name).get()});
+    auto p = std::make_shared<EnumPort>(this, direction, port_name, def);
+    vars_.emplace(port_name, p);
+    ports_.emplace(port_name);
+    return *p;
+}
+
 std::shared_ptr<Port> Generator::get_port(const std::string &port_name) const {
     if (ports_.find(port_name) == ports_.end()) return nullptr;
     auto var_p = vars_.at(port_name);

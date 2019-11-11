@@ -40,6 +40,7 @@ void init_pass(py::module &m) {
         .def("remove_pass_through_modules", &remove_pass_through_modules)
         .def("extract_debug_info", &extract_debug_info)
         .def("extract_struct_info", &extract_struct_info)
+        .def("extract_enum_info", &extract_enum_info)
         .def("merge_wire_assignments", merge_wire_assignments)
         .def("zero_out_stubs", &zero_out_stubs)
         .def("remove_unused_stmts", &remove_unused_stmts)

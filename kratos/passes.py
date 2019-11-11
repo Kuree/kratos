@@ -122,9 +122,12 @@ def verilog(generator: Generator, optimize_if: bool = True,
         dpi_func = _kratos.passes.extract_dpi_function(gen, int_dpi_interface)
         if len(dpi_func) > 0:
             result.append(dpi_func)
+        enum_def = _kratos.passes.extract_enum_info(gen)
+        if len(enum_def) > 0:
+            result.append(enum_def);
 
         if filename is not None:
-            output_verilog(filename, src, info, struct_info, dpi_func)
+            output_verilog(filename, src, info, struct_info, dpi_func, enum_def)
 
         r = result[0] if len(result) == 1 else result
 
@@ -137,7 +140,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     return r
 
 
-def output_verilog(filename, mod_src, info, struct_info, dpi_func):
+def output_verilog(filename, mod_src, info, struct_info, dpi_func, enum_def):
     line_no = 1
     debug_info = {}
     with open(filename, "w+") as f:
@@ -146,6 +149,9 @@ def output_verilog(filename, mod_src, info, struct_info, dpi_func):
             f.write(def_ + "\n")
         for struct_name in struct_info:
             def_ = struct_info[struct_name]
+            f.write(def_ + "\n")
+        for enum_name in enum_def:
+            def_ = enum_def[enum_name]
             f.write(def_ + "\n")
 
         mod_src_names = list(mod_src.keys())

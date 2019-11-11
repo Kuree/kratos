@@ -12,6 +12,8 @@
 #include "graph.hh"
 #include "port.hh"
 #include "util.hh"
+#include <mutex>
+
 
 using fmt::format;
 using std::runtime_error;
@@ -575,6 +577,7 @@ void generate_verilog(Generator* top, const std::string& output_dir,
     // output the guard
     auto struct_info = extract_struct_info(top);
     auto dpi_info = extract_dpi_function(top, true);
+    auto enum_info = extract_enum_info(top);
     header_filename = kratos::fs::join(output_dir, header_filename);
     std::stringstream stream;
     // output the guard
@@ -594,6 +597,9 @@ void generate_verilog(Generator* top, const std::string& output_dir,
     for (auto const& iter : struct_info) {
         // ordered map as well
         stream << iter.second << std::endl << std::endl;
+    }
+    for (auto const &iter: enum_info) {
+        stream << iter.second << std::endl;
     }
 
     // closing
@@ -777,50 +783,47 @@ public:
     }
 };
 
-class RemoveGeneratorStmtVisitor: public IRVisitor {
+class RemoveGeneratorStmtVisitor : public IRVisitor {
 public:
-    void visit(Generator *gen) override {
+    void visit(Generator* gen) override {
         uint64_t stmt_count = gen->stmts_count();
         std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
         stmts_to_remove.reserve(stmt_count);
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = gen->get_stmt(i);
-            if (is_stmt(stmt.get()))
-                stmts_to_remove.emplace_back(stmt);
+            if (is_stmt(stmt.get())) stmts_to_remove.emplace_back(stmt);
         }
 
-        for (auto const &stmt: stmts_to_remove) {
+        for (auto const& stmt : stmts_to_remove) {
             gen->remove_stmt(stmt);
         }
     }
 
-    void visit(InitialStmtBlock *stmt) override {process_stmt_block(stmt); }
-    void visit(SequentialStmtBlock *stmt) override {process_stmt_block(stmt); }
-    void visit(CombinationalStmtBlock *stmt) override {process_stmt_block(stmt); }
-    void visit(ScopedStmtBlock *stmt) override {process_stmt_block(stmt); }
+    void visit(InitialStmtBlock* stmt) override { process_stmt_block(stmt); }
+    void visit(SequentialStmtBlock* stmt) override { process_stmt_block(stmt); }
+    void visit(CombinationalStmtBlock* stmt) override { process_stmt_block(stmt); }
+    void visit(ScopedStmtBlock* stmt) override { process_stmt_block(stmt); }
 
 private:
-    static void process_stmt_block(StmtBlock *block) {
+    static void process_stmt_block(StmtBlock* block) {
         std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
         stmts_to_remove.reserve(block->size());
 
-        for (auto &stmt: *block) {
-            if (is_stmt(stmt.get()))
-                stmts_to_remove.emplace_back(stmt);
+        for (auto& stmt : *block) {
+            if (is_stmt(stmt.get())) stmts_to_remove.emplace_back(stmt);
         }
-        for (auto const &stmt: stmts_to_remove) {
+        for (auto const& stmt : stmts_to_remove) {
             block->remove_stmt(stmt);
         }
     }
 
-    static bool is_stmt(Stmt *st) {
+    static bool is_stmt(Stmt* st) {
         if (st->type() == StatementType::Assign) {
             auto generator = st->generator_parent();
             auto stmt = reinterpret_cast<AssignStmt*>(st);
             if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator != generator) ||
                 (stmt->right()->type() == VarType::PortIO && stmt->right()->generator != generator))
                 return true;
-
         }
         return false;
     }
@@ -1140,7 +1143,8 @@ private:
             }
         }
     }
-    bool static has_target_if(Stmt* stmt, Var*& var, std::vector<std::shared_ptr<IfStmt>>& if_stmts) {
+    bool static has_target_if(Stmt* stmt, Var*& var,
+                              std::vector<std::shared_ptr<IfStmt>>& if_stmts) {
         // keep track of which statement are used later to transform into switch statement
         if (stmt->type() != StatementType::If && if_stmts.size() <= 1)
             return false;
@@ -1609,10 +1613,8 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
 
         for (auto const& [attribute_name, width, is_signed] : struct_.attributes) {
             std::vector<std::string> str = {"    logic"};
-            if (width > 1)
-                str.emplace_back(::format("[{0}:0]", width - 1));
-            if (is_signed)
-                str.emplace_back("signed");
+            if (width > 1) str.emplace_back(::format("[{0}:0]", width - 1));
+            if (is_signed) str.emplace_back("signed");
             str.emplace_back(attribute_name);
             auto entry_str = join(str.begin(), str.end(), " ");
             entry.append(entry_str + ";\n");
@@ -1750,6 +1752,55 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int
 
         result.emplace(func_name, stream.str());
     }
+    return result;
+}
+
+class EnumVisitor : public IRVisitor {
+public:
+    void visit(Generator* gen) override {
+        auto const& enums = gen->get_enums();
+        for (auto const& [enum_name, def] : enums) {
+            lock_.lock();
+            if (enum_defs_.find(enum_name) != enum_defs_.end()) {
+                auto exist_def = enum_defs_.at(enum_name)->values;
+                lock_.unlock();
+                for (auto const& [const_name, const_value] : def->values) {
+                    if (exist_def.find(const_name) != exist_def.end()) {
+                        auto v = def->values.at(const_name);
+                        if (v->width() != const_value->width() ||
+                            v->value() != const_value->value())
+                            throw UserException(
+                                ::format("Conflict enum definition found for {0})", enum_name));
+                    } else {
+                        throw UserException(
+                            ::format("Conflict enum definition found for {0})", enum_name));
+                    }
+                }
+            } else {
+                enum_defs_.emplace(std::make_pair(enum_name, def.get()));
+                lock_.unlock();
+            }
+        }
+    }
+
+    const std::map<std::string, Enum*>& enum_defs() const { return enum_defs_; }
+
+private:
+    std::map<std::string, Enum*> enum_defs_;
+    std::mutex lock_;
+};
+
+std::map<std::string, std::string> extract_enum_info(Generator* top) {
+    EnumVisitor visitor;
+    visitor.visit_generator_root_p(top);
+    auto const &enum_defs = visitor.enum_defs();
+
+    std::map<std::string, std::string> result;
+    for (auto const &[enum_name, def]: enum_defs) {
+        auto str = SystemVerilogCodeGen::enum_code(def);
+        result.emplace(enum_name, str);
+    }
+
     return result;
 }
 
@@ -2244,7 +2295,8 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
         // the only exception is that if the target is an enum and we've covered all it's enum case
         uint32_t targeted_cases;
         if (stmt_->target()->is_enum()) {
-            auto enum_var = stmt_->target()->as<EnumVar>();
+            auto enum_var = dynamic_cast<EnumType*>(stmt_->target().get());
+            if (!enum_var) throw InternalException("Unable to resolve enum type");
             auto enum_def = enum_var->enum_type();
             targeted_cases = enum_def->values.size();
         } else {

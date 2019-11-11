@@ -42,6 +42,8 @@ public:
                PortType type, bool is_signed);
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
                const std::vector<uint32_t> &size, PortType type, bool is_signed);
+    EnumPort &port(PortDirection direction, const std::string &port_name,
+                   const std::shared_ptr<Enum> &def);
     PortPackedStruct &port_packed(PortDirection direction, const std::string &port_name,
                                   const PackedStruct &packed_struct_);
     VarPackedStruct &var_packed(const std::string &var_name, const PackedStruct &packed_struct_);

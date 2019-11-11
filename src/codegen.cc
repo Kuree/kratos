@@ -93,7 +93,8 @@ std::string Stream::get_var_decl(kratos::Var* var) {
         auto v = var->as<VarPackedStruct>();
         type = v->packed_struct().struct_name;
     } else if (var->is_enum()) {
-        auto v = var->as<EnumVar>();
+        auto v = dynamic_cast<EnumType*>(var);
+        if (!v) throw InternalException("Unable to resolve var to enum type");
         type = v->enum_type()->name;
     } else {
         type = "logic";
@@ -185,7 +186,6 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     generate_ports(generator);
     stream_ << indent() << ");" << stream_.endl() << stream_.endl();
     if (verilog95_def_) generate_port_verilog_95_def(generator);
-    generate_enums(generator);
     generate_variables(generator);
     generate_functions(generator);
 
@@ -261,11 +261,6 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
         }
         stream_ << ")" << stream_.endl();
     }
-}
-
-void SystemVerilogCodeGen::generate_enums(kratos::Generator* generator) {
-    auto enums = generator->get_enums();
-    for (auto const& iter : enums) enum_code(iter.second.get());
 }
 
 void SystemVerilogCodeGen::generate_functions(kratos::Generator* generator) {
@@ -655,8 +650,12 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     strs.reserve(8);
     strs.emplace_back(port_dir_to_str(port->port_direction()));
     // we use logic for all inputs and outputs
-    if (!port->is_struct()) {
+    if (!port->is_struct() && !port->is_enum()) {
         strs.emplace_back("logic");
+    } else if (port->is_enum()) {
+        auto enum_def = dynamic_cast<EnumType*>(port);
+        if (!enum_def) throw InternalException("Unable to convert port to enum_def");
+        strs.emplace_back(enum_def->enum_type()->name);
     } else {
         auto ptr = reinterpret_cast<PortPackedStruct*>(port);
         strs.emplace_back(ptr->packed_struct().struct_name);
@@ -700,21 +699,19 @@ std::string SystemVerilogCodeGen::block_label(kratos::StmtBlock* stmt) {
         return "";
 }
 
-void SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
+std::string SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
     std::string logic_str = enum_->width() == 1 ? "" : ::format("[{0}:0]", enum_->width() - 1);
-    stream_ << indent() << "typedef enum logic" << logic_str << " {" << stream_.endl();
+    std::stringstream stream_;
+    stream_ << "typedef enum logic" << logic_str << " {\n";
     uint32_t count = 0;
-    indent_++;
+    constexpr char indent[] = "  ";
     for (auto& [name, c] : enum_->values) {
-        if (generator_->debug) {
-            c->verilog_ln = stream_.line_no();
-        }
-        stream_ << indent() << name << " = " << c->value_string();
+        stream_ << indent << name << " = " << c->value_string();
         if (++count != enum_->values.size()) stream_ << ",";
-        stream_ << stream_.endl();
+        stream_ << '\n';
     }
-    indent_--;
-    stream_ << indent() << "} " << enum_->name << ";" << stream_.endl();
+    stream_ << "} " << enum_->name << ";\n";
+    return stream_.str();
 }
 
 std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def) {

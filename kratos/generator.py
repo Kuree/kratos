@@ -321,11 +321,13 @@ class Generator(metaclass=GeneratorMeta):
     def get_stmt_by_index(self, index):
         return self.__generator.get_stmt(index)
 
-    def var(self, name: str, width: Union[int, _kratos.Param],
+    def var(self, name: str, width: Union[int, _kratos.Param, _kratos.Enum],
             is_signed: bool = False, size: Union[int, Union[List, Tuple]] = 1,
             packed: bool = False, explicit_array: bool = False) -> _kratos.Var:
-
-        v = self.__generator.var(name, width, size, is_signed)
+        if isinstance(width, _kratos.Enum):
+            v = self.__generator.enum_var(name, width)
+        else:
+            v = self.__generator.var(name, width, size, is_signed)
         if self.debug:
             v.add_fn_ln(get_fn_ln())
         v.is_packed = packed
@@ -346,26 +348,32 @@ class Generator(metaclass=GeneratorMeta):
             return
         return SequentialCodeBlock(self, sensitivity_list, 3)
 
-    def port(self, name: str, width: Union[int, _kratos.Param],
+    def port(self, name: str, width: Union[int, _kratos.Param, _kratos.Enum],
              direction: PortDirection,
              port_type: PortType = PortType.Data,
              is_signed: bool = False, size: Union[int, Union[List, Tuple]] = 1,
              packed: bool = False,
              explicit_array: bool = False) -> _kratos.Port:
-        p = self.__generator.port(direction.value, name, width, size,
-                                  port_type.value, is_signed)
+        if isinstance(width, _kratos.Enum):
+            p = self.__generator.port(direction.value, name, width)
+        else:
+            p = self.__generator.port(direction.value, name, width, size,
+                                      port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         p.is_packed = packed
         p.explicit_array = explicit_array
         return p
 
-    def input(self, name, width: Union[int, _kratos.Param],
+    def input(self, name, width: Union[int, _kratos.Param, _kratos.Enum],
               port_type: PortType = PortType.Data,
               is_signed: bool = False, size: int = 1, packed: bool = False,
               explicit_array: bool = False) -> _kratos.Port:
-        p = self.__generator.port(PortDirection.In.value, name, width, size,
-                                  port_type.value, is_signed)
+        if isinstance(width, _kratos.Enum):
+            p = self.__generator.port(PortDirection.In.value, name, width)
+        else:
+            p = self.__generator.port(PortDirection.In.value, name, width, size,
+                                      port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         p.is_packed = packed
@@ -395,8 +403,11 @@ class Generator(metaclass=GeneratorMeta):
                port_type: PortType = PortType.Data,
                is_signed: bool = False, size: int = 1, packed: bool = False,
                explicit_array: bool = False) -> _kratos.Port:
-        p = self.__generator.port(PortDirection.Out.value, name, width, size,
-                                  port_type.value, is_signed)
+        if isinstance(width, _kratos.Enum):
+            p = self.__generator.port(PortDirection.Out.value, name, width)
+        else:
+            p = self.__generator.port(PortDirection.Out.value, name, width, size,
+                                      port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         p.is_packed = packed

@@ -1234,8 +1234,10 @@ std::shared_ptr<AssignStmt> EnumVar::assign(const std::shared_ptr<Var> &var,
         if (p->enum_def()->name != enum_type_->name)
             throw VarException("Cannot assign different enum type", {this, var.get()});
     } else {
-        auto p = var->as<EnumVar>();
-        if (p->enum_type_->name != enum_type_->name) {
+        auto p = dynamic_cast<EnumType*>(var.get());
+        if (!p)
+            throw InternalException("Unable to obtain enum definition");
+        if (p->enum_type()->name != enum_type_->name) {
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }
     }

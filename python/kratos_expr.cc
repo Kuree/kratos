@@ -455,6 +455,9 @@ void init_expr(py::module &m) {
     py::class_<EnumConst, ::shared_ptr<EnumConst>, Var>(m, "EnumConst");
 
     py::class_<VarExtend, ::shared_ptr<VarExtend>, Var>(m, "VarExtend");
+
+    py::class_<EnumPort, ::shared_ptr<EnumPort>, Port>(m, "EnumPort");
+
 }
 
 void init_enum_type(py::module &m) {

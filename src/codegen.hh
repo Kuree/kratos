@@ -78,6 +78,7 @@ public:
     std::string static get_port_str(Port* port);
     static std::string get_var_width_str(const Var* var);
     static std::string get_width_str(uint32_t width);
+    static std::string enum_code(Enum* enum_);
 
 private:
     uint32_t indent_ = 0;
@@ -96,7 +97,6 @@ protected:
     void generate_port_verilog_95_def(Generator* generator);
     void generate_variables(Generator* generator);
     void generate_parameters(Generator* generator);
-    void generate_enums(Generator* generator);
     void generate_functions(Generator* generator);
 
     virtual void dispatch_node(IRNode* node);
@@ -128,8 +128,6 @@ protected:
     void stmt_code(AssertBase* stmt);
 
     void stmt_code(CommentStmt* stmt);
-
-    void enum_code(Enum* enum_);
 
     // reverse indexing the named blocks
     std::unordered_map<StmtBlock*, std::string> index_named_block();
