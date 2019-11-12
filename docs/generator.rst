@@ -198,6 +198,49 @@ This gives us:
      assign v = IDLE;
      endmodule   // mod
 
+If you want Kratos automatically assign enum values for you, you
+can pass in a list of enum names:
+
+.. code-block:: Python
+
+    mod.enum("STATE", ["IDLE", "READY])
+
+Kratos will assign values and compute the minimum width.
+
+Notice that you can also have global enum as well, which will be
+put into a SystemVerilog package when generated using ``output_dir``.
+To create a global enum, simply do
+
+.. code-block:: SystemVerilog
+
+   state = enum("STATE", ["IDLE", "READY"])
+
+You can global enum as your port types as well. For instance, you can
+do the following:
+
+.. code-block:: Python
+
+  inst_def = enum("INST", ["Add","Sub", "Mult", "Div"])
+  inst = mod.input("inst", inst_def)
+
+This will be generated as:
+
+.. code-block:: SystemVerilog
+
+  typedef enum logic[1:0] {
+    Add = 2'h0,
+    Sub = 2'h1,
+    Mult = 2'h2,
+    Div = 2'h3
+  } INST;
+
+  ...
+    input INST inst,
+  ...
+
+.. warning::
+  If you use local enum (defined from the generator class) as port type,
+  you will get an exception during compilation.
 
 Child generators
 ================

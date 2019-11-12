@@ -540,8 +540,12 @@ public:
                                        const std::string &name,
                                        const std::map<std::string, uint64_t> &values);
 
+    bool local() const { return local_; }
+    bool &local() { return local_; }
+
 private:
     uint32_t width_;
+    bool local_ = true;
 };
 
 struct EnumType {

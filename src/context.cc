@@ -100,6 +100,7 @@ Enum &Context::enum_(const std::string &enum_name,
     Enum::verify_naming_conflict(enum_defs_, enum_name, definition);
     auto p = std::make_shared<Enum>(enum_name, definition, width);
     enum_defs_.emplace(enum_name, p);
+    p->local() = false;
     return *p;
 }
 

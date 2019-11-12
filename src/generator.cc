@@ -132,6 +132,9 @@ EnumPort &Generator::port(kratos::PortDirection direction, const std::string &po
     if (ports_.find(port_name) != ports_.end())
         throw VarException(::format("{0} already exists in {1}", port_name, name),
                            {vars_.at(port_name).get()});
+    // make sure the enum def is not local
+    if (def->local())
+        throw UserException(::format("Cannot use {0} as port type since it's local", def->name));
     auto p = std::make_shared<EnumPort>(this, direction, port_name, def);
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);

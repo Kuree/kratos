@@ -26,6 +26,9 @@ Here is the function definition for parameter
 
   def parameter(self, name: str, width: int, default_value=0,
                   is_signed: bool = False)
+  # param is an alias of parameter
+  def param(self, name: str, width: int, default_value=0,
+            is_signed: bool = False)
 
 Parameterize constant values
 ----------------------------
@@ -41,7 +44,7 @@ we created a parameter called ``value``.
         super().__init__("add_value")
         in_ = self.port("in", width, kratos.PortDirection.In)
         out_ self.port("out", width, kratos.PortDirection.Out)
-        self.value_param = self.parameter("value", width, default_value=0)
+        self.value_param = self.param("value", width, default_value=0)
         self.add_stmt(out_.assign(in_ + self.value_param))
 
 Here is the generated verilog:
@@ -103,7 +106,7 @@ Here is an example on how to use it:
 .. code-block:: Python
 
     mod = Generator("mod")
-    param = mod.parameter("P", 4, 4)
+    param = mod.param("P", 4, 4)
     in_ = mod.input("in", param)
     out = mod.output("out", param)
     var = mod.var("v", param)
