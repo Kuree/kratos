@@ -31,52 +31,52 @@ void set_num_cpus(int num_cpu) { _num_cpu = num_cpu; }
 
 std::string ExprOpStr(ExprOp op) {
     switch (op) {
-        case UInvert:
+        case ExprOp::UInvert:
             return "~";
-        case UNot:
+        case ExprOp::UNot:
             return "!";
-        case UMinus:
-        case Minus:
+        case ExprOp::UMinus:
+        case ExprOp::Minus:
             return "-";
-        case UPlus:
-        case Add:
+        case ExprOp::UPlus:
+        case ExprOp::Add:
             return "+";
-        case Divide:
+        case ExprOp::Divide:
             return "/";
-        case Multiply:
+        case ExprOp::Multiply:
             return "*";
-        case Mod:
+        case ExprOp::Mod:
             return "%";
-        case LogicalShiftRight:
+        case ExprOp::LogicalShiftRight:
             return ">>";
-        case SignedShiftRight:
+        case ExprOp::SignedShiftRight:
             return ">>>";
-        case ShiftLeft:
+        case ExprOp::ShiftLeft:
             return "<<";
-        case UOr:
-        case Or:
+        case ExprOp::UOr:
+        case ExprOp::Or:
             return "|";
-        case UAnd:
-        case And:
+        case ExprOp::UAnd:
+        case ExprOp::And:
             return "&";
-        case UXor:
-        case Xor:
+        case ExprOp::UXor:
+        case ExprOp::Xor:
             return "^";
-        case LessThan:
+        case ExprOp::LessThan:
             return "<";
-        case GreaterThan:
+        case ExprOp::GreaterThan:
             return ">";
-        case LessEqThan:
+        case ExprOp::LessEqThan:
             return "<=";
-        case GreaterEqThan:
+        case ExprOp::GreaterEqThan:
             return ">=";
-        case Eq:
+        case ExprOp::Eq:
             return "==";
-        case Neq:
+        case ExprOp::Neq:
             return "!=";
-        case Conditional:
+        case ExprOp::Conditional:
             return ":";
-        case Concat:
+        case ExprOp::Concat:
             return ",";
         default:
             throw std::runtime_error("unable to find op");

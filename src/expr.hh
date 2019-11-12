@@ -10,7 +10,7 @@
 
 namespace kratos {
 
-enum ExprOp : uint64_t {
+enum class ExprOp : uint64_t {
     // unary
     UInvert,
     UMinus,
@@ -54,9 +54,9 @@ bool is_reduction_op(ExprOp op);
 bool is_expand_op(ExprOp op);
 bool is_unary_op(ExprOp op);
 
-enum VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted };
+enum class VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted };
 
-enum VarCastType { Signed, Unsigned, Clock, AsyncReset };
+enum class VarCastType { Signed, Unsigned, Clock, AsyncReset };
 
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:

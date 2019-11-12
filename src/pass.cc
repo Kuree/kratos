@@ -1807,7 +1807,7 @@ private:
             auto stmt = generator->get_stmt(i);
             if (stmt->type() == Assign) {
                 auto assign_stmt = stmt->as<AssignStmt>();
-                if (assign_stmt->left()->type() == Slice && assign_stmt->right()->type() == Slice) {
+                if (assign_stmt->left()->type() == VarType::Slice && assign_stmt->right()->type() == VarType::Slice) {
                     sliced_stmts.emplace(assign_stmt);
                 }
             }
@@ -1819,7 +1819,7 @@ private:
         for (auto const& stmt : *block) {
             if (stmt->type() == Assign) {
                 auto assign_stmt = stmt->as<AssignStmt>();
-                if (assign_stmt->left()->type() == Slice && assign_stmt->right()->type() == Slice) {
+                if (assign_stmt->left()->type() == VarType::Slice && assign_stmt->right()->type() == VarType::Slice) {
                     sliced_stmts.emplace(assign_stmt);
                 }
             }
@@ -1838,8 +1838,8 @@ private:
             Var* left_parent = left_slice->parent_var;
             Var* right_parent = right_slice->parent_var;
             // only deal with 1D for now
-            if (left_parent->type() == Slice) continue;
-            if (right_parent->type() == Slice) continue;
+            if (left_parent->type() == VarType::Slice) continue;
+            if (right_parent->type() == VarType::Slice) continue;
             if (left_parent->width() != right_parent->width()) continue;
 
             slice_vars[{left_parent, right_parent}].emplace_back(assign_stmt);
@@ -2440,7 +2440,7 @@ private:
         // we care about non-clock
         for (auto const& iter : conditions) {
             auto var = iter.second.get();
-            if (var->type() == PortIO) {
+            if (var->type() == VarType::PortIO) {
                 auto port = reinterpret_cast<Port*>(var);
                 if (port->port_type() == PortType::Clock) continue;
             }

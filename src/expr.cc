@@ -445,10 +445,10 @@ void Expr::set_parent() {
             generator = left->generator;
         } else {
             // choose the higher/lower one based on the var type
-            if (left_gen == right_gen->parent() && right->type() == PortIO) {
+            if (left_gen == right_gen->parent() && right->type() == VarType::PortIO) {
                 generator = left_gen;
-            } else if (left_gen->parent() == right_gen->parent() && left->type() == PortIO &&
-                       right->type() == PortIO) {
+            } else if (left_gen->parent() == right_gen->parent() &&
+                       left->type() == VarType::PortIO && right->type() == VarType::PortIO) {
                 generator = dynamic_cast<Generator *>(left_gen->parent());
             } else {
                 generator = right_gen;
@@ -566,13 +566,13 @@ std::unordered_set<std::shared_ptr<Const>> Const::consts_ = {};
 std::shared_ptr<Generator> Const::const_generator_ = nullptr;
 
 VarCasted::VarCasted(Var *parent, VarCastType cast_type)
-    : Var(parent->generator, "", parent->width(), true, parent->type()),
+    : Var(parent->generator, "", parent->width(), parent->size(), false, parent->type()),
       parent_var_(parent),
       cast_type_(cast_type) {
     type_ = VarType::BaseCasted;
-    if (cast_type_ == Signed) {
+    if (cast_type_ == VarCastType::Signed) {
         is_signed_ = true;
-    } else if (cast_type_ == Unsigned) {
+    } else if (cast_type_ == VarCastType::Unsigned) {
         is_signed_ = false;
     } else if (cast_type_ == VarCastType::AsyncReset || cast_type_ == VarCastType::Clock) {
         if (parent->size().size() != 1 || parent->size().front() != 1) {
@@ -1152,7 +1152,7 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
 }
 
 shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
-    if (var->type() == PortIO) {
+    if (var->type() == VarType::PortIO) {
         auto v = var->as<PortPackedStruct>();
         return v->operator[](member_name_).shared_from_this();
     } else {
