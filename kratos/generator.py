@@ -123,6 +123,12 @@ class InitialCodeBlock(CodeBlock):
 
 
 def enum(name, definition, width=None):
+    if isinstance(definition, (list, tuple)):
+        defs = {}
+        for n in definition:
+            defs[n] = len(defs)
+        definition = defs
+        width = clog2(len(definition))
     if width is None:
         width = clog2(max_value(definition) + 1)
     return Generator.get_context().enum(name, definition, width)
@@ -446,6 +452,9 @@ class Generator(metaclass=GeneratorMeta):
             fn, ln = get_fn_ln()
             param.add_fn_ln((fn, ln))
         return param
+
+    # alias
+    param = parameter
 
     def enum(self, name: str, values: Dict[str, int], width=None):
         if width is None:

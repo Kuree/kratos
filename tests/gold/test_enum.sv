@@ -4,8 +4,8 @@ module mod (
 );
 
 typedef enum logic[1:0] {
-  green = 2'h2,
-  red = 2'h1
+  red = 2'h1,
+  green = 2'h2
 } color;
 assign out = in;
 endmodule   // mod
