@@ -40,5 +40,20 @@ def test_sim_reg():
         assert val == v
 
 
+def test_expr():
+    mod = Generator("mod")
+    a = mod.input("a", 16)
+    b = mod.output("b", 16)
+    e = a + a
+    for i in range(4):
+        e = e + a
+    mod.add_stmt(b.assign(e))
+
+    sim = Simulator(mod)
+    assert sim.get(b) is None
+    sim.set(a, 2)
+    assert sim.get(b) == 12
+
+
 if __name__ == "__main__":
-    test_sim_reg()
+    test_expr()

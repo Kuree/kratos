@@ -171,6 +171,22 @@ TEST(sim, if_) {  // NOLINT
     EXPECT_EQ(*v, 1);
 }
 
+TEST(sim, expr) {   // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.port(PortDirection::In, "a", 16);
+    auto &expr = a + a + a + a;
+    auto &b = mod.port(PortDirection::Out, "b", 16);
+    mod.add_stmt(b.assign(expr));
+
+    Simulator sim(&mod);
+    auto v = sim.get(&b);
+    EXPECT_EQ(v, std::nullopt);
+    sim.set(&a, 2);
+    v = sim.get(&b);
+    EXPECT_EQ(*v, 2 * 4);
+}
+
 TEST(eval, bin_op) {  // NOLINT
     size_t seed = 42;
     std::mt19937 rnd;  // NOLINT
