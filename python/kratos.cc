@@ -55,7 +55,8 @@ void init_context(py::module &m) {
         .def("hash_table_size", &Context::hash_table_size)
         .def("change_generator_name", &Context::change_generator_name)
         .def("add", &Context::add)
-        .def("has_hash", &Context::has_hash);
+        .def("has_hash", &Context::has_hash)
+        .def("enum", &Context::enum_);
 }
 
 void init_code_gen(py::module &m) {

@@ -139,6 +139,12 @@ def create_stub(generator, flatten_array=False, verilog95_def=False,
     return s
 
 
+def max_value(values):
+    s = set()
+    for x in values.values():
+        s.add(x)
+    return max(s)
+
 # bit vector style syntax
 class ConstConstructor:
     def __getitem__(self, width):

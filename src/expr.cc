@@ -1193,11 +1193,10 @@ void VarPackedStruct::set_is_packed(bool value) {
     if (!value) throw UserException("Unable to set packed struct unpacked");
 }
 
-Enum::Enum(kratos::Generator *generator, std::string name,
-           const std::map<std::string, uint64_t> &values, uint32_t width)
+Enum::Enum(std::string name, const std::map<std::string, uint64_t> &values, uint32_t width)
     : name(std::move(name)), width_(width) {
     for (auto const &[n, value] : values) {
-        auto c = std::make_shared<EnumConst>(generator, value, width, this, n);
+        auto c = std::make_shared<EnumConst>(Const::const_gen(), value, width, this, n);
         this->values.emplace(n, c);
     }
 }
@@ -1206,6 +1205,40 @@ std::shared_ptr<EnumConst> Enum::get_enum(const std::string &enum_name) {
     if (values.find(enum_name) == values.end())
         throw UserException(::format("Cannot find {0} in {1}", enum_name, name));
     return values.at(enum_name);
+}
+
+void Enum::verify_naming_conflict(const std::map<std::string, std::shared_ptr<Enum>> &enums,
+                                  const std::string &name,
+                                  const std::map<std::string, uint64_t> &values) {
+    if (enums.find(name) != enums.end())
+        throw UserException(::format("{0} already exists in scope", name));
+    // check name conflicts
+    std::set<std::string> names;
+    std::set<std::string> used_names;
+    for (auto const &iter : values) {
+        names.emplace(iter.first);
+    }
+    // find all enum definition used in the generator
+    // name mapping
+    std::unordered_map<std::string, Enum *> name_mapping;
+    for (auto const &iter : enums) {
+        auto const &enum_ = iter.second;
+        auto const &values_ = enum_->values;
+        for (auto const &iter2 : values_) {
+            used_names.emplace(iter2.first);
+            name_mapping.emplace(iter2.first, enum_.get());
+        }
+    }
+    // if there is an overlap/intersection
+    std::set<std::string> overlap;
+    std::set_intersection(names.begin(), names.end(), used_names.begin(), used_names.end(),
+                          std::inserter(overlap, overlap.begin()));
+    if (!overlap.empty()) {
+        // pick a random one, don't care
+        auto used_name = *overlap.begin();
+        auto const &enum_def = name_mapping.at(used_name);
+        throw UserException(::format("{0} has been used in {1}.{0}", used_name, enum_def->name));
+    }
 }
 
 void Enum::add_debug_info(const std::string &enum_name,
@@ -1234,9 +1267,8 @@ std::shared_ptr<AssignStmt> EnumVar::assign(const std::shared_ptr<Var> &var,
         if (p->enum_def()->name != enum_type_->name)
             throw VarException("Cannot assign different enum type", {this, var.get()});
     } else {
-        auto p = dynamic_cast<EnumType*>(var.get());
-        if (!p)
-            throw InternalException("Unable to obtain enum definition");
+        auto p = dynamic_cast<EnumType *>(var.get());
+        if (!p) throw InternalException("Unable to obtain enum definition");
         if (p->enum_type()->name != enum_type_->name) {
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }

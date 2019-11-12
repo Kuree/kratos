@@ -1755,49 +1755,12 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int
     return result;
 }
 
-class EnumVisitor : public IRVisitor {
-public:
-    void visit(Generator* gen) override {
-        auto const& enums = gen->get_enums();
-        for (auto const& [enum_name, def] : enums) {
-            lock_.lock();
-            if (enum_defs_.find(enum_name) != enum_defs_.end()) {
-                auto exist_def = enum_defs_.at(enum_name)->values;
-                lock_.unlock();
-                for (auto const& [const_name, const_value] : def->values) {
-                    if (exist_def.find(const_name) != exist_def.end()) {
-                        auto v = def->values.at(const_name);
-                        if (v->width() != const_value->width() ||
-                            v->value() != const_value->value())
-                            throw UserException(
-                                ::format("Conflict enum definition found for {0})", enum_name));
-                    } else {
-                        throw UserException(
-                            ::format("Conflict enum definition found for {0})", enum_name));
-                    }
-                }
-            } else {
-                enum_defs_.emplace(std::make_pair(enum_name, def.get()));
-                lock_.unlock();
-            }
-        }
-    }
-
-    const std::map<std::string, Enum*>& enum_defs() const { return enum_defs_; }
-
-private:
-    std::map<std::string, Enum*> enum_defs_;
-    std::mutex lock_;
-};
-
 std::map<std::string, std::string> extract_enum_info(Generator* top) {
-    EnumVisitor visitor;
-    visitor.visit_generator_root_p(top);
-    auto const &enum_defs = visitor.enum_defs();
+    auto const &enum_defs = top->context()->enum_defs();
 
     std::map<std::string, std::string> result;
     for (auto const &[enum_name, def]: enum_defs) {
-        auto str = SystemVerilogCodeGen::enum_code(def);
+        auto str = SystemVerilogCodeGen::enum_code(def.get());
         result.emplace(enum_name, str);
     }
 

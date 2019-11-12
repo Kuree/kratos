@@ -1,9 +1,3 @@
-typedef enum logic[1:0] {
-  Color_Blue = 2'h0,
-  Color_Red = 2'h1,
-  HSV_idle = 2'h2
-} Color_state;
-
 module mod (
   input logic clk,
   input logic [1:0] in,
@@ -11,6 +5,11 @@ module mod (
   input logic rst
 );
 
+typedef enum logic[1:0] {
+  Color_Blue = 2'h0,
+  Color_Red = 2'h1,
+  HSV_idle = 2'h2
+} Color_state;
 Color_state Color_current_state;
 Color_state Color_next_state;
 

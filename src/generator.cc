@@ -127,7 +127,7 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
     return *p;
 }
 
-EnumPort& Generator::port(kratos::PortDirection direction, const std::string &port_name,
+EnumPort &Generator::port(kratos::PortDirection direction, const std::string &port_name,
                           const std::shared_ptr<kratos::Enum> &def) {
     if (ports_.find(port_name) != ports_.end())
         throw VarException(::format("{0} already exists in {1}", port_name, name),
@@ -165,34 +165,8 @@ Param &Generator::parameter(const std::string &parameter_name, uint32_t width, b
 
 Enum &Generator::enum_(const std::string &enum_name,
                        const std::map<std::string, uint64_t> &definition, uint32_t width) {
-    auto p = std::make_shared<Enum>(this, enum_name, definition, width);
-    // check name conflicts
-    std::set<std::string> names;
-    std::set<std::string> used_names;
-    for (auto const &iter : definition) {
-        names.emplace(iter.first);
-    }
-    // find all enum definition used in the generator
-    // name mapping
-    std::unordered_map<std::string, Enum *> name_mapping;
-    for (auto const &iter : enums_) {
-        auto const &enum_ = iter.second;
-        auto const &values = enum_->values;
-        for (auto const &iter2 : values) {
-            used_names.emplace(iter2.first);
-            name_mapping.emplace(iter2.first, enum_.get());
-        }
-    }
-    // if there is an overlap/intersection
-    std::set<std::string> overlap;
-    std::set_intersection(names.begin(), names.end(), used_names.begin(), used_names.end(),
-                          std::inserter(overlap, overlap.begin()));
-    if (!overlap.empty()) {
-        // pick a random one, don't care
-        auto used_name = *overlap.begin();
-        auto const &enum_def = name_mapping.at(used_name);
-        throw UserException(::format("{0} has been used in {1}.{0}", used_name, enum_def->name));
-    }
+    auto p = std::make_shared<Enum>(enum_name, definition, width);
+    Enum::verify_naming_conflict(enums_, enum_name, definition);
     enums_.emplace(enum_name, p);
     return *p;
 }
@@ -874,4 +848,4 @@ std::shared_ptr<Var> Generator::get_auxiliary_var(uint32_t width, bool signed_) 
     return v;
 }
 
-}
+}  // namespace kratos

@@ -95,6 +95,18 @@ std::unordered_set<std::string> Context::get_generator_names() const {
     return result;
 }
 
+Enum &Context::enum_(const std::string &enum_name,
+                     const std::map<std::string, uint64_t> &definition, uint32_t width) {
+    Enum::verify_naming_conflict(enum_defs_, enum_name, definition);
+    auto p = std::make_shared<Enum>(enum_name, definition, width);
+    enum_defs_.emplace(enum_name, p);
+    return *p;
+}
+
+void Context::reset_enum() {
+    enum_defs_.clear();
+}
+
 void Context::reset_id() {
     max_stmt_id_ = 0;
     max_instance_id_ = 0;
@@ -104,6 +116,7 @@ void Context::clear() {
     modules_.clear();
     clear_hash();
     reset_id();
+    enum_defs_.clear();
 }
 
 }  // namespace kratos

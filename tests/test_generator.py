@@ -1376,8 +1376,9 @@ def test_exception():
 
 
 def test_enum_port():
+    from kratos import enum
     mod = Generator("mod")
-    enum = mod.enum("State", {"IDLE": 0, "WAIT": 1, "WORK": 2})
+    enum = enum("State", {"IDLE": 0, "WAIT": 1, "WORK": 2})
     in_ = mod.input("in", enum)
     out = mod.output("out", enum)
     mod.wire(out, in_)

@@ -1,7 +1,7 @@
 import enum
 from .pyast import transform_stmt_block, CodeBlockType, add_scope_context, \
     get_frame_local
-from .util import get_fn_ln, clog2
+from .util import get_fn_ln, clog2, max_value
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
@@ -120,6 +120,12 @@ class InitialCodeBlock(CodeBlock):
                  debug_frame_depth: int = 4):
         super().__init__(generator, StatementBlockType.Initial,
                          debug_frame_depth)
+
+
+def enum(name, definition, width=None):
+    if width is None:
+        width = clog2(max_value(definition) + 1)
+    return Generator.get_context().enum(name, definition, width)
 
 
 class PortProxy:
@@ -443,7 +449,7 @@ class Generator(metaclass=GeneratorMeta):
 
     def enum(self, name: str, values: Dict[str, int], width=None):
         if width is None:
-            width = clog2(len(values))
+            width = clog2(max_value(values) + 1)
         return self.__generator.enum(name, values, width)
 
     def enum_var(self, name: str, def_: _kratos.Enum):

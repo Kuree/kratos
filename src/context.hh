@@ -57,6 +57,9 @@ private:
     int max_instance_id_ = 0;
     int max_stmt_id_ = 0;
 
+    // hold enum definition
+    std::map<std::string, std::shared_ptr<Enum>> enum_defs_;
+
 public:
     Context() = default;
 
@@ -83,6 +86,12 @@ public:
     bool generator_name_exists(const std::string& name) const;
     std::set<std::shared_ptr<Generator>> get_generators_by_name(const std::string& name) const;
     std::unordered_set<std::string> get_generator_names() const;
+
+    const std::map<std::string, std::shared_ptr<Enum>> &enum_defs() const { return enum_defs_; }
+    std::map<std::string, std::shared_ptr<Enum>> &enum_Defs() { return enum_defs_; }
+    Enum &enum_(const std::string &enum_name, const std::map<std::string, uint64_t> &definition,
+                uint32_t width);
+    void reset_enum();
 
     void clear();
 };

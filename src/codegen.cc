@@ -186,6 +186,7 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     generate_ports(generator);
     stream_ << indent() << ");" << stream_.endl() << stream_.endl();
     if (verilog95_def_) generate_port_verilog_95_def(generator);
+    generate_enums(generator);
     generate_variables(generator);
     generate_functions(generator);
 
@@ -700,18 +701,34 @@ std::string SystemVerilogCodeGen::block_label(kratos::StmtBlock* stmt) {
 }
 
 std::string SystemVerilogCodeGen::enum_code(kratos::Enum* enum_) {
+    Stream stream_(nullptr, nullptr);
+    enum_code_(stream_, enum_, false);
+    return stream_.str();
+}
+
+void SystemVerilogCodeGen::enum_code_(kratos::Enum* enum_) {
+    enum_code_(stream_, enum_, generator_->debug);
+}
+
+void SystemVerilogCodeGen::generate_enums(kratos::Generator* generator) {
+    auto enums = generator->get_enums();
+    for (auto const& iter : enums) enum_code_(iter.second.get());
+}
+
+void SystemVerilogCodeGen::enum_code_(kratos::Stream& stream_, kratos::Enum* enum_, bool debug) {
     std::string logic_str = enum_->width() == 1 ? "" : ::format("[{0}:0]", enum_->width() - 1);
-    std::stringstream stream_;
-    stream_ << "typedef enum logic" << logic_str << " {\n";
+    stream_ << "typedef enum logic" << logic_str << " {" << stream_.endl();
     uint32_t count = 0;
     auto const indent = "  ";
     for (auto& [name, c] : enum_->values) {
+        if (debug) {
+            c->verilog_ln = stream_.line_no();
+        }
         stream_ << indent << name << " = " << c->value_string();
         if (++count != enum_->values.size()) stream_ << ",";
-        stream_ << '\n';
+        stream_ << stream_.endl();
     }
-    stream_ << "} " << enum_->name << ";\n";
-    return stream_.str();
+    stream_ << "} " << enum_->name << ";" << stream_.endl();
 }
 
 std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def) {

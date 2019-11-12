@@ -129,6 +129,10 @@ protected:
 
     void stmt_code(CommentStmt* stmt);
 
+    void enum_code_(Enum* enum_);
+    static void enum_code_(Stream &stream_, Enum* enum_, bool debug);
+    void generate_enums(kratos::Generator* generator);
+
     // reverse indexing the named blocks
     std::unordered_map<StmtBlock*, std::string> index_named_block();
     std::string block_label(StmtBlock* stmt);

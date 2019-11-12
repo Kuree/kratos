@@ -374,4 +374,4 @@ def test_empty():
 
 
 if __name__ == "__main__":
-    test_empty()
+    test_assert()

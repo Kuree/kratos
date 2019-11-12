@@ -325,7 +325,7 @@ public:
     static Const &constant(int64_t value, uint32_t width, bool is_signed);
     Const(int64_t value, uint32_t width, bool is_signed);
 
-    static const Generator *const_gen() { return const_generator_.get(); }
+    static Generator *const_gen() { return const_generator_.get(); }
 
     // struct is always packed
     bool is_packed() const override { return true; }
@@ -526,8 +526,7 @@ private:
 
 struct Enum : std::enable_shared_from_this<Enum> {
 public:
-    Enum(Generator *generator, std::string name, const std::map<std::string, uint64_t> &values,
-         uint32_t width);
+    Enum(std::string name, const std::map<std::string, uint64_t> &values, uint32_t width);
     std::map<std::string, std::shared_ptr<EnumConst>> values;
     std::string name;
 
@@ -536,6 +535,10 @@ public:
     std::shared_ptr<EnumConst> get_enum(const std::string &name);
     void add_debug_info(const std::string &enum_name,
                         const std::pair<std::string, uint32_t> &debug);
+
+    static void verify_naming_conflict(const std::map<std::string, std::shared_ptr<Enum>> &enums,
+                                       const std::string &name,
+                                       const std::map<std::string, uint64_t> &values);
 
 private:
     uint32_t width_;
