@@ -394,8 +394,11 @@ void Simulator::set_complex_value_(kratos::Var *var,
         low = 0;
         high = base - 1;
     }
+    bool fill_in = false;
     if (complex_values_.find(fill_var) == complex_values_.end()) {
+        // whatever bits changed
         // fill in values
+        fill_in = true;
         if (complex_values_.find(fill_var) == complex_values_.end()) {
             // fill in values
             std::vector<uint64_t> v(base);
@@ -416,11 +419,11 @@ void Simulator::set_complex_value_(kratos::Var *var,
     uint32_t var_width = fill_var->var_width();
 
     for (uint32_t i = low; i <= high; i++) {
-        if (*(values[i]) != value[i]) {
+        if (*(values[i]) != value[i] || fill_in) {
             uint32_t bit_mask = (*values[i]) ^ value[i];
             *(values[i]) = value[i];
             for (uint32_t bit = 0; bit < var_width; bit++) {
-                if ((bit_mask >> bit) & 1u) {
+                if ((bit_mask >> bit) & 1u || fill_in) {
                     changed_bits.emplace(bit + var_width * i);
                 }
             }
