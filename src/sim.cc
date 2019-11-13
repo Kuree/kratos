@@ -229,7 +229,7 @@ std::optional<uint64_t> Simulator::get_value_(kratos::Var *var) const {
         auto low = var_low % root->var_width();
         auto high = var_high % root->var_width();
         auto value = values[base];
-        return (value >> low) & (0xFFFFFFFFFFFFFFFF >> (high + 1));
+        return (value >> low) & (~(0xFFFFFFFFFFFFFFFF << (high + 1)));
     } else {
         if (values_.find(var) == values_.end())
             return std::nullopt;

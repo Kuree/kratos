@@ -38,6 +38,20 @@ TEST(sim, value_scalar) {  // NOLINT
     EXPECT_EQ(*res, 2);
 }
 
+TEST(sim, value_extend) {   // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 2);
+    auto &b = mod.var("b", 2);
+    mod.add_stmt(b.assign(a[0].extend(2) + a[1].extend(2)));
+
+    Simulator sim(&mod);
+    sim.set(&a, 2);
+    auto res = sim.get(&b);
+    EXPECT_TRUE(res != std::nullopt);
+    EXPECT_EQ(*res, 1);
+}
+
 TEST(sim, value_array) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
