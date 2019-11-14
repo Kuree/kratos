@@ -57,9 +57,12 @@ TEST(sim, value_array) {  // NOLINT
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 4, {2, 2});
     auto &b = mod.var("b", 4, {2, 2});
+    auto &d = mod.var("d", 2, std::vector<uint32_t>{2});
+    d.set_is_packed(true);
     auto &c = mod.var("c", 4);
     mod.add_stmt(a.assign(b));
     mod.add_stmt(c.assign(a[1][1]));
+    mod.add_stmt(d.assign(constant(4, 4)));
 
     Simulator sim(&mod);
     uint32_t constexpr value = 5;
@@ -68,6 +71,10 @@ TEST(sim, value_array) {  // NOLINT
     auto res = sim.get(&c);
     EXPECT_TRUE(res != std::nullopt);
     EXPECT_EQ(*res, value);
+
+    res = sim.get(&d[1]);
+    EXPECT_TRUE(res != std::nullopt);
+    EXPECT_EQ(*res, 4 >> 2);
 }
 
 TEST(sim, combinational_order_wrong) {  // NOLINT

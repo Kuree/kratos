@@ -414,7 +414,23 @@ void Simulator::set_complex_value_(kratos::Var *var,
         for (uint64_t i = 0; i < base; i++) values.emplace_back(&v_ref[i]);
     }
 
-    if (values.size() != value.size()) throw UserException("Misaligned slicing");
+    if (values.size() != value.size()) {
+        // expand the value to if the target is packed
+        if (fill_var->is_packed()) {
+            if (value.size() > 1) {
+                throw InternalException("Multiple value assigned to packed array not supported");
+            }
+            auto v = value[0];
+            std::vector<uint64_t> v_(values.size());
+            for (uint64_t i = 0; i < values.size(); i++) {
+                auto w = fill_var->var_width();
+                v_[i] = (v >> (w * i)) & (~(UINT64_MASK << w));
+            }
+            value = v_;
+        } else {
+            throw UserException("Misaligned slicing");
+        }
+    };
     std::unordered_set<uint32_t> changed_bits;
     uint32_t var_width = fill_var->var_width();
 
