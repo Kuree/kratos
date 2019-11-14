@@ -37,9 +37,7 @@ public:
     using DepSet = std::pair<std::unordered_set<Var *>,
                              std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>>>;
 
-    static DepSet get_dep(AssignStmt *stmt) {
-        // only interested in the right hand side
-        auto var = stmt->right();
+    static DepSet get_dep(Var *var) {
         std::unordered_set<Var *> deps;
         std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> linked_deps;
         get_var_deps(var, deps, linked_deps);
@@ -75,7 +73,7 @@ private:
     }
 
     void visit_assign(AssignStmt *assign) {
-        auto const &[dep, linked] = get_dep(assign);
+        auto const &[dep, linked] = get_dep(assign->right());
         for (auto const &v : dep) dependency_[v].emplace(assign);
         linked_dependency_.insert(linked.begin(), linked.end());
     }
@@ -143,18 +141,20 @@ private:
     public:
         void visit(IfStmt *stmt) override {
             auto predicate = stmt->predicate();
-            auto parent_var = predicate->get_var_root_parent();
-            vars_.emplace(const_cast<Var *>(parent_var));
+            auto const &[dep, linked] = DependencyVisitor::get_dep(predicate.get());
+            for (auto const &var : dep) vars_.emplace(var);
+            linked_vars_.insert(linked.begin(), linked.end());
         }
 
         void visit(SwitchStmt *stmt) override {
             auto target = stmt->target();
-            auto parent_var = target->get_var_root_parent();
-            vars_.emplace(const_cast<Var *>(parent_var));
+            auto const &[dep, linked] = DependencyVisitor::get_dep(target.get());
+            for (auto const &var : dep) vars_.emplace(var);
+            linked_vars_.insert(linked.begin(), linked.end());
         }
 
         void visit(AssignStmt *stmt) override {
-            auto const &[dep, linked] = DependencyVisitor::get_dep(stmt);
+            auto const &[dep, linked] = DependencyVisitor::get_dep(stmt->right());
             for (auto const &var : dep) vars_.emplace(var);
             linked_vars_.insert(linked.begin(), linked.end());
         }
