@@ -62,7 +62,9 @@ private:
         visitor.visit_root(block);
         auto const &vars = visitor.vars();
         for (auto const &var : vars) dependency_[var].emplace(block);
-        linked_dependency_.insert(visitor.linked_vars().begin(), visitor.linked_vars().end());
+        for (auto const &[var, entry]: visitor.linked_vars()) {
+            linked_dependency_[var].insert(entry.begin(), entry.end());
+        }
     }
 
     void visit_block(SequentialStmtBlock *block) {
@@ -75,7 +77,9 @@ private:
     void visit_assign(AssignStmt *assign) {
         auto const &[dep, linked] = get_dep(assign->right());
         for (auto const &v : dep) dependency_[v].emplace(assign);
-        linked_dependency_.insert(linked.begin(), linked.end());
+        for (auto const &[var, entry]: linked) {
+            linked_dependency_[var].insert(entry.begin(), entry.end());
+        }
     }
 
     void visit_module_instantiation(ModuleInstantiationStmt *stmt) {
@@ -143,20 +147,26 @@ private:
             auto predicate = stmt->predicate();
             auto const &[dep, linked] = DependencyVisitor::get_dep(predicate.get());
             for (auto const &var : dep) vars_.emplace(var);
-            linked_vars_.insert(linked.begin(), linked.end());
+            for (auto const &[var, entry]: linked) {
+                linked_vars_[var].insert(entry.begin(), entry.end());
+            }
         }
 
         void visit(SwitchStmt *stmt) override {
             auto target = stmt->target();
             auto const &[dep, linked] = DependencyVisitor::get_dep(target.get());
             for (auto const &var : dep) vars_.emplace(var);
-            linked_vars_.insert(linked.begin(), linked.end());
+            for (auto const &[var, entry]: linked) {
+                linked_vars_[var].insert(entry.begin(), entry.end());
+            }
         }
 
         void visit(AssignStmt *stmt) override {
             auto const &[dep, linked] = DependencyVisitor::get_dep(stmt->right());
             for (auto const &var : dep) vars_.emplace(var);
-            linked_vars_.insert(linked.begin(), linked.end());
+            for (auto const &[var, entry]: linked) {
+                linked_vars_[var].insert(entry.begin(), entry.end());
+            }
         }
 
         std::unordered_set<Var *> &vars() { return vars_; }
