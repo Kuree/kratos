@@ -2692,6 +2692,8 @@ void PassManager::register_builtin_passes() {
 
     register_pass("convert_continuous_stmt", &convert_continuous_stmt);
 
+    register_pass("propagate_scope_variable", &propagate_scope_variable);
+
     // TODO:
     //  add inline pass
 

@@ -373,5 +373,35 @@ def test_empty():
         dump_external_database([mod], "dut", debug_db)
 
 
+def test_nested_scope():
+    from kratos import clog2
+    mod = Generator("FindHighestBit", True)
+    width = 4
+    data = mod.input("data", width)
+    h_bit = mod.output("h_bit", clog2(width))
+    done = mod.var("done", 1)
+
+    def find_bit():
+        done = 0
+        h_bit = 0
+        for i in range(width):
+            if ~done:
+                if data[i]:
+                    done = 1
+                    h_bit = i
+    mod.add_code(find_bit, label="block")
+    verilog(mod, insert_debug_info=True)
+    block = mod.get_marked_stmt("block")
+    last_if = block[-1]
+    for i in range(len(last_if.then_[-1].then_)):
+        stmt = last_if.then_[-1].then_[i]
+        context = stmt.scope_context
+        if len(context) > 0:
+            assert "i" in context
+            is_var, var = context["i"]
+            assert not is_var
+            assert var == "3"
+
+
 if __name__ == "__main__":
-    test_assert()
+    test_nested_scope()

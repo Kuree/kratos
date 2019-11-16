@@ -220,6 +220,34 @@ std::unordered_map<Var *, std::unordered_set<Var *>> find_driver_signal(Generato
     return visitor.map();
 }
 
+
+class PropagateScopeVisitor: public IRVisitor {
+public:
+    void visit(IfStmt* stmt) override {
+        auto variables = stmt->scope_context();
+        for (auto const &[name, var]: variables) {
+            stmt->then_body()->add_scope_variable(name, var.second, var.first, false);
+            stmt->else_body()->add_scope_variable(name, var.second, var.first, false);
+        }
+    }
+
+    void visit(SwitchStmt *stmt)  override {
+        auto variables = stmt->scope_context();
+        for (auto const &[name, var]: variables) {
+            auto cases = stmt->body();
+            for (auto &iter: cases) {
+                auto case_ = iter.second;
+                case_->add_scope_variable(name, var.second, var.first, false);
+            }
+        }
+    }
+};
+
+void propagate_scope_variable(Generator *top) {
+    PropagateScopeVisitor visitor;
+    visitor.visit_root(top);
+}
+
 void mock_hierarchy(Generator *top, const std::string &top_name) {
     // can only perform on the top layer
     auto instance_name = top->instance_name;

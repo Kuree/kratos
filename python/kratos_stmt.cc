@@ -21,7 +21,8 @@ void init_stmt(py::module &m) {
         .def("add_scope_variable",
              [](Stmt &stmt, const std::string &name, const std::string &value, bool is_var) {
                  stmt.add_scope_variable(name, value, is_var, false);
-             });
+             })
+        .def_property_readonly("scope_context", [](Stmt &stmt) { return stmt.scope_context(); });
 
     def_trace<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
 
