@@ -100,7 +100,10 @@ void init_stmt(py::module &m) {
                  }
                  stmt.set_child(index, value);
              })
-        .def("__len__", [](StmtBlock &stmt) { return stmt.size(); });
+        .def("__len__", [](StmtBlock &stmt) { return stmt.size(); })
+        .def(
+            "__iter__", [](StmtBlock &stmt) { return py::make_iterator(stmt.begin(), stmt.end()); },
+            py::keep_alive<0, 1>());
 
     py::class_<CombinationalStmtBlock, ::shared_ptr<CombinationalStmtBlock>, StmtBlock>(
         m, "CombinationalStmtBlock")
