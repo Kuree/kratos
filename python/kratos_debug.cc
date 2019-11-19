@@ -37,5 +37,8 @@ void init_debug(py::module &m) {
         .def("set_generator_variable", &DebugDatabase::set_generator_variable)
         .def("set_stmt_context", &DebugDatabase::set_stmt_context)
         // dump the database file
-        .def("save_database", &DebugDatabase::save_database);
+        .def("save_database",
+             py::overload_cast<const std::string &, bool>(&DebugDatabase::save_database))
+        .def("save_database",
+             py::overload_cast<const std::string &>(&DebugDatabase::save_database));
 }

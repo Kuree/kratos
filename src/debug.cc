@@ -456,7 +456,12 @@ void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
     hierarchy_ = visitor.hierarchy();
 }
 
-void DebugDatabase::save_database(const std::string &filename) {
+void DebugDatabase::save_database(const std::string &filename, bool override) {
+    if (override) {
+        if (fs::exists(filename)) {
+            fs::remove(filename);
+        }
+    }
     auto storage = init_storage(filename);
     storage.sync_schema();
     // insert tables

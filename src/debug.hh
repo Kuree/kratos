@@ -52,7 +52,8 @@ public:
         const std::map<Generator *, std::map<std::string, std::string>> &values);
     void set_stmt_context(Generator *top);
 
-    void save_database(const std::string &filename);
+    void save_database(const std::string &filename, bool override);
+    void save_database(const std::string &filename) { save_database(filename, true); }
 
 private:
     std::map<Stmt *, uint32_t> break_points_;
