@@ -60,8 +60,7 @@ std::shared_ptr<AssignStmt> EnumPort::assign(const std::shared_ptr<Var>& var, As
             throw VarException("Cannot assign different enum type", {this, var.get()});
     } else {
         auto p = dynamic_cast<EnumType*>(var.get());
-        if (!p)
-            throw InternalException("Unable to obtain enum definition");
+        if (!p) throw InternalException("Unable to obtain enum definition");
         if (p->enum_type()->name != enum_type_->name) {
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }
@@ -164,6 +163,107 @@ std::set<std::string> PortBundleRef::member_names() const {
     std::set<std::string> result;
     for (auto const& def : name_mappings_) result.emplace(def.first);
     return result;
+}
+
+std::shared_ptr<InterfaceModPortDefinition> InterfaceDefinition::create_modport_def(
+    const std::string& name) {
+    if (mod_ports_.find(name) != mod_ports_.end())
+        throw UserException(::format("{0} already exists in {1}", name, name_));
+    auto p = std::make_shared<InterfaceModPortDefinition>(this, name);
+    mod_ports_.emplace(name, p);
+    return p;
+}
+
+void InterfaceDefinition::port(const std::string& name, uint32_t width, uint32_t size,
+                               kratos::PortDirection dir) {
+    if (ports_.find(name) != ports_.end())
+        throw UserException(::format("{0} already exists in {1}", name, name_));
+    ports_.emplace(name, std::make_tuple(width, size, dir));
+}
+
+void InterfaceDefinition::input(const std::string& name, uint32_t width, uint32_t size) {
+    port(name, width, size, PortDirection::In);
+}
+
+void InterfaceDefinition::output(const std::string& name, uint32_t width, uint32_t size) {
+    port(name, width, size, PortDirection::Out);
+}
+
+InterfaceDefinition::InterfacePortDef InterfaceDefinition::port(const std::string& name) const {
+    if (ports_.find(name) == ports_.end())
+        throw UserException(::format("{0} does not exist in {1}", name, name_));
+    return ports_.at(name);
+}
+
+void InterfaceDefinition::var(const std::string& name, uint32_t width, uint32_t size) {
+    if (vars_.find(name) != vars_.end())
+        throw UserException(::format("{0} already exists in {1}", name, name_));
+    vars_.emplace(name, std::make_pair(width, size));
+}
+
+std::pair<uint32_t, uint32_t> InterfaceDefinition::var(const std::string& name) const {
+    if (vars_.find(name) == vars_.end())
+        throw UserException(::format("{0} does not exist in {1}", name, name_));
+    return vars_.at(name);
+}
+
+bool InterfaceDefinition::has_port(const std::string& name) const {
+    return ports_.find(name) != ports_.end();
+}
+
+bool InterfaceDefinition::has_var(const std::string& name) const {
+    return vars_.find(name) != vars_.end();
+}
+
+void InterfaceVarMapping::set_var(const std::string& name, kratos::Var* var) {
+    gen_vars_.emplace(name, var);
+}
+
+Var* InterfaceVarMapping::get_var(const std::string& name) const {
+    if (gen_vars_.find(name) != gen_vars_.end())
+        return gen_vars_.at(name);
+    else
+        return nullptr;
+}
+
+InterfaceModPortDefinition::InterfaceModPortDefinition(kratos::InterfaceDefinition* def,
+                                                       std::string name)
+    : def_(def), name_(std::move(name)) {}
+
+void InterfaceModPortDefinition::output(const std::string& name) {
+    if (def_->has_port(name)) {
+        // this is a port
+        auto const& port_def = def_->port(name);
+        auto dir = std::get<2>(port_def);
+        if (dir != PortDirection::Out) {
+            throw UserException(::format(
+                "{0} is not declared as an output but is used as one in {1}", name, name_));
+        }
+        outputs_.emplace(name);
+    } else if (def_->has_var(name)) {
+        // this is a variable
+        outputs_.emplace(name);
+    }
+}
+
+void InterfaceModPortDefinition::input(const std::string& name) {
+    if (def_->has_port(name)) {
+        // this is a port
+        auto const& port_def = def_->port(name);
+        auto dir = std::get<2>(port_def);
+        if (dir != PortDirection::In) {
+            throw UserException(
+                ::format("{0} is not declared as an input but is used as one in {1}", name, name_));
+        }
+        inputs_.emplace(name);
+    } else if (def_->has_var(name)) {
+        // this is a variable
+        inputs_.emplace(name);
+    }
+}
+
+std::string InterfaceModPortDefinition::to_string() const {
+    return ::format("{0}.{1}", def_->to_string(), name_);
 }
 
 }  // namespace kratos
