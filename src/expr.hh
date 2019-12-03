@@ -604,7 +604,7 @@ private:
 
 struct InterfaceVar : public Var {
 public:
-    InterfaceVar(InterfaceInstance *interface, Generator *m, const std::string &name,
+    InterfaceVar(InterfaceRef *interface, Generator *m, const std::string &name,
                  uint32_t var_width, const std::vector<uint32_t> &size, bool is_signed)
         : Var(m, name, var_width, size, is_signed), interface_(interface) {}
 
@@ -613,7 +613,7 @@ public:
     bool inline is_interface() const override { return true; }
 
 private:
-    InterfaceInstance *interface_ = nullptr;
+    InterfaceRef *interface_ = nullptr;
 };
 
 }  // namespace kratos

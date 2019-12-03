@@ -1,4 +1,5 @@
 #include "interface.hh"
+
 #include "except.hh"
 #include "fmt/format.h"
 
@@ -17,6 +18,11 @@ std::shared_ptr<InterfaceModPortDefinition> InterfaceDefinition::create_modport_
 
 void InterfaceDefinition::port(const std::string& name, uint32_t width, uint32_t size,
                                kratos::PortDirection dir) {
+    port(name, width, std::vector<uint32_t>{size}, dir);
+}
+
+void InterfaceDefinition::port(const std::string& name, uint32_t width,
+                               const std::vector<uint32_t>& size, enum kratos::PortDirection dir) {
     if (ports_.find(name) != ports_.end())
         throw UserException(::format("{0} already exists in {1}", name, name_));
     ports_.emplace(name, std::make_tuple(width, size, dir));
@@ -37,9 +43,26 @@ InterfaceDefinition::InterfacePortDef InterfaceDefinition::port(const std::strin
 }
 
 void InterfaceDefinition::var(const std::string& name, uint32_t width, uint32_t size) {
+    var(name, width, std::vector<uint32_t>{size});
+}
+
+void InterfaceDefinition::var(const std::string& name, uint32_t width,
+                              const std::vector<uint32_t>& size) {
     if (vars_.find(name) != vars_.end())
         throw UserException(::format("{0} already exists in {1}", name, name_));
     vars_.emplace(name, std::make_pair(width, size));
+}
+
+std::set<std::string> InterfaceDefinition::ports() const {
+    std::set<std::string> result;
+    for (auto const& iter : ports_) result.emplace(iter.first);
+    return result;
+}
+
+std::set<std::string> InterfaceDefinition::vars() const {
+    std::set<std::string> result;
+    for (auto const& iter : vars_) result.emplace(iter.first);
+    return result;
 }
 
 InterfaceDefinition::InterfaceVarDef InterfaceDefinition::var(const std::string& name) const {
@@ -60,7 +83,7 @@ InterfaceModPortDefinition::InterfaceModPortDefinition(kratos::InterfaceDefiniti
                                                        std::string name)
     : def_(def), name_(std::move(name)) {}
 
-void InterfaceModPortDefinition::output(const std::string& name) {
+void InterfaceModPortDefinition::set_output(const std::string& name) {
     if (def_->has_port(name)) {
         // this is a port
         auto const& port_def = def_->port(name);
@@ -76,7 +99,25 @@ void InterfaceModPortDefinition::output(const std::string& name) {
     }
 }
 
-void InterfaceModPortDefinition::input(const std::string& name) {
+IDefinition::InterfacePortDef InterfaceModPortDefinition::port(const std::string& name) const {
+    if (!has_port(name)) throw UserException(::format("{0} does not exist", name));
+    return def_->port(name);
+}
+
+IDefinition::InterfaceVarDef InterfaceModPortDefinition::var(const std::string&) const {
+    throw UserException(::format("{0} as modport does not have internal variables", name_));
+}
+
+std::set<std::string> InterfaceModPortDefinition::ports() const {
+    std::set<std::string> result;
+    for (auto const& name : inputs_) result.emplace(name);
+    for (auto const& name : outputs_) result.emplace(name);
+    return result;
+}
+
+std::set<std::string> InterfaceModPortDefinition::vars() const { return {}; }
+
+void InterfaceModPortDefinition::set_input(const std::string& name) {
     if (def_->has_port(name)) {
         // this is a port
         auto const& port_def = def_->port(name);
@@ -92,34 +133,16 @@ void InterfaceModPortDefinition::input(const std::string& name) {
     }
 }
 
-std::string InterfaceModPortDefinition::name() const {
-    return ::format("{0}.{1}", def_->name(), name_);
-}
-
-std::map<std::string, InterfaceDefinition::InterfacePortDef> ModPortInterfaceInstance::ports()
-    const {
-    std::map<std::string, InterfaceDefinition::InterfacePortDef> result;
-    for (auto const& name : def_->inputs()) {
-        auto const& p = def_->def()->port(name);
-        result.emplace(name, p);
-    }
-    for (auto const& name : def_->outputs()) {
-        auto const& p = def_->def()->port(name);
-        result.emplace(name, p);
-    }
-    return result;
-}
-
 Var& InterfaceRef::var(const std::string& name) const {
     if (!has_var(name)) {
-        throw UserException(::format("{0} not found in {1}", name, instance_->inst_name()));
+        throw UserException(::format("{0} not found in {1}", name, name_));
     }
     return *vars_.at(name);
 }
 
 Port& InterfaceRef::port(const std::string& name) const {
     if (!has_port(name)) {
-        throw UserException(::format("{0} not found in {1}", name, instance_->inst_name()));
+        throw UserException(::format("{0} not found in {1}", name, name_));
     }
     return *ports_.at(name);
 }

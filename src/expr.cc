@@ -1355,7 +1355,7 @@ std::string FunctionCallVar::to_string() const {
 }
 
 std::string InterfaceVar::to_string() const {
-    std::string parent_name = interface_->inst_name();
+    std::string parent_name = interface_->name();
     return ::format("{0}.{1}", parent_name, Var::to_string());
 }
 

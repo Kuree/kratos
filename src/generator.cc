@@ -1,8 +1,10 @@
 #include "generator.hh"
+
 #include <fstream>
 #include <iostream>
 #include <streambuf>
 #include <unordered_set>
+
 #include "except.hh"
 #include "fmt/format.h"
 #include "fsm.hh"
@@ -464,41 +466,45 @@ void Generator::remove_stmt(const std::shared_ptr<Stmt> &stmt) {
     }
 }
 
-std::shared_ptr<InterfaceRef> Generator::add_interface(
-    const std::shared_ptr<InterfaceInstance> &def, bool is_port) {
+std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefinition> &def,
+                                                   const std::string &interface_name,
+                                                   bool is_port) {
     // making sure that it doesn't have ports or vars
-    if (vars_.find(def->inst_name()) != vars_.end()) {
-        throw VarException(::format("{0} already exists in {1}", def->inst_name(), instance_name),
-                           {vars_.at(def->inst_name()).get()});
+    if (vars_.find(interface_name) != vars_.end()) {
+        throw VarException(::format("{0} already exists in {1}", interface_name, instance_name),
+                           {vars_.at(interface_name).get()});
     }
-    if (interfaces_.find(def->inst_name()) != interfaces_.end()) {
-        throw UserException(::format("{0} already exists in {1}", def->inst_name(), instance_name));
+    if (interfaces_.find(def->name()) != interfaces_.end()) {
+        throw UserException(::format("{0} already exists in {1}", def->name(), instance_name));
     }
     // create vars
     auto const &vars = def->vars();
-    auto ref = std::make_shared<InterfaceRef>(def);
+    auto ref = std::make_shared<InterfaceRef>(def, this, interface_name);
     ref->is_port() = is_port;
-    for (auto const &[name, var_def] : vars) {
-        auto const &[width, size] = var_def;
+    for (auto const &n : vars) {
+        auto const &[width, size] = def->var(n);
         // for now they are all unsigned
-        auto var_name = ::format("{0}.{1}", def->inst_name(), name);
-        auto v = std::make_shared<InterfaceVar>(def.get(), this, var_name, width, size, false);
-        ref->var(name, v.get());
+        auto var_name = ::format("{0}.{1}", def->name(), n);
+        auto v = std::make_shared<InterfaceVar>(ref.get(), this, var_name, width, size, false);
+        ref->var(n, v.get());
         vars_.emplace(var_name, v);
     }
     // only create ports if it's used in the port interface
     if (is_port) {
         auto const &ports = def->ports();
-        for (auto const &[name, port_def] : ports) {
-            auto const &[width, size, dir] = port_def;
+        for (auto const &n : ports) {
+            auto const &[width, size, dir] = def->port(n);
             // for now they are all unsigned
-            auto var_name = ::format("{0}.{1}", def->inst_name(), name);
-            auto p = InterfacePort(def.get(), this, dir, var_name, width, size, PortType::Data, false);
-            ref->port(name, &p);
+            auto var_name = ::format("{0}.{1}", def->name(), n);
+            auto p =
+                std::make_shared<InterfacePort>(ref.get(), this, dir, var_name, width, size, PortType::Data, false);
+            ref->port(n, p.get());
+            vars_.emplace(var_name, p);
+            ports_.emplace(var_name);
         }
     }
     // put it in the interface
-    interfaces_.emplace(def->inst_name(), ref);
+    interfaces_.emplace(def->name(), ref);
     return ref;
 }
 
@@ -628,6 +634,59 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
         auto port1 = dynamic_cast<Port *>(root1);
         auto port2 = dynamic_cast<Port *>(root2);
         return correct_port_direction(port1, port2, this);
+    }
+}
+
+void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
+                               const std::shared_ptr<InterfaceRef> &inst2) {
+    // the orientation is determined by the generator reference from the interface instance
+    auto gen1 = inst1->gen();
+    auto gen2 = inst2->gen();
+    if (gen1->has_child_generator(gen2->shared_from_this())) {
+        // gen2 is gen1's child
+        // wiring gen2's ports to gen1's
+        auto const &ports = inst2->ports();
+        for (auto const &[port_name, port] : ports) {
+            Var *v = nullptr;
+            if (inst1->has_var(port_name)) {
+                v = &inst1->var(port_name);
+            } else if (inst1->has_port(port_name)) {
+                v = &inst1->port(port_name);
+            }
+            if (!v) {
+                throw UserException((::format("Unable to wire interface {0} with {1}",
+                                              inst1->name(), inst2->name())));
+            }
+            if (port->port_direction() == PortDirection::In) {
+                add_stmt(v->assign(*port));
+            } else {
+                add_stmt(port->assign(*v));
+            }
+        }
+    } else if (gen2->has_child_generator(gen1->shared_from_this())) {
+        // gen1 is gen2's child
+        // wiring gen1's ports to gen2's
+        auto const &ports = inst1->ports();
+        for (auto const &[port_name, port] : ports) {
+            Var *v = nullptr;
+            if (inst2->has_var(port_name)) {
+                v = &inst2->var(port_name);
+            } else if (inst2->has_var(port_name)) {
+                v = &inst2->port(port_name);
+            }
+            if (!v) {
+                throw UserException(
+                    (::format("Unable to wire interface {0} with {1}", inst1->name())));
+            }
+            if (port->port_direction() == PortDirection::In) {
+                add_stmt(v->assign(*port));
+            } else {
+                add_stmt(port->assign(*v));
+            }
+        }
+    } else {
+        throw UserException(::format("{0} is not a child of {1} or vise visa", gen1->handle_name(),
+                                     gen2->handle_name()));
     }
 }
 

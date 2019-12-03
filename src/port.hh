@@ -153,7 +153,7 @@ private:
 
 struct InterfacePort : public Port {
 public:
-    InterfacePort(InterfaceInstance *interface, Generator *module, PortDirection direction,
+    InterfacePort(InterfaceRef *interface, Generator *module, PortDirection direction,
                   const std::string &name, uint32_t width, const std::vector<uint32_t> &size,
                   PortType type, bool is_signed)
         : Port(module, direction, name, width, size, type, is_signed), interface_(interface) {}
@@ -163,7 +163,7 @@ public:
     bool inline is_interface() const override { return true; }
 
 private:
-    InterfaceInstance *interface_ = nullptr;
+    InterfaceRef *interface_ = nullptr;
 };
 
 }  // namespace kratos

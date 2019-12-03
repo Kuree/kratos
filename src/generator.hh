@@ -102,7 +102,8 @@ public:
     void set_stmts(const std::vector<std::shared_ptr<Stmt>> &stmts) { stmts_ = stmts; }
 
     // interfaces
-    std::shared_ptr<InterfaceRef> add_interface(const std::shared_ptr<InterfaceInstance> &def, bool is_port);
+    std::shared_ptr<InterfaceRef> interface(const std::shared_ptr<IDefinition> &def,
+                                            const std::string &interface_name, bool is_port);
 
     // helper function to initiate the blocks
     std::shared_ptr<SequentialStmtBlock> sequential();
@@ -153,6 +154,8 @@ public:
     std::shared_ptr<Stmt> wire_ports(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &port2);
     std::pair<bool, bool> correct_wire_direction(const std::shared_ptr<Var> &var1,
                                                  const std::shared_ptr<Var> &var2);
+    void wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
+                        const std::shared_ptr<InterfaceRef> &inst2);
 
     bool debug = false;
 

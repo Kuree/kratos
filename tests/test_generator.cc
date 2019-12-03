@@ -8,6 +8,7 @@
 #include "../src/stmt.hh"
 #include "../src/util.hh"
 #include "../src/debug.hh"
+#include "../src/interface.hh"
 #include "gtest/gtest.h"
 
 using namespace kratos;
@@ -1023,4 +1024,19 @@ TEST(debug, mock_hierarchy) {   // NOLINT
     auto p = mod.parent_generator();
     EXPECT_TRUE(p != nullptr);
     EXPECT_EQ(p->instance_name, "mod2");
+}
+
+TEST(interface, wire_interface) {   // NOLINT
+    Context c;
+    auto &mod1 = c.generator("mod");
+    auto config = std::make_shared<InterfaceDefinition>("Config");
+    config->input("read", 1, 1);
+    config->output("write", 1, 1);
+    auto i1 = mod1.interface(config, "bus1", true);
+
+    auto &mod2 = c.generator("mod2");
+    auto i2 = mod2.interface(config, "bus", true);
+    mod1.add_child_generator("inst", mod2.shared_from_this());
+
+    EXPECT_NO_THROW(mod1.wire_interface(i1, i2));
 }

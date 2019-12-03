@@ -49,9 +49,9 @@ class AssertBase;
 class FSM;
 enum AssignmentType : int;
 enum HashStrategy : int;
+struct IDefinition;
 struct InterfaceModPortDefinition;
 struct InterfaceDefinition;
-struct InterfaceInstance;
 struct InterfaceRef;
 
 class Context {
