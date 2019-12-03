@@ -102,9 +102,7 @@ public:
     void set_stmts(const std::vector<std::shared_ptr<Stmt>> &stmts) { stmts_ = stmts; }
 
     // interfaces
-    void add_port_interface(const std::shared_ptr<InterfaceDefinition> &def);
-    void add_port_interface(const std::shared_ptr<InterfaceModPortDefinition> &def);
-    void add_var_interface(const std::shared_ptr<InterfaceDefinition> &def);
+    std::shared_ptr<InterfaceRef> add_interface(const std::shared_ptr<InterfaceInstance> &def, bool is_port);
 
     // helper function to initiate the blocks
     std::shared_ptr<SequentialStmtBlock> sequential();
@@ -258,7 +256,7 @@ private:
     // auxiliary var
     std::unordered_map<uint32_t, std::shared_ptr<Var>> auxiliary_vars_;
     // interfaces
-    std::map<std::string, std::shared_ptr<InterfaceDefinition>> port_interfaces_;
+    std::map<std::string, std::shared_ptr<InterfaceRef>> interfaces_;
 };
 
 }  // namespace kratos

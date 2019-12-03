@@ -189,7 +189,7 @@ public:
         for (auto const& [var_name, var] : vars) {
             if (var->type() != VarType::Base) continue;
             if (var->sinks().empty()) {
-                if (var->sources().empty()) {
+                if (var->sources().empty() && !var->is_interface()) {
                     vars_to_remove.emplace(var_name);
                 } else {
                     // print out warnings

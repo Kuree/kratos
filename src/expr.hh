@@ -150,6 +150,7 @@ public:
     virtual void set_is_packed(bool value) { is_packed_ = value; }
     virtual bool inline is_enum() const { return false; }
     virtual bool inline is_function() const { return false; }
+    virtual bool inline is_interface() const { return false; }
     virtual std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) { return var; }
 
     virtual std::string to_string() const;
@@ -599,6 +600,20 @@ public:
 private:
     FunctionStmtBlock *func_def_;
     std::map<std::string, std::shared_ptr<Var>> args_;
+};
+
+struct InterfaceVar : public Var {
+public:
+    InterfaceVar(InterfaceInstance *interface, Generator *m, const std::string &name,
+                 uint32_t var_width, const std::vector<uint32_t> &size, bool is_signed)
+        : Var(m, name, var_width, size, is_signed), interface_(interface) {}
+
+    std::string to_string() const override;
+
+    bool inline is_interface() const override { return true; }
+
+private:
+    InterfaceInstance *interface_ = nullptr;
 };
 
 }  // namespace kratos

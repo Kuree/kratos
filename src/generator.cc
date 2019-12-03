@@ -6,6 +6,7 @@
 #include "except.hh"
 #include "fmt/format.h"
 #include "fsm.hh"
+#include "interface.hh"
 #include "stmt.hh"
 #include "syntax.hh"
 #include "util.hh"
@@ -461,6 +462,44 @@ void Generator::remove_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (pos != stmts_.end()) {
         stmts_.erase(pos);
     }
+}
+
+std::shared_ptr<InterfaceRef> Generator::add_interface(
+    const std::shared_ptr<InterfaceInstance> &def, bool is_port) {
+    // making sure that it doesn't have ports or vars
+    if (vars_.find(def->inst_name()) != vars_.end()) {
+        throw VarException(::format("{0} already exists in {1}", def->inst_name(), instance_name),
+                           {vars_.at(def->inst_name()).get()});
+    }
+    if (interfaces_.find(def->inst_name()) != interfaces_.end()) {
+        throw UserException(::format("{0} already exists in {1}", def->inst_name(), instance_name));
+    }
+    // create vars
+    auto const &vars = def->vars();
+    auto ref = std::make_shared<InterfaceRef>(def);
+    ref->is_port() = is_port;
+    for (auto const &[name, var_def] : vars) {
+        auto const &[width, size] = var_def;
+        // for now they are all unsigned
+        auto var_name = ::format("{0}.{1}", def->inst_name(), name);
+        auto v = std::make_shared<InterfaceVar>(def.get(), this, var_name, width, size, false);
+        ref->var(name, v.get());
+        vars_.emplace(var_name, v);
+    }
+    // only create ports if it's used in the port interface
+    if (is_port) {
+        auto const &ports = def->ports();
+        for (auto const &[name, port_def] : ports) {
+            auto const &[width, size, dir] = port_def;
+            // for now they are all unsigned
+            auto var_name = ::format("{0}.{1}", def->inst_name(), name);
+            auto p = InterfacePort(def.get(), this, dir, var_name, width, size, PortType::Data, false);
+            ref->port(name, &p);
+        }
+    }
+    // put it in the interface
+    interfaces_.emplace(def->inst_name(), ref);
+    return ref;
 }
 
 std::shared_ptr<SequentialStmtBlock> Generator::sequential() {

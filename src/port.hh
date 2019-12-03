@@ -151,65 +151,19 @@ private:
     std::map<std::string, std::string> name_mappings_;
 };
 
-struct InterfaceVarMapping {
+struct InterfacePort : public Port {
 public:
-    // var mapping
-    void set_var(const std::string &name, Var *var);
-    [[nodiscard]] Var *get_var(const std::string &name) const;
+    InterfacePort(InterfaceInstance *interface, Generator *module, PortDirection direction,
+                  const std::string &name, uint32_t width, const std::vector<uint32_t> &size,
+                  PortType type, bool is_signed)
+        : Port(module, direction, name, width, size, type, is_signed), interface_(interface) {}
 
-    [[nodiscard]] virtual std::string to_string() const = 0;
+    std::string to_string() const override;
+
+    bool inline is_interface() const override { return true; }
 
 private:
-    std::map<std::string, Var *> gen_vars_;
-};
-
-struct InterfaceModPortDefinition;
-struct InterfaceDefinition : public InterfaceVarMapping {
-public:
-    using InterfacePortDef = std::tuple<uint32_t, uint32_t, PortDirection>;
-
-    std::shared_ptr<InterfaceModPortDefinition> create_modport_def(const std::string &name);
-
-    void port(const std::string &name, uint32_t width, uint32_t size, PortDirection dir);
-    void input(const std::string &name, uint32_t width, uint32_t size);
-    void output(const std::string &name, uint32_t width, uint32_t size);
-    void var(const std::string &name, uint32_t width, uint32_t size);
-
-    [[nodiscard]] bool has_port(const std::string &name) const;
-    [[nodiscard]] bool has_var(const std::string &name) const;
-
-    [[nodiscard]] InterfacePortDef port(const std::string &name) const;
-    [[nodiscard]] std::pair<uint32_t, uint32_t> var(const std::string &name) const;
-
-    [[nodiscard]] const std::map<std::string, InterfacePortDef> &ports() const { return ports_; };
-    [[nodiscard]] const std::map<std::string, std::pair<uint32_t, uint32_t>> &vars() const {
-        return vars_;
-    };
-
-    [[nodiscard]]
-    std::string to_string() const override { return name_; }
-
-private:
-    std::string name_;
-    std::map<std::string, InterfacePortDef> ports_;
-    std::map<std::string, std::pair<uint32_t, uint32_t>> vars_;
-    std::map<std::string, std::shared_ptr<InterfaceModPortDefinition>> mod_ports_;
-};
-
-struct InterfaceModPortDefinition : public InterfaceVarMapping {
-public:
-    InterfaceModPortDefinition(InterfaceDefinition *def, std::string name);
-    void input(const std::string &name);
-    void output(const std::string &name);
-
-    [[nodiscard]] std::string to_string() const override;
-
-private:
-    InterfaceDefinition *def_;
-    std::string name_;
-
-    std::set<std::string> inputs_;
-    std::set<std::string> outputs_;
+    InterfaceInstance *interface_ = nullptr;
 };
 
 }  // namespace kratos
