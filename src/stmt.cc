@@ -1,8 +1,11 @@
 #include "stmt.hh"
+
 #include <algorithm>
+
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
+#include "interface.hh"
 #include "port.hh"
 #include "util.hh"
 
@@ -485,63 +488,76 @@ FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &fun
 FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionCallVar> &var)
     : Stmt(StatementType::FunctionalCall), func_(var->func()->as<FunctionStmtBlock>()), var_(var) {}
 
+void InstantiationStmt::process_port(kratos::Port *port, Generator *parent,
+                                     const std::string &target_name) {
+    auto const port_direction = port->port_direction();
+    auto const &port_name = port->name;
+    if (port_direction == PortDirection::In) {
+        // if we're connected to a base variable and no slice, we are good
+        const auto &slices = filter_slice_pairs_with_target(port->get_slices(), parent, false);
+        const auto &sources = filter_assignments_with_target(port->sources(), parent, false);
+        // because an input cannot be an register, it can only has one
+        // source (all bits combined)
+        if (slices.empty()) {
+            if (sources.empty())
+                throw VarException(::format("{0}.{1} is not connected", target_name, port_name),
+                                   {port});
+            if (sources.size() > 1)
+                throw VarException(
+                    ::format("{0}.{1} is driven by multiple nets", target_name, port_name), {port});
+            // add it to the port mapping and we are good to go
+            auto const &stmt = *sources.begin();
+            port_mapping_.emplace(port, stmt->right());
+            if (parent->debug) {
+                port_debug_.emplace(port, stmt.get());
+            }
+            // add it to the mapping list
+            connection_stmt_.emplace(stmt.get());
+        } else {
+            // you need to run a de-slice pass on the module references first
+            throw InternalException(
+                "Input slices not supported in the statement. "
+                "Please run a de-couple pass first");
+        }
+    } else if (port_direction == PortDirection::Out) {
+        // need to find out if there is any sources connected to the slices
+        const auto &slices = filter_slice_pairs_with_target(port->get_slices(), parent, true);
+        const auto &sinks = filter_assignments_with_target(port->sinks(), parent, true);
+        if (slices.empty()) {
+            if (!sinks.empty() && sinks.size() == 1) {
+                auto stmt = *sinks.begin();
+                port_mapping_.emplace(port, stmt->left());
+                if (parent->debug) {
+                    port_debug_.emplace(port, stmt.get());
+                }
+            } else if (!sinks.empty() && sinks.size() > 1) {
+                throw InternalException(
+                    "Output slices not supported in the statement. "
+                    "Please run a de-couple pass first");
+            }
+        }
+    } else {
+        throw InternalException("Inout port type not implemented");
+    }
+}
+
 ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *parent)
     : Stmt(StatementType::ModuleInstantiation), target_(target) {
     auto const &port_names = target->get_port_names();
     for (auto const &port_name : port_names) {
         auto const &port_shared = target->get_port(port_name);
         auto port = port_shared.get();
-        auto const port_direction = port->port_direction();
-        if (port_direction == PortDirection::In) {
-            // if we're connected to a base variable and no slice, we are good
-            const auto &slices = filter_slice_pairs_with_target(port->get_slices(), parent, false);
-            const auto &sources = filter_assignments_with_target(port->sources(), parent, false);
-            // because an input cannot be an register, it can only has one
-            // source (all bits combined)
-            if (slices.empty()) {
-                if (sources.empty())
-                    throw VarException(
-                        ::format("{0}.{1} is not connected", target->name, port_name), {port});
-                if (sources.size() > 1)
-                    throw VarException(
-                        ::format("{0}.{1} is driven by multiple nets", target->name, port_name),
-                        {port});
-                // add it to the port mapping and we are good to go
-                auto const &stmt = *sources.begin();
-                port_mapping_.emplace(port, stmt->right());
-                if (parent->debug) {
-                    port_debug_.emplace(port, stmt.get());
-                }
-                // add it to the mapping list
-                connection_stmt_.emplace(stmt.get());
-            } else {
-                // you need to run a de-slice pass on the module references first
-                throw InternalException(
-                    "Input slices not supported in the statement. "
-                    "Please run a de-couple pass first");
-            }
-        } else if (port_direction == PortDirection::Out) {
-            // need to find out if there is any sources connected to the slices
-            const auto &slices = filter_slice_pairs_with_target(port->get_slices(), parent, true);
-            const auto &sinks = filter_assignments_with_target(port->sinks(), parent, true);
-            if (slices.empty()) {
-                if (!sinks.empty() && sinks.size() == 1) {
-                    auto stmt = *sinks.begin();
-                    port_mapping_.emplace(port, stmt->left());
-                    if (parent->debug) {
-                        port_debug_.emplace(port, stmt.get());
-                    }
-                } else if (!sinks.empty() && sinks.size() > 1) {
-                    throw InternalException(
-                        "Output slices not supported in the statement. "
-                        "Please run a de-couple pass first");
-                }
-            }
-        } else {
-            throw InternalException("Inout port type not implemented");
-        }
+        process_port(port, parent, target->name);
     }
     target->has_instantiated() = true;
+}
+
+InterfaceInstantiationStmt::InterfaceInstantiationStmt(kratos::Generator *parent,
+                                                       kratos::InterfaceRef *interface)
+    : Stmt(StatementType::InterfaceInstantiation) {
+    for (auto const &[port_name, port] : interface->ports()) {
+        process_port(port, parent, interface->name());
+    }
 }
 
 CommentStmt::CommentStmt(std::string comment, uint32_t line_width) : Stmt(StatementType::Comment) {

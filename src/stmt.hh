@@ -1,6 +1,7 @@
 #ifndef KRATOS_STMT_HH
 #define KRATOS_STMT_HH
 #include <vector>
+
 #include "context.hh"
 #include "expr.hh"
 
@@ -12,6 +13,7 @@ enum StatementType {
     Assign,
     Block,
     ModuleInstantiation,
+    InterfaceInstantiation,
     FunctionalCall,
     Return,
     Assert,
@@ -337,26 +339,37 @@ private:
     std::shared_ptr<FunctionCallVar> var_;
 };
 
-class ModuleInstantiationStmt : public Stmt {
+// TODO: Merge module instantiation and Interface instantiation stmt
+class InstantiationStmt {
+public:
+    const std::map<Port *, Var *> &port_mapping() const { return port_mapping_; }
+    const std::map<Var *, Stmt *> &port_debug() const { return port_debug_; }
+    const std::unordered_set<AssignStmt *> &connection_stmt() const { return connection_stmt_; }
+
+protected:
+    std::map<Port *, Var *> port_mapping_;
+
+    std::map<Var *, Stmt *> port_debug_;
+    std::unordered_set<AssignStmt *> connection_stmt_;
+
+    void process_port(kratos::Port *port, Generator *parent, const std::string &target_name);
+};
+
+class ModuleInstantiationStmt : public Stmt, public InstantiationStmt {
 public:
     ModuleInstantiationStmt(Generator *target, Generator *parent);
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
-    const std::map<Port *, Var *> &port_mapping() const { return port_mapping_; }
-
-    const std::map<Var *, Stmt *> &port_debug() const { return port_debug_; }
-
     const Generator *target() { return target_; }
-
-    const std::unordered_set<AssignStmt *> &connection_stmt() const { return connection_stmt_; }
 
 private:
     Generator *target_;
-    std::map<Port *, Var *> port_mapping_;
+};
 
-    std::map<Var *, Stmt *> port_debug_;
-    std::unordered_set<AssignStmt *> connection_stmt_;
+class InterfaceInstantiationStmt : public Stmt, public InstantiationStmt {
+public:
+    InterfaceInstantiationStmt(Generator *parent, InterfaceRef *interface);
 };
 
 class CommentStmt : public Stmt {
