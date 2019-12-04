@@ -271,7 +271,7 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
         for (auto const &port: ports) {
             count++;
             auto end = count == size? "": ",";
-            stream_ << std::make_pair(port, end) << stream_.endl();
+            stream_ << std::make_pair(port, end);
         }
     } else {
         for (uint64_t i = 0; i < v95_names.size(); i++) {
@@ -614,7 +614,6 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
 
         uint32_t count = 0;
         for (auto const& name : param_names) {
-            count++;
             auto const& param = params.at(name);
             auto value = param->value_str();
             if (param->parent_param()) {
@@ -990,7 +989,7 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
         }
 
         // modports
-        auto interface_definition = std::reinterpret_pointer_cast<InterfaceDefinition>(i_def);
+        auto interface_definition = std::static_pointer_cast<InterfaceDefinition>(i_def);
         auto const& mod_ports = interface_definition->mod_ports();
         for (auto const& [mod_name, mod_port] : mod_ports) {
             stream << indent << "modport " << mod_name << "(";
