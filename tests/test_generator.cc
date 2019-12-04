@@ -1,14 +1,14 @@
 #include "../src/codegen.hh"
+#include "../src/debug.hh"
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/fsm.hh"
 #include "../src/generator.hh"
+#include "../src/interface.hh"
 #include "../src/pass.hh"
 #include "../src/port.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
-#include "../src/debug.hh"
-#include "../src/interface.hh"
 #include "gtest/gtest.h"
 
 using namespace kratos;
@@ -75,7 +75,7 @@ TEST(generator, param) {  // NOLINT
     fix_assignment_type(&mod);
     create_module_instantiation(&mod);
     auto mod_src = generate_verilog(&mod);
-    //EXPECT_TRUE(is_valid_verilog(mod_src));
+    // EXPECT_TRUE(is_valid_verilog(mod_src));
 }
 
 TEST(pass, assignment_fix) {  // NOLINT
@@ -919,7 +919,7 @@ TEST(pass, remove_empty_block_if_then) {  // NOLINT
     EXPECT_EQ(target->to_string(), "~out");
 }
 
-TEST(pass, remove_empty_switch_one) {   // NOLINT
+TEST(pass, remove_empty_switch_one) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &out = mod.var("out", 1);
@@ -932,7 +932,7 @@ TEST(pass, remove_empty_switch_one) {   // NOLINT
     EXPECT_EQ(case_->body().size(), 1);
 }
 
-TEST(pass, remove_empty_switch_all) {   // NOLINT
+TEST(pass, remove_empty_switch_all) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &out = mod.var("out", 1);
@@ -967,7 +967,7 @@ TEST(enum_, duplicated_name) {  // NOLINT
     EXPECT_THROW(mod.enum_("E2", {{"A", 1}}, 1), UserException);
 }
 
-TEST(pass, merge_if_1) {    // NOLINT
+TEST(pass, merge_if_1) {  // NOLINT
     // this test merge the same if condition
     Context c;
     auto &mod = c.generator("mod");
@@ -990,8 +990,8 @@ TEST(pass, merge_if_1) {    // NOLINT
     EXPECT_EQ(if_->then_body()->get_child(1), assign2.get());
 }
 
-TEST(pass, merge_if_2) {    // NOLINT
-// this test merge the same if condition
+TEST(pass, merge_if_2) {  // NOLINT
+                          // this test merge the same if condition
     Context c;
     auto &mod = c.generator("mod");
     auto &a = mod.var("a", 2);
@@ -1014,7 +1014,7 @@ TEST(pass, merge_if_2) {    // NOLINT
     EXPECT_EQ(if_->else_body()->get_child(0), if2.get());
 }
 
-TEST(debug, mock_hierarchy) {   // NOLINT
+TEST(debug, mock_hierarchy) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     mod.instance_name = "mod1.mod2.mod3";
@@ -1026,7 +1026,7 @@ TEST(debug, mock_hierarchy) {   // NOLINT
     EXPECT_EQ(p->instance_name, "mod2");
 }
 
-TEST(interface, wire_interface) {   // NOLINT
+TEST(interface, wire_interface) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("mod");
     auto config = std::make_shared<InterfaceDefinition>("Config");
@@ -1048,4 +1048,14 @@ TEST(interface, wire_interface) {   // NOLINT
     EXPECT_NO_THROW(create_interface_instantiation(&mod1));
     EXPECT_NO_THROW(decouple_generator_ports(&mod1));
     EXPECT_EQ(mod1.stmts_count(), 1);
+
+    auto result = extract_interface_info(&mod1);
+    EXPECT_TRUE(!result.empty());
+    EXPECT_TRUE(result.find("Config") != result.end());
+    EXPECT_EQ(result.at("Config"),
+              "interface Config(\n  input logic read,\n  output logic write\n);\nendinterface\n");
+    fix_assignment_type(&mod1);
+    create_module_instantiation(&mod1);
+    result = generate_verilog(&mod1);
+    EXPECT_TRUE(result.find("mod") != result.end());
 }

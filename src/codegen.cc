@@ -337,6 +337,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         stmt_code(reinterpret_cast<AssertBase*>(node));
     } else if (stmt_ptr->type() == StatementType::Comment) {
         stmt_code(reinterpret_cast<CommentStmt*>(node));
+    } else if (stmt_ptr->type() == StatementType::InterfaceInstantiation) {
+        // do nothing
     } else {
         throw StmtException("Not implemented", {node});
     }
@@ -583,6 +585,7 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
 
         uint32_t count = 0;
         for (auto const& name : param_names) {
+            count++;
             auto const& param = params.at(name);
             auto value = param->value_str();
             if (param->parent_param()) {
@@ -746,19 +749,46 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
     stream_ << " (" << stream_.endl();
     indent_++;
     uint32_t count = 0;
-    std::vector<std::pair<Var*, Var*>> ports;
+    std::vector<std::pair<Port*, Var*>> ports;
     auto const& mapping = stmt->port_mapping();
     ports.reserve(mapping.size());
     for (auto const& iter : mapping) ports.emplace_back(iter);
     std::sort(ports.begin(), ports.end(),
               [](const auto& lhs, const auto& rhs) { return lhs.first->name < rhs.first->name; });
     auto debug_info = stmt->port_debug();
+    std::unordered_map<std::string, std::string> interface_names;
     for (auto const& [internal, external] : ports) {
         if (generator_->debug && debug_info.find(internal) != debug_info.end()) {
             debug_info.at(internal)->verilog_ln = stream_.line_no();
         }
         const auto& end = count++ < stmt->port_mapping().size() - 1 ? ")," : ")";
-        stream_ << indent() << "." << internal->to_string() << "(" << external->to_string() << end
+        std::string internal_name;
+        std::string external_name;
+        if (stmt->instantiation_type() == InstantiationStmt::InstantiationType::Interface) {
+            internal_name = internal->name;
+            external_name = external->name;
+        } else {
+            // module
+            if (!internal->is_interface()) {
+                internal_name = internal->to_string();
+                external_name = external->to_string();
+            } else {
+                // we assume the interface connectivity has been checked
+                internal_name = internal->base_name();
+                external_name = external->base_name();
+                if (interface_names.find(internal_name) != interface_names.end()) {
+                    if (interface_names.at(internal_name) != external_name) {
+                        throw StmtException(
+                            ::format("{0} and {1} are not from the same interface definition",
+                                     internal->handle_name(), external->handle_name()),
+                            {internal, external});
+                    }
+                    continue;
+                }
+                interface_names.emplace(internal_name, external_name);
+            }
+        }
+        stream_ << indent() << "." << internal_name << "(" << external_name << end
                 << stream_.endl();
     }
     stream_ << ");" << stream_.endl() << stream_.endl();
@@ -820,6 +850,15 @@ std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def)
 
 class InterfaceVisitor : public IRVisitor {
 public:
+    void visit(Generator* generator) override {
+        uint64_t stmt_count = generator->stmts_count();
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = generator->get_stmt(i);
+            if (stmt->type() == StatementType::InterfaceInstantiation) {
+                visit(stmt->as<InterfaceInstantiationStmt>().get());
+            }
+        }
+    }
     void visit(InterfaceInstantiationStmt* stmt) override {
         auto def = stmt->interface()->definition();
         lock_.lock();
@@ -881,12 +920,12 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
     const std::string indent = "  ";
     for (auto const& [interface_name, def] : defs) {
         auto i_ref = def.second;
-        auto const &i_def = i_ref->definition();
+        auto const& i_def = i_ref->definition();
         if (i_def->is_modport())
             // don't generate mod port definition
             continue;
         std::stringstream stream;
-        stream << "interface " << i_def;
+        stream << "interface " << interface_name;
         if (!i_def->ports().empty()) {
             stream << "(" << std::endl;
             auto port_names = i_def->ports();
@@ -904,32 +943,29 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
             stream << ";" << std::endl;
         }
         // output vars
-        auto const &vars = i_def->vars();
-        for (auto const &var_name: vars) {
+        auto const& vars = i_def->vars();
+        for (auto const& var_name : vars) {
             auto v = &i_ref->var(var_name);
             stream << indent << Stream::get_var_decl(v) << ";" << std::endl;
         }
 
         // modports
         auto interface_definition = std::reinterpret_pointer_cast<InterfaceDefinition>(i_def);
-        auto const &mod_ports = interface_definition->mod_ports();
-        for (auto const &[mod_name, mod_port]: mod_ports) {
+        auto const& mod_ports = interface_definition->mod_ports();
+        for (auto const& [mod_name, mod_port] : mod_ports) {
             stream << indent << "modport " << mod_name << "(";
-            auto const &ports = mod_port->ports();
-            if (ports.empty())
-                throw UserException(::format("{0} is empty", mod_name));
-            auto const &inputs = mod_port->inputs();
-            auto const &outputs = mod_port->outputs();
+            auto const& ports = mod_port->ports();
+            if (ports.empty()) throw UserException(::format("{0} is empty", mod_name));
+            auto const& inputs = mod_port->inputs();
+            auto const& outputs = mod_port->outputs();
             uint32_t count = 0;
-            for (auto const &name: inputs) {
+            for (auto const& name : inputs) {
                 stream << "input " << name;
-                if (count++ != ports.size())
-                    stream << ", ";
+                if (count++ != ports.size()) stream << ", ";
             }
-            for (auto const &name: outputs) {
+            for (auto const& name : outputs) {
                 stream << "output " << name;
-                if (count++ != ports.size())
-                    stream << ", ";
+                if (count++ != ports.size()) stream << ", ";
             }
             stream << ");" << std::endl;
         }

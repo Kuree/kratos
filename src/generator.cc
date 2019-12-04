@@ -485,7 +485,7 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
         auto const &[width, size] = def->var(n);
         // for now they are all unsigned
         auto var_name = ::format("{0}.{1}", def->name(), n);
-        auto v = std::make_shared<InterfaceVar>(ref.get(), this, var_name, width, size, false);
+        auto v = std::make_shared<InterfaceVar>(ref.get(), this, n, width, size, false);
         ref->var(n, v.get());
         vars_.emplace(var_name, v);
     }
@@ -494,7 +494,7 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
         auto const &[width, size, dir] = def->port(n);
         // for now they are all unsigned
         auto var_name = ::format("{0}.{1}", def->name(), n);
-        auto p = std::make_shared<InterfacePort>(ref.get(), this, dir, var_name, width, size,
+        auto p = std::make_shared<InterfacePort>(ref.get(), this, dir, n, width, size,
                                                  PortType::Data, false);
         ref->port(n, p.get());
         vars_.emplace(var_name, p);

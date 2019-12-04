@@ -346,6 +346,13 @@ public:
     const std::map<Var *, Stmt *> &port_debug() const { return port_debug_; }
     const std::unordered_set<AssignStmt *> &connection_stmt() const { return connection_stmt_; }
 
+    enum class InstantiationType {
+        Module,
+        Interface
+    };
+
+    [[nodiscard]] virtual InstantiationType instantiation_type() const = 0;
+
     virtual ~InstantiationStmt() = default;
 
 protected:
@@ -363,6 +370,8 @@ public:
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
+    InstantiationType instantiation_type() const override { return InstantiationType::Module; }
+
     const Generator *target() { return target_; }
 
 private:
@@ -374,6 +383,8 @@ public:
     InterfaceInstantiationStmt(Generator *parent, InterfaceRef *interface);
 
     [[nodiscard]] const InterfaceRef* interface() const { return interface_; }
+
+    InstantiationType instantiation_type() const override { return InstantiationType::Interface; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 

@@ -160,6 +160,7 @@ public:
         : Port(module, direction, name, width, size, type, is_signed), interface_(interface) {}
 
     std::string to_string() const override;
+    std::string base_name() const override ;
 
     bool inline is_interface() const override { return true; };
     const InterfaceRef *interface() const { return interface_; };

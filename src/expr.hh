@@ -176,6 +176,8 @@ public:
     virtual uint32_t var_high() const { return width() - 1; }
     virtual uint32_t var_low() const { return 0; }
 
+    [[nodiscard]] virtual std::string base_name() const { return name; }
+
     // for slice
     virtual const Var *get_var_root_parent() const { return this; }
 
@@ -611,6 +613,8 @@ public:
     std::string to_string() const override;
 
     bool inline is_interface() const override { return true; }
+
+    std::string base_name() const override;
 
 private:
     InterfaceRef *interface_ = nullptr;

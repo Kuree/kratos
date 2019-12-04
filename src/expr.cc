@@ -1359,4 +1359,8 @@ std::string InterfaceVar::to_string() const {
     return ::format("{0}.{1}", parent_name, Var::to_string());
 }
 
+std::string InterfaceVar::base_name() const {
+    return interface_->name();
+}
+
 }  // namespace kratos
