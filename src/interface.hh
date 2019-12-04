@@ -53,6 +53,11 @@ public:
     [[nodiscard]] const std::string &name() const override { return name_; }
     [[nodiscard]] std::string def_name() const override { return name_; }
 
+    [[nodiscard]] const std::map<std::string, std::shared_ptr<InterfaceModPortDefinition>>
+        &mod_ports() const {
+        return mod_ports_;
+    }
+
 private:
     std::string name_;
     std::map<std::string, IDefinition::InterfacePortDef> ports_;

@@ -598,6 +598,7 @@ void generate_verilog(Generator* top, const std::string& output_dir,
     auto struct_info = extract_struct_info(top);
     auto dpi_info = extract_dpi_function(top, true);
     auto enum_info = extract_enum_info(top);
+    auto interface_info = extract_interface_info(top);
     header_filename = kratos::fs::join(output_dir, header_filename);
     std::stringstream stream;
     // output the guard
@@ -619,6 +620,9 @@ void generate_verilog(Generator* top, const std::string& output_dir,
         stream << iter.second << std::endl << std::endl;
     }
     for (auto const& iter : enum_info) {
+        stream << iter.second << std::endl;
+    }
+    for (auto const& iter : interface_info) {
         stream << iter.second << std::endl;
     }
 
@@ -854,15 +858,15 @@ private:
             if ((stmt->left()->is_interface()) && stmt->left()->type() == VarType::PortIO) {
                 auto port_var = dynamic_cast<InterfacePort*>(stmt->left());
                 if (!port_var)
-                    throw InternalException(::format("unable to cast {0} to InterfacePort",
-                                            stmt->left()->to_string()));
+                    throw InternalException(
+                        ::format("unable to cast {0} to InterfacePort", stmt->left()->to_string()));
                 return !port_var->interface()->is_port();
             }
             if (stmt->right()->is_interface() && stmt->left()->type() == VarType::PortIO) {
                 auto port_var = dynamic_cast<InterfacePort*>(stmt->right());
                 if (!port_var)
-                    throw InternalException(::format("unable to cast {0} to InterfacePort",
-                                                     stmt->left()->to_string()));
+                    throw InternalException(
+                        ::format("unable to cast {0} to InterfacePort", stmt->left()->to_string()));
                 return !port_var->interface()->is_port();
             }
         }

@@ -894,7 +894,7 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
             for (auto const& port_name : port_names) {
                 auto p = &i_ref->port(port_name);
                 stream << indent << SystemVerilogCodeGen::get_port_str(p);
-                if (i == port_names.size() - 1)
+                if (i++ == port_names.size() - 1)
                     stream << std::endl;
                 else
                     stream << "," << std::endl;
@@ -911,8 +911,30 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
         }
 
         // modports
-        // auto interface_definition = std::reinterpret_pointer_cast<InterfaceDefinition>(i_def);
-
+        auto interface_definition = std::reinterpret_pointer_cast<InterfaceDefinition>(i_def);
+        auto const &mod_ports = interface_definition->mod_ports();
+        for (auto const &[mod_name, mod_port]: mod_ports) {
+            stream << indent << "modport " << mod_name << "(";
+            auto const &ports = mod_port->ports();
+            if (ports.empty())
+                throw UserException(::format("{0} is empty", mod_name));
+            auto const &inputs = mod_port->inputs();
+            auto const &outputs = mod_port->outputs();
+            uint32_t count = 0;
+            for (auto const &name: inputs) {
+                stream << "input " << name;
+                if (count++ != ports.size())
+                    stream << ", ";
+            }
+            for (auto const &name: outputs) {
+                stream << "output " << name;
+                if (count++ != ports.size())
+                    stream << ", ";
+            }
+            stream << ");" << std::endl;
+        }
+        stream << "endinterface" << std::endl;
+        result.emplace(interface_name, stream.str());
     }
     return result;
 }
