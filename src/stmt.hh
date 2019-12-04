@@ -346,6 +346,8 @@ public:
     const std::map<Var *, Stmt *> &port_debug() const { return port_debug_; }
     const std::unordered_set<AssignStmt *> &connection_stmt() const { return connection_stmt_; }
 
+    virtual ~InstantiationStmt() = default;
+
 protected:
     std::map<Port *, Var *> port_mapping_;
 

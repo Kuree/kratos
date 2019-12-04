@@ -33,6 +33,8 @@ void check_active_high(Generator* top);
 
 void create_module_instantiation(Generator* top);
 
+void create_interface_instantiation(Generator *top);
+
 void hash_generators(Generator* top, HashStrategy strategy);
 void inline hash_generators_parallel(Generator* top) {
     hash_generators(top, HashStrategy::ParallelHash);

@@ -188,6 +188,7 @@ public:
         port_bundle_mapping_.erase(ref_name);
     }
 
+
     // debug info
     const std::unordered_map<std::string, std::pair<std::string, uint32_t>> &children_debug()
         const {
@@ -212,6 +213,7 @@ public:
     std::shared_ptr<Var> get_auxiliary_var(uint32_t width, bool signed_ = false);
     bool has_instantiated() const { return has_instantiated_; }
     bool &has_instantiated() { return has_instantiated_; }
+    const std::map<std::string, std::shared_ptr<InterfaceRef>> &interfaces() const { return interfaces_; }
 
 private:
     std::vector<std::string> lib_files_;

@@ -1,8 +1,11 @@
 #include "pass.hh"
+
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <mutex>
 #include <numeric>
+
 #include "codegen.hh"
 #include "debug.hh"
 #include "except.hh"
@@ -10,10 +13,9 @@
 #include "fsm.hh"
 #include "generator.hh"
 #include "graph.hh"
+#include "interface.hh"
 #include "port.hh"
 #include "util.hh"
-#include <mutex>
-
 
 using fmt::format;
 using std::runtime_error;
@@ -304,7 +306,7 @@ public:
                     if (bits.find(i) == bits.end()) {
                         throw StmtException(
                             ::format("{0}[{1}] is a floating net. Please check your connections",
-                                     port_name, i),
+                                     port->handle_name(), i),
                             stmt_list.begin(), stmt_list.end());
                     }
                 }
@@ -460,6 +462,24 @@ void create_module_instantiation(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
+class InterfaceInstantiationVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        auto& interfaces = generator->interfaces();
+        for (auto const& [name, interface] : interfaces) {
+            if (interface->has_instantiated()) continue;
+            if (interface->is_port()) continue;
+            auto stmt = std::make_shared<InterfaceInstantiationStmt>(generator, interface.get());
+            generator->add_stmt(stmt);
+        }
+    }
+};
+
+void create_interface_instantiation(Generator* top) {
+    InterfaceInstantiationVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
 class UniqueGeneratorVisitor : public IRVisitor {
 private:
     std::map<std::string, Generator*> generator_map_;
@@ -598,7 +618,7 @@ void generate_verilog(Generator* top, const std::string& output_dir,
         // ordered map as well
         stream << iter.second << std::endl << std::endl;
     }
-    for (auto const &iter: enum_info) {
+    for (auto const& iter : enum_info) {
         stream << iter.second << std::endl;
     }
 
@@ -682,103 +702,110 @@ public:
 
         for (auto const& port_name : port_names) {
             auto port = generator->get_port(port_name);
-            auto const port_direction = port->port_direction();
-            if (port_direction == PortDirection::In) {
-                const auto& sources = port->sources();
-                // unless it's driven by a single var or port, we need to duplicate
-                // the variable
-                if (sources.size() == 1) {
-                    const auto& stmt = *sources.begin();
-                    if (stmt->left() == port.get()) {
-                        // the sink has to be it self
-                        auto src = stmt->right();
-                        if (src->type() == VarType::Base || src->type() == VarType::ConstValue ||
-                            src->type() == VarType::Parameter ||
-                            (src->type() == VarType::PortIO &&
-                             src->parent() == generator->parent())) {
-                            // remove it from the parent generator
-                            src->generator->remove_stmt(stmt);
-                            continue;
-                        }
-                    }
-                }
-                // create a new variable
-                auto ast_parent = generator->parent();
-                if (!ast_parent)
-                    throw GeneratorException(
-                        ::format("{0}'s parent is empty but it's not a top module",
-                                 generator->name),
-                        {generator});
-                auto parent = reinterpret_cast<Generator*>(ast_parent);
-                auto new_name =
-                    parent->get_unique_variable_name(generator->instance_name, port_name);
-                if (port->is_struct()) {
-                    auto packed = port->as<PortPackedStruct>();
-                    parent->var_packed(new_name, packed->packed_struct());
-                } else {
-                    auto& v =
-                        parent->var(new_name, port->var_width(), port->size(), port->is_signed());
-                    v.set_is_packed(port->is_packed());
-                    v.set_explicit_array(port->explicit_array());
-                }
-                auto var = parent->get_var(new_name);
-                if (parent->debug) {
-                    // need to copy over the changes over
-                    var->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
-                        port->fn_name_ln.begin(), port->fn_name_ln.end());
-                    var->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
-                }
-                // replace all the sources
-                Var::move_src_to(port.get(), var.get(), parent, true);
-            } else if (port_direction == PortDirection::Out) {
-                // same logic as the port dir in
-                // if we're connected to a base variable, we are good
-                const auto& sinks = port->sinks();
-                if (sinks.empty()) {
-                    continue;
-                }
-                // special case where if the sink is parent's port, this is fine
-                if (sinks.size() == 1) {
-                    auto stmt = *(sinks.begin());
-                    auto src = stmt->left();
-                    if (src->type() == VarType::PortIO && src->generator == generator->parent() &&
-                        stmt->right() == port.get()) {
+            process_port(generator, port.get(), port_name);
+        }
+        // for internal interface ports
+        auto& interfaces = generator->interfaces();
+        for (auto const& iter : interfaces) {
+            auto const& interface = iter.second;
+            auto const& ports = interface->ports();
+            for (auto const& [port_name, port] : ports) {
+                process_port(generator, port, port_name);
+            }
+        }
+    }
+
+private:
+    static void process_port(Generator* generator, Port* port, const std::string& port_name) {
+        auto const port_direction = port->port_direction();
+        if (port_direction == PortDirection::In) {
+            const auto& sources = port->sources();
+            // unless it's driven by a single var or port, we need to duplicate
+            // the variable
+            if (sources.size() == 1) {
+                const auto& stmt = *sources.begin();
+                if (stmt->left() == port) {
+                    // the sink has to be it self
+                    auto src = stmt->right();
+                    if (src->type() == VarType::Base || src->type() == VarType::ConstValue ||
+                        src->type() == VarType::Parameter ||
+                        (src->type() == VarType::PortIO && src->parent() == generator->parent())) {
                         // remove it from the parent generator
                         src->generator->remove_stmt(stmt);
-                        continue;
+                        return;
                     }
                 }
-                // create a new variable
-                auto ast_parent = generator->parent();
-                if (!ast_parent)
-                    throw GeneratorException(
-                        ::format("{0}'s parent is empty but it's not a top module",
-                                 generator->name),
-                        {generator});
-                auto parent = reinterpret_cast<Generator*>(ast_parent);
-                auto new_name =
-                    parent->get_unique_variable_name(generator->instance_name, port_name);
-                if (port->is_struct()) {
-                    auto packed = port->as<PortPackedStruct>();
-                    parent->var_packed(new_name, packed->packed_struct());
-                } else {
-                    auto& v =
-                        parent->var(new_name, port->var_width(), port->size(), port->is_signed());
-                    v.set_is_packed(port->is_packed());
-                    v.set_explicit_array(port->explicit_array());
-                }
-                auto var = parent->get_var(new_name);
-                if (parent->debug) {
-                    // need to copy over the changes over
-                    var->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
-                        port->fn_name_ln.begin(), port->fn_name_ln.end());
-                    var->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
-                }
-                // replace all the sources
-                Var::move_sink_to(port.get(), var.get(), parent, true);
-            } else {
-                throw InternalException("Not implement yet");
             }
+            // create a new variable
+            auto ast_parent = generator->parent();
+            if (!ast_parent)
+                throw GeneratorException(
+                    ::format("{0}'s parent is empty but it's not a top module", generator->name),
+                    {generator});
+            auto parent = reinterpret_cast<Generator*>(ast_parent);
+            auto new_name = parent->get_unique_variable_name(generator->instance_name, port_name);
+            if (port->is_struct()) {
+                auto packed = port->as<PortPackedStruct>();
+                parent->var_packed(new_name, packed->packed_struct());
+            } else {
+                auto& v = parent->var(new_name, port->var_width(), port->size(), port->is_signed());
+                v.set_is_packed(port->is_packed());
+                v.set_explicit_array(port->explicit_array());
+            }
+            auto var = parent->get_var(new_name);
+            if (parent->debug) {
+                // need to copy over the changes over
+                var->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
+                    port->fn_name_ln.begin(), port->fn_name_ln.end());
+                var->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+            }
+            // replace all the sources
+            Var::move_src_to(port, var.get(), parent, true);
+        } else if (port_direction == PortDirection::Out) {
+            // same logic as the port dir in
+            // if we're connected to a base variable, we are good
+            const auto& sinks = port->sinks();
+            if (sinks.empty()) {
+                return;
+            }
+            // special case where if the sink is parent's port, this is fine
+            if (sinks.size() == 1) {
+                auto stmt = *(sinks.begin());
+                auto src = stmt->left();
+                if (src->type() == VarType::PortIO && src->generator == generator->parent() &&
+                    stmt->right() == port) {
+                    // remove it from the parent generator
+                    src->generator->remove_stmt(stmt);
+                    return;
+                }
+            }
+            // create a new variable
+            auto ast_parent = generator->parent();
+            if (!ast_parent)
+                throw GeneratorException(
+                    ::format("{0}'s parent is empty but it's not a top module", generator->name),
+                    {generator});
+            auto parent = reinterpret_cast<Generator*>(ast_parent);
+            auto new_name = parent->get_unique_variable_name(generator->instance_name, port_name);
+            if (port->is_struct()) {
+                auto packed = port->as<PortPackedStruct>();
+                parent->var_packed(new_name, packed->packed_struct());
+            } else {
+                auto& v = parent->var(new_name, port->var_width(), port->size(), port->is_signed());
+                v.set_is_packed(port->is_packed());
+                v.set_explicit_array(port->explicit_array());
+            }
+            auto var = parent->get_var(new_name);
+            if (parent->debug) {
+                // need to copy over the changes over
+                var->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
+                    port->fn_name_ln.begin(), port->fn_name_ln.end());
+                var->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+            }
+            // replace all the sources
+            Var::move_sink_to(port, var.get(), parent, true);
+        } else {
+            throw InternalException("Not implement yet");
         }
     }
 };
@@ -824,6 +851,20 @@ private:
             if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator != generator) ||
                 (stmt->right()->type() == VarType::PortIO && stmt->right()->generator != generator))
                 return true;
+            if ((stmt->left()->is_interface()) && stmt->left()->type() == VarType::PortIO) {
+                auto port_var = dynamic_cast<InterfacePort*>(stmt->left());
+                if (!port_var)
+                    throw InternalException(::format("unable to cast {0} to InterfacePort",
+                                            stmt->left()->to_string()));
+                return !port_var->interface()->is_port();
+            }
+            if (stmt->right()->is_interface() && stmt->left()->type() == VarType::PortIO) {
+                auto port_var = dynamic_cast<InterfacePort*>(stmt->right());
+                if (!port_var)
+                    throw InternalException(::format("unable to cast {0} to InterfacePort",
+                                                     stmt->left()->to_string()));
+                return !port_var->interface()->is_port();
+            }
         }
         return false;
     }
@@ -895,7 +936,7 @@ public:
     }
 
 private:
-    void checkout_assignment(Generator* generator, const std::string& name) const {
+    static void checkout_assignment(Generator* generator, const std::string& name) {
         auto const& var = generator->get_var(name);
         AssignmentType type = Undefined;
         for (auto const& stmt : var->sources()) {
@@ -928,7 +969,7 @@ private:
         }
     }
 
-    void check_var_parent(Generator* generator, Var* dst_var, Var* var, Stmt* stmt) const {
+    static void check_var_parent(Generator* generator, Var* dst_var, Var* var, Stmt* stmt) {
         auto gen = var->generator;
         if (gen == Const::const_gen()) return;
         if (generator != gen) {
@@ -1756,10 +1797,10 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int
 }
 
 std::map<std::string, std::string> extract_enum_info(Generator* top) {
-    auto const &enum_defs = top->context()->enum_defs();
+    auto const& enum_defs = top->context()->enum_defs();
 
     std::map<std::string, std::string> result;
-    for (auto const &[enum_name, def]: enum_defs) {
+    for (auto const& [enum_name, def] : enum_defs) {
         auto str = SystemVerilogCodeGen::enum_code(def.get());
         result.emplace(enum_name, str);
     }
@@ -1800,26 +1841,28 @@ private:
         for (auto const& stmt : stmts_to_remove) block->remove_stmt(stmt);
     }
 
-    void extract_sliced_stmts(Generator* generator,
-                              std::set<std::shared_ptr<AssignStmt>>& sliced_stmts) const {
+    static void extract_sliced_stmts(Generator* generator,
+                                     std::set<std::shared_ptr<AssignStmt>>& sliced_stmts) {
         uint64_t stmt_count = generator->stmts_count();
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = generator->get_stmt(i);
             if (stmt->type() == Assign) {
                 auto assign_stmt = stmt->as<AssignStmt>();
-                if (assign_stmt->left()->type() == VarType::Slice && assign_stmt->right()->type() == VarType::Slice) {
+                if (assign_stmt->left()->type() == VarType::Slice &&
+                    assign_stmt->right()->type() == VarType::Slice) {
                     sliced_stmts.emplace(assign_stmt);
                 }
             }
         }
     }
 
-    void extract_sliced_stmts(StmtBlock* block,
-                              std::set<std::shared_ptr<AssignStmt>>& sliced_stmts) const {
+    static void extract_sliced_stmts(StmtBlock* block,
+                                     std::set<std::shared_ptr<AssignStmt>>& sliced_stmts) {
         for (auto const& stmt : *block) {
             if (stmt->type() == Assign) {
                 auto assign_stmt = stmt->as<AssignStmt>();
-                if (assign_stmt->left()->type() == VarType::Slice && assign_stmt->right()->type() == VarType::Slice) {
+                if (assign_stmt->left()->type() == VarType::Slice &&
+                    assign_stmt->right()->type() == VarType::Slice) {
                     sliced_stmts.emplace(assign_stmt);
                 }
             }
@@ -1864,9 +1907,9 @@ private:
             create_new_assignment(generator, stmts, left, right);
         }
     }
-    void create_new_assignment(Generator* generator,
-                               const std::vector<std::shared_ptr<AssignStmt>>& stmts,
-                               Var* const left, Var* const right) const {
+    void static create_new_assignment(Generator* generator,
+                                      const std::vector<std::shared_ptr<AssignStmt>>& stmts,
+                                      Var* const left, Var* const right) {
         if (stmts.empty()) return;
         auto new_stmt = left->assign(right->shared_from_this(), Blocking);
         generator->add_stmt(new_stmt);
@@ -1880,9 +1923,9 @@ private:
         }
     }
 
-    void create_new_assignment(StmtBlock* block,
-                               const std::vector<std::shared_ptr<AssignStmt>>& stmts,
-                               Var* const left, Var* const right) const {
+    static void create_new_assignment(StmtBlock* block,
+                                      const std::vector<std::shared_ptr<AssignStmt>>& stmts,
+                                      Var* const left, Var* const right) {
         if (stmts.empty()) return;
         // use the first assignment type. assume all the assignment has passed the
         // mixed assignment check
@@ -1899,7 +1942,7 @@ private:
         }
     }
 
-    Generator* get_parent(StmtBlock* block) const {
+    static Generator* get_parent(StmtBlock* block) {
         Generator* result = nullptr;
         IRNode* node = block;
         for (uint32_t i = 0; i < 10000u; i++) {
@@ -2703,6 +2746,8 @@ void PassManager::register_builtin_passes() {
     register_pass("uniquify_generators", &uniquify_generators);
 
     register_pass("create_module_instantiation", &create_module_instantiation);
+
+    register_pass("create_interface_instantiation", &create_interface_instantiation);
 
     register_pass("insert_pipeline_stages", &insert_pipeline_stages);
 }

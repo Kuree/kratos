@@ -6,6 +6,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+
 #include "expr.hh"
 
 namespace kratos {
@@ -160,7 +161,8 @@ public:
 
     std::string to_string() const override;
 
-    bool inline is_interface() const override { return true; }
+    bool inline is_interface() const override { return true; };
+    const InterfaceRef *interface() const { return interface_; };
 
 private:
     InterfaceRef *interface_ = nullptr;

@@ -1032,11 +1032,20 @@ TEST(interface, wire_interface) {   // NOLINT
     auto config = std::make_shared<InterfaceDefinition>("Config");
     config->input("read", 1, 1);
     config->output("write", 1, 1);
-    auto i1 = mod1.interface(config, "bus1", true);
+    auto &read = mod1.port(PortDirection::In, "read", 1);
+    auto &write = mod1.port(PortDirection::Out, "write", 1);
+    auto i1 = mod1.interface(config, "bus1", false);
+    mod1.add_stmt(i1->port("read").assign(read));
+    mod1.add_stmt(write.assign(i1->port("write")));
 
     auto &mod2 = c.generator("mod2");
     auto i2 = mod2.interface(config, "bus", true);
+    mod2.add_stmt(i2->port("write").assign(i2->port("read")));
     mod1.add_child_generator("inst", mod2.shared_from_this());
 
     EXPECT_NO_THROW(mod1.wire_interface(i1, i2));
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
+    EXPECT_NO_THROW(create_interface_instantiation(&mod1));
+    EXPECT_NO_THROW(decouple_generator_ports(&mod1));
+    EXPECT_EQ(mod1.stmts_count(), 1);
 }

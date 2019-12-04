@@ -558,6 +558,7 @@ InterfaceInstantiationStmt::InterfaceInstantiationStmt(kratos::Generator *parent
     for (auto const &[port_name, port] : interface->ports()) {
         process_port(port, parent, interface->name());
     }
+    interface->has_instantiated() = true;
 }
 
 CommentStmt::CommentStmt(std::string comment, uint32_t line_width) : Stmt(StatementType::Comment) {

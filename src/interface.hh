@@ -20,6 +20,8 @@ public:
     [[nodiscard]] virtual std::set<std::string> vars() const = 0;
 
     [[nodiscard]] virtual const std::string &name() const = 0;
+
+    virtual ~IDefinition() = default;
 };
 
 struct InterfaceDefinition : public IDefinition {
@@ -108,6 +110,8 @@ public:
 
     [[nodiscard]] Generator *gen() const { return gen_; }
     [[nodiscard]] const std::string &name() const { return name_; }
+    [[nodiscard]] bool has_instantiated() const { return has_instantiated_; }
+    bool &has_instantiated() { return has_instantiated_; }
 
 private:
     std::shared_ptr<IDefinition> definition_;
@@ -117,6 +121,8 @@ private:
     bool is_port_ = false;
     Generator *gen_;
     std::string name_;
+
+    bool has_instantiated_ = false;
 };
 
 }  // namespace kratos
