@@ -117,6 +117,8 @@ protected:
 
     void stmt_code(ModuleInstantiationStmt* stmt);
 
+    void stmt_code(InterfaceInstantiationStmt *stmt);
+
     void stmt_code(SwitchStmt* stmt);
 
     void stmt_code(FunctionStmtBlock* stmt);
@@ -139,6 +141,10 @@ protected:
 
     // the actual code gen part
     void output_module_def(Generator* generator);
+
+    // code gen port interface
+    void generate_port_interface(InstantiationStmt *stmt);
+    void generate_interface(Generator *generator);
 };
 
 std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def);

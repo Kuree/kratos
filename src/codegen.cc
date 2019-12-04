@@ -1,9 +1,14 @@
 #include "codegen.hh"
+
 #include <fmt/format.h>
+
+#include <mutex>
+
 #include "context.hh"
 #include "except.hh"
 #include "expr.hh"
 #include "generator.hh"
+#include "interface.hh"
 #include "pass.hh"
 #include "tb.hh"
 #include "util.hh"
@@ -187,6 +192,7 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     stream_ << indent() << ");" << stream_.endl() << stream_.endl();
     if (verilog95_def_) generate_port_verilog_95_def(generator);
     generate_enums(generator);
+    generate_interface(generator);
     generate_variables(generator);
     generate_functions(generator);
 
@@ -217,15 +223,32 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     auto& port_names_set = generator->get_port_names();
     std::vector<std::string> port_names(port_names_set.begin(), port_names_set.end());
     std::sort(port_names.begin(), port_names.end());
+    std::unordered_set<std::string> interface_name;
     for (uint64_t i = 0; i < port_names.size(); i++) {
         auto const& port_name = port_names[i];
-        if (!verilog95_def_) {
-            auto port = generator->get_port(port_name);
-            stream_ << std::make_pair(port.get(), (i == port_names.size() - 1) ? "" : ",");
+        auto port = generator->get_port(port_name);
+        if (!port->is_interface()) {
+            if (!verilog95_def_) {
+                stream_ << std::make_pair(port.get(), (i == port_names.size() - 1) ? "" : ",");
+            } else {
+                stream_ << indent() << port_name;
+                if (i != port_names.size() - 1) stream_ << ',';
+                stream_ << stream_.endl();
+            }
         } else {
-            stream_ << indent() << port_name;
-            if (i != port_names.size() - 1) stream_ << ',';
-            stream_ << stream_.endl();
+            auto port_interface = port->as<InterfacePort>();
+            auto ref = port_interface->interface();
+            auto const& ref_name = ref->name();
+            // only print out interface def once
+            if (interface_name.find(ref_name) == interface_name.end()) {
+                if (!verilog95_def_) {
+                    stream_ << indent() << ref->definition()->def_name() << " " << ref_name;
+                } else {
+                    stream_ << indent() << ref_name;
+                }
+                if (i != port_names.size() - 1) stream_ << ',';
+                interface_name.emplace(ref_name);
+            }
         }
     }
     indent_--;
@@ -234,9 +257,18 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
 void SystemVerilogCodeGen::generate_port_verilog_95_def(kratos::Generator* generator) {
     if (verilog95_def_) {
         auto& port_names_set = generator->get_port_names();
+        std::unordered_set<std::string> interface_name;
         for (auto const& port_name : port_names_set) {
             auto const& port = generator->get_port(port_name);
-            stream_ << std::make_pair(port.get(), ";");
+            if (!port->is_interface()) {
+                stream_ << std::make_pair(port.get(), ";");
+            } else {
+                auto port_interface = port->as<InterfacePort>();
+                auto ref = port_interface->interface();
+                auto const& ref_name = ref->name();
+                stream_ << indent() << ref->definition()->def_name() << " " << ref_name << ";"
+                        << stream_.endl();
+            }
         }
     }
 }
@@ -573,25 +605,20 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
 
         indent_--;
     }
-    stream_ << " " << stmt->target()->instance_name << " (" << stream_.endl();
-    indent_++;
-    uint32_t count = 0;
-    std::vector<std::pair<Var*, Var*>> ports;
-    auto const& mapping = stmt->port_mapping();
-    ports.reserve(mapping.size());
-    for (auto const& iter : mapping) ports.emplace_back(iter);
-    std::sort(ports.begin(), ports.end(),
-              [](const auto& lhs, const auto& rhs) { return lhs.first->name < rhs.first->name; });
-    for (auto const& [internal, external] : ports) {
-        if (generator_->debug && debug_info.find(internal) != debug_info.end()) {
-            debug_info.at(internal)->verilog_ln = stream_.line_no();
-        }
-        const auto& end = count++ < stmt->port_mapping().size() - 1 ? ")," : ")";
-        stream_ << indent() << "." << internal->to_string() << "(" << external->to_string() << end
-                << stream_.endl();
+    stream_ << " " << stmt->target()->instance_name;
+    generate_port_interface(stmt);
+}
+
+void SystemVerilogCodeGen::stmt_code(kratos::InterfaceInstantiationStmt* stmt) {
+    // comment
+    if (!stmt->comment.empty()) {
+        stream_ << indent() << "// " << strip_newline(stmt->comment) << stream_.endl();
     }
-    stream_ << ");" << stream_.endl() << stream_.endl();
-    indent_--;
+    stmt->verilog_ln = stream_.line_no();
+    auto const& interface = stmt->interface();
+    stream_ << indent() << interface->definition()->def_name() << " " << interface->name();
+    // TODO: allow parametrization
+    generate_port_interface(stmt);
 }
 
 void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
@@ -715,6 +742,40 @@ void SystemVerilogCodeGen::generate_enums(kratos::Generator* generator) {
     for (auto const& iter : enums) enum_code_(iter.second.get());
 }
 
+void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* stmt) {
+    stream_ << " (" << stream_.endl();
+    indent_++;
+    uint32_t count = 0;
+    std::vector<std::pair<Var*, Var*>> ports;
+    auto const& mapping = stmt->port_mapping();
+    ports.reserve(mapping.size());
+    for (auto const& iter : mapping) ports.emplace_back(iter);
+    std::sort(ports.begin(), ports.end(),
+              [](const auto& lhs, const auto& rhs) { return lhs.first->name < rhs.first->name; });
+    auto debug_info = stmt->port_debug();
+    for (auto const& [internal, external] : ports) {
+        if (generator_->debug && debug_info.find(internal) != debug_info.end()) {
+            debug_info.at(internal)->verilog_ln = stream_.line_no();
+        }
+        const auto& end = count++ < stmt->port_mapping().size() - 1 ? ")," : ")";
+        stream_ << indent() << "." << internal->to_string() << "(" << external->to_string() << end
+                << stream_.endl();
+    }
+    stream_ << ");" << stream_.endl() << stream_.endl();
+    indent_--;
+}
+
+void SystemVerilogCodeGen::generate_interface(Generator* generator) {
+    uint64_t stmt_count = generator->stmts_count();
+    for (uint64_t i = 0; i < stmt_count; i++) {
+        auto stmt = generator->get_stmt(i);
+        if (stmt->type() == StatementType::InterfaceInstantiation) {
+            auto s = stmt->as<InterfaceInstantiationStmt>();
+            stmt_code(s.get());
+        }
+    }
+}
+
 void SystemVerilogCodeGen::enum_code_(kratos::Stream& stream_, kratos::Enum* enum_, bool debug) {
     std::string logic_str = enum_->width() == 1 ? "" : ::format("[{0}:0]", enum_->width() - 1);
     stream_ << "typedef enum logic" << logic_str << " {" << stream_.endl();
@@ -724,11 +785,11 @@ void SystemVerilogCodeGen::enum_code_(kratos::Stream& stream_, kratos::Enum* enu
     std::vector<std::string> names;
     names.reserve(enum_->values.size());
     for (auto const& iter : enum_->values) names.emplace_back(iter.first);
-    std::sort(names.begin(), names.end(), [&](const auto &a, const auto &b) {
+    std::sort(names.begin(), names.end(), [&](const auto& a, const auto& b) {
         return enum_->values.at(a)->value() < enum_->values.at(b)->value();
     });
-    for (auto const & name: names) {
-        auto &c = enum_->values.at(name);
+    for (auto const& name : names) {
+        auto& c = enum_->values.at(name);
         if (debug) {
             c->verilog_ln = stream_.line_no();
         }
@@ -755,6 +816,105 @@ std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def)
     // now outputting the stream
     auto res = generate_verilog(&gen, verilog_95_def);
     return res.at(top->name);
+}
+
+class InterfaceVisitor : public IRVisitor {
+public:
+    void visit(InterfaceInstantiationStmt* stmt) override {
+        auto def = stmt->interface()->definition();
+        lock_.lock();
+        if (interfaces_.find(def->def_name()) == interfaces_.end()) {
+            interfaces_.emplace(def->def_name(), std::make_pair(stmt, stmt->interface()));
+            lock_.unlock();
+        } else {
+            // making sure they are the same
+            auto const& [ref_stmt, ref_interface] = interfaces_.at(def->def_name());
+            auto ref_def = ref_interface->definition();
+            lock_.unlock();
+            auto const& ports = def->ports();
+            if (ref_def->ports() != ports)
+                throw UserException(
+                    ::format("{0}.{1}'s interface differs from {2}.{3}'s",
+                             stmt->generator_parent()->handle_name(), def->def_name(),
+                             ref_stmt->generator_parent()->handle_name(), ref_def->def_name()));
+            for (auto const& port_name : ports) {
+                if (def->port(port_name) != ref_def->port(port_name))
+                    throw UserException(
+                        ::format("{0}.{1}'s interface differs from {2}.{3}'s",
+                                 stmt->generator_parent()->handle_name(), def->def_name(),
+                                 ref_stmt->generator_parent()->handle_name(), ref_def->def_name()));
+            }
+            // same var as well
+            auto const& vars = def->vars();
+            if (ref_def->vars() != vars)
+                throw UserException(
+                    ::format("{0}.{1}'s interface differs from {2}.{3}'s",
+                             stmt->generator_parent()->handle_name(), def->def_name(),
+                             ref_stmt->generator_parent()->handle_name(), ref_def->def_name()));
+            for (auto const& port_name : vars) {
+                if (def->var(port_name) != ref_def->var(port_name))
+                    throw UserException(
+                        ::format("{0}.{1}'s interface differs from {2}.{3}'s",
+                                 stmt->generator_parent()->handle_name(), def->def_name(),
+                                 ref_stmt->generator_parent()->handle_name(), ref_def->def_name()));
+            }
+        }
+    }
+
+    const std::unordered_map<std::string,
+                             std::pair<InterfaceInstantiationStmt*, const InterfaceRef*>>&
+    interfaces() const {
+        return interfaces_;
+    }
+
+private:
+    std::unordered_map<std::string, std::pair<InterfaceInstantiationStmt*, const InterfaceRef*>>
+        interfaces_;
+    std::mutex lock_;
+};
+
+std::map<std::string, std::string> extract_interface_info(Generator* top) {
+    InterfaceVisitor visitor;
+    visitor.visit_generator_root_p(top);
+    auto defs = visitor.interfaces();
+    std::map<std::string, std::string> result;
+    const std::string indent = "  ";
+    for (auto const& [interface_name, def] : defs) {
+        auto i_ref = def.second;
+        auto const &i_def = i_ref->definition();
+        if (i_def->is_modport())
+            // don't generate mod port definition
+            continue;
+        std::stringstream stream;
+        stream << "interface " << i_def;
+        if (!i_def->ports().empty()) {
+            stream << "(" << std::endl;
+            auto port_names = i_def->ports();
+            uint32_t i = 0;
+            for (auto const& port_name : port_names) {
+                auto p = &i_ref->port(port_name);
+                stream << indent << SystemVerilogCodeGen::get_port_str(p);
+                if (i == port_names.size() - 1)
+                    stream << std::endl;
+                else
+                    stream << "," << std::endl;
+            }
+            stream << ");" << std::endl;
+        } else {
+            stream << ";" << std::endl;
+        }
+        // output vars
+        auto const &vars = i_def->vars();
+        for (auto const &var_name: vars) {
+            auto v = &i_ref->var(var_name);
+            stream << indent << Stream::get_var_decl(v) << ";" << std::endl;
+        }
+
+        // modports
+        // auto interface_definition = std::reinterpret_pointer_cast<InterfaceDefinition>(i_def);
+
+    }
+    return result;
 }
 
 }  // namespace kratos

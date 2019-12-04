@@ -20,6 +20,9 @@ public:
     [[nodiscard]] virtual std::set<std::string> vars() const = 0;
 
     [[nodiscard]] virtual const std::string &name() const = 0;
+    [[nodiscard]] virtual std::string def_name() const = 0;
+
+    [[nodiscard]] virtual bool is_modport() const { return false; }
 
     virtual ~IDefinition() = default;
 };
@@ -48,6 +51,7 @@ public:
     [[nodiscard]] std::set<std::string> vars() const override;
 
     [[nodiscard]] const std::string &name() const override { return name_; }
+    [[nodiscard]] std::string def_name() const override { return name_; }
 
 private:
     std::string name_;
@@ -78,6 +82,9 @@ public:
 
     [[nodiscard]] const InterfaceDefinition *def() const { return def_; }
     [[nodiscard]] const std::string &name() const override { return name_; }
+    [[nodiscard]] std::string def_name() const override;
+
+    [[nodiscard]] bool is_modport() const override { return true; }
 
 private:
     InterfaceDefinition *def_;
@@ -112,6 +119,7 @@ public:
     [[nodiscard]] const std::string &name() const { return name_; }
     [[nodiscard]] bool has_instantiated() const { return has_instantiated_; }
     bool &has_instantiated() { return has_instantiated_; }
+    [[nodiscard]] const std::shared_ptr<IDefinition> &definition() const { return definition_; }
 
 private:
     std::shared_ptr<IDefinition> definition_;

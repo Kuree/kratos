@@ -133,6 +133,10 @@ void InterfaceModPortDefinition::set_input(const std::string& name) {
     }
 }
 
+std::string InterfaceModPortDefinition::def_name() const {
+    return ::format("{0}.{1}", def_->def_name(), name_);
+}
+
 Var& InterfaceRef::var(const std::string& name) const {
     if (!has_var(name)) {
         throw UserException(::format("{0} not found in {1}", name, name_));

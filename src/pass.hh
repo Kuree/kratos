@@ -71,6 +71,8 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int
 
 std::map<std::string, std::string> extract_enum_info(Generator *top);
 
+std::map<std::string, std::string> extract_interface_info(Generator *top);
+
 void check_always_sensitivity(Generator *top);
 
 // TODO: add following passes to improve the code efficiency

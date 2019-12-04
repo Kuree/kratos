@@ -372,6 +372,13 @@ private:
 class InterfaceInstantiationStmt : public Stmt, public InstantiationStmt {
 public:
     InterfaceInstantiationStmt(Generator *parent, InterfaceRef *interface);
+
+    [[nodiscard]] const InterfaceRef* interface() const { return interface_; }
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+private:
+    InterfaceRef *interface_;
 };
 
 class CommentStmt : public Stmt {

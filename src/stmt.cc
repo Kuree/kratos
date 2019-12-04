@@ -554,7 +554,7 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
 
 InterfaceInstantiationStmt::InterfaceInstantiationStmt(kratos::Generator *parent,
                                                        kratos::InterfaceRef *interface)
-    : Stmt(StatementType::InterfaceInstantiation) {
+    : Stmt(StatementType::InterfaceInstantiation), interface_(interface) {
     for (auto const &[port_name, port] : interface->ports()) {
         process_port(port, parent, interface->name());
     }

@@ -45,6 +45,7 @@ class InitialStmtBlock;
 class FunctionCallStmt;
 class ReturnStmt;
 class ModuleInstantiationStmt;
+class InterfaceInstantiationStmt;
 class AssertBase;
 class FSM;
 enum AssignmentType : int;
