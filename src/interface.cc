@@ -101,7 +101,15 @@ void InterfaceModPortDefinition::set_output(const std::string& name) {
 
 IDefinition::InterfacePortDef InterfaceModPortDefinition::port(const std::string& name) const {
     if (!has_port(name)) throw UserException(::format("{0} does not exist", name));
-    return def_->port(name);
+    if (def_->has_port(name)) {
+        return def_->port(name);
+    } else {
+        // create a port def
+        auto const& [width, size] = def_->var(name);
+        auto port_dir =
+            inputs_.find(name) != inputs_.end() ? PortDirection::In : PortDirection::Out;
+        return std::make_tuple(width, size, port_dir);
+    }
 }
 
 IDefinition::InterfaceVarDef InterfaceModPortDefinition::var(const std::string&) const {
@@ -149,6 +157,38 @@ Port& InterfaceRef::port(const std::string& name) const {
         throw UserException(::format("{0} not found in {1}", name, name_));
     }
     return *ports_.at(name);
+}
+
+std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& name) {
+    if (mod_ports_.find(name) != mod_ports_.end()) return mod_ports_.at(name);
+    auto definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
+    if (definition_->is_modport() || !definition) {
+        throw UserException("Cannot create modport from a modport interface");
+    }
+    auto modports = definition->mod_ports();
+    if (modports.find(name) == modports.end())
+        throw UserException(
+            ::format("Unable to find modport {0} from {1}", name, definition->name()));
+    auto modport_def = modports.at(name);
+    auto new_ref =
+        std::make_shared<InterfaceRef>(modport_def, gen_, ::format("{0}.{1}", name_, name));
+    // pass through the variable reference
+    // since it's modport, it can only be ports
+    auto ports = modport_def->ports();
+    for (auto const& port_name : ports) {
+        bool is_input = modport_def->inputs().find(name) != modport_def->inputs().end();
+        if (has_var(port_name)) {
+            // it's a variable
+            auto port = std::make_shared<ModportPort>(
+                new_ref.get(), &var(port_name), is_input ? PortDirection::In : PortDirection::Out);
+            new_ref->modport_ports_.emplace(port_name, port);
+            new_ref->port(port_name, port.get());
+        } else {
+            new_ref->port(port_name, &port(port_name));
+        }
+    }
+    mod_ports_.emplace(name, new_ref);
+    return new_ref;
 }
 
 }  // namespace kratos

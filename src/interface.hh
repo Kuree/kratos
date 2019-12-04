@@ -126,6 +126,8 @@ public:
     bool &has_instantiated() { return has_instantiated_; }
     [[nodiscard]] const std::shared_ptr<IDefinition> &definition() const { return definition_; }
 
+    std::shared_ptr<InterfaceRef> get_modport_ref(const std::string &name);
+
 private:
     std::shared_ptr<IDefinition> definition_;
     std::unordered_map<std::string, Var *> vars_;
@@ -136,6 +138,10 @@ private:
     std::string name_;
 
     bool has_instantiated_ = false;
+
+    std::unordered_map<std::string, std::shared_ptr<InterfaceRef>> mod_ports_;
+    // only used for modport logic
+    std::unordered_map<std::string, std::shared_ptr<ModportPort>> modport_ports_;
 };
 
 }  // namespace kratos

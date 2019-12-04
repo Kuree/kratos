@@ -1059,3 +1059,43 @@ TEST(interface, wire_interface) {  // NOLINT
     result = generate_verilog(&mod1);
     EXPECT_TRUE(result.find("mod") != result.end());
 }
+
+TEST(interface, mod_port) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("mod");
+    auto config = std::make_shared<InterfaceDefinition>("Config");
+    config->var("read", 1, 1);
+    config->var("write", 1, 1);
+    auto read = config->create_modport_def("R");
+    auto write = config->create_modport_def("W");
+    read->set_input("read");
+    read->set_output("write");
+    write->set_input("write");
+    write->set_output("read");
+
+    auto i1 = mod1.interface(config, "bus", false);
+    auto &mod2 = c.generator("mod2");
+    auto i2 = mod2.interface(read, "bus", true);
+    mod2.add_stmt(i2->port("write").assign(i2->port("read")));
+    mod1.add_child_generator("inst", mod2.shared_from_this());
+
+    EXPECT_NO_THROW(mod1.wire_interface(i1->get_modport_ref("R"), i2));
+    EXPECT_NO_THROW(verify_generator_connectivity(&mod1));
+    EXPECT_NO_THROW(create_interface_instantiation(&mod1));
+    EXPECT_NO_THROW(decouple_generator_ports(&mod1));
+
+    auto result = extract_interface_info(&mod1);
+    EXPECT_TRUE(!result.empty());
+    EXPECT_TRUE(result.find("Config") != result.end());
+    auto str = result.at("Config");
+    EXPECT_TRUE(str.find("modport R(input read, output write)") != std::string::npos);
+
+    fix_assignment_type(&mod1);
+    create_module_instantiation(&mod1);
+    result = generate_verilog(&mod1);
+    EXPECT_TRUE(result.find("mod") != result.end());
+    str = result.at("mod");
+    EXPECT_TRUE(str.find(".bus(bus.R)\n") != std::string::npos);
+    str = result.at("mod2");
+    EXPECT_TRUE(str.find("Config.R bus\n") != std::string::npos);
+}

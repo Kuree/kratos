@@ -224,16 +224,23 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     std::vector<std::string> port_names(port_names_set.begin(), port_names_set.end());
     std::sort(port_names.begin(), port_names.end());
     std::unordered_set<std::string> interface_name;
-    for (uint64_t i = 0; i < port_names.size(); i++) {
-        auto const& port_name = port_names[i];
+
+    std::vector<Port*> ports;
+    ports.reserve(port_names.size());
+
+    std::vector<std::string> v95_names;
+    v95_names.reserve(port_names.size());
+
+    std::vector<std::pair<std::string, std::string>> interface_names;
+    interface_names.reserve(port_names.size() / 2);
+
+    for (const auto & port_name : port_names) {
         auto port = generator->get_port(port_name);
         if (!port->is_interface()) {
             if (!verilog95_def_) {
-                stream_ << std::make_pair(port.get(), (i == port_names.size() - 1) ? "" : ",");
+                ports.emplace_back(port.get());
             } else {
-                stream_ << indent() << port_name;
-                if (i != port_names.size() - 1) stream_ << ',';
-                stream_ << stream_.endl();
+                v95_names.emplace_back(port_name);
             }
         } else {
             auto port_interface = port->as<InterfacePort>();
@@ -242,13 +249,35 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
             // only print out interface def once
             if (interface_name.find(ref_name) == interface_name.end()) {
                 if (!verilog95_def_) {
-                    stream_ << indent() << ref->definition()->def_name() << " " << ref_name;
+                    auto const &def_name = ref->definition()->def_name();
+                    interface_names.emplace_back(std::make_pair(def_name, ref_name));
                 } else {
-                    stream_ << indent() << ref_name;
+                    v95_names.emplace_back(ref_name);
                 }
-                if (i != port_names.size() - 1) stream_ << ',';
                 interface_name.emplace(ref_name);
             }
+        }
+    }
+    if (!verilog95_def_) {
+        uint64_t count = 0;
+        uint64_t size = interface_names.size() + ports.size();
+        for (auto const &[def, ref]: interface_names) {
+            count++;
+            stream_ << indent() << def << " " << ref;
+            if (count != size)
+                stream_ << ",";
+            stream_ << stream_.endl();
+        }
+        for (auto const &port: ports) {
+            count++;
+            auto end = count == size? "": ",";
+            stream_ << std::make_pair(port, end) << stream_.endl();
+        }
+    } else {
+        for (uint64_t i = 0; i < v95_names.size(); i++) {
+            stream_ << indent() << v95_names[i];
+            if (i != v95_names.size() - 1) stream_ << ",";
+            stream_ << stream_.endl();
         }
     }
     indent_--;
@@ -277,7 +306,7 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
     auto const& vars = generator->get_vars();
     for (auto const& var_name : vars) {
         auto const& var = generator->get_var(var_name);
-        if (var->type() == VarType::Base) {
+        if (var->type() == VarType::Base && !var->is_interface()) {
             stream_ << var;
         }
     }
@@ -746,9 +775,12 @@ void SystemVerilogCodeGen::generate_enums(kratos::Generator* generator) {
 }
 
 void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* stmt) {
+    if (stmt->port_mapping().empty()) {
+        stream_ << ";" << stream_.endl();
+        return;
+    }
     stream_ << " (" << stream_.endl();
     indent_++;
-    uint32_t count = 0;
     std::vector<std::pair<Port*, Var*>> ports;
     auto const& mapping = stmt->port_mapping();
     ports.reserve(mapping.size());
@@ -757,11 +789,12 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
               [](const auto& lhs, const auto& rhs) { return lhs.first->name < rhs.first->name; });
     auto debug_info = stmt->port_debug();
     std::unordered_map<std::string, std::string> interface_names;
+    std::vector<std::pair<std::string, std::string>> connections;
+    connections.reserve(ports.size());
     for (auto const& [internal, external] : ports) {
         if (generator_->debug && debug_info.find(internal) != debug_info.end()) {
             debug_info.at(internal)->verilog_ln = stream_.line_no();
         }
-        const auto& end = count++ < stmt->port_mapping().size() - 1 ? ")," : ")";
         std::string internal_name;
         std::string external_name;
         if (stmt->instantiation_type() == InstantiationStmt::InstantiationType::Interface) {
@@ -788,8 +821,15 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
                 interface_names.emplace(internal_name, external_name);
             }
         }
-        stream_ << indent() << "." << internal_name << "(" << external_name << end
-                << stream_.endl();
+        connections.emplace_back(std::make_pair(internal_name, external_name));
+    }
+    for (uint64_t i = 0; i < connections.size(); i++) {
+        auto const &[internal_name, external_name] = connections[i];
+        stream_ << indent() << "." << internal_name << "(" << external_name << ")";
+        if (i != connections.size() - 1)
+            stream_ << "," << stream_.endl();
+        else
+            stream_ << stream_.endl();
     }
     stream_ << ");" << stream_.endl() << stream_.endl();
     indent_--;
@@ -961,11 +1001,11 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
             uint32_t count = 0;
             for (auto const& name : inputs) {
                 stream << "input " << name;
-                if (count++ != ports.size()) stream << ", ";
+                if (++count != ports.size()) stream << ", ";
             }
             for (auto const& name : outputs) {
                 stream << "output " << name;
-                if (count++ != ports.size()) stream << ", ";
+                if (++count != ports.size()) stream << ", ";
             }
             stream << ");" << std::endl;
         }

@@ -1,11 +1,13 @@
 #include "port.hh"
+
 #include <stdexcept>
 #include <unordered_map>
+
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
-#include "stmt.hh"
 #include "interface.hh"
+#include "stmt.hh"
 
 using fmt::format;
 using std::string;
@@ -171,8 +173,12 @@ std::string InterfacePort::to_string() const {
     return ::format("{0}.{1}", parent_name, Var::to_string());
 }
 
-std::string InterfacePort::base_name() const {
-    return interface_->name();
+std::string InterfacePort::base_name() const { return interface_->name(); }
+
+ModportPort::ModportPort(InterfaceRef* ref, kratos::Var* var, kratos::PortDirection dir)
+    : InterfacePort(ref, var->generator, dir, var->name, var->width(), var->size(), PortType::Data,
+                    var->is_signed()), var_(var) {
+    explicit_array_ = var->explicit_array();
 }
 
 }  // namespace kratos

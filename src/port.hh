@@ -160,13 +160,38 @@ public:
         : Port(module, direction, name, width, size, type, is_signed), interface_(interface) {}
 
     std::string to_string() const override;
-    std::string base_name() const override ;
+    std::string base_name() const override;
 
     bool inline is_interface() const override { return true; };
     const InterfaceRef *interface() const { return interface_; };
 
 private:
     InterfaceRef *interface_ = nullptr;
+};
+
+struct ModportPort : public InterfacePort {
+    // this is a wrapper around a normal variable to make it looks like a port
+public:
+    ModportPort(InterfaceRef *ref, Var *var, PortDirection dir);
+
+    // wraps all the critical functions
+    const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const override {
+        return var_->sinks();
+    };
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override { var_->remove_sink(stmt); }
+    const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
+        return var_->sources();
+    };
+    void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
+        var_->remove_source(stmt);
+    }
+
+    void move_linked_to(Var *new_var) override { var_->move_linked_to(new_var); }
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override { var_->add_sink(stmt); }
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override { var_->add_source(stmt); }
+
+private:
+    Var *var_;
 };
 
 }  // namespace kratos
