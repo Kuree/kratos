@@ -775,7 +775,7 @@ void SystemVerilogCodeGen::generate_enums(kratos::Generator* generator) {
 
 void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* stmt) {
     if (stmt->port_mapping().empty()) {
-        stream_ << ";" << stream_.endl();
+        stream_ << "();" << stream_.endl();
         return;
     }
     stream_ << " (" << stream_.endl();

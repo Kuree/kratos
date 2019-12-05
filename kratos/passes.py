@@ -19,7 +19,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
             check_active_high: bool = True,
             debug: bool = False,
             additional_passes: Dict = None,
-            extract_struct: bool = False,
             int_dpi_interface: bool = True,
             remove_assertion: bool = False,
             check_inferred_latch: bool = True,
@@ -29,7 +28,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
             output_dir: str = None,
             insert_debug_info: bool = False,
             debug_db_filename: str = "",
-            debug_top_name: str = "TOP",
             use_parallel: bool = True):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
@@ -83,6 +81,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("hash_generators_sequential")
     pass_manager.add_pass("uniquify_generators")
     pass_manager.add_pass("create_module_instantiation")
+    pass_manager.add_pass("create_interface_instantiation")
     if insert_pipeline_stages:
         pass_manager.add_pass("insert_pipeline_stages")
     if reorder_stmts:
@@ -111,13 +110,11 @@ def verilog(generator: Generator, optimize_if: bool = True,
         else:
             info = {}
 
-        if extract_struct or filename:
-            struct_info = _kratos.passes.extract_struct_info(
-                generator.internal_generator)
-            if extract_struct:
-                result.append(struct_info)
-        else:
-            struct_info = {}
+        # struct info
+        struct_info = _kratos.passes.extract_struct_info(
+            generator.internal_generator)
+        if len(struct_info) > 0:
+            result.append(struct_info)
 
         # dpi info
         dpi_func = _kratos.passes.extract_dpi_function(gen, int_dpi_interface)
@@ -125,10 +122,16 @@ def verilog(generator: Generator, optimize_if: bool = True,
             result.append(dpi_func)
         enum_def = _kratos.passes.extract_enum_info(gen)
         if len(enum_def) > 0:
-            result.append(enum_def);
+            result.append(enum_def)
+
+        # interface info
+        interface_info = _kratos.passes.extract_interface_info(gen)
+        if len(interface_info) > 0:
+            result.append(interface_info)
 
         if filename is not None:
-            output_verilog(filename, src, info, struct_info, dpi_func, enum_def)
+            output_verilog(filename, src, info, struct_info, dpi_func, enum_def,
+                           interface_info)
 
         r = result[0] if len(result) == 1 else result
 
@@ -141,18 +144,18 @@ def verilog(generator: Generator, optimize_if: bool = True,
     return r
 
 
-def output_verilog(filename, mod_src, info, struct_info, dpi_func, enum_def):
+def output_verilog(filename, mod_src, info, struct_info, dpi_func, enum_def,
+                   interface_info):
     line_no = 1
     debug_info = {}
     with open(filename, "w+") as f:
-        for func_name in dpi_func:
-            def_ = dpi_func[func_name]
+        for _, def_ in dpi_func.items():
             f.write(def_ + "\n")
-        for struct_name in struct_info:
-            def_ = struct_info[struct_name]
+        for _, def_ in struct_info.items():
             f.write(def_ + "\n")
-        for enum_name in enum_def:
-            def_ = enum_def[enum_name]
+        for _, def_ in enum_def.items():
+            f.write(def_ + "\n")
+        for _, def_ in interface_info.items():
             f.write(def_ + "\n")
 
         mod_src_names = list(mod_src.keys())

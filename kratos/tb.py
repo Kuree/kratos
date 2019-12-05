@@ -28,7 +28,7 @@ class TestBench:
         self.internal_generator = self.__tb.top()
 
         # proxy
-        self.vars = VarProxy(self.internal_generator)
+        self.vars = VarProxy(self)
 
     def var(self, name, width, size: int = 1, is_signed: bool = False):
         return self.__tb.var(name, width, size, is_signed)

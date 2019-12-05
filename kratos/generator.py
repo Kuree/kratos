@@ -571,7 +571,7 @@ class Generator(metaclass=GeneratorMeta):
             assert isinstance(var_from, _kratos.InterfaceRef)
             assert isinstance(var_to, _kratos.InterfaceRef)
             # TODO: add debug info to interface wiring
-            self.__generator.wire_interface(var_from, var_to)
+            self.__generator.wire_interface(var_to, var_from)
             return
         # this is a top level direct wire assignment
         # notice that we can figure out the direction automatically if
