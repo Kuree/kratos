@@ -2,10 +2,12 @@
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/fsm.hh"
 #include "../src/generator.hh"
+#include "../src/interface.hh"
 #include "../src/stmt.hh"
 
 namespace py = pybind11;
@@ -65,6 +67,25 @@ void init_generator(py::module &m) {
         .def("parameter",
              py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
              py::return_value_policy::reference)
+        .def("interface", [](Generator &generator, const std::shared_ptr<InterfaceDefinition> &def,
+                             const std::string &name,
+                             bool is_port) { return generator.interface(def, name, is_port); })
+        .def("interface", [](Generator &generator, const std::shared_ptr<InterfaceModPortDefinition> &def,
+                             const std::string &name,
+                             bool is_port) { return generator.interface(def, name, is_port); })
+        .def("has_interface",
+             [](Generator &gen, const std::string &name) {
+                 auto const &interfaces = gen.interfaces();
+                 return interfaces.find(name) != interfaces.end();
+             })
+        .def("get_interface",
+             [](Generator &gen, const std::string &name) {
+                 auto const &interfaces = gen.interfaces();
+                 if (interfaces.find(name) == interfaces.end())
+                     throw UserException(name + " doesn't exist in " + gen.handle_name() +
+                                         " as interface");
+                 return interfaces.at(name);
+             })
         .def("port_packed", &Generator::port_packed, py::return_value_policy::reference)
         .def("enum", &Generator::enum_, py::return_value_policy::reference)
         .def("enum_var", &Generator::enum_var, py::return_value_policy::reference)
@@ -105,6 +126,7 @@ void init_generator(py::module &m) {
         .def("is_stub", &Generator::is_stub)
         .def("set_is_stub", &Generator::set_is_stub)
         .def("wire_ports", &Generator::wire_ports)
+        .def("wire_interface", &Generator::wire_interface)
         .def("correct_wire_direction", &Generator::correct_wire_direction)
         .def("correct_wire_direction",
              [](Generator &gen, const std::shared_ptr<Var> &var1, int64_t var2) {

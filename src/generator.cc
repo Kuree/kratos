@@ -641,6 +641,7 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
     auto gen1 = inst1->gen();
     auto gen2 = inst2->gen();
     if (gen1 != this) {
+        printf("%p %p %s\n", (void*)gen1, (void*)this, name.c_str());
         throw UserException(
             ::format("interface {0} doesn't belong to {1}", inst1->name(), handle_name()));
     }

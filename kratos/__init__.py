@@ -20,6 +20,7 @@ from _kratos import PackedStruct, Port, Var, AssignmentType
 from _kratos import Sequence
 from _kratos import DebugDataBase
 from .stmts import IfStmt, SwitchStmt, if_, switch_
+from _kratos import Interface
 
 # FSMs
 from _kratos import FSM, FSMState
@@ -36,7 +37,7 @@ __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType", "always",
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",
             "if_", "switch_", "Attribute", "PortBundle", "DebugDataBase",
-            "add_scope_context", "set_global_debug"]
+            "add_scope_context", "set_global_debug", "Interface"]
 
 # utils
 __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",

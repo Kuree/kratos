@@ -1385,5 +1385,30 @@ def test_enum_port():
     check_gold(mod, "test_enum_port")
 
 
+def test_interface_modport():
+    from kratos import Interface
+    mod = Generator("mod")
+
+    class ConfigInterface(Interface):
+        def __init__(self):
+            Interface.__init__(self, "Config")
+            self.var("read", 1, 1)
+            self.var("write", 1, 1)
+            # create modport
+            self.slave = self.modport("Slave")
+            self.slave.set_input("read")
+            self.slave.set_output("write")
+    interface = ConfigInterface()
+    i1 = mod.interface(interface, "bus")
+    child = Generator("child")
+    mod.add_child("child", child)
+    # set it to True for port interface
+    child_bus = child.interface(interface.slave, "bus", True)
+    # child logic with the interface ports
+    child.wire(child_bus.write, child_bus.read)
+    # wire the parent to child
+    # mod.wire(i1.Slave, child_bus)
+
+
 if __name__ == "__main__":
-    test_enum_port()
+    test_interface_modport()

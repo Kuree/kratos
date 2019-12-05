@@ -5,6 +5,7 @@ from .util import get_fn_ln, clog2, max_value
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
+from .interface import InterfaceWrapper
 import _kratos
 from typing import List, Dict, Union, Tuple
 
@@ -165,15 +166,23 @@ class ParamProxy:
 
 class VarProxy:
     def __init__(self, generator):
-        if isinstance(generator, Generator):
-            self.__generator = generator.internal_generator
-        else:
-            self.__generator = generator
+        self.__generator = generator.internal_generator
 
     def __getitem__(self, key):
         v = self.__generator.get_var(key)
         assert v is not None, "{0} doesn't exist".format(key)
         return v
+
+    def __getattr__(self, key):
+        return self[key]
+
+
+class InterfaceProxy:
+    def __init__(self, generator):
+        self.__generator = generator.internal_generator
+
+    def __getitem__(self, item):
+        return self.__generator.get_interface(item)
 
     def __getattr__(self, key):
         return self[key]
@@ -223,6 +232,7 @@ class Generator(metaclass=GeneratorMeta):
         self.ports = PortProxy(self)
         self.params = ParamProxy(self)
         self.vars = VarProxy(self)
+        self.interfaces = InterfaceProxy(self)
 
         self.__def_instance = self
 
@@ -464,6 +474,9 @@ class Generator(metaclass=GeneratorMeta):
     def enum_var(self, name: str, def_: _kratos.Enum):
         return self.__generator.enum_var(name, def_)
 
+    def interface(self, interface, name, is_port: bool = False):
+        return InterfaceWrapper(self.__generator.interface(interface, name, is_port))
+
     def get_var(self, name):
         return self.__generator.get_var(name)
 
@@ -547,6 +560,18 @@ class Generator(metaclass=GeneratorMeta):
             self.__cached_initialization.append((self.wire, [var_to, var_from,
                                                              attributes,
                                                              comment, locals_]))
+            return
+        # wire interface is a special treatment
+        if isinstance(var_from, (_kratos.InterfaceRef, InterfaceWrapper)) or \
+                isinstance(var_to, (_kratos.InterfaceRef, InterfaceWrapper)):
+            if isinstance(var_from, InterfaceWrapper):
+                var_from = var_from.internal_interface
+            if isinstance(var_to, InterfaceWrapper):
+                var_to = var_to.internal_interface
+            assert isinstance(var_from, _kratos.InterfaceRef)
+            assert isinstance(var_to, _kratos.InterfaceRef)
+            # TODO: add debug info to interface wiring
+            self.__generator.wire_interface(var_from, var_to)
             return
         # this is a top level direct wire assignment
         # notice that we can figure out the direction automatically if

@@ -191,4 +191,13 @@ std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& n
     return new_ref;
 }
 
+bool InterfaceRef::has_modport(const std::string& name) {
+    auto definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
+    if (definition_->is_modport() || !definition) {
+        return false;
+    }
+    auto modports = definition->mod_ports();
+    return modports.find(name) != modports.end();
+}
+
 }  // namespace kratos

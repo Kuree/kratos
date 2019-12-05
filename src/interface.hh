@@ -127,6 +127,7 @@ public:
     [[nodiscard]] const std::shared_ptr<IDefinition> &definition() const { return definition_; }
 
     std::shared_ptr<InterfaceRef> get_modport_ref(const std::string &name);
+    bool has_modport(const std::string &name);
 
 private:
     std::shared_ptr<IDefinition> definition_;
