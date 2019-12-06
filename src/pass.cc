@@ -1399,7 +1399,7 @@ public:
             auto const& stmt = *(var->sinks().begin());
             if (stmt->parent()->ir_node_kind() == IRNodeKind::GeneratorKind) {
                 auto sink_var = stmt->left();
-                if (sink_var->parent() != var->parent()) {
+                if (sink_var->parent() != var->parent() || sink_var->is_interface()) {
                     // not the same parent
                     return;
                 }
