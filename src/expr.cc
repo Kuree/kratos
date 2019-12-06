@@ -948,7 +948,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
     if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
         throw VarException("Only base or port variables are allowed.", {var, new_var});
 
-    for (auto &stmt : var->sources_) {
+    for (auto &stmt : var->sources()) {
         if (stmt->generator_parent() != parent) continue;
         stmt_set_left(stmt.get(), var, new_var);
         if (parent->debug) {
@@ -961,7 +961,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
         }
     }
     // now clear the sources
-    var->sources_.clear();
+    var->clear_sources();
 
     if (keep_connection) {
         // create an assignment and add it to the parent
@@ -978,7 +978,7 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
     if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
         throw VarException("Only base or port variables are allowed.", {var, new_var});
 
-    for (auto &stmt : var->sinks_) {
+    for (auto &stmt : var->sinks()) {
         if (stmt->generator_parent() != parent) {
             continue;
         }
@@ -993,7 +993,7 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
         }
     }
     // now clear the sinks
-    var->sinks_.clear();
+    var->clear_sinks();
 
     if (keep_connection) {
         // create an assignment and add it to the parent

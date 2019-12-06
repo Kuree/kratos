@@ -130,6 +130,8 @@ public:
     virtual const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const { return sinks_; };
     virtual void remove_sink(const std::shared_ptr<AssignStmt> &stmt) { sinks_.erase(stmt); }
     virtual const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const { return sources_; };
+    virtual void clear_sinks() { sinks_.clear(); }
+    virtual void clear_sources() { sources_.clear(); }
     virtual void remove_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.erase(stmt); }
     std::set<std::shared_ptr<VarSlice>> &get_slices() { return slices_; }
 

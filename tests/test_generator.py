@@ -1409,10 +1409,37 @@ def test_interface_modport_local():
     # wire the parent to child
     mod.wire(i1.Slave, child_bus)
 
-    # the following is buggy
-    # check_gold(mod, "test_interface_modport_local")
     check_gold(mod, "test_interface_modport_local", optimize_passthrough=False)
 
 
+def test_interface_port_wiring():
+    from kratos import Interface
+    mod = Generator("mod")
+
+    class ConfigInterface(Interface):
+        def __init__(self):
+            Interface.__init__(self, "Config")
+            self.input("read", 1, 1)
+            self.output("write", 1, 1)
+    interface = ConfigInterface()
+    i1 = mod.interface(interface, "bus")
+    # wire local variables to the interface
+    read = mod.var("read", 1)
+    write = mod.var("write", 1)
+    mod.wire(i1.read, read)
+    mod.wire(write, i1.write)
+
+    # create child module and use the interface as port
+    child = Generator("child")
+    mod.add_child("child", child)
+    i2 = child.interface(interface, "bus2", True)
+    child.wire(i2.write, i2.read)
+
+    # wire the interface
+    mod.wire(i1, i2)
+    # fanout has a bug
+    verilog(mod, filename="test.sv", optimize_passthrough=True, optimize_fanout=False)
+
+
 if __name__ == "__main__":
-    test_interface_modport_local()
+    test_interface_port_wiring()

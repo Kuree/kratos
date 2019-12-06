@@ -498,8 +498,7 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
                                                  PortType::Data, false);
         ref->port(n, p.get());
         vars_.emplace(var_name, p);
-        if (is_port)
-            ports_.emplace(var_name);
+        if (is_port) ports_.emplace(var_name);
     }
     // put it in the interface
     interfaces_.emplace(def->name(), ref);
@@ -603,7 +602,9 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
         // var1 is port and var2 is not
         auto port1 = dynamic_cast<Port *>(root1);
         if (port1->generator == this) {
-            return {port1->port_direction() == PortDirection::Out, true};
+            return {!port1->is_interface() ? port1->port_direction() == PortDirection::Out
+                                           : port1->port_direction() == PortDirection::In,
+                    true};
         } else {
             if (!has_child_generator(port1->generator->shared_from_this())) {
                 throw VarException(::format("{0}.{1} is not part of {2}", port1->generator->name,
@@ -617,7 +618,9 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
         // var2 is port and var1 is not
         auto port2 = dynamic_cast<Port *>(root2);
         if (port2->generator == this) {
-            return {port2->port_direction() == PortDirection::In, true};
+            return {!port2->is_interface() ? port2->port_direction() == PortDirection::In
+                                           : port2->port_direction() == PortDirection::Out,
+                    true};
         } else {
             if (!has_child_generator(port2->generator->shared_from_this())) {
                 throw VarException(::format("{0}.{1} is not part of {2}", port2->generator->name,
@@ -641,7 +644,7 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
     auto gen1 = inst1->gen();
     auto gen2 = inst2->gen();
     if (gen1 != this) {
-        printf("%p %p %s\n", (void*)gen1, (void*)this, name.c_str());
+        printf("%p %p %s\n", (void *)gen1, (void *)this, name.c_str());
         throw UserException(
             ::format("interface {0} doesn't belong to {1}", inst1->name(), handle_name()));
     }

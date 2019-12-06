@@ -862,7 +862,7 @@ private:
                         ::format("unable to cast {0} to InterfacePort", stmt->left()->to_string()));
                 return !port_var->interface()->is_port();
             }
-            if (stmt->right()->is_interface() && stmt->left()->type() == VarType::PortIO) {
+            if (stmt->right()->is_interface() && stmt->right()->type() == VarType::PortIO) {
                 auto port_var = dynamic_cast<InterfacePort*>(stmt->right());
                 if (!port_var)
                     throw InternalException(
@@ -1448,7 +1448,7 @@ public:
                     // we will let the later downstream passes to remove the extra wiring
                     auto next_port = (*(port->sinks().begin()))->left();
                     auto var_name =
-                        generator->get_unique_variable_name(child->instance_name, port_name);
+                        generator->get_unique_variable_name(child->instance_name, port->name);
                     auto& new_var = generator->var(var_name, port->var_width(), port->size(),
                                                    port->is_signed());
                     if (generator->debug) {
