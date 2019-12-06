@@ -524,6 +524,8 @@ void InstantiationStmt::process_port(kratos::Port *port, Generator *parent,
             }
             // add it to the mapping list
             connection_stmt_.emplace(stmt.get());
+            // remove it from the parent
+            stmt->remove_from_parent();
         } else {
             // you need to run a de-slice pass on the module references first
             throw InternalException(
@@ -538,14 +540,19 @@ void InstantiationStmt::process_port(kratos::Port *port, Generator *parent,
             if (!sinks.empty() && sinks.size() == 1) {
                 auto stmt = *sinks.begin();
                 port_mapping_.emplace(port, stmt->left());
+                stmt->remove_from_parent();
                 if (parent->debug) {
                     port_debug_.emplace(port, stmt.get());
                 }
             } else if (!sinks.empty() && sinks.size() > 1) {
                 throw InternalException(
-                    "Output slices not supported in the statement. "
+                    "Multiple outputs not supported in the statement. "
                     "Please run a de-couple pass first");
             }
+        } else {
+            throw InternalException(
+                "Output slices not supported in the statement. "
+                "Please run a de-couple pass first");
         }
     } else {
         throw InternalException("Inout port type not implemented");

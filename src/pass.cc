@@ -823,73 +823,9 @@ private:
     }
 };
 
-class RemoveGeneratorStmtVisitor : public IRVisitor {
-public:
-    void visit(Generator* gen) override {
-        uint64_t stmt_count = gen->stmts_count();
-        std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
-        stmts_to_remove.reserve(stmt_count);
-        for (uint64_t i = 0; i < stmt_count; i++) {
-            auto stmt = gen->get_stmt(i);
-            if (is_stmt(stmt.get())) stmts_to_remove.emplace_back(stmt);
-        }
-
-        for (auto const& stmt : stmts_to_remove) {
-            gen->remove_stmt(stmt);
-        }
-    }
-
-    void visit(InitialStmtBlock* stmt) override { process_stmt_block(stmt); }
-    void visit(SequentialStmtBlock* stmt) override { process_stmt_block(stmt); }
-    void visit(CombinationalStmtBlock* stmt) override { process_stmt_block(stmt); }
-    void visit(ScopedStmtBlock* stmt) override { process_stmt_block(stmt); }
-
-private:
-    static void process_stmt_block(StmtBlock* block) {
-        std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
-        stmts_to_remove.reserve(block->size());
-
-        for (auto& stmt : *block) {
-            if (is_stmt(stmt.get())) stmts_to_remove.emplace_back(stmt);
-        }
-        for (auto const& stmt : stmts_to_remove) {
-            block->remove_stmt(stmt);
-        }
-    }
-
-    static bool is_stmt(Stmt* st) {
-        if (st->type() == StatementType::Assign) {
-            auto generator = st->generator_parent();
-            auto stmt = reinterpret_cast<AssignStmt*>(st);
-            if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator != generator) ||
-                (stmt->right()->type() == VarType::PortIO && stmt->right()->generator != generator))
-                return true;
-            if ((stmt->left()->is_interface()) && stmt->left()->type() == VarType::PortIO) {
-                auto port_var = dynamic_cast<InterfacePort*>(stmt->left());
-                if (!port_var)
-                    throw InternalException(
-                        ::format("unable to cast {0} to InterfacePort", stmt->left()->to_string()));
-                // TODO: fix this
-                return !port_var->interface()->is_port();
-            }
-            if (stmt->right()->is_interface() && stmt->right()->type() == VarType::PortIO) {
-                auto port_var = dynamic_cast<InterfacePort*>(stmt->right());
-                if (!port_var)
-                    throw InternalException(
-                        ::format("unable to cast {0} to InterfacePort", stmt->left()->to_string()));
-                return !port_var->interface()->is_port();
-            }
-        }
-        return false;
-    }
-};
-
 void decouple_generator_ports(Generator* top) {
     GeneratorPortVisitor visitor;
     visitor.visit_generator_root(top);
-
-    RemoveGeneratorStmtVisitor v;
-    v.visit_root(top);
 }
 
 class StubGeneratorVisitor : public IRVisitor {
