@@ -1438,7 +1438,7 @@ def test_interface_port_wiring():
     # wire the interface
     mod.wire(i1, i2)
     # fanout has a bug
-    verilog(mod, filename="test.sv", optimize_passthrough=True)
+    verilog(mod, filename="test.sv", optimize_passthrough=False, optimize_fanout=False)
 
 
 if __name__ == "__main__":

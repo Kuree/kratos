@@ -58,6 +58,9 @@ public:
     virtual void add_scope_variable(const std::string &name, const std::string &value, bool is_var,
                                     bool override);
 
+    virtual void remove_from_parent();
+    virtual void remove_stmt(const std::shared_ptr<Stmt>&) {}
+
 protected:
     StatementType type_;
     IRNode *parent_ = nullptr;
@@ -121,7 +124,7 @@ public:
     void add_else_stmt(Stmt &stmt) { add_else_stmt(stmt.shared_from_this()); }
     void remove_then_stmt(const std::shared_ptr<Stmt> &stmt);
     void remove_else_stmt(const std::shared_ptr<Stmt> &stmt);
-    void remove_stmt(const std::shared_ptr<Stmt> &stmt);
+    void remove_stmt(const std::shared_ptr<Stmt> &stmt) override;
     void set_then(const std::shared_ptr<ScopedStmtBlock> &stmt) { then_body_ = stmt; }
     void set_else(const std::shared_ptr<ScopedStmtBlock> &stmt) { else_body_ = stmt; }
 
@@ -153,7 +156,7 @@ public:
     void remove_switch_case(const std::shared_ptr<Const> &switch_case);
     void remove_switch_case(const std::shared_ptr<Const> &switch_case,
                             const std::shared_ptr<Stmt> &stmt);
-    void remove_stmt(const std::shared_ptr<Stmt> &stmt);
+    void remove_stmt(const std::shared_ptr<Stmt> &stmt) override;
 
     std::shared_ptr<Var> target() const { return target_; }
 
@@ -184,7 +187,7 @@ public:
     StatementBlockType block_type() const { return block_type_; }
     void add_stmt(const std::shared_ptr<Stmt> &stmt);
     void add_stmt(Stmt &stmt) { add_stmt(stmt.shared_from_this()); }
-    void remove_stmt(const std::shared_ptr<Stmt> &stmt);
+    void remove_stmt(const std::shared_ptr<Stmt> &stmt) override;
     void inline clear() { stmts_.clear(); }
 
     uint64_t child_count() override { return stmts_.size(); }

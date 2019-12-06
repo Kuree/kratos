@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+
 #include "context.hh"
 #include "ir.hh"
 
@@ -129,7 +130,9 @@ public:
     VarType type() const { return type_; }
     virtual const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const { return sinks_; };
     virtual void remove_sink(const std::shared_ptr<AssignStmt> &stmt) { sinks_.erase(stmt); }
-    virtual const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const { return sources_; };
+    virtual const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const {
+        return sources_;
+    };
     virtual void clear_sinks() { sinks_.clear(); }
     virtual void clear_sources() { sources_.clear(); }
     virtual void remove_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.erase(stmt); }
@@ -608,8 +611,8 @@ private:
 
 struct InterfaceVar : public Var {
 public:
-    InterfaceVar(InterfaceRef *interface, Generator *m, const std::string &name,
-                 uint32_t var_width, const std::vector<uint32_t> &size, bool is_signed)
+    InterfaceVar(InterfaceRef *interface, Generator *m, const std::string &name, uint32_t var_width,
+                 const std::vector<uint32_t> &size, bool is_signed)
         : Var(m, name, var_width, size, is_signed), interface_(interface) {}
 
     std::string to_string() const override;

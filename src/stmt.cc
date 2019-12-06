@@ -36,10 +36,21 @@ Generator *Stmt::generator_parent() const {
 
 void Stmt::add_scope_variable(const std::string &name, const std::string &value, bool is_var,
                               bool override) {
-    if (override) {
+    if (override || scope_context_.find(name) == scope_context_.end()) {
         scope_context_.emplace(name, std::make_pair(is_var, value));
-    } else if (scope_context_.find(name) == scope_context_.end()) {
-        scope_context_.emplace(name, std::make_pair(is_var, value));
+    }
+}
+
+void Stmt::remove_from_parent() {
+    if (!parent_) throw StmtException("Cannot remove stmt whose parent is null", {this});
+    if (parent_->ir_node_kind() == IRNodeKind::GeneratorKind) {
+        auto gen = reinterpret_cast<Generator *>(parent_);
+        gen->remove_stmt(shared_from_this());
+    } else if (parent_->ir_node_kind() == IRNodeKind::StmtKind) {
+        auto stmt = reinterpret_cast<Stmt *>(parent_);
+        stmt->remove_stmt(shared_from_this());
+    } else {
+        throw StmtException("Statement parent is null", {this});
     }
 }
 

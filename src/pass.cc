@@ -189,7 +189,7 @@ public:
         std::set<std::string> vars_to_remove;
         auto vars = generator->vars();
         for (auto const& [var_name, var] : vars) {
-            if (var->type() != VarType::Base) continue;
+            if (var->type() != VarType::Base || var->is_interface()) continue;
             if (var->sinks().empty()) {
                 if (var->sources().empty() && !var->is_interface()) {
                     vars_to_remove.emplace(var_name);
@@ -453,6 +453,10 @@ public:
             auto comment = generator->get_child_comment(child->instance_name);
             if (!comment.empty()) stmt->comment = comment;
             generator->add_stmt(stmt);
+            // remove the stmts that's fold into the instantiation statement
+            for (auto const& st : stmt->connection_stmt()) {
+                st->remove_from_parent();
+            }
         }
     }
 };
@@ -471,6 +475,11 @@ public:
             if (interface->is_port()) continue;
             auto stmt = std::make_shared<InterfaceInstantiationStmt>(generator, interface.get());
             generator->add_stmt(stmt);
+
+            // remove the stmts that's fold into the instantiation statement
+            for (auto const& st : stmt->connection_stmt()) {
+                st->remove_from_parent();
+            }
         }
     }
 };
@@ -779,7 +788,7 @@ private:
                 if (src->type() == VarType::PortIO && src->generator == generator->parent() &&
                     stmt->right() == port) {
                     // remove it from the parent generator
-                    src->generator->remove_stmt(stmt);
+                    stmt->remove_from_parent();
                     return;
                 }
             }
@@ -860,6 +869,7 @@ private:
                 if (!port_var)
                     throw InternalException(
                         ::format("unable to cast {0} to InterfacePort", stmt->left()->to_string()));
+                // TODO: fix this
                 return !port_var->interface()->is_port();
             }
             if (stmt->right()->is_interface() && stmt->right()->type() == VarType::PortIO) {
@@ -877,9 +887,9 @@ private:
 void decouple_generator_ports(Generator* top) {
     GeneratorPortVisitor visitor;
     visitor.visit_generator_root(top);
-    // remove folded stmts
-    RemoveGeneratorStmtVisitor stmt_visitor;
-    stmt_visitor.visit_root(top);
+
+    RemoveGeneratorStmtVisitor v;
+    v.visit_root(top);
 }
 
 class StubGeneratorVisitor : public IRVisitor {
