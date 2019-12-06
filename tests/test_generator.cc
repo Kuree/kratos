@@ -221,8 +221,9 @@ TEST(pass, decouple1) {  // NOLINT
 
     EXPECT_EQ(mod1.stmts_count(), 3);
     decouple_generator_ports(&mod1);
+    create_module_instantiation(&mod1);
     check_mixed_assignment(&mod1);
-    EXPECT_EQ(mod1.stmts_count(), 2);
+    EXPECT_EQ(mod1.stmts_count(), 2 + 2);
     auto new_var = mod1.get_var("inst1_in");
     EXPECT_TRUE(new_var != nullptr);
 
@@ -853,6 +854,7 @@ TEST(generator, decouple2) {  // NOLINT
     mod1.add_stmt(port1_2.assign(port2_2 ^ port3_2 ^ port4_2));
     fix_assignment_type(&mod1);
     decouple_generator_ports(&mod1);
+    fix_assignment_type(&mod1);
     hash_generators_sequential(&mod1);
     auto result = generate_verilog(&mod1);
     auto mod_src = result.at("parent");

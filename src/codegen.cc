@@ -192,8 +192,8 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     stream_ << indent() << ");" << stream_.endl() << stream_.endl();
     if (verilog95_def_) generate_port_verilog_95_def(generator);
     generate_enums(generator);
-    generate_interface(generator);
     generate_variables(generator);
+    generate_interface(generator);
     generate_functions(generator);
 
     for (uint64_t i = 0; i < generator->stmts_count(); i++) {
