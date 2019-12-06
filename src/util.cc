@@ -1,6 +1,6 @@
 #include "util.hh"
 #include <cstdlib>
-#ifdef __linux__
+#ifdef INCLUDE_FILESYSTEM
 #include <filesystem>
 #endif
 #include <fstream>
@@ -484,51 +484,46 @@ std::string which(const std::string &name) {
 }
 
 bool exists(const std::string &filename) {
-#if defined(__APPLE__) || defined(_WIN32)
-    std::ifstream in(filename);
-    return in.good();
-#else
+#if defined(INCLUDE_FILESYSTEM)
     namespace fs = std::filesystem;
     return fs::exists(filename);
+#else
+    std::ifstream in(filename);
+    return in.good();
 #endif
 }
 
 std::string join(const std::string &path1, const std::string &path2) {
-#if defined(__APPLE__)
-    return path1 + "/" + path2;
-#elif defined(__linux__)
+#if defined(INCLUDE_FILESYSTEM)
     namespace fs = std::filesystem;
     fs::path p1 = path1;
     fs::path p2 = path2;
     return p1 / p2;
 #else
-    return path1 + "\\" + path2;
+    return path1 + "/" + path2;
 #endif
 }
 
 bool remove(const std::string &filename) {
-#if defined(__APPLE__) || defined(_WIN32)
-    return std::remove(filename.c_str());
-#else
+#if defined(INCLUDE_FILESYSTEM)
     namespace fs = std::filesystem;
     return fs::remove(filename);
+#else
+    return std::remove(filename.c_str());
 #endif
 }
 
 std::string temp_directory_path() {
-#if defined(__APPLE__)
-    return "/tmp";
-#elif defined(__linux__)
+#if defined(INCLUDE_FILESYSTEM)
     namespace fs = std::filesystem;
     return fs::temp_directory_path();
 #else
-    // use current directory
-    return ".";
+    return "/tmp";
 #endif
 }
 
 std::string get_ext(const std::string &filename) {
-#if defined(__linux__)
+#if defined(INCLUDE_FILESYSTEM)
     std::filesystem::path path(filename);
     return path.extension().string();
 #else
@@ -541,7 +536,7 @@ std::string get_ext(const std::string &filename) {
 }
 
 std::string abspath(const std::string &filename) {
-#if defined(__linux__)
+#if defined(INCLUDE_FILESYSTEM)
     return std::filesystem::absolute(filename);
 #else
     auto path = realpath(filename.c_str(), nullptr);

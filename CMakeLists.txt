@@ -20,6 +20,19 @@ else()
     set(STATIC_FLAG "")
 endif()
 
+# filesystem
+CHECK_CXX_SOURCE_COMPILES("
+#include <filesystem>
+int main() {
+  std::filesystem::exists(\"\");
+}
+" INCLUDE_FILESYSTEM)
+if (${INCLUDE_FILESYSTEM})
+    add_compile_definitions(INCLUDE_FILESYSTEM=${INCLUDE_FILESYSTEM})
+else()
+    MESSAGE(WARNING "<filesystem> not found. Fall back to C implementation")
+endif()
+
 # extern
 add_subdirectory(extern/googletest/)
 add_subdirectory(extern/fmt)
