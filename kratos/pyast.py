@@ -10,6 +10,10 @@ import os
 import enum
 
 
+def __pretty_source(source):
+    return "".join(source)
+
+
 class ForNodeVisitor(ast.NodeTransformer):
     class NameVisitor(ast.NodeTransformer):
         def __init__(self, target, value):
@@ -515,7 +519,7 @@ def transform_stmt_block(generator, fn, fn_ln=None):
                                                fn_name,
                                                insert_self)
 
-    src = astor.to_source(func_tree)
+    src = astor.to_source(func_tree, pretty_source=__pretty_source)
     src = inject_import_code(src)
     code_obj = compile(src, "<ast>", "exec")
     # transform the statement list
