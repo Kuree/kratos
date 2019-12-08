@@ -14,7 +14,7 @@ def __pretty_source(source):
     return "".join(source)
 
 
-class ForNodeVisitor(ast.NodeTransformer):
+class StaticElaborationNodeVisitor(ast.NodeTransformer):
     class NameVisitor(ast.NodeTransformer):
         def __init__(self, target, value):
             self.target = target
@@ -36,6 +36,8 @@ class ForNodeVisitor(ast.NodeTransformer):
         self.global_ = global_.copy()
         self.local["self"] = self.generator
         self.target_node = {}
+
+        self.key_pair = []
 
     def visit_For(self, node: ast.For):
         # making sure that we don't have for/else case
@@ -69,22 +71,14 @@ class ForNodeVisitor(ast.NodeTransformer):
             loop_body = copy.deepcopy(node.body)
             for n in loop_body:
                 # need to replace all the reference to
-                visitor = ForNodeVisitor.NameVisitor(target, value)
+                visitor = StaticElaborationNodeVisitor.NameVisitor(target, value)
                 n = visitor.visit(n)
-                n = self.generic_visit(n)
+                self.key_pair.append((target.id, value))
+                n = self.visit(n)
+                self.key_pair.pop(len(self.key_pair) - 1)
                 new_node.append(n)
                 self.target_node[n] = (target.id, value)
         return new_node
-
-
-class IfNodeVisitor(ast.NodeTransformer):
-    def __init__(self, generator, fn_src, local, global_):
-        super().__init__()
-        self.generator = generator
-        self.fn_src = fn_src
-        self.local = local.copy()
-        self.global_ = global_
-        self.local["self"] = self.generator
 
     def __change_if_predicate(self, node):
         if isinstance(node, ast.UnaryOp):
@@ -135,14 +129,14 @@ class IfNodeVisitor(ast.NodeTransformer):
                 raise Exception("Cannot statically evaluate if predicate")
             if predicate_value:
                 for i, n in enumerate(node.body):
-                    if_exp = IfNodeVisitor(self.generator, self.fn_src,
-                                           self.local, self.global_)
+                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src,
+                                                          self.local, self.global_)
                     node.body[i] = if_exp.visit(n)
                 return node.body
             else:
                 for i, n in enumerate(node.orelse):
-                    if_exp = IfNodeVisitor(self.generator, self.fn_src,
-                                           self.local, self.global_)
+                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src,
+                                                          self.local, self.global_)
                     node.orelse[i] = if_exp.visit(n)
                 return node.orelse
 
@@ -154,6 +148,8 @@ class IfNodeVisitor(ast.NodeTransformer):
                                     value=ast.Constant(value=node.lineno))]
         else:
             keywords = []
+        for key, value in self.key_pair:
+            keywords.append(ast.keyword(arg=key, value=ast.Str(s=value)))
 
         if_node = ast.Call(func=ast.Attribute(value=ast.Name(id="scope",
                                                              ctx=ast.Load()),
@@ -166,7 +162,7 @@ class IfNodeVisitor(ast.NodeTransformer):
                                                 cts=ast.Load()),
                              args=else_expression, keywords=[])
 
-        return self.generic_visit(ast.Expr(value=else_node))
+        return self.visit(ast.Expr(value=else_node))
 
 
 class AssignNodeVisitor(ast.NodeTransformer):
@@ -260,21 +256,25 @@ class ReturnNodeVisitor(ast.NodeTransformer):
             keywords=[]))
 
 
-class AssignLocalVisitor(ast.NodeTransformer):
-    def __init__(self, name, value, scope_name):
-        self.name = name
+class GenVarLocalVisitor(ast.NodeTransformer):
+    def __init__(self, key, value, scope_name):
+        self.key = key
         self.value = value
         self.scope_name = scope_name
 
     def visit_Call(self, node: ast.Call):
         if isinstance(node.func, ast.Attribute):
             attr = node.func
+            insert_keywords = False
             if attr.attr == "assign" and \
                     isinstance(attr.value, ast.Name) \
                     and attr.value.id == self.scope_name:
-                keyword = ast.keyword(arg=self.name,
+                insert_keywords = True
+            if insert_keywords:
+                keyword = ast.keyword(arg=self.key,
                                       value=ast.Str(s=self.value))
                 node.keywords.append(keyword)
+
         return node
 
 
@@ -428,7 +428,6 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     if pre_locals is not None:
         _locals.update(pre_locals)
 
-    # transform assign
     debug = generator.debug
     fn_body = func_tree.body[0]
 
@@ -440,18 +439,14 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
         return_visitor = ReturnNodeVisitor("scope", generator.debug)
         return_visitor.visit(fn_body)
 
+    # transform assign
     assign_visitor = AssignNodeVisitor(generator, debug)
     fn_body = assign_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
 
-    # static eval for loop
-    for_visitor = ForNodeVisitor(generator, fn_src, _locals, _globals)
-    fn_body = for_visitor.visit(fn_body)
-
-    # transform if and static eval any for loop
-    if_visitor = IfNodeVisitor(generator, fn_src, _locals, _globals)
-    fn_body = if_visitor.visit(fn_body)
-    ast.fix_missing_locations(fn_body)
+    # static eval for loop and if statement
+    static_visitor = StaticElaborationNodeVisitor(generator, fn_src, _locals, _globals)
+    fn_body = static_visitor.visit(fn_body)
 
     # transform the assert_ function to get fn_ln
     assert_visitor = AssertNodeVisitor(generator, debug)
@@ -460,9 +455,9 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     fn_body = exception_visitor.visit(fn_body)
 
     # mark the local variables
-    target_nodes = for_visitor.target_node
+    target_nodes = static_visitor.target_node
     for node, (key, value) in target_nodes.items():
-        assign_local_visitor = AssignLocalVisitor(key, value, "scope")
+        assign_local_visitor = GenVarLocalVisitor(key, value, "scope")
         assign_local_visitor.visit(node)
 
     # add stmt to the scope
