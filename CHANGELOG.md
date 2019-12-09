@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.21] - 2019-12-09
+### Added
+- SystemVerilog interface support (#123)
+- Better integration ability to other Python-based generators
+- Allow `enum` on port (public enum definition); #122
+- Add context variables to `If` statement
+
+### Changed
+- Pause on clock not enabled by default
+- Reduce verbosity in enum creation; sort enum by values, not by name
+- Automatically detect `<filesystem>` availability
+- Merge static elaboration passes with `for` and `if`.
+
+### FIxed
+- Numerous simulator issue fixes
+- Fixed a known problem with astor-based code gen where long statement causes error (#125)
+
 ## [0.0.20] - 2019-11-07
 ### Added
 - Add past transform to change exception into assertion (#116)
