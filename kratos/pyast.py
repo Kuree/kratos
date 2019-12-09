@@ -491,9 +491,18 @@ class CodeBlockType(enum.Enum):
 
 
 def transform_stmt_block(generator, fn, fn_ln=None):
-    fn_src = inspect.getsource(fn)
-    fn_name = fn.__name__
-    func_tree = ast.parse(textwrap.dedent(fn_src))
+    if callable(fn):
+        fn_src = inspect.getsource(fn)
+        fn_name = fn.__name__
+        func_tree = ast.parse(textwrap.dedent(fn_src))
+    else:
+        assert isinstance(fn, ast.FunctionDef)
+        # user directly passed in ast nodes
+        assert fn_ln is not None
+        fn_name = fn.name
+        func_tree = ast.Module(body=[fn])
+        fn_src = astor.to_source(fn)
+
     fn_body = func_tree.body[0]
     # needs debug
     debug = generator.debug

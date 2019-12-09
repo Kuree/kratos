@@ -78,5 +78,11 @@ def dump_external_database(generators: List[Generator], top_name: str, filename:
     for gen in generators:
         # remove top name with given one
         instance_name = gen.instance_name.split(".")[1:]
-        top.add_child_generator(".".join(instance_name), gen)
+        if instance_name:
+            top.add_child(".".join(instance_name), gen)
+        else:
+            # only has one generator
+            assert len(generators) == 1
+            gen.instance_name = top_name
+            top = gen
     dump_debug_database(top, top_name, filename)

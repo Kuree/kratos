@@ -27,6 +27,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             filename: str = None,
             output_dir: str = None,
             insert_debug_info: bool = False,
+            insert_break_on_edge: bool = False,
             debug_db_filename: str = "",
             use_parallel: bool = True):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
@@ -73,7 +74,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("convert_continuous_stmt")
         pass_manager.add_pass("inject_instance_ids")
         pass_manager.add_pass("inject_debug_break_points")
-        pass_manager.add_pass("inject_clock_break_points")
+        if insert_break_on_edge:
+            pass_manager.add_pass("inject_clock_break_points")
         pass_manager.add_pass("inject_assert_fail_exception")
     if use_parallel:
         pass_manager.add_pass("hash_generators_parallel")
