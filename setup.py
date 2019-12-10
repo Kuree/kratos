@@ -3,7 +3,7 @@ import re
 import sys
 import platform
 import subprocess
-import shutil
+import multiprocessing
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -50,7 +50,8 @@ class CMakeBuild(build_ext):
             cmake_args += ["-G", "MinGW Makefiles"]
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
-            build_args += ['--', '-j2']
+            cpu_count = max(2, multiprocessing.cpu_count() // 2)
+            build_args += ['--', '-j{0}'.format(cpu_count)]
 
         python_path = sys.executable
         cmake_args += ['-DPYTHON_EXECUTABLE:FILEPATH=' + python_path]
