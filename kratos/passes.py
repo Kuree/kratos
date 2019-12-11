@@ -11,6 +11,9 @@ class Attribute(_kratos.passes.Attribute):
         _kratos.passes.Attribute.__init__(self, self)
 
 
+__generated_definitions = set()
+
+
 def verilog(generator: Generator, optimize_if: bool = True,
             optimize_passthrough: bool = True,
             optimize_fanout: bool = True,
@@ -29,7 +32,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
             insert_debug_info: bool = False,
             insert_break_on_edge: bool = False,
             debug_db_filename: str = "",
-            use_parallel: bool = True):
+            use_parallel: bool = True,
+            track_generated_definition: bool = False):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
     if additional_passes is not None:
@@ -133,7 +137,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
 
         if filename is not None:
             output_verilog(filename, src, info, struct_info, dpi_func, enum_def,
-                           interface_info)
+                           interface_info, track_generated_definition)
 
         r = result[0] if len(result) == 1 else result
 
@@ -147,22 +151,26 @@ def verilog(generator: Generator, optimize_if: bool = True,
 
 
 def output_verilog(filename, mod_src, info, struct_info, dpi_func, enum_def,
-                   interface_info):
+                   interface_info, track_generated_definition):
     line_no = 1
     debug_info = {}
     with open(filename, "w+") as f:
-        for _, def_ in dpi_func.items():
-            f.write(def_ + "\n")
-        for _, def_ in struct_info.items():
-            f.write(def_ + "\n")
-        for _, def_ in enum_def.items():
-            f.write(def_ + "\n")
-        for _, def_ in interface_info.items():
-            f.write(def_ + "\n")
+        definitions = [dpi_func, struct_info, enum_def, interface_info]
+        for definition in definitions:
+            for name, def_ in definition.items():
+                if track_generated_definition \
+                        and name in __generated_definitions:
+                    continue
+                f.write(def_ + "\n")
+                if track_generated_definition:
+                    __generated_definitions.add(name)
 
         mod_src_names = list(mod_src.keys())
         mod_src_names.sort()
         for mod_name in mod_src_names:
+            if track_generated_definition and \
+                    mod_name in __generated_definitions:
+                continue
             src = mod_src[mod_name]
             mod_info = info[mod_name] if mod_name in info else {}
             lines = src.split("\n")
@@ -171,8 +179,15 @@ def output_verilog(filename, mod_src, info, struct_info, dpi_func, enum_def,
                 if index + 1 in mod_info:
                     debug_info[line_no] = mod_info[index + 1]
                 line_no += 1
+            if track_generated_definition:
+                __generated_definitions.add(mod_name)
 
     if len(debug_info) > 0:
         with open(filename + ".debug", "w+") as f:
             import json
             json.dump(debug_info, f)
+
+
+def clear_context():
+    Generator.clear_context()
+    __generated_definitions.clear()

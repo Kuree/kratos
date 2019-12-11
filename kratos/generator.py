@@ -698,6 +698,10 @@ class Generator(metaclass=GeneratorMeta):
         clear_context()
 
     @staticmethod
+    def clear_context_hash():
+        Generator.__context.clear_hash()
+
+    @staticmethod
     def get_context():
         return Generator.__context
 

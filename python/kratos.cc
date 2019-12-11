@@ -57,6 +57,10 @@ void init_context(py::module &m) {
         .def("change_generator_name", &Context::change_generator_name)
         .def("add", &Context::add)
         .def("has_hash", &Context::has_hash)
+        .def("clear_hash", [](Context &context) {
+            // the original one gives segfault for g++-8. don't know why
+            context.clear_hash();
+        })
         .def("enum", &Context::enum_);
 }
 

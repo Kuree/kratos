@@ -1438,8 +1438,21 @@ def test_interface_port_wiring():
     # wire the interface
     mod.wire(i1, i2)
     # fanout has a bug
-    verilog(mod, filename="test.sv", optimize_passthrough=False, optimize_fanout=True)
+    verilog(mod, filename="test.sv", optimize_passthrough=False,
+            optimize_fanout=True)
+
+
+def test_track_generated_definition():
+    mod = PassThroughMod()
+    with tempfile.TemporaryDirectory() as tempdir:
+        filename = os.path.join(tempdir, "test.sv")
+        verilog(mod, filename=filename, track_generated_definition=True)
+        t1 = os.path.getmtime(filename)
+        verilog(mod, filename=filename, track_generated_definition=True)
+        with open(filename) as f:
+            content = f.read()
+        assert content == ""    # empty since no content is generated
 
 
 if __name__ == "__main__":
-    test_interface_port_wiring()
+    test_track_generated_definition()
