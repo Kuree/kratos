@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.22] - 2019-12-10
+### Added
+- Add ability to keep track of which definition has been generated from Python side
+
+### Changed
+- Use up to 50% of CPU when compiling Python binding
+- Improve parameter list and DPI code gen (removing unnecessary spaces)
+- Expose context binding to Python
+
 ## [0.0.21] - 2019-12-09
 ### Added
 - SystemVerilog interface support (#123)
@@ -19,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatically detect `<filesystem>` availability
 - Merge static elaboration passes with `for` and `if`.
 
-### FIxed
+### Fixed
 - Numerous simulator issue fixes
 - Fixed a known problem with astor-based code gen where long statement causes error (#125)
 
