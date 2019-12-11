@@ -370,8 +370,8 @@ void init_expr(py::module &m) {
     auto expr = py::class_<Expr, ::shared_ptr<Expr>, Var>(m, "Expr");
 
     auto port = py::class_<Port, ::shared_ptr<Port>, Var>(m, "Port");
-    port.def("port_direction", &Port::port_direction)
-        .def("port_type", &Port::port_type)
+    port.def_property_readonly("port_direction", &Port::port_direction)
+        .def_property_readonly("port_type", &Port::port_type)
         .def_property("active_high", &Port::active_high, &Port::set_active_high);
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
