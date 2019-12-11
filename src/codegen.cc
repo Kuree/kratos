@@ -315,10 +315,10 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
 void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
     auto& params = generator->get_params();
     if (!params.empty()) {
-        stream_ << "#(";
+        stream_ << "#(parameter ";
         uint32_t count = 0;
         for (auto const& [name, param] : params) {
-            stream_ << ::format("parameter {0} = {1}", name, param->value_str());
+            stream_ << ::format("{0} = {1}", name, param->value_str());
             if (++count < params.size()) stream_ << ", ";
         }
         stream_ << ")" << stream_.endl();
