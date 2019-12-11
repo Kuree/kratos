@@ -1729,10 +1729,11 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int
                 } else {
                     type_str = "longint";
                 }
-                auto s = ::format("{0} {1} {2} {3}",
-                                  port->port_direction() == PortDirection::In ? "input" : "output",
-                                  type_str, port->is_signed() ? "signed" : "", port_name);
-                port_str.emplace_back(s);
+                std::vector<std::string> strs{
+                    port->port_direction() == PortDirection::In ? "input" : "output", type_str};
+                if (port->is_signed()) strs.emplace_back("signed");
+                strs.emplace_back(port_name);
+                port_str.emplace_back(join(strs.begin(), strs.end(), " "));
             } else {
                 port_str.emplace_back(
                     SystemVerilogCodeGen::get_port_str(ports.at(port_name).get()));
