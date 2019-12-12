@@ -9,5 +9,7 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         docker exec -i manylinux bash -c 'cd /kratos && /opt/python/cp38-cp38/bin/python setup.py bdist_wheel'
         docker exec -i manylinux bash -c 'cd /kratos && for WHEEL in dist/*.whl; do auditwheel repair "${WHEEL}"; done'
         docker exec -i manylinux bash -c 'cd /kratos && twine upload --config-file /home/.pypirc wheelhouse/*'
+        # upload the src
+        docker exec -i manylinux bash -c 'cd /kratos && python setup.py sdist && twine upload --config-file /home/.pypirc dist/*.gz'
     fi
 fi
