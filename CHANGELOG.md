@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.22.1] - 2019-12-10
+### Added
+- Add helper function to expose kratos interface to magma
+
+### Changed
+- Change port_type and port_direction to property in Python binding
+
 ## [0.0.22] - 2019-12-10
 ### Added
 - Add ability to keep track of which definition has been generated from Python side
