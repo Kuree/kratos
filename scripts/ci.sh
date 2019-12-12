@@ -29,6 +29,8 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
 
 elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     export PYTHON=3.7.0
+    brew update-reset
+    brew install gcc@8
     brew install verilator
     brew install pyenv-virtualenv
     pyenv install ${PYTHON}
@@ -40,7 +42,7 @@ elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
 
     python -m pip install scikit-build
     python -m pip install cmake twine wheel pytest
-    python setup.py bdist_wheel
+    CXX=/usr/local/bin/g++-8 python setup.py bdist_wheel
     pip install dist/*.whl
     pytest tests/
 else

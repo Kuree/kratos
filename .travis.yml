@@ -18,7 +18,7 @@ matrix:
         - name: "macOS"
           os: osx
           language: shell
-          osx_image: xcode11
+          osx_image: xcode10.1
 
 script:
     - ./scripts/ci.sh
