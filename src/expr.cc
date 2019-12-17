@@ -307,7 +307,7 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
         if (parent->size().size() == 1 && parent->size().front() == 1) {
             auto slice = dynamic_cast<VarSlice *>(parent);
             var_low_ = low + slice->var_low();
-            var_high_ = (high + 1) + slice->var_low();
+            var_high_ = (high + 1) + slice->var_low() - 1;
         } else {
             auto slice = dynamic_cast<VarSlice *>(parent);
             uint32_t base_width = parent->var_width();

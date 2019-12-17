@@ -297,3 +297,16 @@ TEST(expr, md_array) {    // NOLINT
     EXPECT_EQ(slice.size()[1], 2);
     EXPECT_NO_THROW((b[{1, 0}].assign(c[{1, 0}])));
 }
+
+TEST(expr, bit_slice) { // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &array = mod.var("array", 2, 2);
+    auto &v_0 = array[0][0];
+    EXPECT_EQ(v_0.var_high(), 0);
+    EXPECT_EQ(v_0.var_low(), 0);
+
+    auto &v_1 = array[0][1];
+    EXPECT_EQ(v_1.var_high(), 1);
+    EXPECT_EQ(v_1.var_low(), 1);
+}
