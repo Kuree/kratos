@@ -1101,3 +1101,15 @@ TEST(interface, mod_port) {  // NOLINT
     str = result.at("mod2");
     EXPECT_TRUE(str.find("Config.R bus\n") != std::string::npos);
 }
+
+TEST(pass, multiple_driver) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &out = mod.port(PortDirection::Out, "out", 1);
+    auto &in1 = mod.port(PortDirection::In, "in1", 1);
+    auto &in2 = mod.port(PortDirection::In, "in2", 1);
+    mod.add_stmt(out.assign(in1));
+    mod.add_stmt(out.assign(in2));
+
+    EXPECT_THROW(check_multiple_driver(&mod), StmtException);
+}

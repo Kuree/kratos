@@ -58,6 +58,7 @@ void init_pass(py::module &m) {
         .def("insert_verilator_public", &insert_verilator_public)
         .def("remove_assertion", &remove_assertion)
         .def("check_inferred_latch", &check_inferred_latch)
+        .def("check_multiple_driver", &check_multiple_driver)
         .def("merge_if_block", &merge_if_block)
         .def("find_driver_signal", &find_driver_signal);
 

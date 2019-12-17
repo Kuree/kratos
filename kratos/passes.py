@@ -25,6 +25,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             int_dpi_interface: bool = True,
             remove_assertion: bool = False,
             check_inferred_latch: bool = True,
+            check_multiple_driver: bool = True,
             insert_pipeline_stages: bool = False,
             verilog95_def: bool = False,
             filename: str = None,
@@ -72,6 +73,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("check_active_high")
     pass_manager.add_pass("check_function_return")
     pass_manager.add_pass("merge_wire_assignments")
+    if check_multiple_driver:
+        pass_manager.add_pass("check_multiple_driver")
     # insert debug break points if needed
     if insert_debug_info:
         pass_manager.add_pass("propagate_scope_variable")

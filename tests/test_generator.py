@@ -875,7 +875,7 @@ def test_named_block():
 
     mod.add_code(code, label="TEST2")
 
-    check_gold(mod, "test_named_block")
+    check_gold(mod, "test_named_block", check_multiple_driver=False)
 
 
 def test_enum():

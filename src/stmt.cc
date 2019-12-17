@@ -133,14 +133,12 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
         throw StmtException("cannot add statement block to the if statement body", {this});
-    stmt->set_parent(this);
     then_body_->add_stmt(stmt);
 }
 
 void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (stmt->type() == StatementType::Block)
         throw StmtException("cannot add statement block to the if statement body", {this});
-    stmt->set_parent(this);
     else_body_->add_stmt(stmt);
 }
 

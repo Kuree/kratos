@@ -2506,6 +2506,61 @@ void check_inferred_latch(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
+class MultipleDriverVisitor : public IRVisitor {
+public:
+    void visit(Var* var) override { check_var(var); }
+    void visit(Port* port) override { check_var(port); }
+
+private:
+    static void check_var(Var* var) {
+        std::unordered_map<uint32_t, std::pair<IRNode*, Stmt*>> parents;
+        for (auto const& stmt : var->sources()) {
+            auto v = stmt->left();
+            uint32_t var_low = v->var_low();
+            uint32_t var_high = v->var_high();
+            for (uint32_t i = var_low; i <= var_high; i++) {
+                if (parents.find(i) != parents.end()) {
+                    auto parent = stmt->parent();
+                    auto stmt_parent = non_gen_root_parent(stmt.get());
+                    auto const& [ref_parent, ref_stmt_parent] = parents.at(i);
+                    // the purpose of the following statement is to make sure that there is no
+                    // other assignment that's assigning the same var slice in the same scope
+                    // hence parent == ref_parent
+                    // and they should belong to the same root scope. for top level assignments
+                    // the root scope is itself
+                    if (parent == ref_parent || stmt_parent != ref_stmt_parent) {
+                        throw StmtException(::format("{0} has multiple driver in the same scope",
+                                                     var->handle_name()),
+                                            {var, parent, stmt.get()});
+                    }
+                } else {
+                    parents.emplace(
+                        i, std::make_pair(stmt->parent(), non_gen_root_parent(stmt.get())));
+                }
+            }
+        }
+    }
+
+    static Stmt* non_gen_root_parent(Stmt* stmt) {
+        // this is just to get the root stmt parent that's holding given stmt
+        IRNode* parent = stmt;
+        uint32_t count = 0;
+        while (parent->parent() && parent->parent()->ir_node_kind() == IRNodeKind::StmtKind) {
+            parent = parent->parent();
+            // this is to prevent infinite loop
+            if (count++ > 10000) {
+                throw InternalException(::format("Unable to find parent for statement"));
+            }
+        }
+        return reinterpret_cast<Stmt*>(parent);
+    }
+};
+
+void check_multiple_driver(Generator* top) {
+    MultipleDriverVisitor visitor;
+    visitor.visit_content(top);
+}
+
 void sort_stmts(Generator* top) {
     SortStmtVisitor visitor;
     visitor.visit_generator_root_p(top);
@@ -2683,6 +2738,8 @@ void PassManager::register_builtin_passes() {
     register_pass("check_always_sensitivity", &check_always_sensitivity);
 
     register_pass("check_inferred_latch", &check_inferred_latch);
+
+    register_pass("check_multiple_driver", &check_multiple_driver);
 
     register_pass("convert_continuous_stmt", &convert_continuous_stmt);
 

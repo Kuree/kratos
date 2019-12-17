@@ -51,6 +51,8 @@ void check_function_return(Generator* top);
 
 void check_inferred_latch(Generator *top);
 
+void check_multiple_driver(Generator *top);
+
 void remove_empty_block(Generator *top);
 
 std::map<std::string, std::string> generate_verilog(Generator* top);
