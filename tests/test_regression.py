@@ -1,4 +1,4 @@
-from kratos import Generator, verilog, const
+from kratos import Generator, verilog, const, always_comb
 import tempfile
 import os
 import filecmp
@@ -64,8 +64,9 @@ def test_regression_2():
             self._out = self.output("out", 8)
             self._reg = self.var("val", 8)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             # because the types are inferred
             # implicit const conversion doesn't work here

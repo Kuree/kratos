@@ -40,10 +40,10 @@ def print_src(src, line_no: Union[List[int], int], offset: int = 1,
     for idx in range(line_start, line_end + 1):
         if idx + offset in line_no:
             print(CLIColors.FAIL + ">", lines[idx] + CLIColors.ENDC,
-                  file=sys.stderr)
+                  file=sys.stderr, end="")
         else:
             print(CLIColors.OKGREEN + " ", lines[idx] + CLIColors.ENDC,
-                  file=sys.stderr)
+                  file=sys.stderr, end="")
 
     # print a line
     print(CLIColors.OKBLUE + "-" * 80 + CLIColors.ENDC, file=sys.stderr)

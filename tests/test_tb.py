@@ -48,7 +48,7 @@ def test_tb_codegen():
         # access internal signal
         assert_(dut.vars.val == 1)
 
-    tb.add_code(code)
+    tb.add_always(code)
 
     src = tb.codegen()
     check_gold(src, "test_tb_codegen")
@@ -61,7 +61,7 @@ def test_tb_delay():
     def code():
         delay(1, tb.vars["in"].assign(1))
 
-    tb.add_code(code)
+    tb.add_always(code)
     src = tb.codegen()
     check_gold(src, "test_tb_delay")
 

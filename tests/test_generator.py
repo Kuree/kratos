@@ -1,7 +1,7 @@
-from kratos import Generator, PortDirection, PortType, always, \
+from kratos import Generator, PortDirection, PortType, always_ff, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
     PackedStruct, Port, Attribute, ext, posedge, PortBundle, const, comment,\
-    enable_runtime_debug
+    enable_runtime_debug, always_comb
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
@@ -87,17 +87,18 @@ class AsyncReg(Generator):
         self._val = self.var("val", width)
 
         # add combination and sequential blocks
-        self.add_code(self.seq_code_block)
+        self.add_always(self.seq_code_block)
 
-        self.add_code(self.comb_code_block)
+        self.add_always(self.comb_code_block)
 
-    @always((posedge, "clk"), (posedge, "rst"))
+    @always_ff((posedge, "clk"), (posedge, "rst"))
     def seq_code_block(self):
         if self._rst:
             self._val = 0
         else:
             self._val = self._in
 
+    @always_comb
     def comb_code_block(self):
         self._out = self._val
 
@@ -144,8 +145,9 @@ def test_else_if():
             self._in1 = self.port("in1", 1, PortDirection.In)
             self._out = self.port("out", 1, PortDirection.Out)
 
-            self.add_code(self.else_if)
+            self.add_always(self.else_if)
 
+        @always_comb
         def else_if(self):
             if self._in0 == const(1, 1):
                 self._out = 1
@@ -188,8 +190,9 @@ def test_for_loop():
                 self.inputs.append(self.port(f"in{i}", 1, PortDirection.In))
             self.output = self.port("out", num_var, PortDirection.Out)
 
-            self.add_code(self.code_block)
+            self.add_always(self.code_block)
 
+        @always_comb
         def code_block(self):
             for i in range(self.num_var):
                 self.output[i] = self.inputs[i]
@@ -206,8 +209,9 @@ def test_switch():
             self._in = self.port("in", 3, PortDirection.In)
             self._out = self.port("out", 3, PortDirection.Out)
 
-            self.add_code(self.logic)
+            self.add_always(self.logic)
 
+        @always_comb
         def logic(self):
             if self._in == const(0, 3):
                 self._out = 0
@@ -234,8 +238,9 @@ def test_nested_if():
             self.in_ = self.port("in", 2, PortDirection.In)
             self.out_ = self.port("out", 2, PortDirection.Out)
 
-            self.add_code(self.nested_if)
+            self.add_always(self.nested_if)
 
+        @always_comb
         def nested_if(self):
             if self.in_ < const(1, 2):
                 if self.in_ < const(2, 2):
@@ -265,13 +270,14 @@ def test_fanout_mod_inst():
             self.wire(self.in_, self.mod_1.in_)
             self.wire(self.in_, self.mod_2.in_)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             self.out_ = self.mod_1.out_ + self.mod_2.out_
 
-    #mod = Mod2()
-    #check_gold(mod, "test_fanout_mod_inst", optimize_passthrough=False)
+    mod = Mod2()
+    check_gold(mod, "test_fanout_mod_inst", optimize_passthrough=False)
     Generator.clear_context()
     mod2 = Mod2()
     check_gold(mod2, "test_fanout_mod_inst_passthrough")
@@ -287,8 +293,9 @@ def test_debug():
 
             self.wire(self.out_1, self.in_)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             self.out_2 = self.in_
 
@@ -315,8 +322,9 @@ def test_illegal_assignment_width():
             self.in_ = self.port("in", 1, PortDirection.In)
             self.out_ = self.port("out", 4, PortDirection.Out)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             if self.in_ == const(1, 1):
                 self.out_ = const(1, 4)
@@ -341,9 +349,9 @@ def test_illegal_assignment_blocking():
 
             self.wire(self.out_, self.in_)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
-        @always((posedge, "clk"))
+        @always_ff((posedge, "clk"))
         def code(self):
             self.out_ = 1
 
@@ -364,8 +372,9 @@ def test_data_if():
             self.out_ = self.port("out", 1, PortDirection.Out)
             self.bool_flag = bool_flag
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             if self.bool_flag:
                 if self.in_ == const(1, 1):
@@ -394,8 +403,9 @@ def test_static_eval_for_loop():
             self.out_ = self.port("out", num_loop, PortDirection.Out)
             self.num_loop = num_loop
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             if self.in_ == const(1, 1):
                 for i in range(self.num_loop):
@@ -498,8 +508,9 @@ def test_clone():
             self.add_child("child1", self.child1)
             self.add_child("child2", self.child2)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             self.child1.ports["in"] = self.in_[0]
             self.child2.ports["in"] = self.in_[1]
@@ -562,8 +573,9 @@ def test_more_debug2():
             self.add_child("pass", pass_through)
             self.wire(self["pass"].ports["in"], self.ports["in"], )
 
-            self.add_code(self.code_block)
+            self.add_always(self.code_block)
 
+        @always_comb
         def code_block(self):
             self.ports.out = self["pass"].ports.out
 
@@ -706,12 +718,12 @@ def test_local_function():
             out_ = self.output("out", 1)
             clk = self.clock("clk")
 
-            @always((posedge, "clk"))
+            @always_ff((posedge, "clk"))
             def code_block():
                 if clk:
                     out_ = in_
 
-            self.add_code(code_block)
+            self.add_always(code_block)
 
     mod = Mod()
     check_gold(mod, "test_local_function")
@@ -870,10 +882,11 @@ def test_named_block():
     if_.then_(out_(0)).else_(out_(1))
     mod.mark_stmt("TEST", if_.then_body())
 
+    @always_comb
     def code():
         out_ = 1
 
-    mod.add_code(code, label="TEST2")
+    mod.add_always(code, label="TEST2")
 
     check_gold(mod, "test_named_block", check_multiple_driver=False)
 
@@ -951,7 +964,7 @@ def test_function():
             self._out = self.output("out", 2)
             self._out2 = self.output("out2", 2)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
         @function
         def update_out(self, value, predicate):
@@ -961,6 +974,7 @@ def test_function():
             else:
                 return value
 
+        @always_comb
         def code(self):
             # because the types are inferred
             # implicit const conversion doesn't work here
@@ -979,7 +993,7 @@ def test_function_missing_return():
             self._in = self.input("in", 2)
             self._out = self.output("out", 2)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
         @function
         def update_out(self, value, predicate):
@@ -987,6 +1001,7 @@ def test_function_missing_return():
             if predicate:
                 return value + self._in
 
+        @always_comb
         def code(self):
             # because the types are inferred
             # implicit const conversion doesn't work here
@@ -1010,8 +1025,9 @@ def test_reg_file():
             self.raddr = self.input("raddr", 2)
             self.reg = self.var("reg_file", 4, size=4)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             self.reg[self.waddr] = self._in
             self._out = self.reg[self.raddr]
@@ -1038,8 +1054,9 @@ def test_comment():
 
             self._in.comment = "Input port"
             self.var.comment = "variable comment"
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             comment("Another comment")
             self._out3 = self._in
@@ -1082,8 +1099,9 @@ def test_c_dpi_function():
             self._in = self.input("in", 2)
             self._out = self.output("out", 8)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             # because the types are inferred
             # implicit const conversion doesn't work here
@@ -1153,9 +1171,9 @@ def test_cast():
             super().__init__("mod")
             self.v = self.var("v", 1)
             self.out = self.output("out", 1)
-            self.add_code(self.code)
+            self.add_always(self.code)
 
-        @always((posedge, "v"))
+        @always_ff((posedge, "v"))
         def code(self):
             self.out = 1
 
@@ -1188,14 +1206,14 @@ def test_async_no_latch():
             in_ = self.input("in", 1)
             out_ = self.output("out", 1)
 
-            @always((posedge, "clk"), (posedge, "rst"))
+            @always_ff((posedge, "clk"), (posedge, "rst"))
             def code():
                 if rst:
                     out_ = 0
                 elif cen:
                     out_ = in_
 
-            self.add_code(code)
+            self.add_always(code)
 
     mod = Mod()
     verilog(mod)
@@ -1211,12 +1229,12 @@ def test_async_latch():
             in_ = self.input("in", 1)
             out_ = self.output("out", 1)
 
-            @always((posedge, "clk"), (posedge, "rst"))
+            @always_ff((posedge, "clk"), (posedge, "rst"))
             def code():
                 if rst:
                     out_ = 0
 
-            self.add_code(code)
+            self.add_always(code)
 
     mod = Mod()
     try:
@@ -1336,14 +1354,14 @@ def test_fsm_state():
     s = mod.enum_var("s", state_enum)
     c = mod.var("counter", 1)
 
-    @always((posedge, clk), (negedge, rst))
+    @always_ff((posedge, clk), (negedge, rst))
     def counter():
         if rst.r_not():
             c = 0
         elif current_state == state_enum.Red:
             c = c + 1
 
-    mod.add_code(counter)
+    mod.add_always(counter)
     check_gold(mod, "test_fsm_state", optimize_if=False)
 
 
@@ -1353,13 +1371,13 @@ def test_not_if():
     clk = mod.clock("clk")
     rst = mod.reset("rst", is_async=False)  # synchronous reset
 
-    @always((posedge, clk))
+    @always_ff((posedge, clk))
     def code():
         if not rst:
             a = 1
         else:
             a = 0
-    mod.add_code(code)
+    mod.add_always(code)
     check_gold(mod, "test_not_if")
 
 
@@ -1367,11 +1385,12 @@ def test_exception():
     mod = Generator("mod", True)
     in_ = mod.input("in", 1)
 
+    @always_comb
     def code():
         if in_ == 1:
             raise Exception()
 
-    mod.add_code(code)
+    mod.add_always(code)
     check_gold(mod, "test_exception")
 
 
@@ -1454,5 +1473,17 @@ def test_track_generated_definition():
         assert content == ""    # empty since no content is generated
 
 
+def test_call_always():
+    @always_comb
+    def code():
+        pass
+
+    try:
+        code()
+        assert False
+    except SyntaxError:
+        assert True
+
+
 if __name__ == "__main__":
-    test_track_generated_definition()
+    test_call_always()

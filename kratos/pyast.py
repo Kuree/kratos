@@ -490,8 +490,25 @@ class CodeBlockType(enum.Enum):
     Initial = enum.auto()
 
 
+class AlwaysWrapper:
+    def __init__(self, fn):
+        self.fn = fn
+
+    def __call__(self, *args, **kwargs):
+        raise SyntaxError("always block cannot be called normally. "
+                          "Please do self.add_block()")
+
+
 def transform_stmt_block(generator, fn, fn_ln=None):
-    if callable(fn):
+    if callable(fn) or isinstance(fn, AlwaysWrapper):
+        if isinstance(fn, AlwaysWrapper):
+            fn = fn.fn
+        else:
+            import warnings
+            warnings.warn("Bare function code as always block will be "
+                          "deprecated soon. Please use @always_ff or "
+                          "@always_comb", SyntaxWarning)
+            print_src(get_fn(fn), get_ln(fn))
         fn_src = inspect.getsource(fn)
         fn_name = fn.__name__
         func_tree = ast.parse(textwrap.dedent(fn_src))
@@ -632,14 +649,18 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         call_obj = deco_list[0]
         if isinstance(call_obj, ast.Call):
             call_name = call_obj.func.id
-            assert call_name == "always", \
-                "{0} is not called with @always block".format(fn_name)
         else:
-            assert isinstance(call_obj, ast.Name)
+            assert isinstance(call_obj, ast.Name), "Unrecognized "\
+                                                   "function "\
+                                                   "decorator {0}".format(call_obj)
             call_name = call_obj.id
-            assert call_name == "initial", \
-                "{0} is not called with @initial block".format(fn_name)
+        if call_name == "always_comb":
+            return CodeBlockType.Combinational, []
+        elif call_name == "initial":
             return CodeBlockType.Initial, []
+        else:
+            assert call_name == "always_ff", "Unrecognized function "\
+                                             "decorator {0}".format(call_name)
         blk_type = CodeBlockType.Sequential
         raw_sensitivity = call_obj.args
         result = []

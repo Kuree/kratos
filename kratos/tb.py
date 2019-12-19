@@ -56,7 +56,7 @@ class TestBench:
     def initial(self):
         return self.__tb.initial()
 
-    def add_code(self, fn, comment=""):
+    def add_always(self, fn, comment=""):
         block_type, raw_sensitives, stmts = transform_stmt_block(self, fn)
         if block_type != CodeBlockType.Initial:
             raise NotImplementedError(
@@ -74,6 +74,8 @@ class TestBench:
             node = None
         if comment:
             node.comment = comment
+
+    add_code = add_always
 
     def property(self, property_name: str, sequence):
         return self.__tb.property(property_name, sequence)

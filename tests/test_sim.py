@@ -1,4 +1,4 @@
-from kratos import Simulator, Generator, posedge, always, negedge
+from kratos import Simulator, Generator, posedge, always_ff, negedge
 
 
 def test_sim_reg():
@@ -11,9 +11,9 @@ def test_sim_reg():
             self.clk = self.clock("clk")
             self.rst = self.reset("rst")
 
-            self.add_code(self.seq_code_block)
+            self.add_always(self.seq_code_block)
 
-        @always((posedge, "clk"), (negedge, "rst"))
+        @always_ff((posedge, "clk"), (negedge, "rst"))
         def seq_code_block(self):
             if ~self.rst:
                 self.out = 0

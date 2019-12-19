@@ -1,6 +1,6 @@
 import enum
 from .pyast import transform_stmt_block, CodeBlockType, add_scope_context, \
-    get_frame_local
+    get_frame_local, AlwaysWrapper
 from .util import get_fn_ln, clog2, max_value
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
@@ -495,7 +495,7 @@ class Generator(metaclass=GeneratorMeta):
     def internal_generator(self):
         return self.__generator
 
-    def add_code(self, fn, comment="", label="", sensitivity=None, fn_ln=None):
+    def add_always(self, fn, comment="", label="", sensitivity=None, fn_ln=None):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_code, [fn, comment]))
             return
@@ -535,6 +535,8 @@ class Generator(metaclass=GeneratorMeta):
         if label:
             self.mark_stmt(label, node)
         return node
+
+    add_code = add_always
 
     def __assign(self, var_from, var_to):
         correct_dir, correct_assign = self.__generator.correct_wire_direction(
@@ -874,19 +876,19 @@ class Generator(metaclass=GeneratorMeta):
         return self.__stmt_label_mapping[name]
 
 
-def always(*sensitivity):
+def always_ff(*sensitivity):
+    assert len(sensitivity) > 0, "always_ff needs at least one signal"
     for edge, var in sensitivity:
         assert isinstance(edge, BlockEdgeType)
         assert isinstance(var, (str, _kratos.Var))
 
-    def wrapper(fn):
-        return fn
+    return AlwaysWrapper
 
-    return wrapper
+
+def always_comb(fn):
+    return AlwaysWrapper(fn)
 
 
 def initial(fn):
-    def wrapper():
-        return fn
+    return AlwaysWrapper(fn)
 
-    return wrapper()

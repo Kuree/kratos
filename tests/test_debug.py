@@ -1,4 +1,4 @@
-from kratos import Generator, always, verilog, posedge
+from kratos import Generator, always_ff, verilog, posedge, always_comb
 import _kratos
 import sqlite3
 import tempfile
@@ -32,8 +32,9 @@ def test_debug_mock():
             self.in2 = self.input("in2", 16)
             self.out = self.output("out", 16)
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
+        @always_comb
         def code(self):
             if self.in1 == 2:
                 self.out = 2
@@ -64,9 +65,10 @@ def test_seq_debug():
             for i in range(4):
                 self.output("out{0}".format(i), 1)
 
-            self.add_code(self.code1)
-            self.add_code(self.code2)
+            self.add_always(self.code1)
+            self.add_always(self.code2)
 
+        @always_comb
         def code1(self):
             if self.in_ == 0:
                 self.ports.out0 = 0
@@ -75,7 +77,7 @@ def test_seq_debug():
                 self.ports.out0 = 1
                 self.ports.out1 = 1
 
-        @always((posedge, "clk"))
+        @always_ff((posedge, "clk"))
         def code2(self):
             if self.in_ == 0:
                 self.ports.out2 = 0
@@ -125,13 +127,14 @@ def test_context():
             self.out = out
             self.width = width
 
+            @always_comb
             def code():
                 if sel:
                     out = 0
                 else:
                     for i in range(width):
                         out[i] = 1
-            self.add_code(code)
+            self.add_always(code)
 
     mod = Mod(4)
     with tempfile.TemporaryDirectory() as temp:
@@ -280,12 +283,13 @@ def test_assert():
     in_ = mod.input("in", 1)
     out_ = mod.output("out", 1)
 
+    @always_comb
     def code():
         # we introduce this bug on purpose
         out_ = in_ - 1
         assert_(out_ == in_)
 
-    mod.add_code(code)
+    mod.add_always(code)
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
@@ -381,6 +385,7 @@ def test_nested_scope():
     h_bit = mod.output("h_bit", clog2(width))
     done = mod.var("done", 1)
 
+    @always_comb
     def find_bit():
         done = 0
         h_bit = 0
@@ -389,7 +394,7 @@ def test_nested_scope():
                 if data[i]:
                     done = 1
                     h_bit = i
-    mod.add_code(find_bit, label="block")
+    mod.add_always(find_bit, label="block")
     verilog(mod, insert_debug_info=True)
     block = mod.get_marked_stmt("block")
     last_if = block[-1]
