@@ -1,26 +1,4 @@
-from kratos import Generator, TestBench, initial, assert_, delay, Sequence, \
-    BlockEdgeType
-import os
-import filecmp
-import tempfile
-
-
-def check_gold(src, gold_name):
-    with tempfile.TemporaryDirectory() as tempdir:
-        filename = os.path.join(tempdir, "test.sv")
-        gold = os.path.join(os.path.dirname(__file__), "gold",
-                            gold_name + ".sv")
-        with open(filename, "w+") as f:
-            f.write(src)
-        assert os.path.isfile(gold)
-        assert os.path.isfile(filename)
-        if not filecmp.cmp(filename, gold):
-            with open(filename) as f:
-                print(f.read())
-            print("-" * 80)
-            with open(gold) as f:
-                print(f.read())
-            assert False
+from kratos import Generator, TestBench, initial, assert_, delay, Sequence
 
 
 def tb_dut_setup():
@@ -38,7 +16,7 @@ def tb_dut_setup():
     return dut, tb
 
 
-def test_tb_codegen():
+def test_tb_codegen(check_gold):
     dut, tb = tb_dut_setup()
 
     @initial
@@ -54,7 +32,7 @@ def test_tb_codegen():
     check_gold(src, "test_tb_codegen")
 
 
-def test_tb_delay():
+def test_tb_delay(check_gold):
     dut, tb = tb_dut_setup()
 
     @initial
@@ -66,7 +44,7 @@ def test_tb_delay():
     check_gold(src, "test_tb_delay")
 
 
-def test_tb_sequence():
+def test_tb_sequence(check_gold):
     dut, tb = tb_dut_setup()
     # add a clock and wire them together
     tb.wire(dut.clock("clk"), tb.var("clk", 1))
@@ -81,4 +59,5 @@ def test_tb_sequence():
 
 
 if __name__ == "__main__":
-    test_tb_codegen()
+    from conftest import check_gold_fn
+    test_tb_codegen(check_gold_fn)

@@ -12,24 +12,7 @@ class PassThroughMod(Generator):
         self.wire(self.out_, self.in_)
 
 
-def check_gold(mod, gold_name, **kargs):
-    with tempfile.TemporaryDirectory() as tempdir:
-        filename = os.path.join(tempdir, "test.sv")
-        gold = os.path.join(os.path.dirname(__file__), "gold",
-                            gold_name + ".sv")
-        verilog(mod, filename=filename, **kargs)
-        assert os.path.isfile(gold)
-        assert os.path.isfile(filename)
-        if not filecmp.cmp(filename, gold):
-            with open(filename) as f:
-                print(f.read())
-            print("-" * 80)
-            with open(gold) as f:
-                print(f.read())
-            assert False
-
-
-def test_regression_1():
+def test_regression_1(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("Top")

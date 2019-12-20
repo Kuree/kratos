@@ -5,7 +5,6 @@ from kratos import Generator, PortDirection, PortType, always_ff, \
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
-import filecmp
 
 
 class PassThroughMod(Generator):
@@ -28,38 +27,6 @@ class PassThroughTop(Generator):
         self.wire(self["pass"].ports["in"], self.ports["in"], )
 
         self.wire(self.ports.out, self["pass"].ports.out)
-
-
-def check_gold(mod, gold_name, **kargs):
-    with tempfile.TemporaryDirectory() as tempdir:
-        filename = os.path.join(tempdir, "test.sv")
-        gold = os.path.join(os.path.dirname(__file__), "gold",
-                            gold_name + ".sv")
-        verilog(mod, filename=filename, **kargs)
-        assert os.path.isfile(gold)
-        assert os.path.isfile(filename)
-        if not filecmp.cmp(filename, gold):
-            with open(filename) as f:
-                print(f.read())
-            print("-" * 80)
-            with open(gold) as f:
-                print(f.read())
-            assert False
-
-
-def check_file(src_str, gold_filename):
-    gold = os.path.join(os.path.dirname(__file__), "gold",
-                        gold_filename)
-    with open(gold) as f:
-        gold_text = f.read()
-        if os.path.isfile(src_str):
-            with open(src_str) as ff:
-                src_str = ff.read()
-        if src_str != gold_text:
-            print(src_str)
-            print("-" * 80)
-            print(gold_text)
-            assert False
 
 
 def test_generator():
@@ -103,7 +70,7 @@ class AsyncReg(Generator):
         self._out = self._val
 
 
-def test_async_reg():
+def test_async_reg(check_gold):
     reg_width = 16
     reg = AsyncReg(reg_width)
     check_gold(reg, "test_async_reg")
@@ -137,7 +104,7 @@ def test_wire_const():
     assert is_valid_verilog(mod_src)
 
 
-def test_else_if():
+def test_else_if(check_gold):
     class ElseIf(Generator):
         def __init__(self):
             super().__init__("elseif")
@@ -160,7 +127,7 @@ def test_else_if():
     check_gold(mod, "test_else_if")
 
 
-def test_mod_instantiation():
+def test_mod_instantiation(check_gold):
     mod = PassThroughTop()
     # turn off pass through module optimization since it will remove
     # mod2 completely
@@ -179,7 +146,7 @@ def test_external_module():
     assert c.get_hash(mod.internal_generator) != 0
 
 
-def test_for_loop():
+def test_for_loop(check_gold):
     class Module(Generator):
         def __init__(self, num_var: int):
             super().__init__("mod", True)
@@ -201,7 +168,7 @@ def test_for_loop():
     check_gold(mod, "test_for_loop")
 
 
-def test_switch():
+def test_switch(check_gold):
     class Switch(Generator):
         def __init__(self):
             super().__init__("switch_test")
@@ -224,14 +191,14 @@ def test_switch():
     check_gold(mod, "test_switch")
 
 
-def test_pass_through():
+def test_pass_through(check_gold):
     mod = PassThroughTop()
     # turn off pass through module optimization since it will remove
     # mod2 completely
     check_gold(mod, "test_pass_through", optimize_passthrough=True)
 
 
-def test_nested_if():
+def test_nested_if(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("mod1")
@@ -254,7 +221,7 @@ def test_nested_if():
     check_gold(mod, "test_nested_if")
 
 
-def test_fanout_mod_inst():
+def test_fanout_mod_inst(check_gold):
     class Mod2(Generator):
         def __init__(self):
             super().__init__("mod2")
@@ -364,7 +331,7 @@ def test_illegal_assignment_blocking():
         assert True
 
 
-def test_data_if():
+def test_data_if(check_gold):
     class Mod(Generator):
         def __init__(self, bool_flag):
             super().__init__("mod1")
@@ -395,7 +362,7 @@ def test_data_if():
     check_gold(mod, "test_data_if_false")
 
 
-def test_static_eval_for_loop():
+def test_static_eval_for_loop(check_gold):
     class Mod(Generator):
         def __init__(self, num_loop):
             super().__init__("mod1", True)
@@ -426,7 +393,7 @@ def test_static_eval_for_loop():
     check_gold(mod, "test_static_eval_for_loop")
 
 
-def test_pass():
+def test_pass(check_gold):
     def change_name(generator):
         class Visitor(IRVisitor):
             def __init__(self):
@@ -452,7 +419,7 @@ def test_pass():
     check_gold(mod, "test_pass", additional_passes={"name_change": change_name})
 
 
-def test_const_port():
+def test_const_port(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("mod")
@@ -470,7 +437,7 @@ def test_const_port():
     check_gold(mod, "test_const_port", optimize_passthrough=False)
 
 
-def test_create():
+def test_create(check_gold):
     class Mod(Generator):
         def __init__(self, width, is_clone=False):
             super().__init__(f"mod_{width}", is_clone=is_clone)
@@ -525,7 +492,7 @@ def test_clone():
     assert is_valid_verilog(mod_src)
 
 
-def test_packed_struct():
+def test_packed_struct(check_gold, check_file):
     struct = PackedStruct("config_data", [("read", 16, False),
                                           ("data", 16, False)])
 
@@ -615,7 +582,7 @@ def test_attribute():
     assert attr.type_str == "python"
 
 
-def test_wire_merge():
+def test_wire_merge(check_gold):
     class TestModule(Generator):
         def __init__(self, width):
             super().__init__("Test")
@@ -670,7 +637,7 @@ def test_zero_ext():
     is_valid_verilog(mod_src)
 
 
-def test_port_array():
+def test_port_array(check_gold):
     mod = Generator("mod", True)
     in_ = mod.port("in", 2, PortDirection.In, size=2)
     out1 = mod.port("out1", 2, PortDirection.Out, size=2)
@@ -683,7 +650,7 @@ def test_port_array():
     check_gold(mod, "test_port_array")
 
 
-def test_simple_pipeline():
+def test_simple_pipeline(check_gold):
     mod = PassThroughMod()
     # add a clock
     mod.clock("clk")
@@ -695,7 +662,7 @@ def test_simple_pipeline():
     check_gold(mod, "test_simple_pipeline", insert_pipeline_stages=True)
 
 
-def test_replace():
+def test_replace(check_gold):
     mod = PassThroughTop()
 
     class Mod(Generator):
@@ -710,7 +677,7 @@ def test_replace():
     check_gold(mod, "test_replace", optimize_passthrough=False)
 
 
-def test_local_function():
+def test_local_function(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("test")
@@ -729,7 +696,7 @@ def test_local_function():
     check_gold(mod, "test_local_function")
 
 
-def test_reg_next():
+def test_reg_next(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("test")
@@ -750,7 +717,7 @@ def test_reg_next():
     check_gold(mod, "test_reg_next")
 
 
-def test_reg_init():
+def test_reg_init(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("test")
@@ -768,7 +735,7 @@ def test_reg_init():
     check_gold(mod, "test_reg_init")
 
 
-def test_reg_enable():
+def test_reg_enable(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("test")
@@ -785,7 +752,7 @@ def test_reg_enable():
     check_gold(mod, "test_reg_enable")
 
 
-def test_ternary():
+def test_ternary(check_gold):
     from kratos import mux
 
     class Mod(Generator):
@@ -801,7 +768,7 @@ def test_ternary():
     check_gold(mod, "test_ternary")
 
 
-def test_bundle():
+def test_bundle(check_gold):
     class Test(PortBundle):
         def __init__(self):
             super().__init__(True)
@@ -873,7 +840,7 @@ def test_bundle_pack():
     # assert is_valid_verilog(mod_src)
 
 
-def test_named_block():
+def test_named_block(check_gold):
     mod = Generator("mod", debug=True)
     out_ = mod.output("out", 1)
     in_ = mod.port("in", 1, PortDirection.In)
@@ -891,7 +858,7 @@ def test_named_block():
     check_gold(mod, "test_named_block", check_multiple_driver=False)
 
 
-def test_enum():
+def test_enum(check_gold):
     mod = Generator("mod", debug=True)
     out_ = mod.output("out", 1)
     in_ = mod.input("in", 1)
@@ -918,7 +885,7 @@ def setup_fsm(fsm, out_, in_):
     fsm.set_start_state("Red")
 
 
-def test_fsm():
+def test_fsm(check_gold, check_file):
     mod = Generator("mod", debug=True)
     out_ = mod.output("out", 2)
     in_ = mod.input("in", 2)
@@ -938,7 +905,7 @@ def test_fsm():
     check_file(csv, "test_fsm.csv")
 
 
-def test_fsm_mealy():
+def test_fsm_mealy(check_gold):
     mod = Generator("mod", debug=True)
     out_ = mod.output("out", 2)
     in_ = mod.input("in", 2)
@@ -954,7 +921,7 @@ def test_fsm_mealy():
     check_gold(mod, "test_fsm_mealy", optimize_if=False)
 
 
-def test_function():
+def test_function(check_gold):
     from kratos.func import function
 
     class Mod(Generator):
@@ -1015,7 +982,7 @@ def test_function_missing_return():
         assert True
 
 
-def test_reg_file():
+def test_reg_file(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("mod")
@@ -1036,7 +1003,7 @@ def test_reg_file():
     check_gold(mod, "test_reg_file")
 
 
-def test_comment():
+def test_comment(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("mod")
@@ -1064,7 +1031,7 @@ def test_comment():
     check_gold(mod, "test_comment", optimize_passthrough=False)
 
 
-def test_packed_array():
+def test_packed_array(check_gold):
     class Mod(Generator):
         def __init__(self):
             super().__init__("mod")
@@ -1086,7 +1053,7 @@ def test_rename():
     assert mod["test"].internal_generator.name == "test2"
 
 
-def test_c_dpi_function():
+def test_c_dpi_function(check_gold):
     from kratos.func import dpi_function
 
     @dpi_function(8)
@@ -1113,7 +1080,7 @@ def test_c_dpi_function():
     check_gold(mod, "test_dpi", int_dpi_interface=False)
 
 
-def test_nested_fsm():
+def test_nested_fsm(check_gold, check_file):
     mod = Generator("mod", debug=True)
     out_ = mod.output("out", 2)
     in_ = mod.input("in", 2)
@@ -1145,7 +1112,7 @@ def test_symbol_table():
     assert len(table[mod]) == 5
 
 
-def test_breakpoint():
+def test_breakpoint(check_gold):
     from _kratos.passes import extract_debug_break_points, hash_generators_sequential
     mod = Generator("mod", True)
     comb = mod.combinational()
@@ -1244,7 +1211,7 @@ def test_async_latch():
         assert True
 
 
-def test_param():
+def test_param(check_gold):
     mod = Generator("mod", True)
     param = mod.parameter("P", 4, 4)
     param2 = mod.parameter("P2", 4, 4)
@@ -1265,7 +1232,7 @@ def test_param():
     verilog(mod)
 
 
-def test_nested_param():
+def test_nested_param(check_gold):
     parent = Generator("parent")
     param1 = parent.parameter("P", 4, 4)
     # use normal variable to see how decoupling works
@@ -1310,7 +1277,7 @@ def hash_param_width():
     assert hash1 == hash2
 
 
-def test_long_statement():
+def test_long_statement(check_gold):
     from kratos import concat
     mod = Generator("mod")
     a = mod.input("this_is_a_long_name", 1)
@@ -1320,7 +1287,7 @@ def test_long_statement():
     check_gold(mod, "test_long_statement")
 
 
-def test_create_stub():
+def test_create_stub(check_file):
     from kratos import create_stub
     mod = Generator("mod")
     mod.input("a", 16, size=16)
@@ -1332,7 +1299,7 @@ def test_create_stub():
     check_file(create_stub(mod, verilog95_def=True), "test_create_stub_95.sv")
 
 
-def test_fsm_state():
+def test_fsm_state(check_gold):
     from kratos import negedge
     mod = Generator("mod", debug=True)
     out_ = mod.output("out", 2)
@@ -1365,7 +1332,7 @@ def test_fsm_state():
     check_gold(mod, "test_fsm_state", optimize_if=False)
 
 
-def test_not_if():
+def test_not_if(check_gold):
     mod = Generator("mod")
     a = mod.output("a", 1)
     clk = mod.clock("clk")
@@ -1381,7 +1348,7 @@ def test_not_if():
     check_gold(mod, "test_not_if")
 
 
-def test_exception():
+def test_exception(check_gold):
     mod = Generator("mod", True)
     in_ = mod.input("in", 1)
 
@@ -1394,7 +1361,7 @@ def test_exception():
     check_gold(mod, "test_exception")
 
 
-def test_enum_port():
+def test_enum_port(check_gold):
     from kratos import enum
     mod = Generator("mod")
     enum = enum("State", ["IDLE", "WAIT", "WORK"])
@@ -1404,7 +1371,7 @@ def test_enum_port():
     check_gold(mod, "test_enum_port")
 
 
-def test_interface_modport_local():
+def test_interface_modport_local(check_gold):
     from kratos import Interface
     mod = Generator("mod")
 
@@ -1431,7 +1398,7 @@ def test_interface_modport_local():
     check_gold(mod, "test_interface_modport_local", optimize_passthrough=False)
 
 
-def test_interface_port_wiring():
+def test_interface_port_wiring(check_gold):
     from kratos import Interface
     mod = Generator("mod")
 
