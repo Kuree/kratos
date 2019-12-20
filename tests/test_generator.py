@@ -1456,9 +1456,7 @@ def test_interface_port_wiring():
 
     # wire the interface
     mod.wire(i1, i2)
-    # fanout has a bug
-    verilog(mod, filename="test.sv", optimize_passthrough=False,
-            optimize_fanout=True)
+    check_gold(mod, "test_interface_port_wiring", optimize_passthrough=False)
 
 
 def test_track_generated_definition():

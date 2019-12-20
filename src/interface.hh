@@ -8,7 +8,7 @@ namespace kratos {
 
 struct IDefinition {
 public:
-    using InterfacePortDef = std::tuple<uint32_t, std::vector<uint32_t>, PortDirection>;
+    using InterfacePortDef = std::tuple<uint32_t, std::vector<uint32_t>, PortDirection, PortType>;
     using InterfaceVarDef = std::pair<uint32_t, std::vector<uint32_t>>;
     [[nodiscard]] virtual bool has_port(const std::string &name) const = 0;
     [[nodiscard]] virtual bool has_var(const std::string &name) const = 0;
@@ -33,13 +33,22 @@ public:
 
     std::shared_ptr<InterfaceModPortDefinition> create_modport_def(const std::string &name);
 
-    void port(const std::string &name, uint32_t width, uint32_t size, PortDirection dir);
-    void port(const std::string &name, uint32_t width, const std::vector<uint32_t> &size,
-              PortDirection dir);
-    void input(const std::string &name, uint32_t width, uint32_t size);
-    void output(const std::string &name, uint32_t width, uint32_t size);
-    void var(const std::string &name, uint32_t width, uint32_t size);
-    void var(const std::string &name, uint32_t width, const std::vector<uint32_t> &size);
+    std::string port(const std::string &name, uint32_t width, uint32_t size, PortDirection dir);
+    std::string port(const std::string &name, uint32_t width, const std::vector<uint32_t> &size,
+                     PortDirection dir);
+    std::string port(const std::string &name, uint32_t width, const std::vector<uint32_t> &size,
+                     PortDirection dir, PortType type);
+    std::string clock(const std::string &name) {
+        return port(name, 1, {1}, PortDirection::In, PortType::Clock);
+    }
+    std::string reset(const std::string &name) {
+        return port(name, 1, {1}, PortDirection::In, PortType::AsyncReset);
+    }
+    std::string input(const std::string &name, uint32_t width, uint32_t size);
+    std::string output(const std::string &name, uint32_t width, uint32_t size);
+    std::string var(const std::string &name, uint32_t width) { return var(name, width, 1); }
+    std::string var(const std::string &name, uint32_t width, uint32_t size);
+    std::string var(const std::string &name, uint32_t width, const std::vector<uint32_t> &size);
 
     [[nodiscard]] bool has_port(const std::string &name) const override;
     [[nodiscard]] bool has_var(const std::string &name) const override;

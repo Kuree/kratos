@@ -484,18 +484,17 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
     for (auto const &n : vars) {
         auto const &[width, size] = def->var(n);
         // for now they are all unsigned
-        auto var_name = ::format("{0}.{1}", def->name(), n);
+        auto var_name = ::format("{0}.{1}", interface_name, n);
         auto v = std::make_shared<InterfaceVar>(ref.get(), this, n, width, size, false);
         ref->var(n, v.get());
         vars_.emplace(var_name, v);
     }
     auto const &ports = def->ports();
     for (auto const &n : ports) {
-        auto const &[width, size, dir] = def->port(n);
+        auto const &[width, size, dir, type] = def->port(n);
         // for now they are all unsigned
-        auto var_name = ::format("{0}.{1}", def->name(), n);
-        auto p = std::make_shared<InterfacePort>(ref.get(), this, dir, n, width, size,
-                                                 PortType::Data, false);
+        auto var_name = ::format("{0}.{1}", interface_name, n);
+        auto p = std::make_shared<InterfacePort>(ref.get(), this, dir, n, width, size, type, false);
         ref->port(n, p.get());
         vars_.emplace(var_name, p);
         if (is_port) ports_.emplace(var_name);
@@ -545,8 +544,20 @@ std::pair<bool, bool> correct_port_direction(Port *port1, Port *port2, Generator
     std::shared_ptr<AssignStmt> stmt;
     if (parent1 == parent2 && parent1 == top) {
         // it's the same module
-        check_direction(port1, port2);
-        return {(!(port1->port_direction() == PortDirection::In)), true};
+        // by default same direction is fault, however, for modport ones, it is the same direction
+        bool interface_port_wire = false;
+        if (port1->is_interface() && !port2->is_interface()) {
+            auto port_i = reinterpret_cast<InterfacePort*>(port1);
+            auto it = port_i->interface();
+            interface_port_wire = !it->is_port();
+        } else if (port2->is_interface() && !port1->is_interface()) {
+            auto port_i = reinterpret_cast<InterfacePort*>(port2);
+            auto it = port_i->interface();
+            interface_port_wire = !it->is_port();
+        }
+        check_direction(port1, port2, interface_port_wire);
+        bool dir_in = port1->port_direction() == PortDirection::In;
+        return {(interface_port_wire == dir_in), true};
     } else {
         if (parent1 == top && top->has_child_generator(parent2->shared_from_this())) {
             check_direction(port1, port2, true);
@@ -602,8 +613,14 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
         // var1 is port and var2 is not
         auto port1 = dynamic_cast<Port *>(root1);
         if (port1->generator == this) {
-            return {!port1->is_interface() ? port1->port_direction() == PortDirection::Out
-                                           : port1->port_direction() == PortDirection::In,
+            bool flip_dir = false;
+            if (port1->is_interface()) {
+                auto port_i = reinterpret_cast<InterfacePort *>(port1);
+                auto ref = port_i->interface();
+                flip_dir = !(ref->is_port() && root2->generator == this);
+            }
+            return {!flip_dir ? port1->port_direction() == PortDirection::Out
+                              : port1->port_direction() == PortDirection::In,
                     true};
         } else {
             if (!has_child_generator(port1->generator->shared_from_this())) {
@@ -618,8 +635,14 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
         // var2 is port and var1 is not
         auto port2 = dynamic_cast<Port *>(root2);
         if (port2->generator == this) {
-            return {!port2->is_interface() ? port2->port_direction() == PortDirection::In
-                                           : port2->port_direction() == PortDirection::Out,
+            bool flip_dir = false;
+            if (port2->is_interface()) {
+                auto port_i = reinterpret_cast<InterfacePort *>(port2);
+                auto ref = port_i->interface();
+                flip_dir = !(ref->is_port() && root1->generator == this);
+            }
+            return {!flip_dir ? port2->port_direction() == PortDirection::In
+                              : port2->port_direction() == PortDirection::Out,
                     true};
         } else {
             if (!has_child_generator(port2->generator->shared_from_this())) {
@@ -643,35 +666,42 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
     // the orientation is determined by the generator reference from the interface instance
     auto gen1 = inst1->gen();
     auto gen2 = inst2->gen();
-    if (gen1 != this) {
-        printf("%p %p %s\n", (void *)gen1, (void *)this, name.c_str());
-        throw UserException(
-            ::format("interface {0} doesn't belong to {1}", inst1->name(), handle_name()));
-    }
+    InterfaceRef *parent = nullptr;
+    InterfaceRef *child = nullptr;
     if (gen1->has_child_generator(gen2->shared_from_this())) {
         // gen2 is gen1's child
         // wiring gen2's ports to gen1's
-        auto const &ports = inst2->ports();
-        for (auto const &[port_name, port] : ports) {
-            Var *v = nullptr;
-            if (inst1->has_var(port_name)) {
-                v = &inst1->var(port_name);
-            } else if (inst1->has_port(port_name)) {
-                v = &inst1->port(port_name);
-            }
-            if (!v) {
-                throw UserException((::format("Unable to wire interface {0} with {1}",
-                                              inst1->name(), inst2->name())));
-            }
-            if (port->port_direction() == PortDirection::In) {
-                add_stmt(port->assign(*v));
-            } else {
-                add_stmt(v->assign(*port));
-            }
-        }
+        parent = inst1.get();
+        child = inst2.get();
+    } else if (gen2->has_child_generator(gen1->shared_from_this())) {
+        parent = inst2.get();
+        child = inst2.get();
     } else {
         throw UserException(::format("{0} is not a child of {1} or vise visa", gen2->handle_name(),
                                      gen1->handle_name()));
+    }
+    if (parent->gen() != this) {
+        throw UserException(::format("{0} is not a child of {1} or vise visa", gen2->handle_name(),
+                                     gen1->handle_name()));
+    }
+
+    auto const &ports = child->ports();
+    for (auto const &[port_name, port] : ports) {
+        Var *v = nullptr;
+        if (parent->has_var(port_name)) {
+            v = &parent->var(port_name);
+        } else if (parent->has_port(port_name)) {
+            v = &parent->port(port_name);
+        }
+        if (!v) {
+            throw UserException((::format("Unable to wire interface {0} with {1}",
+                                          inst1->name(), inst2->name())));
+        }
+        if (port->port_direction() == PortDirection::In) {
+            add_stmt(port->assign(*v));
+        } else {
+            add_stmt(v->assign(*port));
+        }
     }
 }
 

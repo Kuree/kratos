@@ -16,24 +16,32 @@ std::shared_ptr<InterfaceModPortDefinition> InterfaceDefinition::create_modport_
     return p;
 }
 
-void InterfaceDefinition::port(const std::string& name, uint32_t width, uint32_t size,
-                               kratos::PortDirection dir) {
-    port(name, width, std::vector<uint32_t>{size}, dir);
+std::string InterfaceDefinition::port(const std::string& name, uint32_t width, uint32_t size,
+                                      kratos::PortDirection dir) {
+    return port(name, width, std::vector<uint32_t>{size}, dir);
 }
 
-void InterfaceDefinition::port(const std::string& name, uint32_t width,
-                               const std::vector<uint32_t>& size, enum kratos::PortDirection dir) {
+std::string InterfaceDefinition::port(const std::string& name, uint32_t width,
+                                      const std::vector<uint32_t>& size,
+                                      enum kratos::PortDirection dir) {
+    return port(name, width, size, dir, PortType::Data);
+}
+
+std::string InterfaceDefinition::port(const std::string& name, uint32_t width,
+                                      const std::vector<uint32_t>& size,
+                                      enum kratos::PortDirection dir, PortType type) {
     if (ports_.find(name) != ports_.end())
         throw UserException(::format("{0} already exists in {1}", name, name_));
-    ports_.emplace(name, std::make_tuple(width, size, dir));
+    ports_.emplace(name, std::make_tuple(width, size, dir, type));
+    return name;
 }
 
-void InterfaceDefinition::input(const std::string& name, uint32_t width, uint32_t size) {
-    port(name, width, size, PortDirection::In);
+std::string InterfaceDefinition::input(const std::string& name, uint32_t width, uint32_t size) {
+    return port(name, width, size, PortDirection::In);
 }
 
-void InterfaceDefinition::output(const std::string& name, uint32_t width, uint32_t size) {
-    port(name, width, size, PortDirection::Out);
+std::string InterfaceDefinition::output(const std::string& name, uint32_t width, uint32_t size) {
+    return port(name, width, size, PortDirection::Out);
 }
 
 InterfaceDefinition::InterfacePortDef InterfaceDefinition::port(const std::string& name) const {
@@ -42,15 +50,16 @@ InterfaceDefinition::InterfacePortDef InterfaceDefinition::port(const std::strin
     return ports_.at(name);
 }
 
-void InterfaceDefinition::var(const std::string& name, uint32_t width, uint32_t size) {
-    var(name, width, std::vector<uint32_t>{size});
+std::string InterfaceDefinition::var(const std::string& name, uint32_t width, uint32_t size) {
+    return var(name, width, std::vector<uint32_t>{size});
 }
 
-void InterfaceDefinition::var(const std::string& name, uint32_t width,
-                              const std::vector<uint32_t>& size) {
+std::string InterfaceDefinition::var(const std::string& name, uint32_t width,
+                                     const std::vector<uint32_t>& size) {
     if (vars_.find(name) != vars_.end())
         throw UserException(::format("{0} already exists in {1}", name, name_));
     vars_.emplace(name, std::make_pair(width, size));
+    return name;
 }
 
 std::set<std::string> InterfaceDefinition::ports() const {
@@ -108,7 +117,7 @@ IDefinition::InterfacePortDef InterfaceModPortDefinition::port(const std::string
         auto const& [width, size] = def_->var(name);
         auto port_dir =
             inputs_.find(name) != inputs_.end() ? PortDirection::In : PortDirection::Out;
-        return std::make_tuple(width, size, port_dir);
+        return std::make_tuple(width, size, port_dir, PortType::Data);
     }
 }
 

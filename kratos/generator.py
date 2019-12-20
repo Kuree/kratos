@@ -538,17 +538,17 @@ class Generator(metaclass=GeneratorMeta):
 
     add_code = add_always
 
-    def __assign(self, var_from, var_to):
+    def __assign(self, var_to, var_from):
         correct_dir, correct_assign = self.__generator.correct_wire_direction(
-            var_from, var_to)
+            var_to, var_from)
         if not correct_assign:
-            raise ValueError(str(var_from) + " cannot be assign to " +
-                             str(var_to) +
+            raise ValueError(str(var_to) + " cannot be assign to " +
+                             str(var_from) +
                              ". Please check your module hierarchy")
         if correct_dir:
-            stmt = var_from.assign(var_to)
-        else:
             stmt = var_to.assign(var_from)
+        else:
+            stmt = var_from.assign(var_to)
         self.add_stmt(stmt)
         return stmt
 

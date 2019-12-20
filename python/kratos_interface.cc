@@ -19,6 +19,15 @@ void init_interface(py::module &m) {
              py::overload_cast<const std::string &, uint32_t, uint32_t>(&InterfaceDefinition::var))
         .def("var", py::overload_cast<const std::string &, uint32_t, const std::vector<uint32_t> &>(
                         &InterfaceDefinition::var))
+        .def("var", py::overload_cast<const std::string &, uint32_t>(&InterfaceDefinition::var))
+        .def("port", py::overload_cast<const std::string &, uint32_t, uint32_t, PortDirection>(
+                         &InterfaceDefinition::port))
+        .def("port", py::overload_cast<const std::string &, uint32_t, const std::vector<uint32_t> &,
+                                       PortDirection>(&InterfaceDefinition::port))
+        .def("port", py::overload_cast<const std::string &, uint32_t, const std::vector<uint32_t> &,
+                                       PortDirection, PortType>(&InterfaceDefinition::port))
+        .def("clock", &InterfaceDefinition::clock)
+        .def("reset", &InterfaceDefinition::reset)
         .def("modport", &InterfaceDefinition::create_modport_def)
         .def("has_var", &InterfaceDefinition::has_var)
         .def("has_port", &InterfaceDefinition::has_port)
