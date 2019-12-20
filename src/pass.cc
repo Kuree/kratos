@@ -785,7 +785,13 @@ private:
             if (sinks.size() == 1) {
                 auto stmt = *(sinks.begin());
                 auto src = stmt->left();
-                if (src->type() == VarType::PortIO && src->generator == generator->parent() &&
+                bool correct_src_type;
+                if (!src->is_interface()) {
+                    correct_src_type = src->type() == VarType::PortIO;
+                } else {
+                    correct_src_type = true;
+                }
+                if (correct_src_type && src->generator == generator->parent() &&
                     stmt->right() == port) {
                     // remove it from the parent generator
                     stmt->remove_from_parent();

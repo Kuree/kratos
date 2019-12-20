@@ -1,14 +1,16 @@
 #include "expr.hh"
+
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
+#include "interface.hh"
 #include "stmt.hh"
 #include "syntax.hh"
 #include "util.hh"
-#include "interface.hh"
 
 using fmt::format;
 using std::make_shared;
@@ -1359,8 +1361,6 @@ std::string InterfaceVar::to_string() const {
     return ::format("{0}.{1}", parent_name, Var::to_string());
 }
 
-std::string InterfaceVar::base_name() const {
-    return interface_->name();
-}
+std::string InterfaceVar::base_name() const { return interface_->base_name(); }
 
 }  // namespace kratos

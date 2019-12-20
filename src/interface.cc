@@ -168,6 +168,10 @@ Port& InterfaceRef::port(const std::string& name) const {
     return *ports_.at(name);
 }
 
+std::string InterfaceRef::base_name() const {
+    return name();
+}
+
 std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& name) {
     if (mod_ports_.find(name) != mod_ports_.end()) return mod_ports_.at(name);
     auto definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
@@ -197,6 +201,7 @@ std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& n
         }
     }
     mod_ports_.emplace(name, new_ref);
+    new_ref->interface_parent_ = this;
     return new_ref;
 }
 

@@ -131,6 +131,7 @@ public:
 
     [[nodiscard]] Generator *gen() const { return gen_; }
     [[nodiscard]] const std::string &name() const { return name_; }
+    [[nodiscard]] std::string base_name() const;
     [[nodiscard]] bool has_instantiated() const { return has_instantiated_; }
     bool &has_instantiated() { return has_instantiated_; }
     [[nodiscard]] const std::shared_ptr<IDefinition> &definition() const { return definition_; }
@@ -152,6 +153,8 @@ private:
     std::unordered_map<std::string, std::shared_ptr<InterfaceRef>> mod_ports_;
     // only used for modport logic
     std::unordered_map<std::string, std::shared_ptr<ModportPort>> modport_ports_;
+
+    InterfaceRef* interface_parent_ = nullptr;
 };
 
 }  // namespace kratos

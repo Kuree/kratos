@@ -173,7 +173,7 @@ std::string InterfacePort::to_string() const {
     return ::format("{0}.{1}", parent_name, Var::to_string());
 }
 
-std::string InterfacePort::base_name() const { return interface_->name(); }
+std::string InterfacePort::base_name() const { return interface_->base_name(); }
 
 ModportPort::ModportPort(InterfaceRef* ref, kratos::Var* var, kratos::PortDirection dir)
     : InterfacePort(ref, var->generator, dir, var->name, var->width(), var->size(), PortType::Data,

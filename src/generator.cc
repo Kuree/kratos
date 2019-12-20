@@ -675,7 +675,7 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
         child = inst2.get();
     } else if (gen2->has_child_generator(gen1->shared_from_this())) {
         parent = inst2.get();
-        child = inst2.get();
+        child = inst1.get();
     } else {
         throw UserException(::format("{0} is not a child of {1} or vise visa", gen2->handle_name(),
                                      gen1->handle_name()));

@@ -806,8 +806,24 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
                 external_name = external->to_string();
             } else {
                 // we assume the interface connectivity has been checked
-                internal_name = internal->base_name();
-                external_name = external->base_name();
+                // internal has to be an interface
+                auto internal_interface = internal->as<InterfacePort>();
+                if (!internal_interface)
+                    throw InternalException("Unable to cast port");
+                auto internal_def = internal_interface->interface();
+                internal_name = internal_def->name();
+                if (external->is_interface()) {
+                    // TODO
+                    if (external->type() == VarType::PortIO) {
+                        auto external_port = external->as<InterfacePort>();
+                        external_name = external_port->base_name();
+                    } else {
+                        auto external_var = external->as<InterfaceVar>();
+                        external_name = external_var->base_name();
+                    }
+                } else {
+                    external_name = external->name;
+                }
                 if (interface_names.find(internal_name) != interface_names.end()) {
                     if (interface_names.at(internal_name) != external_name) {
                         throw StmtException(
