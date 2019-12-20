@@ -107,6 +107,9 @@ def test_modport_io(check_gold):
             self.wire(bus.clk, clk)
             self.wire(self.master.bus, bus)
             self.wire(self.slave.bus, bus)
+            # the following also works
+            # self.wire(self.master.bus, bus.Master)
+            # self.wire(self.slave.bus, bus.Slave)
 
     top = Top()
     check_gold(top, "test_modport_io")

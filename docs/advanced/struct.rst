@@ -86,6 +86,11 @@ SystemVerilog code may not be that readable. The naming scheme is
 The rule of thumb is that if you want to have a mixture of input and output
 in your struct, use port bundle, otherwise use packed struct.
 
+If you want better generated SystemVerilog while using port bundles, it
+is highly recommended to use ``interface`` instead. It will be compiled to
+SystemVerilog ``interface`` instead, which offers better functionality
+than port bundles. You can check out more details, see :ref:`interface-label`.
+
 .. note::
 
     There is a pass called ``change_port_bundle_struct`` that can convert

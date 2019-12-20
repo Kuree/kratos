@@ -109,6 +109,8 @@ readable and your life easier:
 - ``check_always_sensitivity``: check to make sure the variable in the
   sensitivity list is properly typed. Only allow clock and async reset
   signals.
+- ``check_multiple_driver``: check if a signle is illegally driven by
+  multiple drivers.
 - ``inject_debug_break_points``: inject the breakpoints in the IR, which
   will be used to interact with ``kratos-runtime``.
 - ``inject_assert_fail_exception``: inject exception into assertion when

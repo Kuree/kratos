@@ -311,14 +311,14 @@ otherwise a ``SyntaxError`` will be thrown.
 
 To add a code block to the generator definition, you need to wrap the
 code block into a class method with only `self` as argument, then call
-``[gen].add_code([func])`` to add the code block, where ``func`` is the
+``[gen].add_always([func])`` to add the code block, where ``func`` is the
 function wrapper.
 
 Combinational and Sequential Code Block
 ---------------------------------------
 
 If you need to add a sequential code block that depends on some signals,
-you need to decorate the function wrapper with ``always`` and sensitivity
+you need to decorate the function wrapper with ``always_ff`` and sensitivity
 list. The list format is ``List[Tuple[EdgeType, str]]``, where the
 ``EdgeType`` can be either ``BlockEdgeType.Posedge`` or
 ``BlockEdgeType.Negedge``. The ``str`` has be either a port or variable
@@ -328,11 +328,24 @@ to ``clk`` and ``rst`` signal. Notice that if you do ``from kratos import
 
 .. code-block:: Python
 
-    @always((posedge, "clk"), (posedge, "rst"))
+    @always_ff((posedge, "clk"), (posedge, "rst"))
     def seq_code_block(self):
         # code here
 
-You don't have to do anything with the combinational code block.
+For combinational block, you need to decorate the function with
+``always_comb``.
+
+.. code-block:: Python
+
+    @always_comb
+    def comb_code(self):
+        # code here
+
+..warning::
+
+   You are not allowed to call these functions directly since they are
+   not treated as function calls. As a result, you will get a syntax
+   error.
 
 Examples
 --------
@@ -354,9 +367,9 @@ concise way: this is just an example of how to add code blocks.
             self._val = self.var("val", width)
 
             # add combination and sequential blocks
-            self.add_code(self.seq_code_block)
+            self.add_always(self.seq_code_block)
 
-            self.add_code(self.comb_code_block)
+            self.add_always(self.comb_code_block)
 
         @always((posedge, "clk"), (posedge, "rst"))
         def seq_code_block(self):
@@ -429,8 +442,8 @@ variables created before:
               _out = _val
 
           # add combination and sequential blocks
-          self.add_code(seq_code_block)
-          self.add_code(comb_code_block)
+          self.add_always(seq_code_block)
+          self.add_always(comb_code_block)
 
 Here is another example on `for` static evaluation
 
@@ -443,7 +456,7 @@ Here is another example on `for` static evaluation
             self.out_ = self.output("out", num_loop)
             self.num_loop = num_loop
 
-            self.add_code(self.code)
+            self.add_always(self.code)
 
         def code(self):
             if self.in_ == 1:

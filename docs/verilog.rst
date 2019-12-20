@@ -20,11 +20,19 @@ you:
                 check_active_high: bool = True,
                 debug: bool = False,
                 additional_passes: Dict = None,
-                extrat_struct: bool = False,
                 int_dpi_interface: bool = True,
+                remove_assertion: bool = False,
+                check_inferred_latch: bool = True,
+                check_multiple_driver: bool = True,
+                insert_pipeline_stages: bool = False,
+                verilog95_def: bool = False,
                 filename: str = None,
                 output_dir: str = None,
-                use_parallel: bool = True)
+                insert_debug_info: bool = False,
+                insert_break_on_edge: bool = False,
+                debug_db_filename: str = "",
+                use_parallel: bool = True,
+                track_generated_definition: bool = False):
 
 The required argument ``generator`` has to be the top level circuit
 you want to generate. The function returns a Python dictionary indexed

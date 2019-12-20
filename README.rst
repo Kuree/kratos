@@ -16,9 +16,9 @@ philosophy:
 - Generator of generators: every python object is a generator
   that can be modified at any time, even after instantiation. This allows
   complex passes on the generators without ripping old structure apart.
-- Keep the good parts of verilog: The ``always`` block in behavioral
-  verilog is close to other programming languages. Kratos allows you to
-  write python code similar to behavioral verilog
+- Keep the good parts of SystemVerilog, such as ``always_ff``,
+  ``always_comb``, ``interface``, and ``unique case``. Users control
+  how and when to generate these semantics.
 - Single source of truth: kratos encourages users to infuse generator
   information inside generator itself. This makes debugging and
   verification much easier.
@@ -50,7 +50,7 @@ Asnyc Reset Register
 ~~~~~~~~~~~~~~~~~~~~
 
 Python code that parametrizes based on the ``width``. Notice that we
-specify the sensitivity of the ``always`` block when defining
+specify the sensitivity of the ``always_ff`` block when defining
 ``seq_code_block``.
 
 .. code:: python
@@ -71,13 +71,14 @@ specify the sensitivity of the ``always`` block when defining
 
            self.add_code(self.comb_code_block)
 
-       @always((posedge, "clk"), (posedge, "rst"))
+       @always_ff((posedge, "clk"), (posedge, "rst"))
        def seq_code_block(self):
            if self._rst:
                self._val = 0
            else:
                self._val = self._in
 
+       @always_comb
        def comb_code_block(self):
            self._out = self._val
 
@@ -95,7 +96,7 @@ Here is the generated verilog
    logic  [15:0] val;
 
    always @(posedge clk, posedge rst) begin
-     if rst begin
+     if (rst) begin
        val <= 16'h0;
      end
      else begin
@@ -124,6 +125,7 @@ This is an example to showcase the kratos’ static elaboration ability in
 
            self.add_code(self.code)
 
+       @always_comb
        def code(self):
            if self.in_ == self.const(1, 1):
                for i in range(self.num_loop):
@@ -239,6 +241,7 @@ assignment into a combination block, such as
 
            self.add_code(self.code_block)
 
+       @always_comb
        def code_block(self):
            self.ports.out = self["pass"].ports.out
 

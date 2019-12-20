@@ -342,8 +342,9 @@ statement. For instance:
   stmt.comment = "this is a comment"
   a.comment = "this is another comment"
 
-When you're using ``always`` function, you don't have access to the stmt
-object. In this case, you can use ``comment`` function. For instance,
+When you're using ``always_comb`` or ``always_ff`` function, you don't have
+access to the stmt object. In this case, you can use ``comment()`` function.
+For instance,
 
 
 .. code-block:: Python
