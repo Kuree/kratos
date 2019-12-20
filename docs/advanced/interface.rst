@@ -154,7 +154,7 @@ Here is the Python code for the slave:
             # just read and write out
             @always_ff((posedge, self.bus.clk))
             def logic():
-                if self.bus.w_en:
+                if self.bus.r_en:
                     self.value = self.bus.write_data
                 elif self.bus.w_en:
                     self.bus.read_data = self.value
@@ -174,7 +174,7 @@ Here is generated the SystemVerilog for slave by calling
     logic [7:0] value;
 
     always_ff @(posedge bus.clk) begin
-      if (bus.w_en) begin
+      if (bus.r_en) begin
         value <= bus.write_data;
       end
       else if (bus.w_en) begin

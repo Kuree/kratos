@@ -78,7 +78,7 @@ def test_modport_io(check_gold):
             # just read and write out
             @always_ff((posedge, self.bus.clk))
             def logic():
-                if self.bus.w_en:
+                if self.bus.r_en:
                     self.value = self.bus.write_data
                 elif self.bus.w_en:
                     self.bus.read_data = self.value
