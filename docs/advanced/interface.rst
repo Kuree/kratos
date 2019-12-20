@@ -103,7 +103,7 @@ Notice that we use a counter to control the read and write enable signal,
 as well as the write data. Here is the generated SystemVerilog if we call
 ``verilog(Master(), filename="master.sv")``.
 
-.. code-block:: SystemVerilog:
+.. code-block:: SystemVerilog
 
     module Master (
       Config.Master bus
