@@ -57,7 +57,7 @@ bool is_unary_op(ExprOp op);
 
 enum class VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted };
 
-enum class VarCastType { Signed, Unsigned, Clock, AsyncReset };
+enum class VarCastType { Signed, Unsigned, Clock, AsyncReset, Enum };
 
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
@@ -229,7 +229,12 @@ private:
     std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> extended_;
 };
 
-struct VarCasted : public Var {
+struct EnumType {
+public:
+    [[nodiscard]] virtual const Enum *enum_type() const = 0;
+};
+
+struct VarCasted : public Var, public EnumType {
 public:
     VarCasted(Var *parent, VarCastType cast_type);
     std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
@@ -244,10 +249,38 @@ public:
 
     VarCastType cast_type() const { return cast_type_; }
 
+    // wraps all the critical functions
+    // ideally this should be in another sub-class of Var and modport version as well
+    // however, getting this to work with pybind with virtual inheritance is a pain
+    // so just copy the code here
+    const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const override {
+        return parent_var_->sinks();
+    };
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override {
+        parent_var_->remove_sink(stmt);
+    }
+    const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
+        return parent_var_->sources();
+    };
+    void clear_sinks() override { parent_var_->clear_sources(); }
+    void clear_sources() override { parent_var_->clear_sinks(); }
+    void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
+        parent_var_->remove_source(stmt);
+    }
+
+    void move_linked_to(Var *new_var) override { parent_var_->move_linked_to(new_var); }
+
+    void set_enum_type(Enum* enum_) { enum_type_ = enum_; }
+    const Enum *enum_type() const override { return enum_type_; }
+
+    bool is_enum() const override { return cast_type_ == VarCastType ::Enum; }
+
 private:
     Var *parent_var_ = nullptr;
 
     VarCastType cast_type_;
+    // only used for enum
+    Enum *enum_type_ = nullptr;
 };
 
 struct VarSlice : public Var {
@@ -554,11 +587,6 @@ public:
 private:
     uint32_t width_;
     bool local_ = true;
-};
-
-struct EnumType {
-public:
-    [[nodiscard]] virtual const Enum *enum_type() const = 0;
 };
 
 struct EnumVar : public Var, public EnumType {

@@ -98,11 +98,15 @@ class VarCastType(enum.Enum):
     Unsigned = _kratos.VarCastType.Unsigned
     Clock = _kratos.VarCastType.Clock
     AsyncReset = _kratos.VarCastType.AsyncReset
+    Enum = _kratos.VarCastType.Enum
 
 
-def cast(var, cast_type):
+def cast(var, cast_type, **kargs):
     assert isinstance(var, _kratos.Var)
-    return var.cast(cast_type.value)
+    _v = var.cast(cast_type.value)
+    for k, v in kargs.items():
+        setattr(_v, k, v)
+    return _v
 
 
 def signed(var):

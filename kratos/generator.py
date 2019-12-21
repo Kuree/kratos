@@ -1,7 +1,7 @@
 import enum
 from .pyast import transform_stmt_block, CodeBlockType, add_scope_context, \
     get_frame_local, AlwaysWrapper
-from .util import get_fn_ln, clog2, max_value
+from .util import get_fn_ln, clog2, max_value, cast, VarCastType
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
@@ -124,6 +124,10 @@ class InitialCodeBlock(CodeBlock):
 
 
 def enum(name, definition, width=None):
+    if isinstance(name, _kratos.Var):
+        assert isinstance(definition, _kratos.Enum)
+        v = cast(name, VarCastType.Enum, enum_type=definition)
+        return v
     if isinstance(definition, (list, tuple)):
         defs = {}
         for n in definition:

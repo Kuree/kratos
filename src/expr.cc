@@ -592,12 +592,22 @@ std::shared_ptr<AssignStmt> VarCasted::assign(const std::shared_ptr<Var> &, Assi
 }
 
 std::string VarCasted::to_string() const {
-    if (cast_type_ == VarCastType::Signed)
+    if (cast_type_ == VarCastType::Signed) {
         return ::format("signed'({0})", parent_var_->to_string());
-    else if (cast_type_ == VarCastType::Unsigned)
+    } else if (cast_type_ == VarCastType::Unsigned) {
         return ::format("unsigned'({0})", parent_var_->to_string());
-    else
+    } else if (cast_type_ == VarCastType::Enum) {
+        if (!enum_type_) {
+            throw UserException(
+                ::format("Variable {0} is casted as a enum without "
+                         "enum type information",
+                         parent_var_->to_string()));
+        }
+        auto const &enum_name = enum_type_->name;
+        return ::format("{0}'({1})", enum_name, parent_var_->to_string());
+    } else {
         return parent_var_->to_string();
+    }
 }
 
 void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }
@@ -1272,6 +1282,11 @@ std::shared_ptr<AssignStmt> EnumVar::assign(const std::shared_ptr<Var> &var,
     } else {
         auto p = dynamic_cast<EnumType *>(var.get());
         if (!p) throw InternalException("Unable to obtain enum definition");
+        if (!p->enum_type())
+            throw VarException(::format("Cannot obtain enum information from var ({0}). "
+                                        "Please use a cast if it's intended",
+                                        var->handle_name()),
+                               {var.get()});
         if (p->enum_type()->name != enum_type_->name) {
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }

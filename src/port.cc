@@ -64,6 +64,11 @@ std::shared_ptr<AssignStmt> EnumPort::assign(const std::shared_ptr<Var>& var, As
     } else {
         auto p = dynamic_cast<EnumType*>(var.get());
         if (!p) throw InternalException("Unable to obtain enum definition");
+        if (!p->enum_type())
+            throw VarException(::format("Cannot obtain enum information from var ({0}). "
+                                        "Please use a cast if it's intended",
+                                        var->handle_name()),
+                               {var.get()});
         if (p->enum_type()->name != enum_type_->name) {
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }

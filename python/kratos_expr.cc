@@ -1,7 +1,9 @@
 #include "kratos_expr.hh"
+
 #include <pybind11/cast.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
+
 #include "kratos_debug.hh"
 
 namespace py = pybind11;
@@ -458,6 +460,8 @@ void init_expr(py::module &m) {
 
     py::class_<EnumPort, ::shared_ptr<EnumPort>, Port>(m, "EnumPort");
 
+    py::class_<VarCasted, ::shared_ptr<VarCasted>, Var>(m, "VarCasted")
+        .def_property("enum_type", &VarCasted::enum_type, &VarCasted::set_enum_type);
 }
 
 void init_enum_type(py::module &m) {

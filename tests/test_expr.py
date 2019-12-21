@@ -143,6 +143,16 @@ def test_md_array():
     assert "logic [3:0][1:0][15:0] a;" in src
 
 
+def test_enum_cast():
+    from kratos import enum
+    e = enum("Type", ["a", "b"])
+    mod = Generator("mod")
+    var = mod.enum_var("v", e)
+    casted = enum(const(1, 1), e)
+    assert str(casted) == "Type'(1'h1)"
+    var.assign(casted)
+
+
 if __name__ == "__main__":
-    test_md_array()
+    test_enum_cast()
 
