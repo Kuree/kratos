@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23] - 2019-12-20
+### Added
+- Use BSD-2 license
+- Add a pass to detect multiple drivers
+- Upload src files to pypi
+
+### Changed
+- Use old mac-os image but switch to gcc-8 for consistent result
+- Refactor `always` to `always_comb` and `always_ff` for better semantics, and add warnings
+  if absent.
+- Python based tests are refactored to re-use pytest fixtures 
+
+### Fixed
+- Fixed a bug in var high calculation when the parent is a slice
+- Various interface bug fixes
+
 ## [0.0.22.1] - 2019-12-10
 ### Added
 - Add helper function to expose kratos interface to magma
