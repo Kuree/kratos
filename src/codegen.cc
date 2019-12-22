@@ -155,8 +155,7 @@ void VerilogModule::run_passes() {
 }
 
 std::map<std::string, std::string> VerilogModule::verilog_src() {
-    return verilog95_def_ ? generate_verilog(generator_, verilog95_def_)
-                          : generate_verilog(generator_);
+    return generate_verilog(generator_);
 }
 
 SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
@@ -190,7 +189,6 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     stream_ << indent() << "(" << stream_.endl();
     generate_ports(generator);
     stream_ << indent() << ");" << stream_.endl() << stream_.endl();
-    if (verilog95_def_) generate_port_verilog_95_def(generator);
     generate_enums(generator);
     generate_variables(generator);
     generate_interface(generator);
@@ -234,72 +232,37 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     std::vector<std::pair<std::string, std::string>> interface_names;
     interface_names.reserve(port_names.size() / 2);
 
-    for (const auto & port_name : port_names) {
+    for (const auto& port_name : port_names) {
         auto port = generator->get_port(port_name);
         if (!port->is_interface()) {
-            if (!verilog95_def_) {
-                ports.emplace_back(port.get());
-            } else {
-                v95_names.emplace_back(port_name);
-            }
+            ports.emplace_back(port.get());
         } else {
             auto port_interface = port->as<InterfacePort>();
             auto ref = port_interface->interface();
             auto const& ref_name = ref->name();
             // only print out interface def once
             if (interface_name.find(ref_name) == interface_name.end()) {
-                if (!verilog95_def_) {
-                    auto const &def_name = ref->definition()->def_name();
-                    interface_names.emplace_back(std::make_pair(def_name, ref_name));
-                } else {
-                    v95_names.emplace_back(ref_name);
-                }
+                auto const& def_name = ref->definition()->def_name();
+                interface_names.emplace_back(std::make_pair(def_name, ref_name));
                 interface_name.emplace(ref_name);
             }
         }
     }
-    if (!verilog95_def_) {
-        uint64_t count = 0;
-        uint64_t size = interface_names.size() + ports.size();
-        for (auto const &[def, ref]: interface_names) {
-            count++;
-            stream_ << indent() << def << " " << ref;
-            if (count != size)
-                stream_ << ",";
-            stream_ << stream_.endl();
-        }
-        for (auto const &port: ports) {
-            count++;
-            auto end = count == size? "": ",";
-            stream_ << std::make_pair(port, end);
-        }
-    } else {
-        for (uint64_t i = 0; i < v95_names.size(); i++) {
-            stream_ << indent() << v95_names[i];
-            if (i != v95_names.size() - 1) stream_ << ",";
-            stream_ << stream_.endl();
-        }
+
+    uint64_t count = 0;
+    uint64_t size = interface_names.size() + ports.size();
+    for (auto const& [def, ref] : interface_names) {
+        count++;
+        stream_ << indent() << def << " " << ref;
+        if (count != size) stream_ << ",";
+        stream_ << stream_.endl();
+    }
+    for (auto const& port : ports) {
+        count++;
+        auto end = count == size ? "" : ",";
+        stream_ << std::make_pair(port, end);
     }
     indent_--;
-}
-
-void SystemVerilogCodeGen::generate_port_verilog_95_def(kratos::Generator* generator) {
-    if (verilog95_def_) {
-        auto& port_names_set = generator->get_port_names();
-        std::unordered_set<std::string> interface_name;
-        for (auto const& port_name : port_names_set) {
-            auto const& port = generator->get_port(port_name);
-            if (!port->is_interface()) {
-                stream_ << std::make_pair(port.get(), ";");
-            } else {
-                auto port_interface = port->as<InterfacePort>();
-                auto ref = port_interface->interface();
-                auto const& ref_name = ref->name();
-                stream_ << indent() << ref->definition()->def_name() << " " << ref_name << ";"
-                        << stream_.endl();
-            }
-        }
-    }
 }
 
 void SystemVerilogCodeGen::generate_variables(Generator* generator) {
@@ -808,8 +771,7 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
                 // we assume the interface connectivity has been checked
                 // internal has to be an interface
                 auto internal_interface = internal->as<InterfacePort>();
-                if (!internal_interface)
-                    throw InternalException("Unable to cast port");
+                if (!internal_interface) throw InternalException("Unable to cast port");
                 auto internal_def = internal_interface->interface();
                 internal_name = internal_def->name();
                 if (internal_def->definition()->is_modport()) {
@@ -839,7 +801,7 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
         connections.emplace_back(std::make_pair(internal_name, external_name));
     }
     for (uint64_t i = 0; i < connections.size(); i++) {
-        auto const &[internal_name, external_name] = connections[i];
+        auto const& [internal_name, external_name] = connections[i];
         stream_ << indent() << "." << internal_name << "(" << external_name << ")";
         if (i != connections.size() - 1)
             stream_ << "," << stream_.endl();
@@ -885,21 +847,19 @@ void SystemVerilogCodeGen::enum_code_(kratos::Stream& stream_, kratos::Enum* enu
     stream_ << "} " << enum_->name << ";" << stream_.endl();
 }
 
-std::string create_stub(Generator* top, bool flatten_array, bool verilog_95_def) {
+std::string create_stub(Generator* top) {
     // we can't generate verilog-95 directly from the codegen here here
     auto port_names = top->get_port_names();
     Generator gen(nullptr, top->name);
     for (auto const& port_name : port_names) {
         auto port = top->get_port(port_name);
-        auto const& lst = std::vector<uint32_t>{1};
-        auto& p = gen.port(
-            port->port_direction(), port_name, flatten_array ? port->width() : port->var_width(),
-            flatten_array ? lst : port->size(), port->port_type(), port->is_signed());
+        auto& p = gen.port(port->port_direction(), port_name, port->var_width(), port->size(),
+                           port->port_type(), port->is_signed());
         p.set_is_packed(port->is_packed());
     }
     // that's it
     // now outputting the stream
-    auto res = generate_verilog(&gen, verilog_95_def);
+    auto res = generate_verilog(&gen);
     return res.at(top->name);
 }
 

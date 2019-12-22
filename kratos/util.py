@@ -133,9 +133,8 @@ def comment(comment_str):
     return _comment(comment_str)
 
 
-def create_stub(generator, flatten_array=False, verilog95_def=False,
-                filename=""):
-    s = _create_stub(generator.internal_generator, flatten_array, verilog95_def)
+def create_stub(generator, filename=""):
+    s = _create_stub(generator.internal_generator)
     if filename:
         with open(filename) as f:
             f.write(s)

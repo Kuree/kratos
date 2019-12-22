@@ -56,13 +56,10 @@ void check_multiple_driver(Generator *top);
 void remove_empty_block(Generator *top);
 
 std::map<std::string, std::string> generate_verilog(Generator* top);
-std::map<std::string, std::string> generate_verilog(Generator* top, bool verilog95_def);
 // this function outputs every module into a single file in the targeted direction
 // if header filename is not empty,
 void generate_verilog(Generator* top, const std::string& output_dir, const std::string& package_name,
                       bool debug);
-void generate_verilog(Generator* top, const std::string& output_dir, const std::string& package_name,
-                      bool debug, bool verilog95_def);
 
 std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
 extract_debug_info(Generator* top);

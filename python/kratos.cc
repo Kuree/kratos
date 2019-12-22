@@ -1,6 +1,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
 #include "../src/codegen.hh"
 #include "../src/except.hh"
 #include "../src/expr.hh"
@@ -8,7 +9,6 @@
 #include "../src/pass.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
-
 #include "kratos_expr.hh"
 
 namespace py = pybind11;
@@ -57,10 +57,11 @@ void init_context(py::module &m) {
         .def("change_generator_name", &Context::change_generator_name)
         .def("add", &Context::add)
         .def("has_hash", &Context::has_hash)
-        .def("clear_hash", [](Context &context) {
-            // the original one gives segfault for g++-8. don't know why
-            context.clear_hash();
-        })
+        .def("clear_hash",
+             [](Context &context) {
+                 // the original one gives segfault for g++-8. don't know why
+                 context.clear_hash();
+             })
         .def("enum", &Context::enum_);
 }
 
@@ -69,9 +70,7 @@ void init_code_gen(py::module &m) {
         .def(py::init<Generator *>())
         .def("verilog_src", &VerilogModule::verilog_src)
         .def("run_passes", &VerilogModule::run_passes)
-        .def("pass_manager", &VerilogModule::pass_manager, py::return_value_policy::reference)
-        .def_property("verilog95_def", &VerilogModule::verilog95_def,
-                      &VerilogModule::set_verilog95_def);
+        .def("pass_manager", &VerilogModule::pass_manager, py::return_value_policy::reference);
 }
 
 PYBIND11_MODULE(_kratos, m) {

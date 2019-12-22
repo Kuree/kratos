@@ -27,7 +27,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
             check_inferred_latch: bool = True,
             check_multiple_driver: bool = True,
             insert_pipeline_stages: bool = False,
-            verilog95_def: bool = False,
             filename: str = None,
             output_dir: str = None,
             insert_debug_info: bool = False,
@@ -104,12 +103,9 @@ def verilog(generator: Generator, optimize_if: bool = True,
         _kratos.passes.generate_verilog(generator.internal_generator,
                                         output_dir,
                                         package_name,
-                                        debug,
-                                        verilog95_def)
+                                        debug)
         r = None
     else:
-        if verilog95_def:
-            code_gen.verilog95_def = True
         src = code_gen.verilog_src()
         result = [src]
         gen = generator.internal_generator

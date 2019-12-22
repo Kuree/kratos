@@ -1295,8 +1295,6 @@ def test_create_stub(check_file):
     mod.input("c", 16)
     mod.var("d", 1)  # this should not be generated
     check_file(create_stub(mod), "test_create_stub.sv")
-    check_file(create_stub(mod, True), "test_create_stub_flatten.sv")
-    check_file(create_stub(mod, verilog95_def=True), "test_create_stub_95.sv")
 
 
 def test_fsm_state(check_gold):
