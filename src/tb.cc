@@ -153,8 +153,13 @@ protected:
                     auto source = clk->sources();
                     for (auto const &assign : source) {
                         auto src_var = assign->right();
-                        if (src_var->generator == generator && src_var->type() == VarType::Base) {
-                            clk_vars.emplace_back(src_var);
+                        if (src_var->generator == generator) {
+                            if (src_var->type() == VarType::BaseCasted) {
+                                // only casted to clock
+                                auto casted = src_var->as<VarCasted>();
+                                if (casted->cast_type() == VarCastType::Clock)
+                                    clk_vars.emplace_back(src_var);
+                            }
                         }
                     }
                 }

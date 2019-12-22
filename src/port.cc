@@ -38,6 +38,30 @@ Port::Port(kratos::Generator* module, kratos::PortDirection direction, const std
     }
 }
 
+std::shared_ptr<AssignStmt> Port::assign__(const std::shared_ptr<Var>& var,
+                                         enum kratos::AssignmentType type) {
+    // notice that we have the following rules
+    // var <- port. this is considered as a lower cast, hence it's allowed
+    // port <- var. this is considered as an upper cast, which needs explicit casting
+    if (var->type() != VarType::PortIO) {
+        bool allowed = port_type() == PortType::Data;
+        if (var->type() == VarType::BaseCasted) {
+            auto casted = var->as<VarCasted>();
+            auto cast_type = casted->cast_type();
+            if (cast_type == VarCastType::AsyncReset && port_type() == PortType::AsyncReset)
+                allowed = true;  // NOLINT
+            else if (cast_type == VarCastType::Clock && port_type() == PortType::Clock)
+                allowed = true;  // NOLINT
+        }
+        if (!allowed) {
+            throw StmtException(::format("Typing error. Cannot assign variable ({0}) to port ({1})",
+                                         var->to_string(), to_string()),
+                                {this, var.get()});
+        }
+    }
+    return Var::assign__(var, type);
+}
+
 void Port::set_port_type(PortType type) { type_ = type; }
 
 void Port::set_active_high(bool value) {
@@ -53,7 +77,8 @@ EnumPort::EnumPort(kratos::Generator* m, kratos::PortDirection direction, const 
     : Port(m, direction, name, enum_type->width(), 1, PortType::Data, false),
       enum_type_(enum_type.get()) {}
 
-std::shared_ptr<AssignStmt> EnumPort::assign(const std::shared_ptr<Var>& var, AssignmentType type) {
+std::shared_ptr<AssignStmt> EnumPort::assign__(const std::shared_ptr<Var>& var,
+                                               AssignmentType type) {
     // TODO: refactor this
     if (!var->is_enum())
         throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
@@ -73,7 +98,7 @@ std::shared_ptr<AssignStmt> EnumPort::assign(const std::shared_ptr<Var>& var, As
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }
     }
-    return Var::assign(var, type);
+    return Port::assign__(var, type);
 }
 
 PortPackedStruct::PortPackedStruct(Generator* module, PortDirection direction,
@@ -182,7 +207,8 @@ std::string InterfacePort::base_name() const { return interface_->base_name(); }
 
 ModportPort::ModportPort(InterfaceRef* ref, kratos::Var* var, kratos::PortDirection dir)
     : InterfacePort(ref, var->generator, dir, var->name, var->width(), var->size(), PortType::Data,
-                    var->is_signed()), var_(var) {
+                    var->is_signed()),
+      var_(var) {
     explicit_array_ = var->explicit_array();
 }
 

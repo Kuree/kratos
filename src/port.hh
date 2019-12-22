@@ -39,6 +39,10 @@ public:
     std::optional<bool> active_high() const { return active_high_; }
     void set_active_high(bool value);
 
+protected:
+    std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+                                         AssignmentType type) override;
+
 private:
     PortDirection direction_;
     PortType type_;
@@ -54,11 +58,12 @@ public:
     EnumPort(Generator *m, PortDirection direction, const std::string &name,
              const std::shared_ptr<Enum> &enum_type);
 
-    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
-                                       AssignmentType type) override;
-
     const inline Enum *enum_type() const override { return enum_type_; }
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+protected:
+    std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+                                         AssignmentType type) override;
 
 private:
     Enum *enum_type_;

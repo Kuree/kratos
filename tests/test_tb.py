@@ -45,9 +45,10 @@ def test_tb_delay(check_gold):
 
 
 def test_tb_sequence(check_gold):
+    from kratos.util import clock
     dut, tb = tb_dut_setup()
     # add a clock and wire them together
-    tb.wire(dut.clock("clk"), tb.var("clk", 1))
+    tb.wire(dut.clock("clk"), clock(tb.var("clk", 1)))
 
     seq = Sequence(tb.vars["in"] == 1)
     seq.imply(tb.vars.out == 1).wait(1).imply(tb.vars.out == 0)
@@ -60,4 +61,4 @@ def test_tb_sequence(check_gold):
 
 if __name__ == "__main__":
     from conftest import check_gold_fn
-    test_tb_codegen(check_gold_fn)
+    test_tb_sequence(check_gold_fn)

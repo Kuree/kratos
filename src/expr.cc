@@ -500,6 +500,10 @@ std::shared_ptr<AssignStmt> Var::assign(Var &var) {
 }
 
 std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
+    return assign__(var, type);
+}
+
+std::shared_ptr<AssignStmt> Var::assign__(const std::shared_ptr<Var> &var, AssignmentType type) {
     // if it's a constant or expression, it can't be assigned to
     if (type_ == VarType::ConstValue)
         throw VarException(::format("Cannot assign {0} to a const {1}", var->to_string(), name),
@@ -587,7 +591,7 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     }
 }
 
-std::shared_ptr<AssignStmt> VarCasted::assign(const std::shared_ptr<Var> &, AssignmentType) {
+std::shared_ptr<AssignStmt> VarCasted::assign__(const std::shared_ptr<Var> &, AssignmentType) {
     throw VarException(::format("{0} is not allowed to be a sink", to_string()), {this});
 }
 
@@ -1271,8 +1275,8 @@ std::string EnumConst::to_string() const {
     return name_;
 }
 
-std::shared_ptr<AssignStmt> EnumVar::assign(const std::shared_ptr<Var> &var,
-                                            kratos::AssignmentType type) {
+std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
+                                              kratos::AssignmentType type) {
     if (!var->is_enum())
         throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
     if (var->type() == VarType::ConstValue) {
@@ -1291,7 +1295,7 @@ std::shared_ptr<AssignStmt> EnumVar::assign(const std::shared_ptr<Var> &var,
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }
     }
-    return Var::assign(var, type);
+    return Var::assign__(var, type);
 }
 
 FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStmtBlock> &func_def,

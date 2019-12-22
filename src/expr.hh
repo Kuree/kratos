@@ -119,8 +119,7 @@ public:
     // assignment
     std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var);
     std::shared_ptr<AssignStmt> assign(Var &var);
-    virtual std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
-                                               AssignmentType type);
+    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var, AssignmentType type);
     std::shared_ptr<AssignStmt> assign(Var &var, AssignmentType type);
     void unassign(const std::shared_ptr<AssignStmt> &stmt);
 
@@ -224,6 +223,10 @@ protected:
 
     bool is_packed_ = false;
 
+    // assign function
+    virtual std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+                                                 AssignmentType type);
+
 private:
     std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
     std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> extended_;
@@ -237,8 +240,6 @@ public:
 struct VarCasted : public Var, public EnumType {
 public:
     VarCasted(Var *parent, VarCastType cast_type);
-    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
-                                       AssignmentType type) override;
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void set_parent(Var *parent) { parent_var_ = parent; }
@@ -270,10 +271,14 @@ public:
 
     void move_linked_to(Var *new_var) override { parent_var_->move_linked_to(new_var); }
 
-    void set_enum_type(Enum* enum_) { enum_type_ = enum_; }
+    void set_enum_type(Enum *enum_) { enum_type_ = enum_; }
     const Enum *enum_type() const override { return enum_type_; }
 
     bool is_enum() const override { return cast_type_ == VarCastType ::Enum; }
+
+protected:
+    std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+                                         AssignmentType type) override;
 
 private:
     Var *parent_var_ = nullptr;
@@ -596,11 +601,12 @@ public:
     EnumVar(Generator *m, const std::string &name, const std::shared_ptr<Enum> &enum_type)
         : Var(m, name, enum_type->width(), 1, false), enum_type_(enum_type.get()) {}
 
-    std::shared_ptr<AssignStmt> assign(const std::shared_ptr<Var> &var,
-                                       AssignmentType type) override;
-
     const inline Enum *enum_type() const override { return enum_type_; }
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+protected:
+    std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+                                         AssignmentType type) override;
 
 private:
     Enum *enum_type_;
