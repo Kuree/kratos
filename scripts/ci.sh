@@ -11,7 +11,7 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         docker exec -i manylinux bash -c 'cd kratos && python setup.py bdist_wheel'
         docker exec -i manylinux bash -c 'cd kratos && auditwheel show dist/*'
         docker exec -i manylinux bash -c 'cd kratos && auditwheel repair dist/*'
-        docker exec -i manylinux-test bash -c 'cd kratos && pip install pytest dist/* && pytest -v tests/'
+        docker exec -i manylinux-test bash -c 'cd kratos && pip install pytest wheelhouse/* && pytest -v tests/'
     elif [[ "$BUILD_WHEEL" == false ]]; then
         docker pull keyiz/garnet-flow
         docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/garnet-flow bash

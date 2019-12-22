@@ -21,17 +21,24 @@ else()
 endif()
 
 # filesystem
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_LIBRARIES stdc++fs)
 CHECK_CXX_SOURCE_COMPILES("
 #include <filesystem>
 int main() {
   std::filesystem::exists(\"\");
 }
 " INCLUDE_FILESYSTEM)
-if (${INCLUDE_FILESYSTEM})
-    add_compile_definitions(INCLUDE_FILESYSTEM=${INCLUDE_FILESYSTEM})
+if (${INCLUDE_FILESYSTEM} AND NOT APPLE)
+    # This should be ideally add_compile_definitions() in the long term, but
+    # that's not available until CMake 3.12 and we don't want to cut off people
+    # on older versions.
+    add_definitions(-DINCLUDE_FILESYSTEM)
 else()
     MESSAGE(WARNING "<filesystem> not found. Fall back to C implementation")
 endif()
+# unset CMAKE_REQUIRED_LIBRARIES
+set(CMAKE_REQUIRED_LIBRARIES "")
 
 # extern
 add_subdirectory(extern/googletest/)
