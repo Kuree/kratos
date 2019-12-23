@@ -393,32 +393,6 @@ def test_static_eval_for_loop(check_gold):
     check_gold(mod, "test_static_eval_for_loop")
 
 
-def test_pass(check_gold):
-    def change_name(generator):
-        class Visitor(IRVisitor):
-            def __init__(self):
-                IRVisitor.__init__(self)
-
-            def visit(self, node):
-                if isinstance(node, Port):
-                    # rename the output port
-                    if node.name == "out":
-                        node.name = "test"
-
-        visitor = Visitor()
-        visitor.visit_root(generator)
-
-    class Mod1(Generator):
-        def __init__(self):
-            super().__init__("mod1", True)
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", 1, PortDirection.Out)
-            self.wire(self.out_, self.in_)
-
-    mod = Mod1()
-    check_gold(mod, "test_pass", additional_passes={"name_change": change_name})
-
-
 def test_const_port(check_gold):
     class Mod(Generator):
         def __init__(self):

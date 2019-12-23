@@ -380,6 +380,14 @@ void init_expr(py::module &m) {
     const_.def("value", &Const::value).def("set_value", &Const::set_value);
 
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
+    slice.def_property_readonly("sliced_by_var", &VarSlice::sliced_by_var)
+        .def_property_readonly("high", [](VarSlice &var) { return var.high; })
+        .def_property_readonly("low", [](VarSlice &var) { return var.low; });
+
+    auto var_slice = py::class_<VarVarSlice, ::shared_ptr<VarVarSlice>, VarSlice>(m, "VarVarSlice");
+    var_slice.def_property_readonly(
+        "slice_var", [](VarVarSlice &var) { return var.sliced_var(); },
+        py::return_value_policy::reference);
 
     auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
 
@@ -454,11 +462,11 @@ void init_expr(py::module &m) {
     py::class_<EnumVar, ::shared_ptr<EnumVar>, Var>(m, "EnumVar")
         .def("enum_type", &EnumVar::enum_type);
 
-    py::class_<EnumConst, ::shared_ptr<EnumConst>, Var>(m, "EnumConst");
+    auto enum_const = py::class_<EnumConst, ::shared_ptr<EnumConst>, Var>(m, "EnumConst");
 
-    py::class_<VarExtend, ::shared_ptr<VarExtend>, Var>(m, "VarExtend");
+    auto var_extend = py::class_<VarExtend, ::shared_ptr<VarExtend>, Var>(m, "VarExtend");
 
-    py::class_<EnumPort, ::shared_ptr<EnumPort>, Port>(m, "EnumPort");
+    auto enum_port = py::class_<EnumPort, ::shared_ptr<EnumPort>, Port>(m, "EnumPort");
 
     py::class_<VarCasted, ::shared_ptr<VarCasted>, Var>(m, "VarCasted")
         .def_property("enum_type", &VarCasted::enum_type, &VarCasted::set_enum_type);

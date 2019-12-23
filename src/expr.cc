@@ -167,6 +167,13 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
                 {this});
         }
     }
+    // if there is one already
+    for (auto const &s: slices_) {
+        if (!s->sliced_by_var()) {
+            if (high == s->high && low == s->low)
+                return *s;
+        }
+    }
     // create a new one
     // notice that slice is not part of generator's variables. It's handled by the parent (var)
     // itself
@@ -176,6 +183,14 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
 }
 
 VarSlice &Var::operator[](const std::shared_ptr<Var> &var) {
+    // if there is one already
+    for (auto const &s: slices_) {
+        if (s->sliced_by_var()) {
+            auto const s_ = s->as<VarVarSlice>();
+            if (s_->sliced_var() == var.get())
+                return *s_;
+        }
+    }
     auto var_slice = ::make_shared<VarVarSlice>(this, var.get());
     slices_.emplace_back(var_slice);
     return *var_slice;

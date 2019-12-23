@@ -271,7 +271,7 @@ TEST(expr, extract_source) {  // NOLINT
     EXPECT_EQ(sources.size(), 4);
     EXPECT_TRUE(result.find(&f) != result.end());
     sources = result.at(&f);
-    EXPECT_EQ(sources.size(), 3);
+    EXPECT_EQ(sources.size(), 2);
 }
 
 TEST(expr, extend) {    // NOLINT

@@ -161,8 +161,8 @@ public:
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
-    uint64_t child_count();
-    IRNode *get_child(uint64_t);
+    uint64_t child_count() override;
+    IRNode *get_child(uint64_t) override;
 
     // meta info
     // packed is only relevant when the size is larger than 1, by default it's false

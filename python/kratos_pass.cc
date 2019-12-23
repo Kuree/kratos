@@ -97,15 +97,11 @@ by yourself to obtain the verilog code.)pbdoc");
             PYBIND11_OVERLOAD(void, IRVisitor, visit, generator);
         }
 
-        void visit(Var *var) override {
-            PYBIND11_OVERLOAD(void, IRVisitor, visit, var);
-        }
+        void visit(Var *var) override { PYBIND11_OVERLOAD(void, IRVisitor, visit, var); }
 
-        void visit(VarSlice* slice) override {
-            PYBIND11_OVERLOAD(void, IRVisitor, visit, slice);
-        }
+        void visit(VarSlice *slice) override { PYBIND11_OVERLOAD(void, IRVisitor, visit, slice); }
 
-        void visit(VarVarSlice* slice) override  {
+        void visit(VarVarSlice *slice) override {
             PYBIND11_OVERLOAD(void, IRVisitor, visit, slice);
         }
     };
@@ -147,4 +143,30 @@ by yourself to obtain the verilog code.)pbdoc");
     py::implicitly_convertible<Attribute, PyAttribute>();
 
     m.def("create_stub", &create_stub);
+}
+
+template <typename T>
+constexpr void add_cast_type(py::module &m, const std::string &name) {
+    m.def(("cast_" + name).c_str(), [](IRNode *node) -> T * {
+        auto result = dynamic_cast<T *>(node);
+        return result;
+    });
+}
+
+void init_cast(py::module &m) {
+    auto cast_m = m.def_submodule("cast");
+
+    add_cast_type<Var>(cast_m, "var");
+    add_cast_type<Port>(cast_m, "port");
+    add_cast_type<Const>(cast_m, "const");
+    add_cast_type<Generator>(cast_m, "generator");
+    add_cast_type<VarSlice>(cast_m, "var_slice");
+    add_cast_type<VarVarSlice>(cast_m, "var_var_slice");
+    add_cast_type<Expr>(cast_m, "expr");
+    add_cast_type<ConditionalExpr>(cast_m, "conditional_expr");
+    add_cast_type<Stmt>(cast_m, "stmt");
+    add_cast_type<IfStmt>(cast_m, "if_stmt");
+    add_cast_type<SwitchStmt>(cast_m, "switch_stmt");
+    add_cast_type<StmtBlock>(cast_m, "stmt_block");
+    add_cast_type<AssignStmt>(cast_m, "assign_stmt");
 }

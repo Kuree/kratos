@@ -3,7 +3,7 @@ from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
     set_global_debug, enum, always_comb, always_ff
 
 from .passes import Attribute, verilog, clear_context
-from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or,\
+from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or, \
     concat, ext, mux, ternary, signed, const, comment, unsigned, create_stub
 
 from .ports import PortBundle
@@ -16,7 +16,8 @@ from .sim import Simulator
 from _kratos.util import is_valid_verilog
 from _kratos.exception import VarException, StmtException
 from _kratos.passes import IRVisitor as IRVisitor
-from _kratos import PackedStruct, Port, Var, AssignmentType
+from _kratos import PackedStruct, Port, Var, AssignmentType, VarSlice, \
+    VarVarSlice
 from _kratos import Sequence
 from _kratos import DebugDataBase
 from .stmts import IfStmt, SwitchStmt, if_, switch_
@@ -37,7 +38,8 @@ __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType",
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",
             "if_", "switch_", "Attribute", "PortBundle", "DebugDataBase",
-            "add_scope_context", "set_global_debug", "Interface"]
+            "add_scope_context", "set_global_debug", "Interface", "VarSlice",
+            "VarVarSlice"]
 
 # utils
 __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",
