@@ -135,7 +135,7 @@ public:
     virtual void clear_sinks() { sinks_.clear(); }
     virtual void clear_sources() { sources_.clear(); }
     virtual void remove_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.erase(stmt); }
-    std::set<std::shared_ptr<VarSlice>> &get_slices() { return slices_; }
+    std::vector<std::shared_ptr<VarSlice>> &get_slices() { return slices_; }
 
     static void move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_connection);
     static void move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_connection);
@@ -161,8 +161,8 @@ public:
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
-    uint64_t child_count() override { return 0; }
-    IRNode *get_child(uint64_t) override { return nullptr; }
+    uint64_t child_count();
+    IRNode *get_child(uint64_t);
 
     // meta info
     // packed is only relevant when the size is larger than 1, by default it's false
@@ -209,7 +209,7 @@ protected:
 
     std::unordered_set<std::shared_ptr<VarConcat>> concat_vars_;
 
-    std::set<std::shared_ptr<VarSlice>> slices_;
+    std::vector<std::shared_ptr<VarSlice>> slices_;
 
     // comment values
     std::string before_var_str_;
@@ -312,9 +312,6 @@ public:
     uint32_t var_high() const override { return var_high_; }
     uint32_t var_low() const override { return var_low_; }
 
-    uint64_t child_count() override { return 1; }
-    IRNode *get_child(uint64_t index) override { return index == 0 ? parent_var : nullptr; }
-
     std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override {
         return var->operator[](op_).shared_from_this();
     }
@@ -347,6 +344,8 @@ public:
 
     bool sliced_by_var() const override { return true; }
     Var *sliced_var() const { return sliced_var_; }
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
     Var *sliced_var_;

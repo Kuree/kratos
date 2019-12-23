@@ -342,12 +342,13 @@ std::unordered_set<std::shared_ptr<AssignStmt>> filter_assignments_with_target(
     return result;
 }
 
-std::set<std::shared_ptr<VarSlice>> filter_slice_pairs_with_target(
-    const std::set<std::shared_ptr<VarSlice>> &slices, Generator *target, bool lhs) {
-    std::set<std::shared_ptr<VarSlice>> result;
+std::vector<std::shared_ptr<VarSlice>> filter_slice_pairs_with_target(
+    const std::vector<std::shared_ptr<VarSlice>> &slices, Generator *target, bool lhs) {
+    std::vector<std::shared_ptr<VarSlice>> result;
+    result.reserve(slices.size());
     for (auto const &slice : slices) {
         if (!filter_assignments_with_target(slice->sources(), target, lhs).empty()) {
-            result.emplace(slice);
+            result.emplace_back(slice);
         }
     }
     return result;

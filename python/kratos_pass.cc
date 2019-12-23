@@ -96,6 +96,18 @@ by yourself to obtain the verilog code.)pbdoc");
         void visit(Generator *generator) override {
             PYBIND11_OVERLOAD(void, IRVisitor, visit, generator);
         }
+
+        void visit(Var *var) override {
+            PYBIND11_OVERLOAD(void, IRVisitor, visit, var);
+        }
+
+        void visit(VarSlice* slice) override {
+            PYBIND11_OVERLOAD(void, IRVisitor, visit, slice);
+        }
+
+        void visit(VarVarSlice* slice) override  {
+            PYBIND11_OVERLOAD(void, IRVisitor, visit, slice);
+        }
     };
 
     auto ast_visitor = py::class_<IRVisitor, PyIRVisitor>(pass_m, "IRVisitor");

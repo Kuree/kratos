@@ -76,6 +76,7 @@ public:
     virtual inline void visit(Var *) {}
     virtual inline void visit(Port *) {}
     virtual inline void visit(VarSlice *) {}
+    virtual inline void visit(VarVarSlice*) {}
     virtual inline void visit(VarConcat *) {}
     virtual inline void visit(Expr *) {}
     virtual inline void visit(EnumVar *) {}

@@ -18,6 +18,7 @@ struct Var;
 struct Const;
 struct Parameter;
 struct VarSlice;
+struct VarVarSlice;
 struct VarConcat;
 struct VarExtend;
 struct VarCasted;

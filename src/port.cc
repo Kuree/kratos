@@ -119,7 +119,7 @@ void PortPackedStruct::set_port_type(PortType) {
 
 PackedSlice& PortPackedStruct::operator[](const std::string& member_name) {
     auto ptr = std::make_shared<PackedSlice>(this, member_name);
-    slices_.emplace(ptr);
+    slices_.emplace_back(ptr);
     return *ptr;
 }
 

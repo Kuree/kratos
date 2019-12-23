@@ -171,13 +171,13 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     // notice that slice is not part of generator's variables. It's handled by the parent (var)
     // itself
     auto var_slice = ::make_shared<VarSlice>(this, high, low);
-    slices_.emplace(var_slice);
+    slices_.emplace_back(var_slice);
     return *var_slice;
 }
 
 VarSlice &Var::operator[](const std::shared_ptr<Var> &var) {
     auto var_slice = ::make_shared<VarVarSlice>(this, var.get());
-    slices_.emplace(var_slice);
+    slices_.emplace_back(var_slice);
     return *var_slice;
 }
 
@@ -208,6 +208,18 @@ VarExtend &Var::extend(uint32_t width) {
 }
 
 std::string Var::to_string() const { return name; }
+
+uint64_t Var::child_count() {
+    // get linked vars
+    return slices_.size();
+}
+
+IRNode * Var::get_child(uint64_t index) {
+    if (index < child_count()) {
+        return slices_[index].get();
+    }
+    return nullptr;
+}
 
 std::string Var::handle_name() const { return handle_name(false); }
 
@@ -1042,7 +1054,7 @@ void Var::move_linked_to(kratos::Var *new_var) {
     for (auto &slice : slices_) {
         slice->set_parent(new_var);
     }
-    new_var->slices_ = std::set<std::shared_ptr<VarSlice>>(slices_.begin(), slices_.end());
+    new_var->slices_ = std::vector(slices_.begin(), slices_.end());
     slices_.clear();
 
     // change concat'ed vars
@@ -1184,7 +1196,7 @@ std::string PackedSlice::to_string() const {
 
 PackedSlice &VarPackedStruct::operator[](const std::string &member_name) {
     auto ptr = std::make_shared<PackedSlice>(this, member_name);
-    slices_.emplace(ptr);
+    slices_.emplace_back(ptr);
     return *ptr;
 }
 
