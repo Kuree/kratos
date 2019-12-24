@@ -26,6 +26,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             remove_assertion: bool = False,
             check_inferred_latch: bool = True,
             check_multiple_driver: bool = True,
+            check_combinational_loop: bool = True,
             insert_pipeline_stages: bool = False,
             filename: str = None,
             output_dir: str = None,
@@ -64,6 +65,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("remove_unused_stmts")
     pass_manager.add_pass("verify_assignments")
     pass_manager.add_pass("verify_generator_connectivity")
+    if check_combinational_loop:
+        pass_manager.add_pass("check_combinational_loop")
     pass_manager.add_pass("check_mixed_assignment")
     pass_manager.add_pass("check_always_sensitivity")
     if check_inferred_latch:

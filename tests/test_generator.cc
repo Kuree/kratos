@@ -1113,3 +1113,13 @@ TEST(pass, multiple_driver) {  // NOLINT
 
     EXPECT_THROW(check_multiple_driver(&mod), StmtException);
 }
+
+TEST(pass, check_combinational_loop) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 1);
+    mod.add_stmt(a.assign(a + constant(1, 1)));
+    fix_assignment_type(&mod);
+
+    EXPECT_THROW(check_combinational_loop(&mod), StmtException);
+}

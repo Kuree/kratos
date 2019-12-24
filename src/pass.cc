@@ -2556,6 +2556,40 @@ void check_multiple_driver(Generator* top) {
     visitor.visit_content(top);
 }
 
+class CombinationalLoopVisitor : public IRVisitor {
+public:
+    void visit(Port* port) override { check_var(port); }
+    void visit(Var* var) override { check_var(var); }
+
+private:
+    static void check_var(Var* var) {
+        // get all the sources
+        auto const& sources = var->sources();
+        for (auto const& stmt : sources) {
+            if (stmt->assign_type() == AssignmentType::Blocking && has_var(stmt->right(), var)) {
+                throw StmtException(::format("Combinational loop detected at {0} <- {1}",
+                                             stmt->left()->to_string(), stmt->right()->to_string()),
+                                    {stmt.get(), var});
+            }
+        }
+    }
+
+    static bool has_var(Var* var, Var* target) {
+        if (!var) return false;
+        if (var == target) return true;
+        if (var->type() == VarType::Expression) {
+            auto expr = reinterpret_cast<Expr*>(var);
+            return has_var(expr->left, target) || has_var(expr->right, target);
+        }
+        return false;
+    }
+};
+
+void check_combinational_loop(Generator* top) {
+    CombinationalLoopVisitor visitor;
+    visitor.visit_root(top);
+}
+
 void sort_stmts(Generator* top) {
     SortStmtVisitor visitor;
     visitor.visit_generator_root_p(top);
@@ -2735,6 +2769,8 @@ void PassManager::register_builtin_passes() {
     register_pass("check_inferred_latch", &check_inferred_latch);
 
     register_pass("check_multiple_driver", &check_multiple_driver);
+
+    register_pass("check_combinational_loop", &check_combinational_loop);
 
     register_pass("convert_continuous_stmt", &convert_continuous_stmt);
 
