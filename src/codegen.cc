@@ -331,6 +331,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         stmt_code(reinterpret_cast<CommentStmt*>(node));
     } else if (stmt_ptr->type() == StatementType::InterfaceInstantiation) {
         // do nothing
+    } else if (stmt_ptr->type() == StatementType::RawString) {
+        stmt_code(reinterpret_cast<RawStringStmt*>(node));
     } else {
         throw StmtException("Not implemented", {node});
     }
@@ -528,6 +530,14 @@ void SystemVerilogCodeGen::stmt_code(CommentStmt* stmt) {
     auto const& comments = stmt->comments();
     for (auto const& comment : comments) {
         stream_ << indent() << "// " << comment << stream_.endl();
+    }
+}
+
+void SystemVerilogCodeGen::stmt_code(RawStringStmt* stmt) {
+    auto const &stmts = stmt->stmts();
+    for (auto const &line: stmts) {
+        // we assume it's already been processed with new lines
+        stream_ << indent() << line << stream_.endl();
     }
 }
 

@@ -1,6 +1,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
@@ -155,4 +156,8 @@ void init_stmt(py::module &m) {
         auto stmt = std::make_shared<CommentStmt>(comment, line_width);
         return stmt;
     });
+
+    py::class_<RawStringStmt, std::shared_ptr<RawStringStmt>, Stmt>(m, "RawStringStmt")
+        .def(py::init<const std::string &>())
+        .def(py::init<const std::vector<std::string> &>());
 }

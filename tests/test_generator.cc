@@ -1123,3 +1123,13 @@ TEST(pass, check_combinational_loop) {  // NOLINT
 
     EXPECT_THROW(check_combinational_loop(&mod), StmtException);
 }
+
+TEST(stmt, raw_string_codegen) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto stmt = std::make_shared<RawStringStmt>("test\n");
+    mod.add_stmt(stmt);
+    auto result = generate_verilog(&mod);
+    auto mod_str = result.at("mod");
+    EXPECT_TRUE(mod_str.find("\ntest\n") != std::string::npos);
+}

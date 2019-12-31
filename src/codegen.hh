@@ -120,6 +120,8 @@ protected:
 
     void stmt_code(CommentStmt* stmt);
 
+    void stmt_code(RawStringStmt* stmt);
+
     void enum_code_(Enum* enum_);
     static void enum_code_(Stream &stream_, Enum* enum_, bool debug);
     void generate_enums(kratos::Generator* generator);

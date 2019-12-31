@@ -1,5 +1,6 @@
 import _kratos
 from .util import get_fn_ln, const
+from typing import Union, List
 
 
 class IfStmt:
@@ -77,3 +78,11 @@ class SwitchStmt:
 
 def switch_(predicate: _kratos.Var):
     return SwitchStmt(predicate)
+
+
+class RawStringStmt:
+    def __init__(self, value: Union[str, List[str]]):
+        self._stmt = _kratos.RawStringStmt(value)
+
+    def stmt(self):
+        return self._stmt

@@ -20,7 +20,7 @@ from _kratos import PackedStruct, Port, Var, AssignmentType, VarSlice, \
     VarVarSlice
 from _kratos import Sequence
 from _kratos import DebugDataBase
-from .stmts import IfStmt, SwitchStmt, if_, switch_
+from .stmts import IfStmt, SwitchStmt, if_, switch_, RawStringStmt
 from _kratos import Interface
 
 # FSMs

@@ -17,7 +17,8 @@ enum StatementType {
     FunctionalCall,
     Return,
     Assert,
-    Comment
+    Comment,
+    RawString
 };
 
 enum AssignmentType : int { Blocking, NonBlocking, Undefined };
@@ -405,6 +406,17 @@ public:
 private:
     std::vector<std::string> comments_;
     constexpr static uint32_t default_width = 100;
+};
+
+class RawStringStmt: public Stmt {
+public:
+    explicit RawStringStmt(const std::string &stmt);
+    explicit RawStringStmt(const std::vector<std::string> &stmt);
+
+    const std::vector<std::string> &stmts() const { return stmts_; }
+
+private:
+    std::vector<std::string> stmts_;
 };
 
 }  // namespace kratos
