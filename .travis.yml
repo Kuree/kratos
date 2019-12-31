@@ -1,6 +1,6 @@
 matrix:
     include:
-        - name: "Linux"
+        - name: "Linux pytest"
           services:
             - docker
           language: minimal
