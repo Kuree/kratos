@@ -1,11 +1,14 @@
 #include "fsm.hh"
+
 #include <fmt/format.h>
+
 #include <cmath>
 #include <fstream>
 #include <queue>
 #include <random>
 #include <sstream>
 #include <utility>
+
 #include "except.hh"
 #include "generator.hh"
 #include "util.hh"
@@ -189,14 +192,14 @@ void FSM::realize() {
         }
     }
     {
-        auto stmt = current_state.assign(next_state.shared_from_this(), NonBlocking);
+        auto stmt =
+            current_state.assign(next_state.shared_from_this(), AssignmentType::NonBlocking);
         if (generator_->debug) stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         seq_if->add_else_stmt(stmt);
     }
     // add it to the seq
     seq->add_stmt(seq_if);
-    if (generator_->debug)
-        seq_if->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+    if (generator_->debug) seq_if->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
 
     // combination logic to compute next state
     generate_state_transition(enum_def, current_state, next_state, state_name_mapping);
@@ -347,7 +350,7 @@ std::shared_ptr<AssignStmt> FSM::get_next_state_stmt(
     Enum& enum_def, EnumVar& next_state, const FSMState* state, FSMState* next_fsm_state,
     const std::unordered_map<FSMState*, std::string>& state_name_mapping) const {
     auto const& next_fsm_state_name = state_name_mapping.at(next_fsm_state);
-    auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state_name), Blocking);
+    auto stmt = next_state.assign(enum_def.get_enum(next_fsm_state_name), AssignmentType::Blocking);
     auto debug_info = state->next_state_fn_ln();
     if (generator_->debug) {
         if (debug_info.find(next_fsm_state) != debug_info.end()) {

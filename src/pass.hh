@@ -9,7 +9,7 @@
 
 namespace kratos {
 
-enum HashStrategy : int { SequentialHash, ParallelHash };
+enum class HashStrategy : int { SequentialHash, ParallelHash };
 
 void fix_assignment_type(Generator* top);
 

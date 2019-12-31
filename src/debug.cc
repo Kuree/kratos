@@ -1,5 +1,7 @@
 #include "debug.hh"
+
 #include <mutex>
+
 #include "db.hh"
 #include "except.hh"
 #include "fmt/format.h"
@@ -220,22 +222,21 @@ std::unordered_map<Var *, std::unordered_set<Var *>> find_driver_signal(Generato
     return visitor.map();
 }
 
-
-class PropagateScopeVisitor: public IRVisitor {
+class PropagateScopeVisitor : public IRVisitor {
 public:
-    void visit(IfStmt* stmt) override {
+    void visit(IfStmt *stmt) override {
         auto variables = stmt->scope_context();
-        for (auto const &[name, var]: variables) {
+        for (auto const &[name, var] : variables) {
             stmt->then_body()->add_scope_variable(name, var.second, var.first, false);
             stmt->else_body()->add_scope_variable(name, var.second, var.first, false);
         }
     }
 
-    void visit(SwitchStmt *stmt)  override {
+    void visit(SwitchStmt *stmt) override {
         auto variables = stmt->scope_context();
-        for (auto const &[name, var]: variables) {
+        for (auto const &[name, var] : variables) {
             auto cases = stmt->body();
-            for (auto &iter: cases) {
+            for (auto &iter : cases) {
                 auto case_ = iter.second;
                 case_->add_scope_variable(name, var.second, var.first, false);
             }
@@ -777,7 +778,8 @@ public:
         std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = reinterpret_cast<Stmt *>(block->get_child(i));
-            if (stmt->type() == Assert) stmts_to_remove.emplace_back(stmt->shared_from_this());
+            if (stmt->type() == StatementType::Assert)
+                stmts_to_remove.emplace_back(stmt->shared_from_this());
         }
         for (auto const &stmt : stmts_to_remove) {
             block->remove_stmt(stmt);

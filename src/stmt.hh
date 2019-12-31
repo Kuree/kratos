@@ -7,7 +7,7 @@
 
 namespace kratos {
 
-enum StatementType {
+enum class StatementType {
     If,
     Switch,
     Assign,
@@ -21,9 +21,9 @@ enum StatementType {
     RawString
 };
 
-enum AssignmentType : int { Blocking, NonBlocking, Undefined };
-enum StatementBlockType { Combinational, Sequential, Scope, Function, Initial };
-enum BlockEdgeType { Posedge, Negedge };
+enum class AssignmentType : int { Blocking, NonBlocking, Undefined };
+enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial };
+enum class BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
 class ScopedStmtBlock;

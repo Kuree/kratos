@@ -883,9 +883,9 @@ public:
 private:
     static void checkout_assignment(Generator* generator, const std::string& name) {
         auto const& var = generator->get_var(name);
-        AssignmentType type = Undefined;
+        AssignmentType type = AssignmentType::Undefined;
         for (auto const& stmt : var->sources()) {
-            if (type == Undefined)
+            if (type == AssignmentType ::Undefined)
                 type = stmt->assign_type();
             else if (type != stmt->assign_type()) {
                 std::vector<Stmt*> stmt_list;
@@ -1792,7 +1792,7 @@ private:
         uint64_t stmt_count = generator->stmts_count();
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = generator->get_stmt(i);
-            if (stmt->type() == Assign) {
+            if (stmt->type() == StatementType::Assign) {
                 auto assign_stmt = stmt->as<AssignStmt>();
                 if (assign_stmt->left()->type() == VarType::Slice &&
                     assign_stmt->right()->type() == VarType::Slice) {
@@ -1805,7 +1805,7 @@ private:
     static void extract_sliced_stmts(StmtBlock* block,
                                      std::set<std::shared_ptr<AssignStmt>>& sliced_stmts) {
         for (auto const& stmt : *block) {
-            if (stmt->type() == Assign) {
+            if (stmt->type() == StatementType ::Assign) {
                 auto assign_stmt = stmt->as<AssignStmt>();
                 if (assign_stmt->left()->type() == VarType::Slice &&
                     assign_stmt->right()->type() == VarType::Slice) {
@@ -1857,7 +1857,7 @@ private:
                                       const std::vector<std::shared_ptr<AssignStmt>>& stmts,
                                       Var* const left, Var* const right) {
         if (stmts.empty()) return;
-        auto new_stmt = left->assign(right->shared_from_this(), Blocking);
+        auto new_stmt = left->assign(right->shared_from_this(), AssignmentType::Blocking);
         generator->add_stmt(new_stmt);
         if (generator->debug) {
             // merge all the statements

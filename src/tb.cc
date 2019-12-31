@@ -1,5 +1,7 @@
 #include "tb.hh"
+
 #include <fmt/format.h>
+
 #include "codegen.hh"
 #include "except.hh"
 #include "pass.hh"
@@ -166,7 +168,7 @@ protected:
             }
             if (clk_vars.size() == 1) {
                 edge.first = clk_vars[0];
-                edge.second = Posedge;
+                edge.second = BlockEdgeType::Posedge;
             } else {
                 // next is not null but edge is not set
                 throw StmtException(
@@ -176,7 +178,8 @@ protected:
         if (edge.first) {
             auto const &[var, type] = edge;
             stream_ << indent()
-                    << ::format("@({0} {1}) ", type == Posedge ? "posedge" : "negedge",
+                    << ::format("@({0} {1}) ",
+                                type == BlockEdgeType::Posedge ? "posedge" : "negedge",
                                 var->handle_name(true));
         }
         stream_ << seq->to_string() << ";" << stream_.endl();
@@ -189,7 +192,7 @@ protected:
     }
 
     void stmt_code(AssignStmt *stmt) override {
-        if (stmt->assign_type() != Blocking) {
+        if (stmt->assign_type() != AssignmentType::Blocking) {
             throw StmtException("Test bench assignment as to be blocking", {stmt});
         }
         if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator != top_) ||
@@ -244,4 +247,4 @@ std::string TestBench::codegen() {
     return code_gen.str();
 }
 
-}
+}  // namespace kratos
