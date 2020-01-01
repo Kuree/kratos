@@ -37,6 +37,23 @@ if (${INCLUDE_FILESYSTEM})
 else()
     MESSAGE(WARNING "<filesystem> not found. Fall back to C implementation")
 endif()
+
+# realpath
+CHECK_CXX_SOURCE_COMPILES("
+#include <cstdlib>
+int main() {
+    realpath(\"\", nullptr);
+}
+
+" NO_FS_HAS_REALPATH)
+if (NOT ${INCLUDE_FILESYSTEM})
+    if (${NO_FS_HAS_REALPATH})
+        add_definitions(-DNO_FS_HAS_REALPATH)
+    else()
+        MESSAGE(WARNING "realpath not found. Trying to use windows API")
+    endif()
+endif()
+
 # unset CMAKE_REQUIRED_LIBRARIES
 set(CMAKE_REQUIRED_LIBRARIES "")
 

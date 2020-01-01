@@ -539,7 +539,11 @@ std::string abspath(const std::string &filename) {
 #if defined(INCLUDE_FILESYSTEM)
     return std::filesystem::absolute(filename);
 #else
+#if defined(NO_FS_HAS_REALPATH)
     auto path = realpath(filename.c_str(), nullptr);
+#else
+    auto path = _fullpath(NULL, filename.c_str(), 120);
+#endif
     return std::string(path);
 #endif
 }
