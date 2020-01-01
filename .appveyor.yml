@@ -1,0 +1,35 @@
+image: Visual Studio 2017
+
+clone_depth: 1
+
+platform:
+  - Win32
+
+configuration:
+  - Release
+
+environment:
+  matrix:
+    - PYTHON: "C:\\Python37-x64"
+      PYTHON_VERSION: "3.7.x"
+
+# scripts that are called at very beginning, before repo cloning
+init:
+  - cmd: cmake --version
+  - cmd: msbuild /version
+
+install:
+  - git submodule update --init --recursive
+  - "%PYTHON%\\python.exe -m pip install wheel"
+
+build_script:
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;C:\\mingw-w64\\x86_64-8.1.0-posix-seh-rt_v6-rev0\\mingw64\\bin;%PATH%"
+  - "python --version"
+  - rm "C:/Program Files/Git/usr/bin/sh.exe"
+  - python setup.py bdist_wheel
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - pip install pytest
+
+test_script:
+  - pytest tests/
+
