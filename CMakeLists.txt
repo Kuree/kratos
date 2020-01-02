@@ -4,7 +4,7 @@ project(kratos)
 set(CMAKE_CXX_STANDARD 17)
 
 # turn every warnings on
-set(CMAKE_CXX_FLAGS "-Wall -g -Wextra -Werror -fPIC")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -fPIC")
 
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG(-funroll-all-loops UNROLL)
@@ -36,17 +36,14 @@ if (${INCLUDE_FILESYSTEM})
     add_definitions(-DINCLUDE_FILESYSTEM)
 else()
     MESSAGE(WARNING "<filesystem> not found. Fall back to C implementation")
-endif()
-
-# realpath
-CHECK_CXX_SOURCE_COMPILES("
+    set(CMAKE_REQUIRED_LIBRARIES "")
+    CHECK_CXX_SOURCE_COMPILES("
 #include <cstdlib>
 int main() {
     realpath(\"\", nullptr);
 }
 
 " NO_FS_HAS_REALPATH)
-if (NOT ${INCLUDE_FILESYSTEM})
     if (${NO_FS_HAS_REALPATH})
         add_definitions(-DNO_FS_HAS_REALPATH)
     else()
