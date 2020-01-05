@@ -27,8 +27,14 @@ CHECK_CXX_SOURCE_COMPILES("
 #include <filesystem>
 int main() {
   std::filesystem::exists(\"\");
+  std::filesystem::path p = \"\";
+  std::string r = p / p;
 }
 " INCLUDE_FILESYSTEM)
+# disable it on APPLE since it doesn't allow static linking
+if (APPLE)
+    SET(INCLUDE_FILESYSTEM 0)
+endif()
 if (${INCLUDE_FILESYSTEM})
     # This should be ideally add_compile_definitions() in the long term, but
     # that's not available until CMake 3.12 and we don't want to cut off people

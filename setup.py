@@ -34,6 +34,11 @@ class CMakeBuild(build_ext):
         for ext in self.extensions:
             self.build_extension(ext)
 
+    @staticmethod
+    def is_windows():
+        tag = platform.system().lower()
+        return tag == "windows"
+
     def build_extension(self, ext):
         extdir = os.path.abspath(
             os.path.dirname(self.get_ext_fullpath(ext.name)))
@@ -43,15 +48,15 @@ class CMakeBuild(build_ext):
         cfg = 'Debug' if self.debug else 'Release'
         build_args = ['--config', cfg]
 
-        if platform.system() == "Windows":
+        if self.is_windows():
             cmake_args += [
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(),
                                                                 extdir)]
-            cmake_args += ["-G", "MinGW Makefiles"]
+            cmake_args += ["-G", "MSYS Makefiles"]
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
-            cpu_count = max(2, multiprocessing.cpu_count() // 2)
-            build_args += ['--', '-j{0}'.format(cpu_count)]
+        cpu_count = max(2, multiprocessing.cpu_count() // 2)
+        build_args += ['--', '-j{0}'.format(cpu_count)]
 
         python_path = sys.executable
         cmake_args += ['-DPYTHON_EXECUTABLE:FILEPATH=' + python_path]
@@ -64,12 +69,12 @@ class CMakeBuild(build_ext):
             os.makedirs(self.build_temp)
         subprocess.check_call(['cmake', ext.sourcedir] + cmake_args,
                               cwd=self.build_temp, env=env)
-        if platform.system() != "Windows":
+        if not self.is_windows():
             subprocess.check_call(
                 ['cmake', '--build', '.', "--target", "_kratos"] + build_args,
                 cwd=self.build_temp)
         else:
-            subprocess.check_call(["mingw64-make", "_kratos", "-j"],
+            subprocess.check_call(["mingw64-make", "_kratos"] + build_args,
                                   cwd=self.build_temp)
 
 
