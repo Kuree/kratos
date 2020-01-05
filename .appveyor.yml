@@ -8,11 +8,6 @@ platform:
 configuration:
   - Release
 
-environment:
-  matrix:
-    - PYTHON: "C:\\Python37-x64"
-      PYTHON_VERSION: "3.7.x"
-
 # scripts that are called at very beginning, before repo cloning
 init:
   - cmd: cmake --version
@@ -20,14 +15,23 @@ init:
 
 install:
   - git submodule update --init --recursive
-  - "%PYTHON%\\python.exe -m pip install wheel"
+  - SET PATH=C:\msys64\usr\bin;%PATH%
+  - SET PATH=C:\msys64\mingw64\bin;%PATH%
+  - pacman --noconfirm -S mingw64/mingw-w64-x86_64-python3-pip
+  # install verilator
+  - pacman --noconfirm -S mingw-w64-x86_64-verilator
+  # copy the libdl.a from cgwin
+  - cp C:\cygwin64\lib\libdl.a C:\msys64\usr\lib\libdl.a
+  - python --version
+  - python -m pip install wheel
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - verilator --version
+  # remove sh file so that make won't complain
+  - rm "C:/Program Files/Git/usr/bin/sh.exe"
 
 build_script:
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;C:\\mingw-w64\\x86_64-8.1.0-posix-seh-rt_v6-rev0\\mingw64\\bin;%PATH%"
-  - "python --version"
-  - rm "C:/Program Files/Git/usr/bin/sh.exe"
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - python setup.py bdist_wheel
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - pip install pytest
 
 test_script:

@@ -2,7 +2,6 @@ import pytest
 import kratos
 import os
 import tempfile
-import filecmp
 
 
 def get_gold_dir():
@@ -20,7 +19,12 @@ def check_gold_fn(mod, gold_name, **kargs):
                 f.write(mod)
         assert os.path.isfile(gold)
         assert os.path.isfile(filename)
-        if not filecmp.cmp(filename, gold):
+        # read them out to avoid \n and \r\n
+        with open(filename) as f:
+            filename_content = f.read()
+        with open(gold) as f:
+            gold_content = f.read()
+        if filename_content != gold_content:
             with open(filename) as f:
                 print(f.read())
             print("-" * 80)
