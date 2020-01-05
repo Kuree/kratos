@@ -69,13 +69,10 @@ class CMakeBuild(build_ext):
             os.makedirs(self.build_temp)
         subprocess.check_call(['cmake', ext.sourcedir] + cmake_args,
                               cwd=self.build_temp, env=env)
-        if not self.is_windows():
-            subprocess.check_call(
-                ['cmake', '--build', '.', "--target", "_kratos"] + build_args,
-                cwd=self.build_temp)
-        else:
-            subprocess.check_call(["mingw64-make", "_kratos"] + build_args,
-                                  cwd=self.build_temp)
+
+        subprocess.check_call(
+            ['cmake', '--build', '.', "--target", "_kratos"] + build_args,
+            cwd=self.build_temp)
 
 
 current_directory = os.path.abspath(os.path.dirname(__file__))

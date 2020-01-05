@@ -5,6 +5,10 @@ from kratos import Generator, PortDirection, PortType, always_ff, \
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
+import shutil
+import pytest
+
+no_verilator = shutil.which("verilator") is None
 
 
 class PassThroughMod(Generator):
@@ -95,6 +99,7 @@ def test_module_unique():
     assert reg1.name != reg2.name
 
 
+@pytest.mark.skipif(no_verilator, reason="verilator not available")
 def test_wire_const():
     mod = Generator("test")
     out_ = mod.output("out", 1)
@@ -437,6 +442,7 @@ def test_create(check_gold):
     check_gold(mod3, "test_create")
 
 
+@pytest.mark.skipif(no_verilator, reason="verilator not available")
 def test_clone():
     class Mod2(Generator):
         def __init__(self):
@@ -494,6 +500,7 @@ def test_packed_struct(check_gold, check_file):
         check_file(def_file, "packed_struct_pkg.svh")
 
 
+@pytest.mark.skipif(no_verilator, reason="verilator not available")
 def test_more_debug1():
     mod = PassThroughTop()
     mod_src, debug_info = verilog(mod, debug=True)
@@ -502,6 +509,7 @@ def test_more_debug1():
     assert len(debug) > 3
 
 
+@pytest.mark.skipif(no_verilator, reason="verilator not available")
 def test_more_debug2():
     class Top(Generator):
         def __init__(self):
@@ -527,6 +535,7 @@ def test_more_debug2():
     assert len(debug) > 3
 
 
+@pytest.mark.skipif(no_verilator, reason="verilator not available")
 def test_verilog_file():
     mod = PassThroughTop()
     with tempfile.TemporaryDirectory() as tempdir:
@@ -580,6 +589,7 @@ def test_remove_child():
     assert top.stmts_count == 0
 
 
+@pytest.mark.skipif(no_verilator, reason="verilator not available")
 def test_syntax_sugar():
     mod = Generator("mod", debug=True)
     out_ = mod.output("out", 1)
@@ -601,6 +611,7 @@ def test_syntax_sugar():
     is_valid_verilog(mod_src)
 
 
+@pytest.mark.skipif(no_verilator, reason="verilator not available")
 def test_zero_ext():
     mod = Generator("mod", debug=True)
     out_ = mod.port("out", 2, PortDirection.Out)
