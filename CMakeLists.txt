@@ -5,7 +5,11 @@ set(CMAKE_CXX_STANDARD 17)
 
 # turn every warnings on
 if (NOT WIN32)
-  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -fPIC")
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror -fPIC")
+else()
+    # windows has more strict checks on stuff that we have no control over
+    # in this case it's sqlite.h header
+    set(CMAKE_CXX_FLAGS "-Wno-language-extension-token")
 endif()
 
 include(CheckCXXCompilerFlag)

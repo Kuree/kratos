@@ -471,7 +471,21 @@ Color hsv_to_rgb(double h, double s, double v) {
 
 namespace fs {
 std::string which(const std::string &name) {
-    std::string env_path = std::getenv("PATH");
+    // windows is more picky
+    std::string env_path;
+#ifdef _WIN32
+    char *path_var;
+    size_t len;
+    auto err = _dupenv_s(&path_var, &len, "PATH");
+    if (err) {
+        env_path = "";
+    }
+    env_path = std::string(path_var);
+    free(path_var);
+    path_var = nullptr;
+#else
+    env_path = std::getenv("PATH");
+#endif
     // tokenize it base on either : or ;
     auto tokens = get_tokens(env_path, ";:");
     for (auto const &dir : tokens) {

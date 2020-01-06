@@ -21,8 +21,31 @@ install:
 build_script:
   # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - python setup.py bdist_wheel
+  # install the wheel
+  - pip install --find-links=dist kratos
   - pip install pytest
 
 test_script:
-  - pytest tests/
+  - pytest -v tests/
+
+artifacts:
+  - path: dist\*
+    name: pypiartifacts
+
+deploy_script:
+  - pip install twine
+  # copied from here
+  - # https://github.com/AndrewAnnex/SpiceyPy/blob/master/appveyor.yml
+  - echo "Starting Artifact Deployment"
+  # populate pypirc file for twine
+  - echo [distutils]                                  > %USERPROFILE%\\.pypirc
+  - echo index-servers =                             >> %USERPROFILE%\\.pypirc
+  - echo     pypi                                    >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
+  - echo username=keyi                               >> %USERPROFILE%\\.pypirc
+  - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc
+  # upload to pypi for windows
+  - set HOME=%USERPROFILE%
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true" -And $env:APPVEYOR_REPO_BRANCH -eq "master") { Invoke-Expression "twine upload --skip-existing dist/*.whl" 2>$null } Else { write-output "Not on a tag on master, won't deploy to pypi"}
+  - echo "Finished Artifact Deployment"
 
