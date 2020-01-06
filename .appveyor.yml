@@ -52,7 +52,5 @@ deploy_script:
   - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc
   # upload to pypi for windows
   - set HOME=%USERPROFILE%
-  - ps: write-output $env:APPVEYOR_REPO_TAG
-  - ps: Invoke-Expression "twine upload --skip-existing dist/*.whl"
+  - ps: If ($env:APPVEYOR_REPO_TAG -imatch "true" ) { Invoke-Expression "twine upload --skip-existing dist/*.whl" } Else { write-output "Not on a tag on master, won't deploy to pypi"}
   - echo "Finished Artifact Deployment"
-
