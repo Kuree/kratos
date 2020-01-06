@@ -1,4 +1,4 @@
-image: Visual Studio 2017
+image: Visual Studio 2019
 
 clone_depth: 1
 
@@ -15,18 +15,19 @@ init:
 
 install:
   - git submodule update --init --recursive
-  - SET PATH=C:\msys64\usr\bin;%PATH%
-  - SET PATH=C:\msys64\mingw64\bin;%PATH%
-  - pacman --noconfirm -S mingw64/mingw-w64-x86_64-python3-pip
+  - SET PATH=C:\\Python37-x64;C:\\Python37-x64\\Scripts;$PATH%
+  # - SET PATH=C:\msys64\usr\bin;%PATH%
+  # - SET PATH=C:\msys64\mingw64\bin;%PATH%
+  # - pacman --noconfirm -S mingw64/mingw-w64-x86_64-python3-pip
   # copy the libdl.a from cgwin
-  - cp C:\cygwin64\lib\libdl.a C:\msys64\mingw64\lib\libdl.a
+  # - cp C:\cygwin64\lib\libdl.a C:\msys64\mingw64\lib\libdl.a
   - python --version
   - python -m pip install wheel
   # remove sh file so that make won't complain
-  - rm "C:/Program Files/Git/usr/bin/sh.exe"
+  # - rm "C:/Program Files/Git/usr/bin/sh.exe"
 
 build_script:
-  - pip install .
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - pip install pytest
 
 test_script:

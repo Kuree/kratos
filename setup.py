@@ -52,7 +52,7 @@ class CMakeBuild(build_ext):
             cmake_args += [
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(),
                                                                 extdir)]
-            cmake_args += ["-G", "MSYS Makefiles"]
+            cmake_args += ["-G", "Visual Studio 2019"]
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
         cpu_count = max(2, multiprocessing.cpu_count() // 2)
