@@ -52,6 +52,7 @@ deploy_script:
   - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc
   # upload to pypi for windows
   - set HOME=%USERPROFILE%
+  - ps: write-output $env:APPVEYOR_REPO_TAG
   - ps: Invoke-Expression "twine upload --skip-existing dist/*.whl"
   - echo "Finished Artifact Deployment"
 
