@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <stdexcept>
 
 #include "context.hh"
 #include "ir.hh"

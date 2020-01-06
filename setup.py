@@ -58,8 +58,10 @@ class CMakeBuild(build_ext):
             clang_path = shutil.which("clang")
             assert clang_path is not None, "Unable to find clang"
             cxx_path = shutil.which("clang++")
+            rc_path = shutil.which("llvm-rc")
             cmake_args += ["-DCMAKE_C_COMPILER:PATH=" + clang_path]
             cmake_args += ["-DCMAKE_CXX_COMPILER:PATH=" + cxx_path]
+            cmake_args += ["-DCMAKE_RC_COMPILER:PATH=" + rc_path]
             # we hardware coded make here
             cmake_args += [R"-DCMAKE_MAKE_PROGRAM=C:\msys64\usr\bin\make"]
         else:
