@@ -2,6 +2,7 @@
 #define KRATOS_EXCEPT_HH
 
 #include <vector>
+#include <stdexcept>
 #include "context.hh"
 
 namespace kratos {

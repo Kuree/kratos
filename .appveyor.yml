@@ -11,23 +11,16 @@ configuration:
 # scripts that are called at very beginning, before repo cloning
 init:
   - cmd: cmake --version
-  - cmd: msbuild /version
 
 install:
   - git submodule update --init --recursive
-  - SET PATH=C:\\Python37-x64;C:\\Python37-x64\\Scripts;$PATH%
-  # - SET PATH=C:\msys64\usr\bin;%PATH%
-  # - SET PATH=C:\msys64\mingw64\bin;%PATH%
-  # - pacman --noconfirm -S mingw64/mingw-w64-x86_64-python3-pip
-  # copy the libdl.a from cgwin
-  # - cp C:\cygwin64\lib\libdl.a C:\msys64\mingw64\lib\libdl.a
+  - SET PATH=C:\\Python37-x64;C:\\Python37-x64\\Scripts;%PATH%
   - python --version
-  - python -m pip install wheel
-  # remove sh file so that make won't complain
-  # - rm "C:/Program Files/Git/usr/bin/sh.exe"
+  - python -m pip install wheel cmake
 
 build_script:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - python setup.py bdist_wheel
   - pip install pytest
 
 test_script:

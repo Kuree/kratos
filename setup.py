@@ -4,6 +4,7 @@ import sys
 import platform
 import subprocess
 import multiprocessing
+import shutil
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -52,7 +53,15 @@ class CMakeBuild(build_ext):
             cmake_args += [
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(),
                                                                 extdir)]
-            cmake_args += ["-G", "Visual Studio 2019"]
+            cmake_args += ["-G", "Unix Makefiles"]
+            # make sure clang is in the PATH
+            clang_path = shutil.which("clang")
+            assert clang_path is not None, "Unable to find clang"
+            cxx_path = shutil.which("clang++")
+            cmake_args += ["-DCMAKE_C_COMPILER:PATH=" + clang_path]
+            cmake_args += ["-DCMAKE_CXX_COMPILER:PATH=" + cxx_path]
+            # we hardware coded make here
+            cmake_args += [R"-DCMAKE_MAKE_PROGRAM=C:\msys64\usr\bin\make"]
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
         cpu_count = max(2, multiprocessing.cpu_count() // 2)
