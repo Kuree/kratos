@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23.1] - 2020-01-06
+### Added
+- Allow normal values to be casted to enum;
+- Add strict type checking
+- Add pass to check combinational loop (#87)
+- Add raw string statement
+- Add windows build and native wheel (#131)
+
+### Changed
+- Remove old verilog generation requirements
+- C++ enum is now enum class
+
+### Fixed
+- Fix filesystem detection code on gcc-8
+
 ## [0.0.23] - 2019-12-20
 ### Added
 - Use BSD-2 license
