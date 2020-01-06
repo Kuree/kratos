@@ -48,31 +48,32 @@ class CMakeBuild(build_ext):
 
         cfg = 'Debug' if self.debug else 'Release'
         build_args = ['--config', cfg]
+        env = os.environ.copy()
 
+        cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
         if self.is_windows():
-            cmake_args += [
-                '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(),
-                                                                extdir)]
             cmake_args += ["-G", "Unix Makefiles"]
             # make sure clang is in the PATH
             clang_path = shutil.which("clang")
-            assert clang_path is not None, "Unable to find clang"
+            assert clang_path is not None, \
+                "Unable to find clang. Currently only clang is supported "\
+                "on Windows"
             cxx_path = shutil.which("clang++")
             rc_path = shutil.which("llvm-rc")
             cmake_args += ["-DCMAKE_C_COMPILER:PATH=" + clang_path]
             cmake_args += ["-DCMAKE_CXX_COMPILER:PATH=" + cxx_path]
             cmake_args += ["-DCMAKE_RC_COMPILER:PATH=" + rc_path]
-            # we hardware coded make here
-            cmake_args += [R"-DCMAKE_MAKE_PROGRAM=C:\msys64\usr\bin\make"]
-        else:
-            cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
+            assert "MAKE_PROGRAM" in env,\
+                "Currently only unix make is supported on windows"
+            make_program = env["MAKE_PROGRAM"]
+            cmake_args += [R"-DCMAKE_MAKE_PROGRAM=" + make_program]
+
         cpu_count = max(2, multiprocessing.cpu_count() // 2)
         build_args += ['--', '-j{0}'.format(cpu_count)]
 
         python_path = sys.executable
         cmake_args += ['-DPYTHON_EXECUTABLE:FILEPATH=' + python_path]
 
-        env = os.environ.copy()
         env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
             env.get('CXXFLAGS', ''),
             self.distribution.get_version())
