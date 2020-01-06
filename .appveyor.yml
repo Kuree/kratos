@@ -8,13 +8,19 @@ platform:
 configuration:
   - Release
 
+environment:
+  matrix:
+    - PYTHON: "36"
+    - PYTHON: "37"
+    - PYTHON: "38"
+
 # scripts that are called at very beginning, before repo cloning
 init:
   - cmd: cmake --version
 
 install:
   - git submodule update --init --recursive
-  - SET PATH=C:\\Python37-x64;C:\\Python37-x64\\Scripts;%PATH%
+  - SET PATH=C:\\Python%PYTHON%-x64;C:\\Python%PYTHON%-x64\\Scripts;%PATH%
   - python --version
   - python -m pip install wheel cmake
 
