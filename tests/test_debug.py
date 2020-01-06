@@ -19,6 +19,7 @@ def test_db_dump():
         c.execute("SELECT * from breakpoint")
         result = c.fetchall()
         assert len(result) == 1
+        conn.close()
 
 
 def test_debug_mock():
@@ -97,6 +98,7 @@ def test_seq_debug():
         c.execute("SELECT * FROM breakpoint WHERE id=7")
         result = c.fetchall()
         assert len(result) == 1
+        conn.close()
 
 
 def test_metadata():
@@ -114,6 +116,7 @@ def test_metadata():
         c.execute("SELECT value FROM metadata WHERE name = ?", ["top_name"])
         value = c.fetchone()[0]
         assert value == "mod"
+        conn.close()
 
 
 def test_context():
@@ -147,6 +150,7 @@ def test_context():
         c.execute("SELECT * FROM context")
         variables = c.fetchall()
         assert len(variables) > 20
+        conn.close()
 
 
 def test_hierarchy_conn():
@@ -186,6 +190,7 @@ def test_hierarchy_conn():
         conns = c.fetchall()
         # plus 2 because in and out from parent to mod0 and mod3
         assert len(conns) == num_child - 1 + 2
+        conn.close()
 
 
 def test_clock_interaction():
@@ -275,6 +280,7 @@ def test_design_hierarchy():
         c.execute("SELECT * FROM hierarchy")
         mods = c.fetchall()
         assert len(mods) == num_child_child * num_child + num_child
+        conn.close()
 
 
 def test_assert():
@@ -305,6 +311,7 @@ def test_assert():
         assert len(lines) == 2
         # they are only one line apart
         assert abs(lines[0][2] - lines[1][2]) == 1
+        conn.close()
     # once we remove the assertion, it should not be there
     _kratos.passes.remove_assertion(mod.internal_generator)
     src = verilog(mod)[0]["mod"]
@@ -330,6 +337,7 @@ def test_wire():
         c.execute("SELECT value FROM variable WHERE name = ?", "a")
         v = int(c.fetchone()[0])
         assert v == a
+        conn.close()
 
 
 def test_inst_id():
@@ -367,6 +375,7 @@ def test_inst_id():
         c.execute("SELECT * FROM instance_set")
         res = c.fetchall()
         assert len(res) == 3
+        conn.close()
 
 
 def test_empty():

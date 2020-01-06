@@ -7,8 +7,10 @@ import os
 import tempfile
 import shutil
 import pytest
+import platform
 
 no_verilator = shutil.which("verilator") is None
+is_windows = platform.system() == "Windows"
 
 
 class PassThroughMod(Generator):
@@ -494,6 +496,8 @@ def test_packed_struct(check_gold, check_file):
         def_file = os.path.join(temp, "packed_struct_pkg.svh")
         import json
         # json is correct
+        if is_windows:
+            pytest.skip("Windows new line problem")
         with open(os.path.join(temp, "packed_struct.sv.debug")) as f:
             json.load(f)
         check_file(mod_file, "packed_struct_pkg.sv")
