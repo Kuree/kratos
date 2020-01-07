@@ -24,15 +24,16 @@ you:
                 remove_assertion: bool = False,
                 check_inferred_latch: bool = True,
                 check_multiple_driver: bool = True,
+                check_combinational_loop: bool = True,
                 insert_pipeline_stages: bool = False,
-                verilog95_def: bool = False,
                 filename: str = None,
                 output_dir: str = None,
                 insert_debug_info: bool = False,
                 insert_break_on_edge: bool = False,
                 debug_db_filename: str = "",
                 use_parallel: bool = True,
-                track_generated_definition: bool = False):
+                track_generated_definition: bool = False,
+                compile_to_verilog: bool = False):
 
 The required argument ``generator`` has to be the top level circuit
 you want to generate. The function returns a Python dictionary indexed
@@ -53,3 +54,11 @@ build for commercial simulators.
     Once ``filename`` or ``output_dir`` is specified, the code generator
     will ignore ``extract_struct`` option to ensure the generated SystemVerilog
     code is correct.
+
+.. note::
+    If old Verilog, e.g., Verilog-95, is required for some EDA tools, such as
+    yosys, you can set ``compile_ti_verilog`` to ``True``, which will invoke
+    ``sv2v`` to trans-compile the generated SystemVerilog code into plain
+    Verilog code. You need to have ``sv2v`` in your ``PATH``. You can install
+    it from the official website: https://github.com/zachjs/sv2v, or simply
+    install the unofficial build ``pip install pysv2v``.
