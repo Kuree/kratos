@@ -34,7 +34,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
             insert_break_on_edge: bool = False,
             debug_db_filename: str = "",
             use_parallel: bool = True,
-            track_generated_definition: bool = False):
+            track_generated_definition: bool = False,
+            compile_to_verilog: bool = False):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
     if additional_passes is not None:
@@ -99,6 +100,14 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("sort_stmts")
 
     code_gen.run_passes()
+
+    if compile_to_verilog:
+        assert output_dir is None and filename is not None,\
+            "Trans-compile to verilog is only supported by a single file"
+        import shutil
+        assert shutil.which("sv2v") is not None,\
+            "Compiling to verilog requires sv2v"
+
     if output_dir is not None:
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
@@ -140,6 +149,11 @@ def verilog(generator: Generator, optimize_if: bool = True,
         if filename is not None:
             output_verilog(filename, src, info, struct_info, dpi_func, enum_def,
                            interface_info, track_generated_definition)
+            if compile_to_verilog:
+                pipe = os.popen("sv2v " + filename, "r")
+                s = pipe.read()
+                with open(filename, "w+") as f:
+                    f.write(s)
 
         r = result[0] if len(result) == 1 else result
 
