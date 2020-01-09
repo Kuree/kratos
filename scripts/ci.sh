@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -xe
+set -e
 
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     if [[ "$BUILD_WHEEL" == true ]]; then
@@ -28,13 +28,13 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     fi
 
 elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    wget --quite https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+    wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
     chmod +x miniconda.sh
     ./miniconda.sh -b -p $TRAVIS_BUILD_DIR/miniconda
     export PATH=$TRAVIS_BUILD_DIR/miniconda/bin:$PATH
     conda config --set always_yes yes --set changeps1 no
-    conda create -q -n test-env python=$PYTHON
-    source activate test-env
+    conda create -q -n env3.7 python=3.7
+    source activate env3.7
     conda install pip
     python --version
 
@@ -60,8 +60,20 @@ echo username=keyi                               >> ~/.pypirc
 echo password=$PYPI_PASSWORD                     >> ~/.pypirc
 
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    set -x
+    # TODO: move this to deploy
     if [ -n "$TRAVIS_TAG" ]; then
-        twine upload dist/*.whl
+        for PYTHON_VERSION in 3.6 3.8
+        do
+            source deactivate
+            conda create -q -n env$PYTHON_VERSION python=$PYTHON_VERSION
+            source activate env$PYTHON_VERSION
+            conda install pip
+            python --version
+
+            pip install cmake wheel twine
+            CXX=/usr/local/bin/g++-8 python setup.py bdist_wheel
+        done
+
+        twine upload --skip-existing dist/*.whl
     fi
 fi
