@@ -28,16 +28,14 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     fi
 
 elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    export PYTHON=3.7.0
-    brew update-reset
-    brew install gcc@8
-    brew install verilator
-    brew install pyenv-virtualenv
-    pyenv install ${PYTHON}
-    export PYENV_VERSION=$PYTHON
-    export PATH="/Users/travis/.pyenv/shims:${PATH}"
-    pyenv virtualenv venv37
-    source /Users/travis/.pyenv/versions/${PYTHON}/envs/venv37/bin/activate
+    wget --quite https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+    chmod +x miniconda.sh
+    ./miniconda.sh -b -p $TRAVIS_BUILD_DIR/miniconda
+    export PATH=$TRAVIS_BUILD_DIR/miniconda/bin:$PATH
+    conda config --set always_yes yes --set changeps1 no
+    conda create -q -n test-env python=$PYTHON
+    source activate test-env
+    conda install pip
     python --version
 
     python -m pip install scikit-build
