@@ -51,6 +51,11 @@ class AssignmentTypeBlockVisitor : public IRVisitor {
         visitor.visit_root(block->ast_node());
     }
     void visit(SequentialStmtBlock* block) override {
+        // attribute-based override
+        auto const& attributes = block->get_attributes();
+        for (auto const& attr : attributes) {
+            if (attr->type_str == "check_assignment" && attr->value_str == "false") return;
+        }
         AssignmentTypeVisitor visitor(AssignmentType::NonBlocking, true);
         visitor.visit_root(block->ast_node());
     }

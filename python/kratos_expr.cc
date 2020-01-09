@@ -452,12 +452,7 @@ void init_expr(py::module &m) {
     // constant
     m.def("constant", &constant, py::return_value_policy::reference);
 
-    m.def("mux", [](Var &cond, Var &left, Var &right) {
-        auto expr = std::make_shared<ConditionalExpr>(
-            cond.shared_from_this(), left.shared_from_this(), right.shared_from_this());
-        cond.generator->add_expr(expr);
-        return expr;
-    });
+    m.def("mux", util::mux);
 
     py::class_<EnumVar, ::shared_ptr<EnumVar>, Var>(m, "EnumVar")
         .def("enum_type", &EnumVar::enum_type);

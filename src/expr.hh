@@ -659,5 +659,10 @@ private:
     InterfaceRef *interface_ = nullptr;
 };
 
+// helper functions
+namespace util {
+std::shared_ptr<Expr> mux(Var &cond, Var &left, Var &right);
+}
+
 }  // namespace kratos
 #endif  // KRATOS_EXPR_HH

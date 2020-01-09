@@ -168,10 +168,9 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
         }
     }
     // if there is one already
-    for (auto const &s: slices_) {
+    for (auto const &s : slices_) {
         if (!s->sliced_by_var()) {
-            if (high == s->high && low == s->low)
-                return *s;
+            if (high == s->high && low == s->low) return *s;
         }
     }
     // create a new one
@@ -184,11 +183,10 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
 
 VarSlice &Var::operator[](const std::shared_ptr<Var> &var) {
     // if there is one already
-    for (auto const &s: slices_) {
+    for (auto const &s : slices_) {
         if (s->sliced_by_var()) {
             auto const s_ = s->as<VarVarSlice>();
-            if (s_->sliced_var() == var.get())
-                return *s_;
+            if (s_->sliced_var() == var.get()) return *s_;
         }
     }
     auto var_slice = ::make_shared<VarVarSlice>(this, var.get());
@@ -229,7 +227,7 @@ uint64_t Var::child_count() {
     return slices_.size();
 }
 
-IRNode * Var::get_child(uint64_t index) {
+IRNode *Var::get_child(uint64_t index) {
     if (index < child_count()) {
         return slices_[index].get();
     }
@@ -1408,5 +1406,12 @@ std::string InterfaceVar::to_string() const {
 }
 
 std::string InterfaceVar::base_name() const { return interface_->base_name(); }
+
+std::shared_ptr<Expr> util::mux(Var &cond, Var &left, Var &right) {
+    auto expr = std::make_shared<ConditionalExpr>(cond.shared_from_this(), left.shared_from_this(),
+                                                  right.shared_from_this());
+    cond.generator->add_expr(expr);
+    return expr;
+}
 
 }  // namespace kratos
