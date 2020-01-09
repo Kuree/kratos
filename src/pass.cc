@@ -740,6 +740,12 @@ private:
                         // remove it from the parent generator
                         src->generator->remove_stmt(stmt);
                         return;
+                    } else if (src->type() == VarType::Slice &&
+                               src->parent() == generator->parent()) {
+                        // remove as well since it's the top level wire assignment
+                        // remove it from the parent generator
+                        src->generator->remove_stmt(stmt);
+                        return;
                     }
                 }
             }
