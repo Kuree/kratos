@@ -9,29 +9,18 @@ tests.
 
 Installing kratos
 =================
-kratos requires Python 3.5+. Please make sure that you have necessary Python
+kratos requires Python 3.6+. Please make sure that you have necessary Python
 environment set up.
 
-Linux
------
-On Linux you can simply do
+Linux/macOS/Windows
+-------------------
+You can simply do
 
 .. code:: bash
 
   pip install kratos
 
 This will download the pre-compiled binary wheel.
-
-macOS
------
-
-If you have Python 3.7 installed, you can also do
-
-.. code:: bash
-
-  pip install kratos
-
-Otherwise please refer to the next section.
 
 Other OS/ Compiling from source
 -------------------------------
