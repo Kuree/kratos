@@ -1139,8 +1139,10 @@ void ConditionalExpr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
 }
 
 std::string ConditionalExpr::to_string() const {
-    return ::format("{0} ? {1}: {2}", condition->to_string(), left->to_string(),
-                    right->to_string());
+    std::string cond_str = condition->type() == VarType::Expression
+                               ? ::format("({0})", condition->to_string())
+                               : condition->to_string();
+    return ::format("{0} ? {1}: {2}", cond_str, left->to_string(), right->to_string());
 }
 
 std::string ConditionalExpr::handle_name(bool ignore_top) const {
