@@ -15,10 +15,17 @@ matrix:
             - docker
           language: minimal
           env: USE_CLANG_TIDY
-        - name: "macOS"
+        - name: "macOS py3.6"
           os: osx
           language: shell
           osx_image: xcode10.1
+          env: PYTHON=3.6
+          addons:
+              homebrew:
+                packages:
+                - gcc@8
+                - verilator
+
 
 script:
     - ./scripts/ci.sh
