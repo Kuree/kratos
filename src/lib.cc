@@ -134,7 +134,8 @@ SinglePortSRAM::SinglePortSRAM(kratos::Context *context, const std::string &stub
     seq->add_stmt(ceb_if);
 
     // output array
-    auto &Q_array = var("Q_array", data_width_, 1u << additional_addr_bits);
+    // num_sram array seems to be wrong
+    auto &Q_array = var("Q_array", data_width_, num_sram);
     add_stmt(output_data_->assign(Q_array[output_select.shared_from_this()]));
 
     // generate a list of srams
