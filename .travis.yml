@@ -15,12 +15,10 @@ matrix:
             - docker
           language: minimal
           env: USE_CLANG_TIDY
-        - name: "macOS py3.6"
+        - name: "macOS py3.7"
           os: osx
           language: shell
           osx_image: xcode10.1
-          env: PYTHON=3.6
-          if: tag IS present
           addons:
               homebrew:
                 packages:
