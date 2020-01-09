@@ -202,24 +202,29 @@ class Generator(metaclass=GeneratorMeta):
     __context = _kratos.Context()
     __inspect_frame_depth: int = 2
 
-    def __init__(self, name: str, debug: bool = False, is_clone: bool = False):
+    def __init__(self, name: str, debug: bool = False, is_clone: bool = False,
+                 internal_generator=None):
         """
         Base class for all generators
         :param name: generator name
         :param debug: set to ``True`` if you want to collect debug information
         on this particular generator
         :param is_clone: mark whether the generator is a clone or not.
+        :param internal_generator: native C++ handle
         """
         # for initialization
         self.__cached_initialization = []
 
-        if not is_clone and len(name) > 0:
-            self.__generator = self.__context.generator(name)
+        if internal_generator is not None:
+            assert isinstance(internal_generator, _kratos.Generator)
+            self.__generator = internal_generator
         else:
-            self.__generator = self.__context.empty_generator()
-            self.__generator.is_cloned = True
-
-        self.__set_generator_name(name)
+            if not is_clone and len(name) > 0:
+                self.__generator = self.__context.generator(name)
+            else:
+                self.__generator = self.__context.empty_generator()
+                self.__generator.is_cloned = True
+            self.__set_generator_name(name)
 
         self.__child_generator: Dict[str, Generator] = {}
 
@@ -432,7 +437,8 @@ class Generator(metaclass=GeneratorMeta):
         if isinstance(width, _kratos.Enum):
             p = self.__generator.port(PortDirection.Out.value, name, width)
         else:
-            p = self.__generator.port(PortDirection.Out.value, name, width, size,
+            p = self.__generator.port(PortDirection.Out.value, name, width,
+                                      size,
                                       port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
@@ -479,7 +485,8 @@ class Generator(metaclass=GeneratorMeta):
         return self.__generator.enum_var(name, def_)
 
     def interface(self, interface, name, is_port: bool = False):
-        return InterfaceWrapper(self.__generator.interface(interface, name, is_port))
+        return InterfaceWrapper(
+            self.__generator.interface(interface, name, is_port))
 
     def get_var(self, name):
         return self.__generator.get_var(name)
@@ -499,11 +506,13 @@ class Generator(metaclass=GeneratorMeta):
     def internal_generator(self):
         return self.__generator
 
-    def add_always(self, fn, comment="", label="", sensitivity=None, fn_ln=None):
+    def add_always(self, fn, comment="", label="", sensitivity=None,
+                   fn_ln=None):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_code, [fn, comment]))
             return
-        block_type, raw_sensitives, stmts = transform_stmt_block(self, fn, fn_ln)
+        block_type, raw_sensitives, stmts = transform_stmt_block(self, fn,
+                                                                 fn_ln)
         if sensitivity:
             # override the block type and sensivitives
             block_type = CodeBlockType.Sequential
@@ -895,4 +904,3 @@ def always_comb(fn):
 
 def initial(fn):
     return AlwaysWrapper(fn)
-

@@ -10,8 +10,7 @@ public:
     SRAM(Context *, const std::string &sram_name);
     SRAM(Context *, const std::string &sram_name, uint16_t addr_width, uint16_t data_width);
 
-    virtual uint32_t num_read_ports() { return 0; };
-    virtual uint32_t num_write_ports() { return 0; };
+    virtual uint32_t num_ports() { return 0; };
 
     std::shared_ptr<Port> clock() { return clk_; }
     uint16_t addr_width() { return addr_width_; };
@@ -43,8 +42,7 @@ public:
     SinglePortSRAM(Context *context, const std::string &stub_name, uint32_t capacity,
                    std::shared_ptr<SinglePortSRAM> &basis);
 
-    uint32_t num_read_ports() override { return 1; };
-    uint32_t num_write_ports() override { return 1; };
+    uint32_t num_ports() override { return 1; };
 
     std::shared_ptr<Port> output_data() { return output_data_; }
     std::shared_ptr<Port> chip_enable() { return chip_enable_; }

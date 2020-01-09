@@ -29,6 +29,7 @@ TEST(lib, single_port_sram_array) {  // NOLINT
     verify_generator_connectivity(sram.get());
     create_module_instantiation(sram.get());
     hash_generators_parallel(sram.get());
+    uniquify_generators(sram.get());
     auto result = generate_verilog(sram.get());
     EXPECT_EQ(result.size(), 2);
     EXPECT_TRUE(is_valid_verilog(result));

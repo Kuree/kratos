@@ -724,6 +724,7 @@ std::shared_ptr<Generator> Generator::clone() {
     // we won't bother checking stuff
     generator->set_external(true);
     generator->is_cloned_ = true;
+    generator->def_instance_ = this;
     return generator;
 }
 
