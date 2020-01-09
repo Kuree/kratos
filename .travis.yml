@@ -20,6 +20,7 @@ matrix:
           language: shell
           osx_image: xcode10.1
           env: PYTHON=3.6
+          if: tag IS present
           addons:
               homebrew:
                 packages:
