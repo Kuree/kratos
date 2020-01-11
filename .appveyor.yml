@@ -22,15 +22,18 @@ install:
   - git submodule update --init --recursive
   - SET PATH=C:\\Python%PYTHON%-x64;C:\\Python%PYTHON%-x64\\Scripts;%PATH%
   - python --version
-  - python -m pip install wheel
+  - python -m pip install wheel cmake pytest
   - SET MAKE_PROGRAM=C:\\msys64\\usr\\bin\\make
   - echo %MAKE_PROGRAM%
 
 build_script:
   # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-  - pip install pytest
-  - ./scripts/ci.sh
+  - python setup.py bdist_wheel
+  # install the wheel
+  - pip install --find-links=dist kratos
 
+test_script:
+  - pytest -v tests/
 
 artifacts:
   - path: dist\*
@@ -50,5 +53,5 @@ deploy_script:
   - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc
   # upload to pypi for windows
   - set HOME=%USERPROFILE%
-  - ps: If ($env:APPVEYOR_REPO_TAG -imatch "true" ) { Invoke-Expression "twine upload --skip-existing dist/*.whl" } Else { write-output "Not on a tag, won't deploy to pypi"}
+  - ps: If ($env:APPVEYOR_REPO_TAG -imatch "true" ) { Invoke-Expression "twine upload --skip-existing dist/*.whl" } Else { write-output "Not on a tag on master, won't deploy to pypi"}
   - echo "Finished Artifact Deployment"

@@ -45,10 +45,10 @@ elif [[ "$OS" == "osx" ]]; then
     pytest -v tests/
 else
     python --version
-    pip install wheel pytest twine
+    python -m pip install wheel pytest twine
     python setup.py bdist_wheel
-    pip install --find-links=dist kratos
-    pytest -v tests/
+    python -m pip install --find-links=dist kratos
+    python -m pytest -v tests/
 fi
 
 echo [distutils]                                  > ~/.pypirc
