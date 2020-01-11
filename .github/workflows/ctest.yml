@@ -1,4 +1,4 @@
-name: Clang-Tidy
+name: Google Test
 
 on: [push]
 
@@ -18,7 +18,7 @@ jobs:
     - name: Run Clang-Tidy
       shell: bash
       env:
-        USE_CLANG_TIDY: true
+        BUILD_WHEEL: false 
         OS: linux
       run: |
         source ./scripts/ci.sh
