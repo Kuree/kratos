@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+if [[ "$OS" == "linux" ]]; then
     if [[ "$BUILD_WHEEL" == true ]]; then
         docker cp ~/.pypirc manylinux:/home/
         docker exec -i manylinux bash -c 'cd /kratos && for PYBIN in cp36 cp37; do /opt/python/${PYBIN}-${PYBIN}m/bin/python setup.py bdist_wheel; done'
@@ -12,4 +12,18 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         # upload the src
         docker exec -i manylinux bash -c 'cd /kratos && python setup.py sdist && twine upload --config-file /home/.pypirc --skip-existing dist/*.gz'
     fi
+else if [[ "$OS" == "osx" ]]; then
+    for PYTHON_VERSION in 3.6 3.8
+    do
+        source deactivate
+        conda create -q -n env$PYTHON_VERSION python=$PYTHON_VERSION
+        source activate env$PYTHON_VERSION
+        conda install pip
+        python --version
+
+        pip install cmake wheel twine
+        CXX=/usr/local/bin/g++-8 python setup.py bdist_wheel
+    done
+
+    twine upload --skip-existing dist/*.whl
 fi

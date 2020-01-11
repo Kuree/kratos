@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+if [[ "$OS" == "linux" ]]; then
     if [[ "$BUILD_WHEEL" == true ]]; then
         docker pull keyiz/manylinux
         docker pull keyiz/garnet-flow
@@ -27,7 +27,7 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         docker exec -i manylinux-test bash -c "cd kratos/build && make kratos -j2"
     fi
 
-elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+elif [[ "$OS" == "osx" ]]; then
     wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
     chmod +x miniconda.sh
     ./miniconda.sh -b -p $TRAVIS_BUILD_DIR/miniconda
@@ -42,12 +42,13 @@ elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     python -m pip install cmake twine wheel pytest
     CXX=/usr/local/bin/g++-8 python setup.py bdist_wheel
     pip install dist/*.whl
-    pytest tests/
+    pytest -v tests/
 else
     python --version
     pip install wheel pytest twine
     python setup.py bdist_wheel
-    pip install dist/*.whl
+    pip install --find-links=dist kratos
+    pytest -v tests/
 fi
 
 echo [distutils]                                  > ~/.pypirc
@@ -59,21 +60,3 @@ echo repository=https://upload.pypi.org/legacy/  >> ~/.pypirc
 echo username=keyi                               >> ~/.pypirc
 echo password=$PYPI_PASSWORD                     >> ~/.pypirc
 
-if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    # TODO: move this to deploy
-    if [ -n "$TRAVIS_TAG" ]; then
-        for PYTHON_VERSION in 3.6 3.8
-        do
-            source deactivate
-            conda create -q -n env$PYTHON_VERSION python=$PYTHON_VERSION
-            source activate env$PYTHON_VERSION
-            conda install pip
-            python --version
-
-            pip install cmake wheel twine
-            CXX=/usr/local/bin/g++-8 python setup.py bdist_wheel
-        done
-
-        twine upload --skip-existing dist/*.whl
-    fi
-fi
