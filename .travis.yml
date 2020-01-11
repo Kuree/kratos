@@ -7,20 +7,6 @@ matrix:
           env:
             - BUILD_WHEEL=true
             - OS=linux
-        - name: "Linux ctest"
-          services:
-            - docker
-          language: minimal
-          env:
-            - BUILD_WHEEL=false
-            - OS=linux
-        - name: "Linux clang-tidy"
-          services:
-            - docker
-          language: minimal
-          env:
-            - USE_CLANG_TIDY
-            - OS=linux
         - name: "macOS py3.7"
           os: osx
           language: shell
