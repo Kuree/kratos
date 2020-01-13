@@ -1133,3 +1133,19 @@ TEST(stmt, raw_string_codegen) {  // NOLINT
     auto mod_str = result.at("mod");
     EXPECT_TRUE(mod_str.find("\ntest\n") != std::string::npos);
 }
+
+TEST(pass, extract_register_names) {    // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    mod.add_stmt(a.assign(b));
+    auto seq = std::make_shared<SequentialStmtBlock>();
+    seq->add_stmt(b.assign(constant(1, 1)));
+    mod.add_stmt(seq);
+
+    fix_assignment_type(&mod);
+    auto regs = extract_register_names(&mod);
+    EXPECT_EQ(regs.size(), 1);
+    EXPECT_EQ(regs[0], "mod.b");
+}

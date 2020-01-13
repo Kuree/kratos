@@ -121,7 +121,7 @@ public:
 private:
     void inline static check_var(Var* var) {
         bool is_top_level = false;
-        auto sources = var->sources();
+        auto const& sources = var->sources();
         for (auto const& stmt : sources) {
             if (stmt->parent()->ir_node_kind() == IRNodeKind::GeneratorKind) {
                 is_top_level = true;
@@ -1446,7 +1446,7 @@ private:
                 auto sinks = port->sinks();
                 if (sinks.size() != 1) return false;
             } else {
-                auto sources = port->sources();
+                auto const& sources = port->sources();
                 if (sources.size() != 1) return false;
                 // maybe some add stuff
                 auto stmt = *(sources.begin());
@@ -2694,6 +2694,42 @@ private:
 void remove_empty_block(Generator* top) {
     RemoveEmptyBlockVisitor visitor;
     visitor.visit_root(top);
+}
+
+class RegisterVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        auto vars = generator->get_vars();
+        for (auto const& var_name : vars) {
+            auto const& var = generator->get_var(var_name);
+            if (!var)
+                throw InternalException(
+                    ::format("Cannot get {0} from {1}", var_name, generator->name));
+            // detect if it has any non-blocking assignment
+            auto const& sources = var->sources();
+            if (sources.empty()) continue;
+            auto const &stmt = *(sources.begin());
+            // only if a variable has non-blocking assignment
+            // we assume that at this state we have already have all the assignment checked and
+            // fixed
+            if (stmt->assign_type() == AssignmentType::NonBlocking)
+                names_.emplace_back(var->handle_name());
+        }
+    }
+
+    const std::vector<std::string>& names() const { return names_; }
+
+private:
+    std::vector<std::string> names_;
+};
+
+std::vector<std::string> extract_register_names(Generator* top) {
+    // this pass extract the absolute handle name for each generator accessible from the top
+    // no need for parallel version since the pass is so simple, otherwise we have to use mutex
+    // lock on names
+    RegisterVisitor visitor;
+    visitor.visit_generator_root(top);
+    return visitor.names();
 }
 
 void PassManager::register_pass(const std::string& name, std::function<void(Generator*)> fn) {
