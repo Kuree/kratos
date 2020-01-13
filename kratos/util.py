@@ -192,8 +192,9 @@ def to_magma(kratos_inst, **kargs):
             # normal logic/wire, loop through the ndarray to construct
             # magma arrays, notice it's in reversed order
             type_value = m.Bits[width] if not signed else m.SInt[width]
-            for idx, array_width in enumerate(reversed(size)):
-                type_value = m.Array[array_width, type_value]
+            if len(size) > 1 or size[0] > 1:
+                for idx, array_width in enumerate(reversed(size)):
+                    type_value = m.Array[array_width, type_value]
         io.append(dir_(type_value))
 
     defn = m.DefineCircuit(circ_name, *io, kratos=kratos_inst)
