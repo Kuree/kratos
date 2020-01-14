@@ -30,8 +30,8 @@ if [[ "$OS" == "linux" ]]; then
 elif [[ "$OS" == "osx" ]]; then
     wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
     chmod +x miniconda.sh
-    ./miniconda.sh -b -p $TRAVIS_BUILD_DIR/miniconda
-    export PATH=$TRAVIS_BUILD_DIR/miniconda/bin:$PATH
+    ./miniconda.sh -b -p $HOME/miniconda
+    export PATH=$HOME/miniconda/bin:$PATH
     conda config --set always_yes yes --set changeps1 no
     conda create -q -n env3.7 python=3.7
     source activate env3.7

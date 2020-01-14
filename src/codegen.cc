@@ -1037,7 +1037,7 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
                 std::string name = port_name;
                 for (auto const& s : slice) name = ::format("{0}_{1}", name, s);
                 auto slice_port = &(*p)[slice[0]];
-                for (uint32_t i = 1; i < slice.size(); i++)
+                for (uint64_t i = 1; i < slice.size(); i++)
                     slice_port = &(*slice_port)[slice[i]];
                 if (slice_port->size().size() != 1 || slice_port->size()[0] != 1)
                     throw InternalException("Unable to slice ports when flattening");

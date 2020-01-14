@@ -12,10 +12,10 @@ if [[ "$OS" == "linux" ]]; then
         # upload the src
         docker exec -i manylinux bash -c 'cd /kratos && python setup.py sdist && twine upload --config-file /home/.pypirc --skip-existing dist/*.gz'
     fi
-else if [[ "$OS" == "osx" ]]; then
+elif [[ "$OS" == "osx" ]]; then
+    export PATH=$HOME/miniconda/bin:$PATH
     for PYTHON_VERSION in 3.6 3.8
     do
-        source deactivate
         conda create -q -n env$PYTHON_VERSION python=$PYTHON_VERSION
         source activate env$PYTHON_VERSION
         conda install pip
@@ -23,7 +23,8 @@ else if [[ "$OS" == "osx" ]]; then
 
         pip install cmake wheel twine
         CXX=/usr/local/bin/g++-8 python setup.py bdist_wheel
+        conda deactivate
     done
-
+    source activate env3.6
     twine upload --skip-existing dist/*.whl
 fi
