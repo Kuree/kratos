@@ -1,6 +1,6 @@
 from kratos import Generator, PortDirection, PortType, always_ff, \
     verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute, ext, posedge, PortBundle, const, comment,\
+    PackedStruct, Port, Attribute, ext, posedge, PortBundle, const, comment, \
     enable_runtime_debug, always_comb
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
@@ -753,6 +753,7 @@ def test_ternary(check_gold):
             out = self.output("out", 1)
 
             self.wire(out, mux(in1, in2, in3))
+
     mod = Mod()
     check_gold(mod, "test_ternary")
 
@@ -1016,6 +1017,7 @@ def test_comment(check_gold):
         def code(self):
             comment("Another comment")
             self._out3 = self._in
+
     mod = Mod()
     check_gold(mod, "test_comment", optimize_passthrough=False)
 
@@ -1102,7 +1104,8 @@ def test_symbol_table():
 
 
 def test_breakpoint(check_gold):
-    from _kratos.passes import extract_debug_break_points, hash_generators_sequential
+    from _kratos.passes import extract_debug_break_points, \
+        hash_generators_sequential
     mod = Generator("mod", True)
     comb = mod.combinational()
     stmt0 = mod.output("out", 1).assign(mod.input("in", 1))
@@ -1253,6 +1256,7 @@ def hash_param_width():
             out = self.output("out", p)
             self.wire(out, p)
             p.value = value
+
     mod1 = Mod(1)
     mod2 = Mod(2)
     parent = Generator("parent")
@@ -1331,6 +1335,7 @@ def test_not_if(check_gold):
             a = 1
         else:
             a = 0
+
     mod.add_always(code)
     check_gold(mod, "test_not_if")
 
@@ -1371,6 +1376,7 @@ def test_interface_modport_local(check_gold):
             self.slave = self.modport("Slave")
             self.slave.set_input("read")
             self.slave.set_output("write")
+
     interface = ConfigInterface()
     i1 = mod.interface(interface, "bus")
     child = Generator("child")
@@ -1394,6 +1400,7 @@ def test_interface_port_wiring(check_gold):
             Interface.__init__(self, "Config")
             self.input("read", 1, 1)
             self.output("write", 1, 1)
+
     interface = ConfigInterface()
     i1 = mod.interface(interface, "bus")
     # wire local variables to the interface
@@ -1422,7 +1429,7 @@ def test_track_generated_definition():
         verilog(mod, filename=filename, track_generated_definition=True)
         with open(filename) as f:
             content = f.read()
-        assert content == ""    # empty since no content is generated
+        assert content == ""  # empty since no content is generated
 
 
 def test_call_always():
@@ -1437,5 +1444,18 @@ def test_call_always():
         assert True
 
 
+def test_wrapper_flatten_generator(check_gold):
+    mod = Generator("mod")
+    a = mod.input("a", 4, size=[3, 2])
+    b = mod.output("b", 4, size=[3, 2])
+    mod.wire(a, b)
+    from _kratos import create_wrapper_flatten
+    wrapper = create_wrapper_flatten(mod.internal_generator, "wrapper")
+    wrapper = Generator(wrapper.name, internal_generator=wrapper)
+    check_gold(wrapper, gold_name="test_wrapper_flatten_generator",
+               optimize_passthrough=False)
+
+
 if __name__ == "__main__":
-    test_call_always()
+    from conftest import check_gold_fn
+    test_wrapper_flatten_generator(check_gold_fn)

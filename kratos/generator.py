@@ -398,7 +398,8 @@ class Generator(metaclass=GeneratorMeta):
 
     def input(self, name, width: Union[int, _kratos.Param, _kratos.Enum],
               port_type: PortType = PortType.Data,
-              is_signed: bool = False, size: int = 1, packed: bool = False,
+              is_signed: bool = False, size: Union[int, Union[List, Tuple]] = 1,
+              packed: bool = False,
               explicit_array: bool = False) -> _kratos.Port:
         if isinstance(width, _kratos.Enum):
             p = self.__generator.port(PortDirection.In.value, name, width)
@@ -432,7 +433,8 @@ class Generator(metaclass=GeneratorMeta):
 
     def output(self, name, width: Union[int, _kratos.Param],
                port_type: PortType = PortType.Data,
-               is_signed: bool = False, size: int = 1, packed: bool = False,
+               is_signed: bool = False,
+               size: Union[int, Union[List, Tuple]] = 1, packed: bool = False,
                explicit_array: bool = False) -> _kratos.Port:
         if isinstance(width, _kratos.Enum):
             p = self.__generator.port(PortDirection.Out.value, name, width)

@@ -165,7 +165,7 @@ ternary = mux
 
 
 # helper function to interface with magma
-def to_magma(kratos_inst, **kargs):
+def to_magma(kratos_inst, flatten_array=False, **kargs):
     import magma as m
     from kratos import verilog
     circ_name = kratos_inst.name

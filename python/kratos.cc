@@ -73,6 +73,8 @@ void init_code_gen(py::module &m) {
         .def("verilog_src", &VerilogModule::verilog_src)
         .def("run_passes", &VerilogModule::run_passes)
         .def("pass_manager", &VerilogModule::pass_manager, py::return_value_policy::reference);
+
+    m.def("create_wrapper_flatten", &create_wrapper_flatten, py::return_value_policy::reference);
 }
 
 PYBIND11_MODULE(_kratos, m) {

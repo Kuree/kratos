@@ -534,8 +534,8 @@ void SystemVerilogCodeGen::stmt_code(CommentStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(RawStringStmt* stmt) {
-    auto const &stmts = stmt->stmts();
-    for (auto const &line: stmts) {
+    auto const& stmts = stmt->stmts();
+    for (auto const& line : stmts) {
         // we assume it's already been processed with new lines
         stream_ << indent() << line << stream_.endl();
     }
@@ -998,6 +998,59 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
         result.emplace(interface_name, stream.str());
     }
     return result;
+}
+
+Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_name) {
+    auto& gen = top->context()->generator(wrapper_name);
+    gen.add_child_generator(top->instance_name, top->shared_from_this());
+    auto const& ports = top->get_port_names();
+    for (auto const& port_name : ports) {
+        auto p = top->get_port(port_name);
+        if (p->size().size() == 1 && p->size()[0] == 1) {
+            // this is a normal wire
+            auto& new_port = gen.port(p->port_direction(), port_name, p->width(), p->size(),
+                                      p->port_type(), p->is_signed());
+            if (p->port_direction() == PortDirection::In) {
+                gen.add_stmt(p->assign(new_port, AssignmentType::Blocking));
+            } else {
+                gen.add_stmt(new_port.assign(p, AssignmentType::Blocking));
+            }
+        } else {
+            // need to flatten the array
+            uint32_t num_slices = 1;
+            for (auto const &s: p->size())
+                num_slices *= s;
+            // create port for them based on the slice
+            for (uint32_t slice_num = 0; slice_num < num_slices; slice_num++) {
+                std::vector<uint32_t> slice;
+                std::vector<uint32_t> size_ = std::vector<uint32_t>(p->size().begin(), p->size().end());
+                std::reverse(size_.begin(), size_.end());
+                uint32_t sn = slice_num;
+                for (auto const &s: size_) {
+                    auto r = sn % s;
+                    slice.emplace_back(r);
+                    sn = sn / s;
+                }
+                if (slice.size() != p->size().size())
+                    throw InternalException("Unable to compute slice");
+                std::reverse(slice.begin(), slice.end());
+                std::string name = port_name;
+                for (auto const& s : slice) name = ::format("{0}_{1}", name, s);
+                auto slice_port = &(*p)[slice[0]];
+                for (uint32_t i = 1; i < slice.size(); i++)
+                    slice_port = &(*slice_port)[slice[i]];
+                if (slice_port->size().size() != 1 || slice_port->size()[0] != 1)
+                    throw InternalException("Unable to slice ports when flattening");
+                auto& new_port = gen.port(p->port_direction(), name, slice_port->var_width());
+                if (p->port_direction() == PortDirection::In) {
+                    gen.add_stmt(slice_port->assign(new_port, AssignmentType::Blocking));
+                } else {
+                    gen.add_stmt(new_port.assign(slice_port->shared_from_this(), AssignmentType::Blocking));
+                }
+            }
+        }
+    }
+    return gen;
 }
 
 }  // namespace kratos

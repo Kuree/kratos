@@ -140,5 +140,8 @@ protected:
 
 std::string create_stub(Generator* top);
 
+// useful to tools that doesn't support N-D array
+Generator &create_wrapper_flatten(Generator *top, const std::string &wrapper_name);
+
 }  // namespace kratos
 #endif  // KRATOS_CODEGEN_HH
