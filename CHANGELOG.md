@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23.2] - 2020-01-06
+### Added
+- Add ability to generate old-style Verilog based on `sv2v`
+- Add SRAM library generation as a native lib
+- Add flatten pass to flatten N-D array for tools that don't support it
+- Add a pass to extract registers names from the design
+
+### Changed
+- Drop Python 3.5 support
+- Lower MacOS version requirement, thanks to miniconda
+- Improved ternary code generation
+- Loose decouple ports requirements (#132)
+
+### Fixed
+- Adjusted python pass order to check connectivity first before decouple the wires
+- Get def instance if all the instances linked in the graph is cloned (#133)
+
 ## [0.0.23.1] - 2020-01-06
 ### Added
 - Allow normal values to be casted to enum;

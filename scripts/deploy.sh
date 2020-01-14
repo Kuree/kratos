@@ -12,7 +12,7 @@ if [[ "$OS" == "linux" ]]; then
         # upload the src
         docker exec -i manylinux bash -c 'cd /kratos && python setup.py sdist && twine upload --config-file /home/.pypirc --skip-existing dist/*.gz'
     fi
-else if [[ "$OS" == "osx" ]]; then
+elif [[ "$OS" == "osx" ]]; then
     for PYTHON_VERSION in 3.6 3.8
     do
         source deactivate
