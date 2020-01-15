@@ -29,10 +29,15 @@ jobs:
     - name: Build docker
       shell: bash
       run: |
-          docker build -f docker/Dockerfile . -t keyiz/kratos:latest
+          docker build -f docker/Dockerfile . -t keyiz/kratos
           docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
           docker push keyiz/kratos:latest
+          docker tag keyiz/kratos docker.pkg.github.com/kuree/kratos/py37:latest
+          docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
+          docker push docker.pkg.github.com/kuree/kratos/py37:latest
       env:
+        GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
