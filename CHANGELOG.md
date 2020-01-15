@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.23.2] - 2020-01-06
+## [0.0.23.3] - 2020-01-14
+### Fixed
+- Fix a bug in multi-driver detection where a slice will trigger false positive result
+
+## [0.0.23.2] - 2020-01-13
 ### Added
 - Add ability to generate old-style Verilog based on `sv2v`
 - Add SRAM library generation as a native lib
