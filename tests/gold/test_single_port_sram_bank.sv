@@ -8,7 +8,6 @@ module Memory (
 );
 
 logic [15:0] Q_array [5:0];
-logic [9:0] SRAM_0_A;
 logic [15:0] SRAM_0_Q;
 logic SRAM_0_WEB;
 logic [15:0] SRAM_1_Q;
@@ -37,7 +36,6 @@ always_ff @(posedge CLK) begin
   end
 end
 assign Q = Q_array[output_select];
-assign SRAM_0_A = addr_to_mem;
 assign SRAM_0_WEB = WEB_array[0];
 assign Q_array[0] = SRAM_0_Q;
 assign SRAM_1_WEB = WEB_array[1];
@@ -51,7 +49,7 @@ assign Q_array[4] = SRAM_4_Q;
 assign SRAM_5_WEB = WEB_array[5];
 assign Q_array[5] = SRAM_5_Q;
 SRAM_MACRO SRAM_0 (
-  .A(SRAM_0_A),
+  .A(addr_to_mem),
   .CEB(CEB),
   .CLK(CLK),
   .D(D),

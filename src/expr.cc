@@ -414,7 +414,7 @@ void VarVarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
 
 void VarVarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
     VarSlice::add_source(stmt);
-    sliced_var_->add_source(stmt);
+    sliced_var_->add_sink(stmt);
 }
 
 std::string VarVarSlice::to_string() const {
