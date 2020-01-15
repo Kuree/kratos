@@ -1,0 +1,38 @@
+name: Docker
+
+on:
+  push:
+    branches:
+      - master
+      - docker
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+    - name: Build wheel
+      shell: bash
+      env:
+        BUILD_WHEEL: true
+        OS: linux
+      run: |
+        source ./scripts/ci.sh
+    - name: Build docker
+      shell: bash
+      run: |
+          docker build -f docker/Dockerfile . -t keyiz/kratos:latest
+          docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+          docker push keyiz/kratos:latest
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
