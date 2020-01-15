@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23.4] - 2020-01-14
+### Fixed
+- Fix the same bug in mixed assignment check where a slice will trigger false positive result
+
 ## [0.0.23.3] - 2020-01-14
 ### Fixed
 - Fix a bug in multi-driver detection where a slice will trigger false positive result
