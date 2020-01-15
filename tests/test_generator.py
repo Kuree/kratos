@@ -1456,6 +1456,27 @@ def test_wrapper_flatten_generator(check_gold):
                optimize_passthrough=False)
 
 
+def test_register_extraction():
+    mod = Generator("mod")
+    a = mod.input("a", 4)
+    b = mod.output("b", 4)
+    rst = mod.reset("rst")
+    clk = mod.clock("clk")
+
+    @always_ff((posedge, "clk"), (posedge, "rst"))
+    def code():
+        if rst:
+            b = 0
+        else:
+            b = a + b
+
+    mod.add_always(code)
+
+    import _kratos
+    regs = _kratos.passes.extract_register_names(mod.internal_generator)
+    assert len(regs) == 1
+    assert "mod.b" in regs
+
+
 if __name__ == "__main__":
-    from conftest import check_gold_fn
-    test_wrapper_flatten_generator(check_gold_fn)
+    test_register_extraction()

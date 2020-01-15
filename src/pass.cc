@@ -2703,7 +2703,7 @@ void remove_empty_block(Generator* top) {
 class RegisterVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
-        auto vars = generator->get_vars();
+        auto vars = generator->get_all_var_names();
         for (auto const& var_name : vars) {
             auto const& var = generator->get_var(var_name);
             if (!var)
@@ -2728,6 +2728,8 @@ private:
 };
 
 std::vector<std::string> extract_register_names(Generator* top) {
+    // first fix the assignment types
+    fix_assignment_type(top);
     // this pass extract the absolute handle name for each generator accessible from the top
     // no need for parallel version since the pass is so simple, otherwise we have to use mutex
     // lock on names
