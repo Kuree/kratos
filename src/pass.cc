@@ -2522,6 +2522,8 @@ private:
         std::unordered_map<uint32_t, std::pair<IRNode*, Stmt*>> parents;
         for (auto const& stmt : var->sources()) {
             auto v = stmt->left();
+            if (v->get_var_root_parent() != var)
+                continue;
             uint32_t var_low = v->var_low();
             uint32_t var_high = v->var_high();
             for (uint32_t i = var_low; i <= var_high; i++) {
