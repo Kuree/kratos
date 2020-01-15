@@ -896,6 +896,8 @@ private:
         auto const& var = generator->get_var(name);
         AssignmentType type = AssignmentType::Undefined;
         for (auto const& stmt : var->sources()) {
+            if (stmt->left()->get_var_root_parent() != var.get())
+                continue;
             if (type == AssignmentType ::Undefined)
                 type = stmt->assign_type();
             else if (type != stmt->assign_type()) {

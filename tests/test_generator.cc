@@ -1149,3 +1149,18 @@ TEST(pass, extract_register_names) {    // NOLINT
     EXPECT_EQ(regs.size(), 1);
     EXPECT_EQ(regs[0], "mod.b");
 }
+
+TEST(pass, mixed_assignment) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    mod.add_stmt(a.assign(b));
+    auto seq = std::make_shared<SequentialStmtBlock>();
+    seq->add_stmt(b.assign(constant(1, 1)));
+    mod.add_stmt(seq);
+    mod.add_stmt(b.assign(constant(1, 1)));
+
+    fix_assignment_type(&mod);
+    EXPECT_THROW(check_mixed_assignment(&mod), StmtException);
+}
