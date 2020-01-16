@@ -245,6 +245,16 @@ void SequentialStmtBlock::add_condition(
     conditions_.emplace_back(condition);
 }
 
+IRNode * SequentialStmtBlock::get_child(uint64_t index) {
+    if (index < stmts_.size()) {
+        return stmts_[index].get();
+    } else  if (index < stmts_.size() + conditions_.size()) {
+        auto const &cond = conditions_[index - stmts_.size()];
+        return cond.second.get();
+    }
+    return nullptr;
+}
+
 SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
     : Stmt(StatementType::Switch), target_(target) {
     // we don't allow const target

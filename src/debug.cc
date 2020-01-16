@@ -160,13 +160,11 @@ std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top) {
 class InsertVerilatorPublic : public IRVisitor {
 public:
     void visit(Var *var) override {
-        if (var->type() != VarType::Base) return;
+        // all ports
         insert_str(var);
     }
 
     void visit(Port *var) override {
-        // currently the runtime only support scalar variables
-        if (var->size().size() != 1 || var->size().front() > 1) return;
         insert_str(var);
     }
 

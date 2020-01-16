@@ -397,7 +397,7 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
             << block_label(stmt) << stream_.endl();
     indent_++;
 
-    for (uint64_t i = 0; i < stmt->child_count(); i++) {
+    for (uint64_t i = 0; i < stmt->size(); i++) {
         dispatch_node(stmt->get_child(i));
     }
 
@@ -416,7 +416,7 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
     stream_ << "always_comb begin" << block_label(stmt) << stream_.endl();
     indent_++;
 
-    for (uint64_t i = 0; i < stmt->child_count(); i++) {
+    for (uint64_t i = 0; i < stmt->size(); i++) {
         dispatch_node(stmt->get_child(i));
     }
 
@@ -436,7 +436,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::InitialStmtBlock* stmt) {
     stream_ << "initial begin" << block_label(stmt) << stream_.endl();
     indent_++;
 
-    for (uint64_t i = 0; i < stmt->child_count(); i++) {
+    for (uint64_t i = 0; i < stmt->size(); i++) {
         dispatch_node(stmt->get_child(i));
     }
 

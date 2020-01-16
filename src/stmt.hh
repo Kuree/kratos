@@ -203,7 +203,7 @@ public:
     std::vector<std::shared_ptr<Stmt>>::iterator end() { return stmts_.end(); }
     std::shared_ptr<Stmt> back() { return stmts_.back(); }
     bool empty() const { return stmts_.empty(); }
-    uint64_t size() const { return stmts_.size(); }
+    [[nodiscard]] uint64_t size() const { return stmts_.size(); }
     std::shared_ptr<Stmt> operator[](uint32_t index) { return stmts_[index]; }
     void set_stmts(const std::vector<std::shared_ptr<Stmt>> &stmts) { stmts_ = stmts; }
 
@@ -244,6 +244,9 @@ public:
     void add_condition(const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition);
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+    uint64_t child_count() override { return stmts_.size() + conditions_.size(); }
+    IRNode *get_child(uint64_t index) override;
 
 private:
     std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
