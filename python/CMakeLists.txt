@@ -1,4 +1,4 @@
-set(PYBIND11_CPP_STANDARD -std=c++1z)
+set(PYBIND11_CPP_STANDARD -std=c++17)
 
 set(CMAKE_EXE_LINKER_FLAGS " -static")
 
