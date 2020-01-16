@@ -896,8 +896,7 @@ private:
         auto const& var = generator->get_var(name);
         AssignmentType type = AssignmentType::Undefined;
         for (auto const& stmt : var->sources()) {
-            if (stmt->left()->get_var_root_parent() != var.get())
-                continue;
+            if (stmt->left()->get_var_root_parent() != var.get()) continue;
             if (type == AssignmentType ::Undefined)
                 type = stmt->assign_type();
             else if (type != stmt->assign_type()) {
@@ -2524,8 +2523,7 @@ private:
         std::unordered_map<uint32_t, std::pair<IRNode*, Stmt*>> parents;
         for (auto const& stmt : var->sources()) {
             auto v = stmt->left();
-            if (v->get_var_root_parent() != var)
-                continue;
+            if (v->get_var_root_parent() != var) continue;
             uint32_t var_low = v->var_low();
             uint32_t var_high = v->var_high();
             for (uint32_t i = var_low; i <= var_high; i++) {
@@ -2700,8 +2698,10 @@ void remove_empty_block(Generator* top) {
     visitor.visit_root(top);
 }
 
-class RegisterVisitor : public IRVisitor {
+class GeneratorVarVisitor : public IRVisitor {
 public:
+    explicit GeneratorVarVisitor(bool registers_only) : registers_only_(registers_only) {}
+
     void visit(Generator* generator) override {
         auto vars = generator->get_all_var_names();
         for (auto const& var_name : vars) {
@@ -2712,18 +2712,23 @@ public:
             // detect if it has any non-blocking assignment
             auto const& sources = var->sources();
             if (sources.empty()) continue;
-            auto const &stmt = *(sources.begin());
-            // only if a variable has non-blocking assignment
-            // we assume that at this state we have already have all the assignment checked and
-            // fixed
-            if (stmt->assign_type() == AssignmentType::NonBlocking)
+            if (registers_only_) {
+                auto const& stmt = *(sources.begin());
+                // only if a variable has non-blocking assignment
+                // we assume that at this state we have already have all the assignment checked and
+                // fixed
+                if (stmt->assign_type() == AssignmentType::NonBlocking)
+                    names_.emplace_back(var->handle_name());
+            } else {
                 names_.emplace_back(var->handle_name());
+            }
         }
     }
 
     const std::vector<std::string>& names() const { return names_; }
 
 private:
+    bool registers_only_;
     std::vector<std::string> names_;
 };
 
@@ -2733,7 +2738,13 @@ std::vector<std::string> extract_register_names(Generator* top) {
     // this pass extract the absolute handle name for each generator accessible from the top
     // no need for parallel version since the pass is so simple, otherwise we have to use mutex
     // lock on names
-    RegisterVisitor visitor;
+    GeneratorVarVisitor visitor(true);
+    visitor.visit_generator_root(top);
+    return visitor.names();
+}
+
+std::vector<std::string> extract_var_names(Generator* top) {
+    GeneratorVarVisitor visitor(false);
     visitor.visit_generator_root(top);
     return visitor.names();
 }

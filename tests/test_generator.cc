@@ -1134,7 +1134,7 @@ TEST(stmt, raw_string_codegen) {  // NOLINT
     EXPECT_TRUE(mod_str.find("\ntest\n") != std::string::npos);
 }
 
-TEST(pass, extract_register_names) {    // NOLINT
+TEST(pass, extract_register_var_names) {    // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &a = mod.var("a", 1);
@@ -1148,6 +1148,10 @@ TEST(pass, extract_register_names) {    // NOLINT
     auto regs = extract_register_names(&mod);
     EXPECT_EQ(regs.size(), 1);
     EXPECT_EQ(regs[0], "mod.b");
+
+    auto names = extract_var_names(&mod);
+    EXPECT_EQ(names.size(), 2);
+    EXPECT_TRUE(std::find(names.begin(), names.end(), "mod.b") != names.end());
 }
 
 TEST(pass, mixed_assignment) {  // NOLINT

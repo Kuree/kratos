@@ -75,6 +75,7 @@ std::map<std::string, std::string> extract_enum_info(Generator *top);
 std::map<std::string, std::string> extract_interface_info(Generator *top);
 
 std::vector<std::string> extract_register_names(Generator *top);
+std::vector<std::string> extract_var_names(Generator *top);
 
 void check_always_sensitivity(Generator *top);
 
