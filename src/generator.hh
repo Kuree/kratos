@@ -116,6 +116,7 @@ public:
     void add_child_generator(const std::string &instance_name,
                              const std::shared_ptr<Generator> &child,
                              const std::pair<std::string, uint32_t> &debug_info);
+    Generator *get_child_generator(const std::string &instance_name_);
     void remove_child_generator(const std::shared_ptr<Generator> &child);
     std::vector<std::shared_ptr<Generator>> get_child_generators();
     uint64_t inline get_child_generator_size() const { return children_.size(); }

@@ -1,4 +1,5 @@
 #include "sim.hh"
+
 #include "eval.hh"
 #include "except.hh"
 #include "fmt/format.h"
@@ -62,7 +63,7 @@ private:
         visitor.visit_root(block);
         auto const &vars = visitor.vars();
         for (auto const &var : vars) dependency_[var].emplace(block);
-        for (auto const &[var, entry]: visitor.linked_vars()) {
+        for (auto const &[var, entry] : visitor.linked_vars()) {
             linked_dependency_[var].insert(entry.begin(), entry.end());
         }
     }
@@ -77,7 +78,7 @@ private:
     void visit_assign(AssignStmt *assign) {
         auto const &[dep, linked] = get_dep(assign->right());
         for (auto const &v : dep) dependency_[v].emplace(assign);
-        for (auto const &[var, entry]: linked) {
+        for (auto const &[var, entry] : linked) {
             linked_dependency_[var].insert(entry.begin(), entry.end());
         }
     }
@@ -147,7 +148,7 @@ private:
             auto predicate = stmt->predicate();
             auto const &[dep, linked] = DependencyVisitor::get_dep(predicate.get());
             for (auto const &var : dep) vars_.emplace(var);
-            for (auto const &[var, entry]: linked) {
+            for (auto const &[var, entry] : linked) {
                 linked_vars_[var].insert(entry.begin(), entry.end());
             }
         }
@@ -156,7 +157,7 @@ private:
             auto target = stmt->target();
             auto const &[dep, linked] = DependencyVisitor::get_dep(target.get());
             for (auto const &var : dep) vars_.emplace(var);
-            for (auto const &[var, entry]: linked) {
+            for (auto const &[var, entry] : linked) {
                 linked_vars_[var].insert(entry.begin(), entry.end());
             }
         }
@@ -164,7 +165,7 @@ private:
         void visit(AssignStmt *stmt) override {
             auto const &[dep, linked] = DependencyVisitor::get_dep(stmt->right());
             for (auto const &var : dep) vars_.emplace(var);
-            for (auto const &[var, entry]: linked) {
+            for (auto const &[var, entry] : linked) {
                 linked_vars_[var].insert(entry.begin(), entry.end());
             }
         }
@@ -535,27 +536,29 @@ std::optional<std::vector<uint64_t>> Simulator::get_array(kratos::Var *var) cons
     return get_complex_value_(var);
 }
 
-void Simulator::set(kratos::Var *var, std::optional<uint64_t> value) {
+void Simulator::set(kratos::Var *var, std::optional<uint64_t> value, bool eval_) {
     set_value_(var, value);
-    eval();
+    if (eval_) eval();
 }
 
-void Simulator::set_i(kratos::Var *var, std::optional<int64_t> value) {
+void Simulator::set_i(kratos::Var *var, std::optional<int64_t> value, bool eval_) {
     if (value) {
         auto v = *value;
         auto u_v = *(reinterpret_cast<uint64_t *>(&v));
         u_v = truncate(u_v, var->width());
         set_value_(var, u_v);
-        eval();
+        if (eval_) eval();
     }
 }
 
-void Simulator::set(kratos::Var *var, const std::optional<std::vector<uint64_t>> &value) {
+void Simulator::set(kratos::Var *var, const std::optional<std::vector<uint64_t>> &value,
+                    bool eval_) {
     set_complex_value_(var, value);
-    eval();
+    if (eval_) eval();
 }
 
-void Simulator::set_i(kratos::Var *var, const std::optional<std::vector<int64_t>> &value) {
+void Simulator::set_i(kratos::Var *var, const std::optional<std::vector<int64_t>> &value,
+                      bool eval_) {
     if (value) {
         auto vs = *value;
         std::vector<uint64_t> u_vs;
@@ -566,7 +569,7 @@ void Simulator::set_i(kratos::Var *var, const std::optional<std::vector<int64_t>
             u_vs.emplace_back(u_v);
         }
         set_complex_value_(var, u_vs);
-        eval();
+        if (eval_) eval();
     }
 }
 
@@ -793,4 +796,4 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) cons
     }
 }
 
-}
+}  // namespace kratos

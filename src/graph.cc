@@ -1,5 +1,7 @@
 #include "graph.hh"
+
 #include <unordered_set>
+
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
@@ -152,7 +154,9 @@ void StatementGraph::add_stmt_child(Stmt *stmt) {
     auto child_count = stmt->child_count();
     auto parent_node = &nodes_.at(stmt);
     for (uint64_t i = 0; i < child_count; i++) {
-        auto s = dynamic_cast<Stmt *>(stmt->get_child(i));
+        auto ir_node = stmt->get_child(i);
+        if (ir_node->ir_node_kind() != IRNodeKind::StmtKind) continue;
+        auto s = dynamic_cast<Stmt *>(ir_node);
         if (!s) throw StmtException("Non statement in statement block", {stmt});
         if (nodes_.find(s) != nodes_.end())
             throw StmtException("Duplicated statement detected", {stmt, s});
@@ -168,4 +172,4 @@ void StatementGraph::build_graph() {
     add_stmt_child(stmt);
 }
 
-}
+}  // namespace kratos

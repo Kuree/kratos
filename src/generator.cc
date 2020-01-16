@@ -291,6 +291,12 @@ void Generator::add_child_generator(const std::string &instance_name_,
     add_child_generator(instance_name_, child);
 }
 
+Generator * Generator::get_child_generator(const std::string &instance_name_) {
+    if (children_.find(instance_name_) != children_.end())
+        return children_.at(instance_name_).get();
+    return nullptr;
+}
+
 void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) {
     auto child_name = child->instance_name;
     auto pos = std::find(children_names_.begin(), children_names_.end(), child_name);
