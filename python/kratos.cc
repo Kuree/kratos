@@ -30,6 +30,7 @@ void init_simulator(py::module &m);
 void init_interface(py::module &m);
 void init_cast(py::module &m);
 void init_lib(py::module &m);
+void init_fault(py::module &m);
 
 // util submodule
 void init_util(py::module &m) {
@@ -100,4 +101,5 @@ PYBIND11_MODULE(_kratos, m) {
     init_interface(m);
     init_cast(m);
     init_lib(m);
+    init_fault(m);
 }

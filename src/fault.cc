@@ -36,11 +36,12 @@ void SimulationRun::mark_wrong_value(const std::string &name) {
 
 std::pair<Generator *, uint64_t> SimulationRun::select_gen(const std::vector<std::string> &tokens) {
     Generator *gen = top_;
-    if (tokens[0] != gen->instance_name) return {nullptr, 1};
+    if (tokens[0] != gen->instance_name)
+        return {nullptr, 1};
     for (uint64_t index = 1; index < tokens.size(); index++) {
         auto const &name = tokens[index];
         if (!gen->has_child_generator(name)) {
-            return {gen, index + 1};
+            return {gen, index};
         } else {
             gen = gen->get_child_generator(name);
         }
@@ -87,8 +88,8 @@ Simulator *SimulationRun::get_state(uint32_t index) {
 
 FaultAnalyzer::FaultAnalyzer(kratos::Generator *generator) : generator_(generator) {}
 
-void FaultAnalyzer::add_simulation_run(std::unique_ptr<SimulationRun> run) {
-    runs_.emplace_back(std::move(run));
+void FaultAnalyzer::add_simulation_run(const std::shared_ptr<SimulationRun> &run) {
+    runs_.emplace_back(run);
 }
 
 template <typename T>
@@ -99,8 +100,8 @@ T *cast(Stmt *stmt) {
 }
 
 void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stmt *stmt) {
-    result.emplace(stmt);
     if (stmt->type() == StatementType::If) {
+        result.emplace(stmt);
         auto if_ = cast<IfStmt>(stmt);
         auto cond = if_->predicate();
         auto val = state->get(cond.get());
@@ -111,11 +112,11 @@ void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stm
         }
     } else if (stmt->type() == StatementType::Block) {
         auto block = cast<StmtBlock>(stmt);
-        for (auto const &s: *block) {
+        for (auto const &s : *block) {
             compute_hit_stmts(state, result, s.get());
         }
     } else if (stmt->type() == StatementType::Assign) {
-        // nothing since it's already added
+        result.emplace(stmt);
     } else {
         throw InternalException("Not implemented statement type");
     }
@@ -133,12 +134,47 @@ std::unordered_set<Stmt *> FaultAnalyzer::compute_coverage(uint32_t index) {
         for (auto const &gen : generators) {
             // need to calculate the sequential or combination block
             auto stmts = gen->get_all_stmts();
-            for (auto const &stmt: stmts) {
+            for (auto const &stmt : stmts) {
                 compute_hit_stmts(state, result, stmt.get());
             }
         }
     }
-    converge_maps_.emplace(index, result);
+    coverage_maps_.emplace(index, result);
+    return result;
+}
+
+std::unordered_set<Stmt *> FaultAnalyzer::compute_fault_stmts_from_coverage() {
+    // compute coverage for each run
+    auto const num_runs_ = num_runs();
+    for (uint64_t i = 0; i < num_runs_; i++) {
+        if (coverage_maps_.find(i) == coverage_maps_.end()) {
+            compute_coverage(i);
+        }
+    }
+    std::map<Stmt *, uint32_t> correct_stmt_count;
+    std::map<Stmt *, uint32_t> wrong_stmt_count;
+    for (auto const &[run_index, coverage] : coverage_maps_) {
+        auto const &run = runs_[run_index];
+        bool has_wrong_value = run->has_wrong_value();
+        for (auto const &stmt : coverage) {
+            if (has_wrong_value) {
+                if (wrong_stmt_count.find(stmt) == wrong_stmt_count.end())
+                    wrong_stmt_count[stmt] = 0;
+                wrong_stmt_count[stmt] += 1;
+            } else {
+                if (correct_stmt_count.find(stmt) == correct_stmt_count.end())
+                    correct_stmt_count[stmt] = 0;
+                correct_stmt_count[stmt] += 1;
+            }
+        }
+    }
+    std::unordered_set<Stmt *> result;
+    // compute the sum
+    for (auto const &iter: wrong_stmt_count) {
+        auto const &stmt = iter.first;
+        if (correct_stmt_count.find(stmt) == correct_stmt_count.end())
+            result.emplace(stmt);
+    }
     return result;
 }
 

@@ -12,6 +12,7 @@ public:
 
     void add_simulation_state(const std::map<std::string, int64_t> &values);
     void mark_wrong_value(const std::string &name);
+    [[nodiscard]] bool has_wrong_value() const { return !wrong_value_.empty(); }
 
     // use simulator's logic to handle different states
     // FIXME: refactor out the state and the simulator
@@ -31,15 +32,15 @@ class FaultAnalyzer {
 public:
     explicit FaultAnalyzer(Generator *generator);
     // notice owner ship passing
-    void add_simulation_run(std::unique_ptr<SimulationRun> run);
+    void add_simulation_run(const std::shared_ptr<SimulationRun> &run);
     [[nodiscard]] uint64_t num_runs() const { return runs_.size(); }
     std::unordered_set<Stmt*> compute_coverage(uint32_t index);
-    std::map<Stmt*, double> compute_fault_stmts();
+    std::unordered_set<Stmt*> compute_fault_stmts_from_coverage();
 
 private:
     Generator *generator_;
-    std::vector<std::unique_ptr<SimulationRun>> runs_;
-    std::unordered_map<uint32_t, std::unordered_set<Stmt*>> converge_maps_;
+    std::vector<std::shared_ptr<SimulationRun>> runs_;
+    std::unordered_map<uint32_t, std::unordered_set<Stmt*>> coverage_maps_;
 };
 
 }  // namespace kratos
