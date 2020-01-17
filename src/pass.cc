@@ -2711,8 +2711,8 @@ public:
                     ::format("Cannot get {0} from {1}", var_name, generator->name));
             // detect if it has any non-blocking assignment
             auto const& sources = var->sources();
-            if (sources.empty()) continue;
             if (registers_only_) {
+                if (sources.empty()) continue;
                 auto const& stmt = *(sources.begin());
                 // only if a variable has non-blocking assignment
                 // we assume that at this state we have already have all the assignment checked and
