@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.24] - 2020-01-17
+### Added
+- Add a pass to extract all variable information
+- Add spectrum-based fault analyser
+- Add docker release for latest master build
+
+### Changed
+- Adjust `pybind11` remote.
+
+### Fixed
+- Fix a bug where a sliced vars is added as source instead of
+- sink
+
 ## [0.0.23.4] - 2020-01-14
 ### Fixed
 - Fix the same bug in mixed assignment check where a slice will trigger false positive result
