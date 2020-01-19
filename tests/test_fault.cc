@@ -11,7 +11,7 @@ TEST(fault, count_stmt) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &in = mod.port(PortDirection::In, "in", 4);
-    auto &clk = mod.port(PortDirection::In, "rst", 1, 1, PortType::Clock, false);
+    auto &clk = mod.port(PortDirection::In, "clk", 1, 1, PortType::Clock, false);
     auto &out = mod.port(PortDirection::Out, "out", 4);
     auto seq = std::make_shared<SequentialStmtBlock>();
     mod.add_stmt(seq);
@@ -47,5 +47,33 @@ TEST(fault, count_stmt) {  // NOLINT
 
     auto result = fault.compute_fault_stmts_from_coverage();
     EXPECT_EQ(result.size(), 1);
+}
 
+TEST(fault, parse_verilog_cov_file) {   // NOLINT
+    //const std::string filename = "cov.dat";
+    Context c;
+    auto &mod = c.generator("mod");
+    mod.debug = true;
+    auto &in = mod.port(PortDirection::In, "in", 4);
+    auto &clk = mod.port(PortDirection::In, "clk", 1, 1, PortType::Clock, false);
+    auto &out = mod.port(PortDirection::Out, "out", 4);
+    auto seq = std::make_shared<SequentialStmtBlock>();
+    mod.add_stmt(seq);
+    seq->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+    auto if_ = std::make_shared<IfStmt>(in > constant(2, 4));
+    seq->add_stmt(if_);
+    auto assign_0 = out.assign(constant(4, 4));
+    if_->add_then_stmt(assign_0);
+    auto assign_1 = out.assign(out + in);
+    if_->add_else_stmt(assign_1);
+
+    fix_assignment_type(&mod);
+    auto result = generate_verilog(&mod);
+    // fake the output
+    mod.verilog_fn = "mod.sv";
+
+    auto coverage = parse_verilator_coverage(&mod, "cov.dat");
+    EXPECT_EQ(coverage.size(), 2);
+    EXPECT_TRUE(coverage.find(assign_0.get()) != coverage.end());
+    EXPECT_TRUE(coverage.find(assign_1.get()) != coverage.end());
 }

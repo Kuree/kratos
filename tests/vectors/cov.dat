@@ -1,0 +1,12 @@
+# SystemC::Coverage-3
+C 'fmod.svl12n0pagev_line/modoelsehTOP.mod' 3
+C 'fmod.svl2n0pagev_toggle/modoin[0]hTOP.mod' 3
+C 'fmod.svl2n0pagev_toggle/modoin[1]hTOP.mod' 1
+C 'fmod.svl2n0pagev_toggle/modoin[2]hTOP.mod' 0
+C 'fmod.svl2n0pagev_toggle/modoin[3]hTOP.mod' 0
+C 'fmod.svl3n0pagev_toggle/modoout[0]hTOP.mod' 2
+C 'fmod.svl3n0pagev_toggle/modoout[1]hTOP.mod' 2
+C 'fmod.svl3n0pagev_toggle/modoout[2]hTOP.mod' 1
+C 'fmod.svl3n0pagev_toggle/modoout[3]hTOP.mod' 0
+C 'fmod.svl4n0pagev_toggle/modoclkhTOP.mod' 8
+C 'fmod.svl9n0pagev_line/modoifhTOP.mod' 1

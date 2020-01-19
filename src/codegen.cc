@@ -558,6 +558,7 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
         if (skip) {
             stream_ << indent() << "else ";
             skip_indent_ = true;
+            else_body->verilog_ln = stream_.line_no();
             dispatch_node((*else_body)[0].get());
         } else {
             stream_ << indent() << "else ";

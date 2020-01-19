@@ -154,7 +154,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
                 s = pipe.read()
                 with open(filename, "w+") as f:
                     f.write(s)
-
+            generator.internal_generator.verilog_fn = filename
         r = result[0] if len(result) == 1 else result
 
     # debug database

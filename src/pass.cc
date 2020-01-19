@@ -562,6 +562,12 @@ void generate_verilog(Generator* top, const std::string& output_dir,
         // truncate mode
         std::ofstream out(path, std::ios::trunc);
         out << src;
+        // tell the system where it went, if allowed
+        auto gens = top->context()->get_generators_by_name(module_name);
+        for (auto const &gen: gens) {
+            if (gen->debug)
+                gen->verilog_fn = path;
+        }
     }
     // output debug info as well, if required
     if (debug) {

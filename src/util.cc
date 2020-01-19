@@ -1,4 +1,5 @@
 #include "util.hh"
+
 #include <cstdlib>
 #ifdef INCLUDE_FILESYSTEM
 #include <filesystem>
@@ -6,6 +7,7 @@
 #include <fstream>
 #include <regex>
 #include <thread>
+
 #include "except.hh"
 #include "expr.hh"
 #include "fmt/format.h"
@@ -192,8 +194,7 @@ std::pair<uint32_t, uint32_t> compute_var_high_low(
         } else if (slice_high == slice_low && index_to_size < var_sizes.size() &&
                    var_sizes[index_to_size] > 1) {
             var_low += slice_low * bases[index_to_size];
-            var_high = var_low +
-                       (slice_high - slice_low + 1) * bases[index_to_size] - 1;
+            var_high = var_low + (slice_high - slice_low + 1) * bases[index_to_size] - 1;
             index_to_size++;
         } else {
             break;
@@ -563,4 +564,26 @@ std::string abspath(const std::string &filename) {
 }
 
 }  // namespace fs
+
+namespace string {
+// trim function copied from https://stackoverflow.com/a/217605
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) { return !std::isspace(ch); }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); }).base(),
+            s.end());
+}
+
+// trim from both ends (in place)
+void trim(std::string &s) {
+    ltrim(s);
+    rtrim(s);
+}
+
+}  // namespace string
+
 }  // namespace kratos

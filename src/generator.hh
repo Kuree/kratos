@@ -216,6 +216,9 @@ public:
     bool &has_instantiated() { return has_instantiated_; }
     const std::map<std::string, std::shared_ptr<InterfaceRef>> &interfaces() const { return interfaces_; }
 
+    // used for to find out which verilog file it generates to
+    std::string verilog_fn;
+
 private:
     std::vector<std::string> lib_files_;
     Context *context_;
