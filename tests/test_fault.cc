@@ -76,4 +76,13 @@ TEST(fault, parse_verilog_cov_file) {   // NOLINT
     EXPECT_EQ(coverage.size(), 2);
     EXPECT_TRUE(coverage.find(assign_0.get()) != coverage.end());
     EXPECT_TRUE(coverage.find(assign_1.get()) != coverage.end());
+
+    auto run = std::make_shared<SimulationRun>(&mod);
+    run->add_simulation_coverage(coverage);
+    FaultAnalyzer fault(&mod);
+    fault.add_simulation_run(run);
+    auto r = fault.compute_fault_stmts_from_coverage();
+    EXPECT_TRUE(r.empty());
+    auto cov = fault.compute_coverage(0);
+    EXPECT_EQ(cov.size(), 2);
 }

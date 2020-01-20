@@ -159,8 +159,8 @@ std::unordered_set<Stmt *> FaultAnalyzer::compute_coverage(uint32_t index) {
                 }
             }
         }
-        coverage_maps_.emplace(index, result);
     }
+    coverage_maps_.emplace(index, result);
     return result;
 }
 
