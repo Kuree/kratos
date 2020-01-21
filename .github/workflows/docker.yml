@@ -35,6 +35,10 @@ jobs:
           docker tag keyiz/kratos docker.pkg.github.com/kuree/kratos/py37:latest
           docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
           docker push docker.pkg.github.com/kuree/kratos/py37:latest
+
+          # build the full one
+          docker build -f docker/Dockerfile-Cad . -t keyiz/kratos-full
+          docker push keyiz/kratos-full:latest
       env:
         GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
