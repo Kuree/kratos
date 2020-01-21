@@ -270,26 +270,6 @@ void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt) {
     }
 }
 
-std::vector<std::string> get_tokens(const std::string &line, const std::string &delimiter) {
-    std::vector<std::string> tokens;
-    size_t prev = 0, pos = 0;
-    std::string token;
-    // copied from https://stackoverflow.com/a/7621814
-    while ((pos = line.find_first_of(delimiter, prev)) != std::string::npos) {
-        if (pos > prev) {
-            tokens.emplace_back(line.substr(prev, pos - prev));
-        }
-        prev = pos + 1;
-    }
-    if (prev < line.length()) tokens.emplace_back(line.substr(prev, std::string::npos));
-    // remove empty ones
-    std::vector<std::string> result;
-    result.reserve(tokens.size());
-    for (auto const &t : tokens)
-        if (!t.empty()) result.emplace_back(t);
-    return result;
-}
-
 std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *generator,
                                                                    const std::string &mod_def) {
     std::map<std::string, std::shared_ptr<Port>> result;
@@ -300,7 +280,7 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *ge
     while (std::regex_search(iter, mod_def.end(), match, re)) {
         if (match.size() > 1) {
             std::string port_declaration = std::string(match[0].first, match[0].second);
-            std::vector<std::string> const tokens = get_tokens(port_declaration, ", ");
+            std::vector<std::string> const tokens = string::get_tokens(port_declaration, ", ");
             // the first one has to be either input or output
             if (tokens.size() < 2)
                 throw std::runtime_error(::format("unable to parse {}", port_declaration));
@@ -328,7 +308,7 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *ge
                 }
                 if (token[0] == '[' && token[token.size() - 1] == ']') {
                     // determine the size
-                    std::vector<std::string> size_tokens = get_tokens(token, "[:] ");
+                    std::vector<std::string> size_tokens = string::get_tokens(token, "[:] ");
                     if (size_tokens.size() != 2)
                         throw std::runtime_error(::format("unable to parse {}", token));
                     high = std::stoi(size_tokens[0]);
@@ -488,7 +468,7 @@ std::string which(const std::string &name) {
     env_path = std::getenv("PATH");
 #endif
     // tokenize it base on either : or ;
-    auto tokens = get_tokens(env_path, ";:");
+    auto tokens = string::get_tokens(env_path, ";:");
     for (auto const &dir : tokens) {
         auto new_path = fs::join(dir, name);
         if (exists(new_path)) {
@@ -563,6 +543,16 @@ std::string abspath(const std::string &filename) {
 #endif
 }
 
+std::string basename(const std::string &filename) {
+#if defined(INCLUDE_FILESYSTEM)
+    std::filesystem::path path(filename);
+    return path.filename();
+#else
+    auto tokens = string::get_tokens(filename, "/\\");
+    return tokens.back();
+#endif
+}
+
 }  // namespace fs
 
 namespace string {
@@ -582,6 +572,26 @@ static inline void rtrim(std::string &s) {
 void trim(std::string &s) {
     ltrim(s);
     rtrim(s);
+}
+
+std::vector<std::string> get_tokens(const std::string &line, const std::string &delimiter) {
+    std::vector<std::string> tokens;
+    size_t prev = 0, pos = 0;
+    std::string token;
+    // copied from https://stackoverflow.com/a/7621814
+    while ((pos = line.find_first_of(delimiter, prev)) != std::string::npos) {
+        if (pos > prev) {
+            tokens.emplace_back(line.substr(prev, pos - prev));
+        }
+        prev = pos + 1;
+    }
+    if (prev < line.length()) tokens.emplace_back(line.substr(prev, std::string::npos));
+    // remove empty ones
+    std::vector<std::string> result;
+    result.reserve(tokens.size());
+    for (auto const &t : tokens)
+        if (!t.empty()) result.emplace_back(t);
+    return result;
 }
 
 }  // namespace string

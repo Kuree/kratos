@@ -68,7 +68,7 @@ TEST(fault, parse_verilog_cov_file) {   // NOLINT
     if_->add_else_stmt(assign_1);
 
     fix_assignment_type(&mod);
-    auto result = generate_verilog(&mod);
+    generate_verilog(&mod);
     // fake the output
     mod.verilog_fn = "mod.sv";
 
@@ -85,4 +85,32 @@ TEST(fault, parse_verilog_cov_file) {   // NOLINT
     EXPECT_TRUE(r.empty());
     auto cov = fault.compute_coverage(0);
     EXPECT_EQ(cov.size(), 2);
+}
+
+TEST(fault, parse_icc_cov_file) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    mod.debug = true;
+    mod.port(PortDirection::In, "in", 4);
+    auto &sel = mod.port(PortDirection::In, "sel", 4);
+    auto &out = mod.port(PortDirection::Out, "out", 4);
+    mod.parameter("KRATOS_INSTANCE_ID", 32);
+
+    auto comb = std::make_shared<CombinationalStmtBlock>();
+    mod.add_stmt(comb);
+    auto if_ = std::make_shared<IfStmt>(sel);
+    comb->add_stmt(if_);
+    if_->add_then_stmt(out.assign(constant(0, 4)));
+    for (uint32_t i = 0; i < 4; i++) {
+        if_->add_else_stmt(out[i].assign(constant(1, 1)));
+    }
+
+    fix_assignment_type(&mod);
+    generate_verilog(&mod);
+    // fake the output
+    mod.verilog_fn = "test.sv";
+
+    auto result = parse_icc_coverage(&mod, "icc_cov.txt");
+    EXPECT_EQ(result.size(), 4 + 1);
+
 }

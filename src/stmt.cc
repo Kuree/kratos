@@ -599,7 +599,7 @@ CommentStmt::CommentStmt(std::string comment, uint32_t line_width) : Stmt(Statem
 
 RawStringStmt::RawStringStmt(const std::string &stmt) : Stmt(StatementType::RawString) {
     // split the raw based on the \r and \n
-    auto lines = get_tokens(stmt, "\r\n");
+    auto lines = string::get_tokens(stmt, "\r\n");
     for (auto const &line : lines) {
         if (!line.empty()) {
             stmts_.emplace_back(line);
@@ -610,7 +610,7 @@ RawStringStmt::RawStringStmt(const std::string &stmt) : Stmt(StatementType::RawS
 RawStringStmt::RawStringStmt(const std::vector<std::string> &stmt)
     : Stmt(StatementType::RawString) {
     for (auto const &lines : stmt) {
-        auto tokens = get_tokens(lines, "\r\n");
+        auto tokens = string::get_tokens(lines, "\r\n");
         for (auto const &line : tokens) {
             if (!line.empty()) {
                 stmts_.emplace_back(line);

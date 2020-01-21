@@ -1,0 +1,78 @@
+<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+<> User: keyi
+
+ <>
+<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
+Coverage Table Legend
+---------------------
+  EXCL   excluded using refinement rule
+  P-EXCL excluded from parent
+  U-EXCL excluded and unreachable by IEV
+  T-EXCL excluded from type
+  S-EXCL smart excluded using refinement rule
+  EXCL(S) smart indirect excluded
+  EMPTY  all children are excluded
+  CONST  marked constant during simulation
+  IGN    marked ignored during simulation
+  UNG    marked ungradeable during simulation
+  DES    marked deselected during simulation
+  UNR    marked unreachable by IEV
+
+
+Covered Block Detail Report, Instance Based
+===========================================
+
+Instance name: TOP
+Type name: TOP
+File name: /tmp/test/test_tb.sv
+Number of covered blocks: 5 of 5
+
+Count  Block Line  Kind                 Origin Source Code
+------------------------------------------------------------------------------
+1      1     10    code block           10     initial begin
+1      2     12    code block           12     for (int i = 0; i < 4; i++) begin
+1      3     12    code block           12     for (int i = 0; i < 4; i++) begin
+1      4     14    code block           14     #1; sel = i;
+1      5     15    code block           15     #1;
+
+Instance name: TOP.mod
+Type name: mod
+File name: /tmp/test/test.sv
+Number of covered blocks: 3 of 3
+
+Count  Block Line  Kind                 Origin Source Code
+------------------------------------------------------------------------------
+1      1     8     code block           8      always_comb begin
+1      2     9     true part of         9      if (sel) begin
+1      3     12    false part of        9      else begin
+
+Covered Expression Detail Report, Instance Based
+================================================
+
+Expression coverage Table Legend
+---------------------
+  -      don't care
+  e      event for event-or expressions
+  O (odd), E (even), B (both), X (not scored),
+         I (marked ignore) for parity trees
+  Y (covered), N (not covered), C (constant),
+  P (one or more inputs for this bit have been padded) for vector scoring,
+  d=== , b=== shows which bit differs in vector scoring
+  rval   Resulting value of the expression for coverage purposes given
+         the input values
+  <-n->  Shows the n-th term composition
+
+
+Covered Toggle Detail Report, Instance Based
+============================================
+
+Covered Fsm Detail Report, Instance Based
+=========================================
+
+Covered Assertion Detail Report, Instance Based
+===============================================
+
+Covered CoverGroup Detail Report, Instance Based
+================================================
+

@@ -1,9 +1,17 @@
 #ifndef KRATOS_UTIL_HH
 #define KRATOS_UTIL_HH
 
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <regex>
 #include <sstream>
+#include <thread>
 
+#include "except.hh"
 #include "expr.hh"
+#include "fmt/format.h"
+#include "generator.hh"
 #include "port.hh"
 #include "stmt.hh"
 
@@ -75,10 +83,12 @@ bool remove(const std::string &filename);
 std::string temp_directory_path();
 std::string get_ext(const std::string &filename);
 std::string abspath(const std::string &filename);
+std::string basename(const std::string &filename);
 }  // namespace fs
 
 namespace string {
 void trim(std::string &str);
+std::vector<std::string> get_tokens(const std::string &line, const std::string &delimiter);
 }  // namespace string
 
 }  // namespace kratos

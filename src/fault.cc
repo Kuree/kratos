@@ -58,7 +58,7 @@ std::pair<Generator *, uint64_t> SimulationRun::select_gen(const std::vector<std
 }
 
 Var *SimulationRun::select(const std::string &name) {
-    auto tokens = get_tokens(name, ".");
+    auto tokens = string::get_tokens(name, ".");
     auto [gen, index] = select_gen(tokens);
     if (index >= tokens.size()) return nullptr;
     if (!gen) return nullptr;
@@ -142,8 +142,7 @@ std::unordered_set<Stmt *> FaultAnalyzer::compute_coverage(uint32_t index) {
     std::unordered_set<Stmt *> result;
     if (run->has_coverage()) {
         auto const &cov = run->coverage();
-        for (auto const &stmt: cov)
-            result.emplace(stmt);
+        for (auto const &stmt : cov) result.emplace(stmt);
     } else {
         auto num_states = run->num_states();
         for (uint64_t i = 0; i < num_states; i++) {
@@ -219,7 +218,8 @@ private:
     void add_stmt(Stmt *stmt) {
         auto gen = stmt->generator_parent();
         if (!gen->verilog_fn.empty()) {
-            stmt_map_.emplace(std::make_pair(gen->verilog_fn, stmt->verilog_ln), stmt);
+            auto filename = fs::basename(gen->verilog_fn);
+            stmt_map_.emplace(std::make_pair(filename, stmt->verilog_ln), stmt);
         }
     }
 
@@ -237,14 +237,14 @@ std::unordered_map<Stmt *, uint32_t> reverse_map_stmt(
     std::unordered_map<Stmt *, uint32_t> stmts;
     for (auto const &[fn, ln, count] : hit_counts) {
         if (count == 0) continue;
-        // TODO implement basename in case verilator or the code gen uses full path
-        auto entry = std::make_pair(fn, ln);
+        auto filename = fs::basename(fn);
+        auto entry = std::make_pair(filename, ln);
         if (map.find(entry) != map.end()) {
             stmts.emplace(map.at(entry), count);
         }
     }
     auto const &top_stmts = visitor.top_stmts();
-    for (auto const &stmt: top_stmts) {
+    for (auto const &stmt : top_stmts) {
         // these block's calculation will be off, however,
         // it should not affect the outcome since all the runs will
         // run this part of logic
@@ -253,12 +253,13 @@ std::unordered_map<Stmt *, uint32_t> reverse_map_stmt(
     return stmts;
 }
 
-std::unordered_map<Stmt*, uint32_t> compute_hit_stmts(const std::unordered_map<Stmt*, uint32_t> &stmts) {
-    std::unordered_map<Stmt*, uint32_t> result;
-    for (auto const &[stmt, count]: stmts) {
+std::unordered_map<Stmt *, uint32_t> compute_hit_stmts(
+    const std::unordered_map<Stmt *, uint32_t> &stmts) {
+    std::unordered_map<Stmt *, uint32_t> result;
+    for (auto const &[stmt, count] : stmts) {
         if (stmt->type() == StatementType::Block) {
             auto block = cast<StmtBlock>(stmt);
-            for (auto const &s: (*block)) {
+            for (auto const &s : (*block)) {
                 if (s->type() == StatementType::Assign) {
                     result.emplace(s.get(), count);
                 }
@@ -271,8 +272,7 @@ std::unordered_map<Stmt*, uint32_t> compute_hit_stmts(const std::unordered_map<S
 
 std::unordered_map<Stmt *, uint32_t> parse_verilator_coverage(Generator *top,
                                                               const std::string &filename) {
-    if (!fs::exists(filename))
-        throw UserException(::format("{0} does not exist"));
+    if (!fs::exists(filename)) throw UserException(::format("{0} does not exist"));
     std::ifstream file(filename);
     std::set<std::tuple<std::string, uint32_t, uint32_t>> parse_result;
     for (std::string line; std::getline(file, line);) {
@@ -306,8 +306,7 @@ std::unordered_map<Stmt *, uint32_t> parse_verilator_coverage(Generator *top,
             } else {
                 if (c == '\'' || c == 1) {
                     // end of value
-                    if (key.empty())
-                        throw InternalException("Failed to parse" + line);
+                    if (key.empty()) throw InternalException("Failed to parse" + line);
                     data.emplace(key, buffer);
                     key = "";
                     buffer = "";
@@ -319,13 +318,11 @@ std::unordered_map<Stmt *, uint32_t> parse_verilator_coverage(Generator *top,
             }
         }
         // parse the page type
-        if (data.find("page") == data.end())
-            throw UserException("Unable to parse " + line);
+        if (data.find("page") == data.end()) throw UserException("Unable to parse " + line);
         auto page_type = data.at("page");
         const std::string line_cov_prefix = "v_line";
         if (page_type.substr(0, line_cov_prefix.size()) != line_cov_prefix) continue;
-        if (index >= line.size() - 1)
-            throw UserException("Unable to parse " + line);
+        if (index >= line.size() - 1) throw UserException("Unable to parse " + line);
         // need to parse the count
         std::string count_s = line.substr(index + 1);
         string::trim(count_s);
@@ -338,6 +335,62 @@ std::unordered_map<Stmt *, uint32_t> parse_verilator_coverage(Generator *top,
         parse_result.emplace(std::make_tuple(fn, ln, count));
     }
 
+    auto reverse_map = reverse_map_stmt(top, parse_result);
+    return compute_hit_stmts(reverse_map);
+}
+
+std::unordered_map<Stmt *, uint32_t> parse_icc_coverage(Generator *top,
+                                                        const std::string &filename) {
+    std::set<std::tuple<std::string, uint32_t, uint32_t>> parse_result;
+    if (!fs::exists(filename)) throw UserException(::format("{0} does not exist"));
+    std::ifstream file(filename);
+    // state 0: nothing
+    // state 1: searching for block header
+    // state 2: reading block coverage
+    uint32_t state = 0;
+    uint32_t line_count = 0;
+    std::string current_filename;
+    for (std::string line; std::getline(file, line); line_count++) {
+        // scan file by file
+        string::trim(line);
+        if (line[0] == '-') continue;  // skip the line section
+        if (state == 0) {
+            const std::string filename_tag = "File name:";
+            auto pos = line.find(filename_tag);
+            if (pos != std::string::npos) {
+                state = 1;
+                // extract out filename
+                current_filename = line.substr(pos + filename_tag.size());
+                string::trim(current_filename);
+            }
+        } else if (state == 1) {
+            const std::string count_tag = "Count  Block";
+            auto pos = line.find(count_tag);
+            if (pos != std::string::npos) {
+                state = 2;
+            }
+        } else {
+            if (line.empty()) {
+                // reset everything
+                current_filename = "";
+                state = 0;
+                continue;
+            }
+            auto tokens = string::get_tokens(line, " ");
+            if (tokens.size() < 6)
+                throw UserException(::format("Unable to parse line {0} at file {1}:{2}", line,
+                                             filename, line_count));
+            auto count_s = tokens[0];
+            auto line_num = tokens[2];
+            auto count = static_cast<uint32_t>(std::stoi(count_s));
+            auto fn = static_cast<uint32_t>(std::stoi(line_num));
+            if (current_filename.empty())
+                throw UserException(
+                    ::format("Filename is empty, Unable to parse line {0} at file {1}:{2}", line,
+                             filename, line_count));
+            parse_result.emplace(std::make_tuple(current_filename, fn, count));
+        }
+    }
     auto reverse_map = reverse_map_stmt(top, parse_result);
     return compute_hit_stmts(reverse_map);
 }

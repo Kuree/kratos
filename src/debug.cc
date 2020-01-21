@@ -254,7 +254,7 @@ void mock_hierarchy(Generator *top, const std::string &top_name) {
         return;
     }
     // need to tokenize based on the instance names
-    auto names = get_tokens(instance_name, ".");
+    auto names = string::get_tokens(instance_name, ".");
     if (names.size() < 2) throw InternalException("Cannot tokenize string " + instance_name);
     Context *context = top->context();
     top->instance_name = names.back();

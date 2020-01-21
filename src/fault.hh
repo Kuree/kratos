@@ -7,6 +7,8 @@ namespace kratos {
 
 std::unordered_map<Stmt *, uint32_t> parse_verilator_coverage(Generator *top,
                                                               const std::string &filename);
+std::unordered_map<Stmt*, uint32_t> parse_icc_coverage(Generator *top, const std::string &filename);
+// TODO, add a helper function to automatically detect the coverage format
 
 class SimulationRun {
 public:
