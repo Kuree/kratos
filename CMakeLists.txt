@@ -12,6 +12,15 @@ else()
     set(CMAKE_CXX_FLAGS "-Wno-language-extension-token")
 endif()
 
+############# coverage #############
+if (DEFINED ENV{KRATOS_COVERAGE})
+    SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
+    SET(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+    SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
+endif()
+
+############# compiler optimization flags #############
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG(-funroll-all-loops UNROLL)
 if (${UNROLL})
@@ -26,7 +35,7 @@ else()
     set(STATIC_FLAG "")
 endif()
 
-# filesystem
+############# filesystem #############
 include(CheckCXXSourceCompiles)
 set(CMAKE_REQUIRED_LIBRARIES stdc++fs)
 CHECK_CXX_SOURCE_COMPILES("
@@ -66,12 +75,15 @@ endif()
 # unset CMAKE_REQUIRED_LIBRARIES
 set(CMAKE_REQUIRED_LIBRARIES "")
 
-# extern
+
+############# external libraries #############
 add_subdirectory(extern/googletest/)
 add_subdirectory(extern/fmt)
 add_subdirectory(extern/pybind11)
 add_subdirectory(extern/sqlite)
 
+
+############# Tests #############
 include(GoogleTest)
 
 add_subdirectory(src)

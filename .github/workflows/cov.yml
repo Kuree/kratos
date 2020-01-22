@@ -19,3 +19,5 @@ jobs:
       shell: bash
       run: |
         source ./scripts/cov.sh
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

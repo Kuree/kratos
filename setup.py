@@ -46,7 +46,12 @@ class CMakeBuild(build_ext):
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
 
-        cfg = 'Debug' if self.debug else 'Release'
+        # test env variable to determine whether to build in debug
+        if os.environ.get("KRATOS_COVERAGE") is not None or \
+                os.environ.get("KRATOS_DEBUG") is not None:
+            cfg = 'Debug'
+        else:
+            cfg = 'Release'
         build_args = ['--config', cfg]
         env = os.environ.copy()
 
