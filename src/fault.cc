@@ -109,7 +109,6 @@ T *cast(Stmt *stmt) {
 
 void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stmt *stmt) {
     if (stmt->type() == StatementType::If) {
-        result.emplace(stmt);
         auto if_ = cast<IfStmt>(stmt);
         auto cond = if_->predicate();
         auto val = state->get(cond.get());
@@ -120,11 +119,13 @@ void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stm
         }
     } else if (stmt->type() == StatementType::Block) {
         auto block = cast<StmtBlock>(stmt);
+        // normal sequential block and combinational block always gets executed
+        // as a result, we're only interested in the conditional statement block, i.e. scoped block
+        if (block->block_type() == StatementBlockType::Scope)
+            result.emplace(stmt);
         for (auto const &s : *block) {
             compute_hit_stmts(state, result, s.get());
         }
-    } else if (stmt->type() == StatementType::Assign) {
-        result.emplace(stmt);
     } else if (stmt->type() == StatementType::FunctionalCall) {
         auto func = cast<FunctionCallStmt>(stmt);
         if (func->var()->func()->is_dpi()) {
@@ -132,8 +133,6 @@ void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stm
         } else {
             compute_hit_stmts(state, result, func->var()->func());
         }
-    } else {
-        throw InternalException("Not implemented statement type");
     }
 }
 
@@ -199,20 +198,12 @@ std::unordered_set<Stmt *> FaultAnalyzer::compute_fault_stmts_from_coverage() {
 
 class CollectScopeStmtVisitor : public IRVisitor {
 public:
-    void visit(SequentialStmtBlock *stmt) override {
-        // top level always get executed
-        add_stmt_top(stmt);
-    }
-
-    void visit(CombinationalStmtBlock *stmt) override { add_stmt_top(stmt); }
 
     void visit(ScopedStmtBlock *stmt) override { add_stmt(stmt); }
 
     [[nodiscard]] const std::map<std::pair<std::string, uint32_t>, Stmt *> &stmt_map() const {
         return stmt_map_;
     }
-
-    [[nodiscard]] const std::unordered_set<Stmt *> &top_stmts() const { return top_stmts_; }
 
 private:
     void add_stmt(Stmt *stmt) {
@@ -223,10 +214,7 @@ private:
         }
     }
 
-    void add_stmt_top(Stmt *stmt) { top_stmts_.emplace(stmt); }
-
     std::map<std::pair<std::string, uint32_t>, Stmt *> stmt_map_;
-    std::unordered_set<Stmt *> top_stmts_;
 };
 
 std::unordered_map<Stmt *, uint32_t> reverse_map_stmt(
@@ -243,31 +231,7 @@ std::unordered_map<Stmt *, uint32_t> reverse_map_stmt(
             stmts.emplace(map.at(entry), count);
         }
     }
-    auto const &top_stmts = visitor.top_stmts();
-    for (auto const &stmt : top_stmts) {
-        // these block's calculation will be off, however,
-        // it should not affect the outcome since all the runs will
-        // run this part of logic
-        stmts.emplace(stmt, 1);
-    }
     return stmts;
-}
-
-std::unordered_map<Stmt *, uint32_t> compute_hit_stmts(
-    const std::unordered_map<Stmt *, uint32_t> &stmts) {
-    std::unordered_map<Stmt *, uint32_t> result;
-    for (auto const &[stmt, count] : stmts) {
-        if (stmt->type() == StatementType::Block) {
-            auto block = cast<StmtBlock>(stmt);
-            for (auto const &s : (*block)) {
-                if (s->type() == StatementType::Assign) {
-                    result.emplace(s.get(), count);
-                }
-            }
-        }
-    }
-
-    return result;
 }
 
 std::unordered_map<Stmt *, uint32_t> parse_verilator_coverage(Generator *top,
@@ -336,7 +300,7 @@ std::unordered_map<Stmt *, uint32_t> parse_verilator_coverage(Generator *top,
     }
 
     auto reverse_map = reverse_map_stmt(top, parse_result);
-    return compute_hit_stmts(reverse_map);
+    return reverse_map;
 }
 
 std::unordered_map<Stmt *, uint32_t> parse_icc_coverage(Generator *top,
@@ -392,7 +356,7 @@ std::unordered_map<Stmt *, uint32_t> parse_icc_coverage(Generator *top,
         }
     }
     auto reverse_map = reverse_map_stmt(top, parse_result);
-    return compute_hit_stmts(reverse_map);
+    return reverse_map;
 }
 
 }  // namespace kratos

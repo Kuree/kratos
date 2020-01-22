@@ -111,6 +111,9 @@ TEST(fault, parse_icc_cov_file) {  // NOLINT
     mod.verilog_fn = "test.sv";
 
     auto result = parse_icc_coverage(&mod, "icc_cov.txt");
-    EXPECT_EQ(result.size(), 4 + 1);
+    EXPECT_EQ(result.size(), 2);
+    for (auto const &iter: result) {
+        EXPECT_TRUE(iter.first->type() == StatementType::Block);
+    }
 
 }

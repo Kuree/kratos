@@ -144,23 +144,34 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         else_expression = node.orelse
 
         if self.generator.debug:
-            keywords = [ast.keyword(arg="f_ln",
-                                    value=ast.Constant(value=node.lineno))]
+            keywords_if = [ast.keyword(arg="f_ln",
+                                       value=ast.Constant(value=node.lineno))]
+            # do our best guess
+            if len(else_expression) > 0:
+                if else_expression[0].lineno != expression[0].lineno:
+                    ln = else_expression[0].lineno + 1
+                else:
+                    ln = else_expression[0].lineno
+                keywords_else = [ast.keyword(arg="f_ln",
+                                             value=ast.Constant(value=ln))]
+            else:
+                keywords_else = []
         else:
-            keywords = []
+            keywords_if = []
+            keywords_else = []
         for key, value in self.key_pair:
-            keywords.append(ast.keyword(arg=key, value=ast.Str(s=value)))
+            keywords_if.append(ast.keyword(arg=key, value=ast.Str(s=value)))
 
         if_node = ast.Call(func=ast.Attribute(value=ast.Name(id="scope",
                                                              ctx=ast.Load()),
                                               attr="if_",
                                               cts=ast.Load()),
                            args=[predicate] + expression,
-                           keywords=keywords,
+                           keywords=keywords_if,
                            ctx=ast.Load)
         else_node = ast.Call(func=ast.Attribute(attr="else_", value=if_node,
                                                 cts=ast.Load()),
-                             args=else_expression, keywords=[])
+                             args=else_expression, keywords=keywords_else)
 
         return self.visit(ast.Expr(value=else_node))
 
@@ -307,10 +318,10 @@ class Scope:
             def __init__(self, scope):
                 self._if = _kratos.IfStmt(target)
                 if f_ln is not None:
-                    target.add_fn_ln((scope.filename,
-                                      f_ln + scope.ln - 1), True)
-                    self._if.add_fn_ln((scope.filename,
-                                        f_ln + scope.ln - 1), True)
+                    fn_ln = (scope.filename, f_ln + scope.ln - 1)
+                    target.add_fn_ln(fn_ln, True)
+                    self._if.add_fn_ln(fn_ln, True)
+                    self._if.then_body().add_fn_ln(fn_ln, True)
                     # this is additional info passed in
                     if add_local:
                         add_scope_context(self._if, kargs)
@@ -321,12 +332,15 @@ class Scope:
                         stmt = stmt.stmt()
                     self._if.add_then_stmt(stmt)
 
-            def else_(self, *_args):
+            def else_(self, *_args, f_ln=None):
                 for stmt in _args:
                     if hasattr(stmt, "stmt"):
                         self._if.add_else_stmt(stmt.stmt())
                     else:
                         self._if.add_else_stmt(stmt)
+                if f_ln is not None:
+                    fn_ln = (self.scope.filename, f_ln + self.scope.ln - 1)
+                    self._if.else_body().add_fn_ln(fn_ln, True)
                 return self
 
             def stmt(self):
