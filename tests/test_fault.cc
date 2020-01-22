@@ -74,8 +74,8 @@ TEST(fault, parse_verilog_cov_file) {   // NOLINT
 
     auto coverage = parse_verilator_coverage(&mod, "cov.dat");
     EXPECT_EQ(coverage.size(), 2);
-    EXPECT_TRUE(coverage.find(assign_0.get()) != coverage.end());
-    EXPECT_TRUE(coverage.find(assign_1.get()) != coverage.end());
+    EXPECT_TRUE(coverage.find(if_->then_body().get()) != coverage.end());
+    EXPECT_TRUE(coverage.find(if_->else_body().get()) != coverage.end());
 
     auto run = std::make_shared<SimulationRun>(&mod);
     run->add_simulation_coverage(coverage);
