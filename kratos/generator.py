@@ -456,6 +456,12 @@ class Generator(metaclass=GeneratorMeta):
             p.add_fn_ln(get_fn_ln())
         return p
 
+    def var_packed(self, name: str, struct_packed: _kratos.PortPackedStruct):
+        v = self.__generator.var_packed(name, struct_packed)
+        if self.debug:
+            v.add_fn_ln(get_fn_ln())
+        return v
+
     def port_bundle(self, bundle_name, bundle: PortBundle):
         assert isinstance(bundle, PortBundle)
         if self.debug:
