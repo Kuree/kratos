@@ -1478,5 +1478,22 @@ def test_register_extraction():
     assert "mod.b" in regs
 
 
+def test_iadd_transform():
+    mod = Generator("mod", True)
+    a = mod.var("a", 4)
+    clk = mod.clock("clk")
+
+    @always_ff((posedge, clk))
+    def code():
+        a += 1
+
+    mod.add_code(code)
+    src = verilog(mod)
+    assert "a <= a + 4'h1;" in src["mod"]
+    # make sure the line info gets passed down
+    stmt = mod.get_stmt_by_index(0)[0]
+    assert len(stmt.fn_name_ln) == 1
+
+
 if __name__ == "__main__":
-    test_register_extraction()
+    test_iadd_transform()

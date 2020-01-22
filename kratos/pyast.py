@@ -176,6 +176,15 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         return self.visit(ast.Expr(value=else_node))
 
 
+class AugAssignNodeVisitor(ast.NodeTransformer):
+    def visit_AugAssign(self, node):
+        # change any aug assign to normal assign
+        return ast.Assign(targets=[node.target],
+                          value=ast.BinOp(left=node.target, op=node.op,
+                                          right=node.value),
+                          lineno=node.lineno)
+
+
 class AssignNodeVisitor(ast.NodeTransformer):
     def __init__(self, generator, debug):
         super().__init__()
@@ -184,8 +193,8 @@ class AssignNodeVisitor(ast.NodeTransformer):
 
     def visit_Assign(self, node):
         if len(node.targets) > 1:
-            raise Exception("tuple unpacking not allowed. got " +
-                            astor.to_source(node))
+            raise SyntaxError("tuple unpacking not allowed. got " +
+                              astor.to_source(node))
         args = node.targets[:] + [node.value]
         if self.debug:
             args.append(ast.Constant(value=node.lineno))
@@ -452,6 +461,10 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     if transform_return:
         return_visitor = ReturnNodeVisitor("scope", generator.debug)
         return_visitor.visit(fn_body)
+
+    # transform aug assign
+    aug_assign_visitor = AugAssignNodeVisitor()
+    fn_body = aug_assign_visitor.visit(fn_body)
 
     # transform assign
     assign_visitor = AssignNodeVisitor(generator, debug)
