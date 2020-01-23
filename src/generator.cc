@@ -130,6 +130,10 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
     return *p;
 }
 
+Port & Generator::port(const Port &p) {
+    return port(p.port_direction(), p.name, p.width(), p.size(), p.port_type(), p.is_signed());
+}
+
 EnumPort &Generator::port(kratos::PortDirection direction, const std::string &port_name,
                           const std::shared_ptr<kratos::Enum> &def) {
     if (ports_.find(port_name) != ports_.end())
@@ -709,6 +713,10 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
             add_stmt(v->assign(*port));
         }
     }
+}
+
+void Generator::wire(Var &left, Var &right) {
+    add_stmt(left.assign(right));
 }
 
 std::shared_ptr<Generator> Generator::clone() {

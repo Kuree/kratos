@@ -1,5 +1,27 @@
 from kratos import IRVisitor, Generator, PortDirection, Port, VarSlice, \
-    VarVarSlice
+    VarVarSlice, Attribute
+
+
+def test_attribute():
+    mod = Generator("mod")
+    a = mod.input("a", 1)
+    b = mod.output("b", 1)
+    mod.wire(b, a)
+    stmt = mod.get_stmt_by_index(0)
+
+    class TestAttribute(Attribute):
+        def __init__(self):
+            Attribute.__init__(self)
+            self.value = 42
+            self.value_str = "42"
+
+    stmt.add_attribute(TestAttribute())
+
+    assert len(mod.get_stmt_by_index(0).get_attributes()) > 0
+    attr = mod.get_stmt_by_index(0).get_attributes()[0].get()
+    assert attr.value == 42
+    assert attr.value_str == "42"
+    assert attr.type_str == "python"
 
 
 def test_ir_port(check_gold):
@@ -65,5 +87,47 @@ def test_ir_slice():
     assert v.hit_var_slice
 
 
+def test_ir_annotation_wiring():
+    from kratos import Attribute, verilog
+    import kratos
+    parent = Generator("parent")
+    child = Generator("child")
+    parent.add_child("child_inst", child)
+    port = child.input("target_port", 1)
+    child.wire(child.output("out", 1), port)
+    tag = "target"
+    port.add_attribute(Attribute.create(tag))
+
+    # this is a pass
+    def wire_up_port(generator):
+        class WireUpVisitor(IRVisitor):
+            def __init__(self):
+                IRVisitor.__init__(self)
+                self.tag = tag
+
+            def visit(self, node):
+                if isinstance(node, kratos.Port) and node.has_attribute(self.tag):
+                    # need to wire it to the instances parent and up
+                    gen = node.generator
+                    parent_gen = gen.parent_generator()
+                    child_port = node
+                    while parent_gen is not None:
+                        # create a port based on the target's definition
+                        p = parent_gen.port(child_port)
+                        parent_gen.wire(child_port, p)
+                        # move up the hierarchy
+                        child_port = p
+                        parent_gen = parent_gen.parent_generator()
+
+        v = WireUpVisitor()
+        v.visit_root(generator)
+
+    wire_up_port(parent.internal_generator)
+
+    assert "target_port" in parent.ports
+    # check all the connectivity
+    verilog(parent)
+
+
 if __name__ == "__main__":
-    test_ir_slice()
+    test_ir_annotation_wiring()

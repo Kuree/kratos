@@ -121,7 +121,7 @@ by yourself to obtain the verilog code.)pbdoc");
     // attributes
     // type holder due to conversion
     class PyAttribute : public Attribute {
-    private:
+    public:
         explicit PyAttribute(py::object target) : Attribute(), target_(std::move(target)) {
             type_str = "python";
         }
@@ -132,6 +132,11 @@ by yourself to obtain the verilog code.)pbdoc");
         py::object get_py_obj() { return target_; }
 
         static PyAttribute create(const py::object &target) { return PyAttribute(target); }
+        static PyAttribute create_attr(const std::string &value) {
+            auto r = PyAttribute(py::str(value));
+            r.value_str = value;
+            return r;
+        }
 
     private:
         py::object target_ = py::none();
@@ -142,7 +147,8 @@ by yourself to obtain the verilog code.)pbdoc");
     attribute.def(py::init(&PyAttribute::create))
         .def_readwrite("type_str", &PyAttribute::type_str)
         .def("get", [=](PyAttribute &attr) { return attr.get_py_obj(); })
-        .def_readwrite("value_str", &PyAttribute::value_str);
+        .def_readwrite("value_str", &PyAttribute::value_str)
+        .def_static("create", &PyAttribute::create_attr);
     py::implicitly_convertible<Attribute, PyAttribute>();
 
     m.def("create_stub", &create_stub);

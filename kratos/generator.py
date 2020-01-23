@@ -148,11 +148,15 @@ class PortProxy:
             p = self.__generator.internal_generator.get_bundle_ref(key)
         else:
             p = self.__generator.internal_generator.get_port(key)
-        assert p is not None, "{0} doesn't exist".format(key)
+        if p is None:
+            raise AttributeError("{0} doesn't exist".format(key))
         return p
 
     def __getattr__(self, key):
         return self[key]
+
+    def __contains__(self, key):
+        return self.__generator.internal_generator.has_port(key)
 
 
 class ParamProxy:
@@ -161,7 +165,8 @@ class ParamProxy:
 
     def __getitem__(self, key):
         p = self.__generator.internal_generator.get_param(key)
-        assert p is not None, "{0} doesn't exist".format(key)
+        if p is None:
+            raise AttributeError("{0} doesn't exist".format(key))
         return p
 
     def __getattr__(self, key):
@@ -174,11 +179,15 @@ class VarProxy:
 
     def __getitem__(self, key):
         v = self.__generator.get_var(key)
-        assert v is not None, "{0} doesn't exist".format(key)
+        if v is None:
+            raise AttributeError("{0} doesn't exist".format(key))
         return v
 
     def __getattr__(self, key):
         return self[key]
+
+    def __contains__(self, key):
+        return self.__generator.has_var(key)
 
 
 class InterfaceProxy:

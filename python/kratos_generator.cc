@@ -64,6 +64,7 @@ void init_generator(py::module &m) {
              py::overload_cast<PortDirection, const std::string &, const std::shared_ptr<Enum> &>(
                  &Generator::port),
              py::return_value_policy::reference)
+        .def("port", py::overload_cast<const Port &>(&Generator::port), py::return_value_policy::reference)
         .def("parameter",
              py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
              py::return_value_policy::reference)
@@ -79,8 +80,9 @@ void init_generator(py::module &m) {
                  return interfaces.find(name) != interfaces.end();
              })
         .def("get_interface",
-             [](Generator &gen, const std::string &name) {
+             [](Generator &gen, const std::string &name) ->std::shared_ptr<InterfaceRef> {
                  auto const &interfaces = gen.interfaces();
+                 if (name == "__len__") return nullptr;
                  if (interfaces.find(name) == interfaces.end())
                      throw UserException(name + " doesn't exist in " + gen.handle_name() +
                                          " as interface");
@@ -127,6 +129,7 @@ void init_generator(py::module &m) {
         .def("is_stub", &Generator::is_stub)
         .def("set_is_stub", &Generator::set_is_stub)
         .def("wire_ports", &Generator::wire_ports)
+        .def("wire", &Generator::wire)
         .def("wire_interface", &Generator::wire_interface)
         .def("correct_wire_direction", &Generator::correct_wire_direction)
         .def("correct_wire_direction",

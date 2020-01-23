@@ -46,6 +46,7 @@ public:
                PortType type, bool is_signed);
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
                const std::vector<uint32_t> &size, PortType type, bool is_signed);
+    Port &port(const Port &p);
     EnumPort &port(PortDirection direction, const std::string &port_name,
                    const std::shared_ptr<Enum> &def);
     PortPackedStruct &port_packed(PortDirection direction, const std::string &port_name,
@@ -161,6 +162,7 @@ public:
                                                  const std::shared_ptr<Var> &var2);
     void wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
                         const std::shared_ptr<InterfaceRef> &inst2);
+    void wire(Var &left, Var& right);
 
     bool debug = false;
 

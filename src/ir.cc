@@ -16,6 +16,13 @@ uint64_t IRNode::index_of(kratos::IRNode *node) {
     return index;
 }
 
+bool IRNode::has_attribute(const std::string &value_str) const {
+    for (auto const &attr: attributes_) {
+        if (attr->value_str == value_str) return true;
+    }
+    return false;
+}
+
 void IRVisitor::visit_root(IRNode *root) {
     // recursively call visits
     root->accept(this);

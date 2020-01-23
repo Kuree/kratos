@@ -1,6 +1,6 @@
 from kratos import Generator, PortDirection, PortType, always_ff, \
-    verilog, is_valid_verilog, VarException, StmtException, IRVisitor, \
-    PackedStruct, Port, Attribute, ext, posedge, PortBundle, const, comment, \
+    verilog, is_valid_verilog, VarException, StmtException, \
+    PackedStruct, Attribute, ext, posedge, PortBundle, const, comment, \
     enable_runtime_debug, always_comb
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
@@ -80,6 +80,8 @@ def test_async_reg(check_gold):
     reg_width = 16
     reg = AsyncReg(reg_width)
     check_gold(reg, "test_async_reg")
+    assert "in" in reg.ports
+    assert "val" in reg.vars
 
 
 def test_module_unique():
@@ -449,8 +451,8 @@ def test_clone():
     class Mod2(Generator):
         def __init__(self):
             super().__init__("mod2")
-            self.in_ = self.port("in", 2, PortDirection.In)
-            self.out_ = self.port("out", 2, PortDirection.Out)
+            self.in_ = self.input("in", 2)
+            self.out_ = self.output("out", 2)
 
             self.child1 = PassThroughMod.clone()
             self.child2 = PassThroughMod.clone()
@@ -555,25 +557,6 @@ def test_verilog_file():
         with open(filename) as f:
             src = f.read()
             assert is_valid_verilog(src)
-
-
-def test_attribute():
-    mod = PassThroughTop()
-    stmt = mod.get_stmt_by_index(0)
-
-    class TestAttribute(Attribute):
-        def __init__(self):
-            Attribute.__init__(self)
-            self.value = 42
-            self.value_str = "42"
-
-    stmt.add_attribute(TestAttribute())
-
-    assert len(mod.get_stmt_by_index(0).get_attributes()) > 0
-    attr = mod.get_stmt_by_index(0).get_attributes()[0].get()
-    assert attr.value == 42
-    assert attr.value_str == "42"
-    assert attr.type_str == "python"
 
 
 def test_wire_merge(check_gold):
@@ -1533,4 +1516,4 @@ def test_if_logical_cond():
 
 
 if __name__ == "__main__":
-    test_if_logical_cond()
+    test_clone()

@@ -53,6 +53,7 @@ public:
     void add_attribute(const std::shared_ptr<Attribute> &attribute) {
         attributes_.emplace_back(attribute);
     }
+    [[nodiscard]] bool has_attribute(const std::string &value_str) const;
 
     virtual ~IRNode() = default;
 

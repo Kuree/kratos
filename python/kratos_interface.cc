@@ -74,6 +74,8 @@ void init_interface(py::module &m) {
                     return &ref.port(name);
                 } else if (ref.has_var(name)) {
                     return &ref.var(name);
+                } else if (name == "__len__") {
+                    return nullptr;
                 } else {
                     throw UserException(name + " not exist in " + ref.name());
                 }
