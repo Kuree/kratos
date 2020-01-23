@@ -8,6 +8,8 @@ module mod (
   output config_data out
 );
 
+config_data v;
 assign out = in;
+assign v = in;
 endmodule   // mod
 

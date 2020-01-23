@@ -1,7 +1,7 @@
 #include "../src/debug.hh"
 #include "../src/except.hh"
-#include "../src/pass.hh"
 #include "../src/generator.hh"
+#include "../src/pass.hh"
 #include "../src/stmt.hh"
 #include "gtest/gtest.h"
 
@@ -48,4 +48,18 @@ TEST(debug, inst) {  // NOLINT
     auto code = src.at("parent");
     printf("%s\n", code.c_str());
     EXPECT_TRUE(code.find("unq") == std::string::npos);
+}
+
+TEST(debug, clock_breakpoint) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    mod.port(PortDirection::In, "clk", 1, PortType::Clock);
+    inject_clock_break_points(&mod);
+    // test if it has the inserted block
+    EXPECT_EQ(mod.stmts_count(), 1);
+    EXPECT_TRUE(mod.get_stmt(0)->type() == StatementType::Block);
+    auto block = mod.get_stmt(0)->as<StmtBlock>();
+    EXPECT_EQ(block->size(), 1);
+    EXPECT_EQ(block->block_type(), StatementBlockType::Sequential);
+    EXPECT_EQ((*block)[0]->type(), StatementType::FunctionalCall);
 }

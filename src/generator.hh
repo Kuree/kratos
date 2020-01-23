@@ -35,6 +35,10 @@ public:
         return port(direction, port_name, width, 1);
     }
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
+               PortType type) {
+        return port(direction, port_name, width, 1, type, false);
+    }
+    Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
                uint32_t size);
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
                const std::vector<uint32_t> &size);
@@ -189,7 +193,6 @@ public:
         port_bundle_mapping_.erase(ref_name);
     }
 
-
     // debug info
     const std::unordered_map<std::string, std::pair<std::string, uint32_t>> &children_debug()
         const {
@@ -214,7 +217,9 @@ public:
     std::shared_ptr<Var> get_auxiliary_var(uint32_t width, bool signed_ = false);
     bool has_instantiated() const { return has_instantiated_; }
     bool &has_instantiated() { return has_instantiated_; }
-    const std::map<std::string, std::shared_ptr<InterfaceRef>> &interfaces() const { return interfaces_; }
+    const std::map<std::string, std::shared_ptr<InterfaceRef>> &interfaces() const {
+        return interfaces_;
+    }
 
     // used for to find out which verilog file it generates to
     std::string verilog_fn;

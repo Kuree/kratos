@@ -6,5 +6,7 @@ module packed_struct (
   output config_data out
 );
 
+config_data v;
 assign out = in;
+assign v = in;
 endmodule   // packed_struct

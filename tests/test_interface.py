@@ -101,18 +101,19 @@ def test_modport_io(check_gold):
             # instantiate the interface bus
             # notice that we're using config, not the modport
             # version such as config.master
-            bus = self.interface(config, "bus_top")
+            self.bus = self.interface(config, "bus_top")
 
             # just need to wire things up
-            self.wire(bus.clk, clk)
-            self.wire(self.master.bus, bus)
-            self.wire(self.slave.bus, bus)
+            self.wire(self.bus.clk, clk)
+            self.wire(self.master.bus, self.bus)
+            self.wire(self.slave.bus, self.bus)
             # the following also works
             # self.wire(self.master.bus, bus.Master)
             # self.wire(self.slave.bus, bus.Slave)
 
     top = Top()
     check_gold(top, "test_modport_io")
+    assert str(top.bus.read_data) == "bus_top.read_data"
 
 
 if __name__ == "__main__":

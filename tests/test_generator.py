@@ -483,7 +483,14 @@ def test_packed_struct(check_gold, check_file):
             super().__init__("mod", debug=debug)
             self.port_packed("in", PortDirection.In, struct)
             self.port_packed("out", PortDirection.Out, struct)
+            v = self.var_packed("v", struct)
             self.wire(self.ports["out"], self.ports["in"])
+            self.wire(v, self.ports["in"])
+
+            # tests
+            assert v.width == 16 + 16
+            assert "read" in v.member_names()
+            assert "data" in v.member_names()
 
     mod = Mod()
     check_gold(mod, "test_packed_struct", optimize_passthrough=False)
