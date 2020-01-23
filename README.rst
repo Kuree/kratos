@@ -1,7 +1,8 @@
 Kratos
 ======
 
-|Build Status| |Appveyor uild status| |Github Action Status| |PyPI - Version| |Documentation Status|
+|Build Status| |Appveyor uild status| |Github Action Status| |PyPI - Version|
+|Coverage| |Documentation Status|
 
 Kratos is a hardware design language written in C++/Python. It
 differentiates itself from other DSL with the following design
@@ -317,5 +318,7 @@ loaded with ``kratos-runtime``.
    :target: https://github.com/Kuree/kratos
 .. |PyPI - Version| image:: https://badge.fury.io/py/kratos.svg
    :target: https://pypi.org/project/kratos/
+.. |Coverage| image:: https://codecov.io/gh/Kuree/kratos/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/Kuree/kratos
 .. |Documentation Status| image:: https://readthedocs.org/projects/kratos-doc/badge/?version=latest
    :target: https://kratos-doc.readthedocs.io/en/latest/?badge=latest

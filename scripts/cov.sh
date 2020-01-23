@@ -7,8 +7,7 @@ docker exec -i cov bash -c "cd /kratos && KRATOS_COVERAGE=1 python3 -m pip insta
 docker exec -i cov bash -c "cd /kratos/build/temp.linux-x86_64-3.7 && make -j2"
 docker exec -i cov bash -c "cd /kratos/build/temp.linux-x86_64-3.7 && make test"
 # do not collect tests
-docker exec -i cov bash -c "echo -e '[run]\nomit = tests/*' > .coveragerc && cat /.coveragerc"
-docker exec -i cov bash -c "python3 -m pip install pytest pytest-cov && cd /kratos && pytest --cov=kratos --cov-config=/.coveragerc tests/"
+docker exec -i cov bash -c "python3 -m pip install pytest pytest-cov && cd /kratos && pytest --cov-report=xml --cov=kratos tests/"
 docker exec -i cov bash -c "cd kratos && lcov --capture --directory . --output-file coverage.info"
 # clean up coverage
 docker exec -i cov bash -c "cd kratos && lcov --remove coverage.info '/usr/*' --output-file coverage.info"
@@ -19,4 +18,4 @@ docker cp cov:/kratos/.coverage .coverage
 
 # upload the coverage files
 bash <(curl -s https://codecov.io/bash) -f coverage.info
-bash <(curl -s https://codecov.io/bash) -f .coverage
+bash <(curl -s https://codecov.io/bash)
