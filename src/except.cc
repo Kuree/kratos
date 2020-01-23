@@ -1,7 +1,9 @@
 #include "except.hh"
+
 #include <cstring>
 #include <fstream>
 #include <iostream>
+
 #include "expr.hh"
 #include "stmt.hh"
 #include "util.hh"
@@ -96,5 +98,8 @@ InternalException::InternalException(const std::string& message) noexcept
     : std::runtime_error(message) {}
 
 UserException::UserException(const std::string& message) noexcept : std::runtime_error(message) {}
+
+InvalidConversionException::InvalidConversionException(const std::string& message) noexcept
+    : std::runtime_error(message) {}
 
 }  // namespace kratos

@@ -14,6 +14,69 @@ def __pretty_source(source):
     return "".join(source)
 
 
+class LogicOperatorVisitor(ast.NodeTransformer):
+    def __init__(self, local, global_, filename, scope_ln):
+        self.local = local
+        self.global_ = global_
+        self.filename = filename
+        self.scope_ln = scope_ln
+
+    def get_file_line(self, ln):
+        ln += self.scope_ln
+        with open(self.filename) as f:
+            lines = f.readlines()
+        return lines[ln - 2]
+
+    @staticmethod
+    def concat_ops(func_name, values):
+        # this is a recursive call
+        assert len(values) > 0
+        if len(values) == 1:
+            return values[0]
+        node = ast.Call(func=ast.Attribute(attr=func_name, value=values[0],
+                                           cts=ast.Load()),
+                        args=[values[1]], keywords=[])
+        values = [node] + values[2:]
+        return LogicOperatorVisitor.concat_ops(func_name, values)
+
+    def check_var(self, var):
+        r = eval(astor.to_source(var), self.local, self.global_)
+        if not isinstance(r, _kratos.Var):
+            raise SyntaxError("Cannot mix kratos variable with normal Python values in logical ops",
+                              [self.filename, self.scope_ln + var.lineno,
+                               var.col_offset, self.get_file_line(var.lineno)])
+
+    def visit_BoolOp(self, node):
+        # convert the bool op into a logical function
+        # we don't allow mixing bool ops with normal python values and kratos values
+        if isinstance(node.op, ast.And):
+            # it's an and
+            values = node.values
+            for i in range(len(values)):
+                values[i] = self.visit(values[i])
+                self.check_var(values[i])
+            return self.concat_ops("and_", values)
+        elif isinstance(node.op, ast.Or):
+            # it's an or
+            values = node.values
+            for i in range(len(values)):
+                values[i] = self.visit(values[i])
+            # the same as and
+            return self.concat_ops("or_", values)
+        else:
+            raise SyntaxError("Invalid logical operator", (self.filename,
+                                                           self.scope_ln + node.lineno,
+                                                           node.col_offset,
+                                                           self.get_file_line(node.lineno)))
+
+    def visit_UnaryOp(self, node):
+        if isinstance(node.op, ast.Not):
+            return ast.Call(func=ast.Attribute(attr="r_not", value=node.operand,
+                                               cts=ast.Load()),
+                            args=[], keywords=[])
+        return node
+
+
 class StaticElaborationNodeVisitor(ast.NodeTransformer):
     class NameVisitor(ast.NodeTransformer):
         def __init__(self, target, value):
@@ -28,7 +91,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                     return ast.Str(s=self.value, lineno=node.lineno)
             return node
 
-    def __init__(self, generator, fn_src, local, global_):
+    def __init__(self, generator, fn_src, local, global_, filename, func_ln):
         super().__init__()
         self.generator = generator
         self.fn_src = fn_src
@@ -36,6 +99,9 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         self.global_ = global_.copy()
         self.local["self"] = self.generator
         self.target_node = {}
+
+        self.filename = filename
+        self.scope_ln = func_ln
 
         self.key_pair = []
 
@@ -121,24 +187,37 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         # we only replace stuff if the predicate has something to do with the
         # verilog variable
         predicate_src = astor.to_source(predicate)
-        predicate_value = eval(predicate_src, self.global_, self.local)
+        has_var = False
+        try:
+            predicate_value = eval(predicate_src, self.global_, self.local)
+        except _kratos.exception.InvalidConversionException:
+            has_var = True
+            predicate_value = None
+
         # if's a kratos var, we continue
-        if not isinstance(predicate_value, _kratos.Var):
+        if not has_var and not isinstance(predicate_value, _kratos.Var):
             if not isinstance(predicate_value, bool):
                 print_src(self.fn_src, predicate.lineno)
                 raise Exception("Cannot statically evaluate if predicate")
             if predicate_value:
                 for i, n in enumerate(node.body):
                     if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src,
-                                                          self.local, self.global_)
+                                                          self.local, self.global_, self.filename,
+                                                          self.scope_ln)
                     node.body[i] = if_exp.visit(n)
                 return node.body
             else:
                 for i, n in enumerate(node.orelse):
                     if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src,
-                                                          self.local, self.global_)
+                                                          self.local, self.global_, self.filename,
+                                                          self.scope_ln)
                     node.orelse[i] = if_exp.visit(n)
                 return node.orelse
+        else:
+            # need to convert the logical operators to either reduced function calls, or
+            # expression or
+            if_test = LogicOperatorVisitor(self.local, self.global_, self.filename, self.scope_ln)
+            predicate = if_test.visit(node.test)
 
         expression = node.body
         else_expression = node.orelse
@@ -370,7 +449,7 @@ class Scope:
                 print_src(self.filename, f_ln + self.ln - 1)
             # re-throw it
             raise ex
-        if self.filename:
+        if self.generator.debug:
             assert f_ln is not None
             stmt.add_fn_ln((self.filename, f_ln + self.ln - 1), True)
             if self.add_local:
@@ -387,7 +466,7 @@ class Scope:
             assert value == 0
             value = _kratos.constant(0, 1, False)
         stmt = _kratos.AssertValueStmt(value)
-        if self.filename:
+        if self.generator.debug:
             stmt.add_fn_ln((self.filename, f_ln + self.ln - 1), True)
             if self.add_local:
                 # obtain the previous call frame info
@@ -436,6 +515,7 @@ def add_stmt_to_scope(fn_body):
 
 
 def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
+                           filename, func_ln,
                            transform_return=False, pre_locals=None):
     # pre-compute the frames
     # we have 3 frames back
@@ -472,7 +552,8 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     ast.fix_missing_locations(fn_body)
 
     # static eval for loop and if statement
-    static_visitor = StaticElaborationNodeVisitor(generator, fn_src, _locals, _globals)
+    static_visitor = StaticElaborationNodeVisitor(generator, fn_src, _locals,
+                                                  _globals, filename, func_ln)
     fn_body = static_visitor.visit(fn_body)
 
     # transform the assert_ function to get fn_ln
@@ -551,6 +632,9 @@ def transform_stmt_block(generator, fn, fn_ln=None):
     # needs debug
     debug = generator.debug
     store_local = debug and fn_ln is None
+    filename = get_fn(fn) if fn_ln is None else fn_ln[0]
+    ln = get_ln(fn) if fn_ln is None else fn_ln[1]
+
     # extract the sensitivity list from the decorator
     blk_type, sensitivity = extract_sensitivity_from_dec(fn_body.decorator_list,
                                                          fn_name)
@@ -565,19 +649,12 @@ def transform_stmt_block(generator, fn, fn_ln=None):
 
     _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
                                                fn_name,
-                                               insert_self)
+                                               insert_self, filename, ln)
 
     src = astor.to_source(func_tree, pretty_source=__pretty_source)
     src = inject_import_code(src)
     code_obj = compile(src, "<ast>", "exec")
-    # transform the statement list
-    # if in debug mode, we trace the filename
-    if debug:
-        filename = get_fn(fn) if fn_ln is None else fn_ln[0]
-        ln = get_ln(fn) if fn_ln is None else fn_ln[1]
-    else:
-        filename = ""
-        ln = 0
+
     # notice that this ln is an offset
     scope = Scope(generator, filename, ln, store_local)
     _locals.update({"_self": generator, "_scope": scope})
@@ -604,12 +681,8 @@ def transform_function_block(generator, fn, arg_types):
     # only keep self
     fn_body.args.args = [func_args[0]]
     # add function args now
-    if debug:
-        filename = get_fn(fn)
-        ln = get_ln(fn)
-    else:
-        filename = ""
-        ln = 0
+    filename = get_fn(fn)
+    ln = get_ln(fn)
     scope = FuncScope(generator, fn_name, filename, ln)
     # add var creations
     arg_order = extract_arg_name_order_from_ast(func_args)
@@ -620,6 +693,7 @@ def transform_function_block(generator, fn, arg_types):
     exec(var_code_obj, pre_locals)
     _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
                                                fn_name, insert_self,
+                                               filename, ln,
                                                transform_return=True,
                                                pre_locals=pre_locals)
 
@@ -677,8 +751,8 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         if isinstance(call_obj, ast.Call):
             call_name = call_obj.func.id
         else:
-            assert isinstance(call_obj, ast.Name), "Unrecognized "\
-                                                   "function "\
+            assert isinstance(call_obj, ast.Name), "Unrecognized " \
+                                                   "function " \
                                                    "decorator {0}".format(call_obj)
             call_name = call_obj.id
         if call_name == "always_comb":
@@ -686,7 +760,7 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         elif call_name == "initial":
             return CodeBlockType.Initial, []
         else:
-            assert call_name == "always_ff", "Unrecognized function "\
+            assert call_name == "always_ff", "Unrecognized function " \
                                              "decorator {0}".format(call_name)
         blk_type = CodeBlockType.Sequential
         raw_sensitivity = call_obj.args
@@ -705,7 +779,7 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
                 name = signal_name_node.id
                 assert name in local, "{0} not found".format(name)
                 n = eval(name, local)
-                assert isinstance(n, _kratos.Var),\
+                assert isinstance(n, _kratos.Var), \
                     "{0} is not a variable".format(name)
                 signal_name = str(n)
             elif isinstance(signal_name_node, ast.Attribute):

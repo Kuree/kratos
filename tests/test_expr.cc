@@ -29,6 +29,12 @@ TEST(expr, arith) {  // NOLINT
     auto &expr_ = expr + expr;
     EXPECT_EQ(expr_.to_string(), "(a - b) + (a - b)");
 
+    // logical and and or
+    expr = var1 && var2;
+    EXPECT_EQ(expr.to_string(), "a && b");
+    expr = var1 || var2;
+    EXPECT_EQ(expr.to_string(), "a || b");
+
     // test unary
     auto &expr_unary = -var1;
     EXPECT_EQ(expr_unary.to_string(), "-a");

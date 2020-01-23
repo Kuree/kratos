@@ -80,6 +80,10 @@ std::string ExprOpStr(ExprOp op) {
             return ":";
         case ExprOp::Concat:
             return ",";
+        case ExprOp::LAnd:
+            return "&&";
+        case ExprOp::LOr:
+            return "||";
         default:
             throw std::runtime_error("unable to find op");
     }

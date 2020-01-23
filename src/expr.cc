@@ -149,6 +149,14 @@ Expr &Var::operator!=(const Var &var) const {
     return generator->expr(ExprOp::Neq, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
+Expr & Var::operator&&(const Var &var) const {
+    return generator->expr(ExprOp::LAnd, const_cast<Var *>(this), const_cast<Var *>(&var));
+}
+
+Expr & Var::operator||(const Var &var) const {
+    return generator->expr(ExprOp::LOr, const_cast<Var *>(this), const_cast<Var *>(&var));
+}
+
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     auto const [high, low] = slice;
     if (low > high) {

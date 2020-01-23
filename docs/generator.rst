@@ -497,17 +497,6 @@ Here is the generated verilog
   end
   endmodule   // PassThrough
 
-.. warning::
-
-  Due to the Python limitation, you cannot use ``not``, ``and``, and ``or`` in
-  your ``if`` statement predicate. It is because they're short-circuit
-  evaluated. To do logical comparison, you either use ``~`` as an invert for
-  1-bit signals, or ops such as ``var.r_not()``, which is a reduced op.
-
-  To perform logical comparison, you have to use `&`, `|` as bit wise
-  comparison. As long as they are 1-bit signals, there is no logical
-  difference. However, if your signal is wider than 1-bit, you should reduce
-  them into 1-bit instead, such as using ``var.r_or``.
 
 Procedural code generation
 ==========================

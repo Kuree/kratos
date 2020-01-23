@@ -34,6 +34,10 @@ enum class ExprOp : uint64_t {
     Or,
     And,
     Xor,
+    // logical
+    LAnd,
+    LOr,
+
 
     // relational
     LessThan,
@@ -106,6 +110,8 @@ public:
     Expr &operator>=(const Var &var) const;
     Expr &operator!=(const Var &var) const;
     Expr &eq(const Var &var) const;
+    Expr &operator&&(const Var &var) const;
+    Expr &operator||(const Var &var) const;
     // slice
     virtual VarSlice &operator[](std::pair<uint32_t, uint32_t> slice);
     virtual VarSlice &operator[](uint32_t bit);

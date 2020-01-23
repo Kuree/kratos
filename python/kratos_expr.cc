@@ -162,6 +162,12 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
             },
             py::return_value_policy::reference)  // NOLINT
         .def(
+            "and_", [](const Var &left, const Var &right) -> Expr & { return left && right; },
+            py::return_value_policy::reference)
+        .def(
+            "or_", [](const Var &left, const Var &right) -> Expr & { return left || right; },
+            py::return_value_policy::reference)
+        .def(
             "__xor__", [](const Var &left, const Var &right) -> Expr & { return left ^ right; },
             py::return_value_policy::reference)  // NOLINT
         .def(
@@ -290,6 +296,10 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
                 return convert_int_to_const(left, right) != right;
             },
             py::return_value_policy::reference)
+        .def("__bool__",
+             [](const Var &) {
+                 throw InvalidConversionException("Cannot convert a variable to bool");
+             })
         .def("r_or", &Var::r_or, py::return_value_policy::reference)
         .def("r_xor", &Var::r_xor, py::return_value_policy::reference)
         .def("r_not", &Var::r_not, py::return_value_policy::reference)

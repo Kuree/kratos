@@ -40,6 +40,11 @@ public:
     explicit UserException(const std::string &message) noexcept;
 };
 
+class InvalidConversionException: public std::runtime_error {
+public:
+    explicit InvalidConversionException(const std::string &message) noexcept;
+};
+
 void print_ast_node(const IRNode *node);
 
 template <typename T>

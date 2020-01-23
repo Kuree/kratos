@@ -1494,7 +1494,7 @@ def test_iadd_transform():
     def code():
         a += 1
 
-    mod.add_code(code)
+    mod.add_always(code)
     src = verilog(mod)
     assert "a <= a + 4'h1;" in src["mod"]
     # make sure the line info gets passed down
@@ -1502,5 +1502,35 @@ def test_iadd_transform():
     assert len(stmt.fn_name_ln) == 1
 
 
+def test_if_logical_cond():
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+    b = mod.var("b", 1)
+    c = mod.var("c", 1)
+
+    @always_comb
+    def code():
+        if (not a and b) or a:
+            c = 1
+        else:
+            c = 0
+
+    mod.add_always(code)
+
+    @always_comb
+    def illegal():
+        if 1 and a:
+            c = 1
+
+    verilog(mod, filename="test.sv")
+
+    # test illegal
+    try:
+        mod.add_always(illegal)
+        assert False
+    except SyntaxError:
+        assert True
+
+
 if __name__ == "__main__":
-    test_iadd_transform()
+    test_if_logical_cond()

@@ -26,8 +26,8 @@ def test_assign():
     a = mod.var("a", 2)
     b = mod.var("b", 2)
     assign = a.assign(b)
-    assert assign.left == a
-    assert assign.right == b
+    assert id(assign.left) == id(a)
+    assert id(assign.right) == id(b)
 
 
 def test_signed():
@@ -153,6 +153,16 @@ def test_enum_cast():
     var.assign(casted)
 
 
+def test_bool_except():
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+    try:
+        _ = not a
+        assert False
+    except _kratos.exception.InvalidConversionException:
+        assert True
+
+
 if __name__ == "__main__":
-    test_enum_cast()
+    test_bool_except()
 
