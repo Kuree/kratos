@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.24.1] - 2020-01-22
+### Added
+- Add full docker build image ready for ncsim and verilator
+- Add coverage report from both C++ and python code
+- Expose more C++ to Python
+
+### Changed
+- Refactor get tokens in C++
+
 ## [0.0.24] - 2020-01-17
 ### Added
 - Add a pass to extract all variable information
@@ -17,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix a bug where a sliced vars is added as source instead of
-- sink
+  sink
 
 ## [0.0.23.4] - 2020-01-14
 ### Fixed
