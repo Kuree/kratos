@@ -1009,8 +1009,7 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
         auto p = top->get_port(port_name);
         if (p->size().size() == 1 && p->size()[0] == 1) {
             // this is a normal wire
-            auto& new_port = gen.port(p->port_direction(), port_name, p->width(), p->size(),
-                                      p->port_type(), p->is_signed());
+            auto& new_port = gen.port(*p);
             if (p->port_direction() == PortDirection::In) {
                 gen.add_stmt(p->assign(new_port, AssignmentType::Blocking));
             } else {

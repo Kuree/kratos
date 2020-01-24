@@ -130,8 +130,11 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
     return *p;
 }
 
-Port & Generator::port(const Port &p) {
-    return port(p.port_direction(), p.name, p.width(), p.size(), p.port_type(), p.is_signed());
+Port &Generator::port(const Port &p) {
+    auto &p_ = port(p.port_direction(), p.name, p.width(), p.size(), p.port_type(), p.is_signed());
+    p_.set_explicit_array(p.explicit_array());
+    p_.set_is_packed(p.is_packed());
+    return p_;
 }
 
 EnumPort &Generator::port(kratos::PortDirection direction, const std::string &port_name,
@@ -295,7 +298,7 @@ void Generator::add_child_generator(const std::string &instance_name_,
     add_child_generator(instance_name_, child);
 }
 
-Generator * Generator::get_child_generator(const std::string &instance_name_) {
+Generator *Generator::get_child_generator(const std::string &instance_name_) {
     if (children_.find(instance_name_) != children_.end())
         return children_.at(instance_name_).get();
     return nullptr;
@@ -557,11 +560,11 @@ std::pair<bool, bool> correct_port_direction(Port *port1, Port *port2, Generator
         // by default same direction is fault, however, for modport ones, it is the same direction
         bool interface_port_wire = false;
         if (port1->is_interface() && !port2->is_interface()) {
-            auto port_i = reinterpret_cast<InterfacePort*>(port1);
+            auto port_i = reinterpret_cast<InterfacePort *>(port1);
             auto it = port_i->interface();
             interface_port_wire = !it->is_port();
         } else if (port2->is_interface() && !port1->is_interface()) {
-            auto port_i = reinterpret_cast<InterfacePort*>(port2);
+            auto port_i = reinterpret_cast<InterfacePort *>(port2);
             auto it = port_i->interface();
             interface_port_wire = !it->is_port();
         }
@@ -704,8 +707,8 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
             v = &parent->port(port_name);
         }
         if (!v) {
-            throw UserException((::format("Unable to wire interface {0} with {1}",
-                                          inst1->name(), inst2->name())));
+            throw UserException(
+                (::format("Unable to wire interface {0} with {1}", inst1->name(), inst2->name())));
         }
         if (port->port_direction() == PortDirection::In) {
             add_stmt(port->assign(*v));
@@ -715,9 +718,7 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
     }
 }
 
-void Generator::wire(Var &left, Var &right) {
-    add_stmt(left.assign(right));
-}
+void Generator::wire(Var &left, Var &right) { add_stmt(left.assign(right)); }
 
 std::shared_ptr<Generator> Generator::clone() {
     auto generator = std::make_shared<Generator>(context_, name);
