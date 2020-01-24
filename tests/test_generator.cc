@@ -1104,14 +1104,40 @@ TEST(interface, mod_port) {  // NOLINT
 
 TEST(pass, multiple_driver) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
-    auto &out = mod.port(PortDirection::Out, "out", 1);
-    auto &in1 = mod.port(PortDirection::In, "in1", 1);
-    auto &in2 = mod.port(PortDirection::In, "in2", 1);
-    mod.add_stmt(out.assign(in1));
-    mod.add_stmt(out.assign(in2));
+    auto &mod1 = c.generator("mod1");
+    auto &out = mod1.port(PortDirection::Out, "out", 1);
+    auto &in1 = mod1.port(PortDirection::In, "in1", 1);
+    auto &in2 = mod1.port(PortDirection::In, "in2", 1);
+    mod1.add_stmt(out.assign(in1));
+    mod1.add_stmt(out.assign(in2));
 
-    EXPECT_THROW(check_multiple_driver(&mod), StmtException);
+    EXPECT_THROW(check_multiple_driver(&mod1), StmtException);
+
+    // this won't trigger the check
+    auto &mod2 = c.generator("mod2");
+    auto &a2 = mod2.var("a2", 1);
+    auto &b2 = mod2.var("b2", 1);
+    auto comb = mod2.combinational();
+    comb->add_stmt(a2.assign(constant(0, 1)));
+    auto if_ = std::make_shared<IfStmt>(b2);
+    comb->add_stmt(if_);
+    if_->add_then_stmt(a2.assign(constant(1, 1)));
+    fix_assignment_type(&mod2);
+
+    EXPECT_NO_THROW(check_multiple_driver(&mod2));
+
+    // this will trigger
+    auto &mod3 = c.generator("mod2");
+    auto &a3 = mod3.var("a2", 1);
+    auto &b3 = mod3.var("b2", 1);
+    auto comb3 = mod3.sequential();
+    comb->add_stmt(a3.assign(constant(0, 1)));
+    auto if_3 = std::make_shared<IfStmt>(b3);
+    comb->add_stmt(if_3);
+    if_3->add_then_stmt(a3.assign(constant(1, 1)));
+    fix_assignment_type(&mod3);
+
+    EXPECT_THROW(check_multiple_driver(&mod1), StmtException);
 }
 
 TEST(pass, check_combinational_loop) {  // NOLINT

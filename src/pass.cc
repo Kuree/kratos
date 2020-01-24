@@ -2542,7 +2542,24 @@ private:
                     // hence parent == ref_parent
                     // and they should belong to the same root scope. for top level assignments
                     // the root scope is itself
-                    if (parent == ref_parent || stmt_parent != ref_stmt_parent) {
+                    // notice that there is a caveat. in combinational block, as long as the
+                    // they are in the same stmt parent, they can have different scope, since
+                    // having different scope implies priority. as a result, we need to filter
+                    // this case out
+                    bool has_multiple_driver = parent == ref_parent;
+                    if (!has_multiple_driver) {
+                        // skip the special case
+                        if (stmt_parent == ref_stmt_parent && stmt_parent->ir_node_kind() == IRNodeKind::StmtKind) {
+                            auto st = dynamic_cast<Stmt*>(stmt_parent);
+                            if (st && st->type() == StatementType::Block) {
+                                auto block = dynamic_cast<StmtBlock*>(st);
+                                if (block->block_type() == StatementBlockType::Combinational) {
+                                    has_multiple_driver = false;
+                                }
+                            }
+                        }
+                    }
+                    if (has_multiple_driver) {
                         throw StmtException(::format("{0} has multiple driver in the same scope",
                                                      var->handle_name()),
                                             {var, parent, stmt.get()});
