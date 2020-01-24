@@ -1127,17 +1127,38 @@ TEST(pass, multiple_driver) {  // NOLINT
     EXPECT_NO_THROW(check_multiple_driver(&mod2));
 
     // this will trigger
-    auto &mod3 = c.generator("mod2");
+    auto &mod3 = c.generator("mod3");
     auto &a3 = mod3.var("a2", 1);
     auto &b3 = mod3.var("b2", 1);
-    auto comb3 = mod3.sequential();
-    comb->add_stmt(a3.assign(constant(0, 1)));
+    auto seq3 = mod3.sequential();
+    seq3->add_stmt(a3.assign(constant(0, 1)));
     auto if_3 = std::make_shared<IfStmt>(b3);
-    comb->add_stmt(if_3);
+    seq3->add_stmt(if_3);
     if_3->add_then_stmt(a3.assign(constant(1, 1)));
     fix_assignment_type(&mod3);
 
-    EXPECT_THROW(check_multiple_driver(&mod1), StmtException);
+    EXPECT_THROW(check_multiple_driver(&mod3), StmtException);
+
+    // this will not trigger
+    auto &mod4 = c.generator("mod4");
+    auto &a4 = mod4.var("a4", 1);
+    auto comb4 = mod4.combinational();
+    comb->add_stmt(a4.assign(constant(0, 1)));
+    comb->add_stmt(a4.assign(constant(1, 1)));
+    fix_assignment_type(&mod4);
+    EXPECT_NO_THROW(check_multiple_driver(&mod4));
+
+    // this will not trigger
+    auto &mod5 = c.generator("mod5");
+    auto &a5 = mod4.var("a5", 1);
+    auto &b5 = mod5.var("b5", 1);
+    auto seq5 = mod5.sequential();
+    auto if5 = std::make_shared<IfStmt>(b5);
+    seq5->add_stmt(if5);
+    if5->add_then_stmt(a5.assign(constant(0, 1)));
+    if5->add_else_stmt(a5.assign(constant(0, 1)));
+    fix_assignment_type(&mod5);
+    EXPECT_NO_THROW(check_multiple_driver(&mod5));
 }
 
 TEST(pass, check_combinational_loop) {  // NOLINT

@@ -564,9 +564,8 @@ void generate_verilog(Generator* top, const std::string& output_dir,
         out << src;
         // tell the system where it went, if allowed
         auto gens = top->context()->get_generators_by_name(module_name);
-        for (auto const &gen: gens) {
-            if (gen->debug)
-                gen->verilog_fn = path;
+        for (auto const& gen : gens) {
+            if (gen->debug) gen->verilog_fn = path;
         }
     }
     // output debug info as well, if required
@@ -2525,6 +2524,23 @@ public:
     void visit(Port* port) override { check_var(port); }
 
 private:
+    static bool share_root(IRNode* node1, IRNode* node2) {
+        std::set<IRNode*> nodes1;
+        std::set<IRNode*> nodes2;
+        while (node1->parent() && node1->parent()->ir_node_kind() == IRNodeKind::StmtKind) {
+            nodes1.emplace(node1);
+            node1 = node1->parent();
+        }
+        while (node2->parent() && node2->parent()->ir_node_kind() == IRNodeKind::StmtKind) {
+            nodes2.emplace(node2);
+            node2 = node2->parent();
+        }
+        std::set<IRNode*> diff;
+        std::set_intersection(nodes1.begin(), nodes1.end(), nodes2.begin(), nodes2.end(),
+                              std::inserter(diff, diff.begin()));
+        return !diff.empty();
+    }
+
     static void check_var(Var* var) {
         std::unordered_map<uint32_t, std::pair<IRNode*, Stmt*>> parents;
         for (auto const& stmt : var->sources()) {
@@ -2539,22 +2555,35 @@ private:
                     auto const& [ref_parent, ref_stmt_parent] = parents.at(i);
                     // the purpose of the following statement is to make sure that there is no
                     // other assignment that's assigning the same var slice in the same scope
-                    // hence parent == ref_parent
-                    // and they should belong to the same root scope. for top level assignments
-                    // the root scope is itself
+                    // it cannot be driven through different blocks, either.
                     // notice that there is a caveat. in combinational block, as long as the
                     // they are in the same stmt parent, they can have different scope, since
                     // having different scope implies priority. as a result, we need to filter
                     // this case out
-                    bool has_multiple_driver = parent == ref_parent;
+                    bool has_multiple_driver = stmt_parent != ref_stmt_parent;
                     if (!has_multiple_driver) {
                         // skip the special case
-                        if (stmt_parent == ref_stmt_parent && stmt_parent->ir_node_kind() == IRNodeKind::StmtKind) {
-                            auto st = dynamic_cast<Stmt*>(stmt_parent);
-                            if (st && st->type() == StatementType::Block) {
-                                auto block = dynamic_cast<StmtBlock*>(st);
-                                if (block->block_type() == StatementBlockType::Combinational) {
-                                    has_multiple_driver = false;
+                        if (parent == ref_parent) {
+                            has_multiple_driver = true;
+                            if (stmt_parent->ir_node_kind() == IRNodeKind::StmtKind) {
+                                auto st = dynamic_cast<Stmt*>(stmt_parent);
+                                if (st && st->type() == StatementType::Block) {
+                                    auto block = dynamic_cast<StmtBlock*>(st);
+                                    if (block->block_type() == StatementBlockType::Combinational) {
+                                        has_multiple_driver = false;
+                                    }
+                                }
+                            }
+                        } else {
+                            if (stmt_parent->ir_node_kind() == IRNodeKind::StmtKind) {
+                                auto st = dynamic_cast<Stmt*>(stmt_parent);
+                                if (st && st->type() == StatementType::Block) {
+                                    auto block = dynamic_cast<StmtBlock*>(st);
+                                    if (block->block_type() == StatementBlockType::Sequential) {
+                                        // TODO: this algorithm is not perfect as it only
+                                        //  accounts for standalone assignments
+                                        has_multiple_driver = !share_root(parent, ref_parent);
+                                    }
                                 }
                             }
                         }
