@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.24.3] - 2020-01-23
+### Fixed
+- Fix multi-driver algorithm again
+
 ## [0.0.24.2] - 2020-01-23
 ### Added
 - Add logical operator, i.e. && and ||
