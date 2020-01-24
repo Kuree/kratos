@@ -353,15 +353,17 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     }
 }
 
-std::string VarSlice::get_slice_name(const std::string &parent_name, uint32_t high, uint32_t low) {
-    if (high == low)
-        return ::format("{0}[{1}]", parent_name, high);
-    else
-        return ::format("{0}[{1}:{2}]", parent_name, high, low);
-}
-
 std::string VarSlice::to_string() const {
-    return get_slice_name(parent_var->to_string(), high, low);
+    auto const &parent_name = parent_var->to_string();
+    if (high == low) {
+        if (high == 0 && parent_var->width() == 1) {
+            return parent_name;
+        }
+        return ::format("{0}[{1}]", parent_name, high);
+    }
+    else {
+        return ::format("{0}[{1}:{2}]", parent_name, high, low);
+    }
 }
 
 const Var *VarSlice::get_var_root_parent() const {

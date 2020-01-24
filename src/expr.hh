@@ -312,8 +312,6 @@ public:
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
-    static std::string get_slice_name(const std::string &parent_name, uint32_t high, uint32_t low);
-
     std::string to_string() const override;
 
     uint32_t var_high() const override { return var_high_; }

@@ -58,6 +58,9 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ(slice_expr.to_string(), "d[2:0]");
     // test the raw interface. users should not do that
     EXPECT_EQ(VarSlice(&wire, 2, 1).width(), 2);
+    // test empty slice
+    Var &bit = mod.var("e", 1);
+    EXPECT_EQ(bit[0].to_string(), "e");
 
     // test other ops
     EXPECT_EQ((var1.eq(var3)).to_string(), "a == c");
