@@ -342,6 +342,18 @@ void FSM::generate_state_transition(
             case_state_comb->add_switch_case(enum_def.get_enum(state_name), top_if);
         }
     }
+
+    // if it has child fsms, need to prevent latch from happening
+    if (!child_fsms_.empty()) {
+        state_comb->add_stmt(next_state.assign(current_state, AssignmentType::Blocking));
+    }
+    // also default case
+    if (case_state_comb->body().find(nullptr) == case_state_comb->body().end() &&
+        !is_2_power(case_state_comb->body().size())) {
+        case_state_comb->add_switch_case(
+            nullptr, next_state.assign(current_state, AssignmentType::Blocking));
+    }
+
     // add it to the state_comb
     state_comb->add_stmt(case_state_comb);
 }
