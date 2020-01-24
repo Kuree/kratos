@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.24.2] - 2020-01-23
+### Added
+- Add logical operator, i.e. && and ||
+- Add direct python code transform from short-circuited boolean ops to proper function calls
+- Add additional support for passes in Python. Improve Attribute creation
+
+### Fixed
+- Fix the bug in nested var slice; the VarSlice class tried to walk the chain back, which is wrong
+- Fix a multi-driver bug where you can have priority assignment in an combinational block
+
+### Changed
+- Refactor get tokens in C++
+
 ## [0.0.24.1] - 2020-01-22
 ### Added
 - Add full docker build image ready for ncsim and verilator
