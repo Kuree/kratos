@@ -1515,5 +1515,27 @@ def test_if_logical_cond():
         assert True
 
 
+def test_wiring_with_instantiation():
+    mod = Generator("parent")
+    child = Generator("child")
+    a = mod.var("a", 1)
+    mod.var("b", 1)
+    mod.output("c", 1)
+    child_in = child.input("in_port", 1)
+    child_out1 = child.output("out_port1", 1)
+    child_out2 = child.output("out_port2", 1)
+    child.wire(child_out1, child_in)
+    child.wire(child_out2, child_in)
+    # we use the port name to instantiate the connection
+    # due to Python's limitation, we can use keyword such as "in"
+    # the syntax is child_port_name=parent_port
+    # where parent port can be either port name or port variable
+    mod.add_child("child_inst", child,
+                  in_port=a, out_port1="b", out_port2="c")
+    r = verilog(mod)
+    print(r["parent"])
+    assert ".out_port1(b)" in r["parent"]
+
+
 if __name__ == "__main__":
-    test_clone()
+    test_wiring_with_instantiation()

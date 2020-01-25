@@ -665,7 +665,7 @@ class Generator(metaclass=GeneratorMeta):
         self.__generator.remove_stmt(stmt)
 
     def add_child_generator(self, instance_name: str, generator: "Generator",
-                            comment=""):
+                            comment="", **kargs):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_child_generator,
                                                  (instance_name, generator)))
@@ -690,6 +690,15 @@ class Generator(metaclass=GeneratorMeta):
                                                  generator.__generator)
         if comment:
             self.__generator.set_child_comment(instance_name, comment)
+
+        # bulk wiring
+        for child_port, parent_port in kargs.items():
+            if isinstance(parent_port, str):
+                if parent_port in self.ports:
+                    parent_port = self.ports[parent_port]
+                else:
+                    parent_port = self.vars[parent_port]
+            self.wire(generator.ports[child_port], parent_port)
 
     # alias
     add_child = add_child_generator
