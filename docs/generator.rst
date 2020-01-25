@@ -126,7 +126,9 @@ Constants
 ---------
 
 Kratos's Python front-end will try it's best to do conversation, when it
-deeds type-safe. However, if due to either type checking or some special
+deeds type-safe. For instance, you can directly adding python integers to
+a Kratos variable, or simply ``wire(a, 1)``, where ``a`` is a Kratos variable.
+However, if due to either type checking or some special
 cases where the type conversation doesn't work, you can call ``const``
 function to specify the constant value. The rule of thumb is to use
 explicit constant call as much as possible and only use the implicit
@@ -253,6 +255,34 @@ generator through `self[inst_name]` method. ``__getitem__()``
 has been overloaded to get the child.
 
 This is a required step to properly instantiate the sub modules.
+
+In addition to use ``wire()`` function to obtain the desired the connection
+between the parent and child, you can also pass the connection when adding
+the child generator, similar to how you instantiate a child instance in
+RTL:
+
+.. code-block:: Python
+
+    parent = Generator("parent")
+    child = Generator("child")
+    a = parent.var("a", 1)
+    parent.var("b", 1)
+    parent.output("c", 1)
+    child_in = child.input("in_port", 1)
+    child_out1 = child.output("out_port1", 1)
+    child_out2 = child.output("out_port2", 1)
+    # we use the port name to instantiate the connection
+    # due to Python's limitation, we can use keyword such as "in"
+    # the syntax is child_port_name=parent_port
+    # where parent port can be either port name or port variable
+    parent.add_child("child_inst", child,
+                     in_port=a, out_port1="b", out_port2="c")
+
+
+As stated in comment section, it uses Python's ``kwargs`` to pass in child
+port names and parent port. Since child port names are used as keywords, they
+cannot be parameterized like format string or list array, which is the
+limitation. If that is the case, we can always use ``wire`` function.
 
 .. note::
 
