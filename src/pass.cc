@@ -728,6 +728,12 @@ public:
     }
 
 private:
+    static inline bool correct_src_type(Var* src, Generator* generator) {
+        return src->type() == VarType::Base || src->type() == VarType::ConstValue ||
+               src->type() == VarType::Parameter ||
+               (src->type() == VarType::PortIO && src->parent() == generator->parent());
+    }
+
     static void process_port(Generator* generator, Port* port, const std::string& port_name) {
         auto const port_direction = port->port_direction();
         if (port_direction == PortDirection::In) {
@@ -739,15 +745,9 @@ private:
                 if (stmt->left() == port) {
                     // the sink has to be it self
                     auto src = stmt->right();
-                    if (src->type() == VarType::Base || src->type() == VarType::ConstValue ||
-                        src->type() == VarType::Parameter ||
-                        (src->type() == VarType::PortIO && src->parent() == generator->parent())) {
-                        // remove it from the parent generator
-                        src->generator->remove_stmt(stmt);
-                        return;
-                    } else if (src->type() == VarType::Slice &&
-                               src->parent() == generator->parent()) {
-                        // remove as well since it's the top level wire assignment
+                    if (correct_src_type(src, generator) ||
+                        // here we are okay with input sliced in
+                        (src->type() == VarType::Slice && src->parent() == generator->parent())) {
                         // remove it from the parent generator
                         src->generator->remove_stmt(stmt);
                         return;
@@ -790,13 +790,14 @@ private:
             if (sinks.size() == 1) {
                 auto stmt = *(sinks.begin());
                 auto src = stmt->left();
-                bool correct_src_type;
+                bool correct_src_type_;
                 if (!src->is_interface()) {
-                    correct_src_type = src->type() == VarType::PortIO;
+                    // as long as it is not an expression, it is fine
+                    correct_src_type_ = correct_src_type(src, generator);
                 } else {
-                    correct_src_type = true;
+                    correct_src_type_ = true;
                 }
-                if (correct_src_type && src->generator == generator->parent() &&
+                if (correct_src_type_ && src->generator == generator->parent() &&
                     stmt->right() == port) {
                     // remove it from the parent generator
                     stmt->remove_from_parent();
