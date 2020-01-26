@@ -490,6 +490,10 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
     if (interfaces_.find(def->name()) != interfaces_.end()) {
         throw UserException(::format("{0} already exists in {1}", def->name(), instance_name));
     }
+    // check to see if it's a valid name
+    if (!is_valid_variable_name(interface_name)) {
+        throw UserException(::format("{0} is a SystemVerilog keyword", name));
+    }
     // create vars
     auto const &vars = def->vars();
     auto ref = std::make_shared<InterfaceRef>(def, this, interface_name);

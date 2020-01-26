@@ -103,7 +103,7 @@ std::shared_ptr<AssignStmt> EnumPort::assign__(const std::shared_ptr<Var>& var,
 
 PortPackedStruct::PortPackedStruct(Generator* module, PortDirection direction,
                                    const std::string& name, PackedStruct packed_struct_)
-    : Port(module, direction, name, 0, 1, PortType::Data, false),
+    : Port(module, direction, name, 1, 1, PortType::Data, false),
       struct_(std::move(packed_struct_)) {
     // compute the width
     uint32_t width = 0;

@@ -149,11 +149,11 @@ Expr &Var::operator!=(const Var &var) const {
     return generator->expr(ExprOp::Neq, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
-Expr & Var::operator&&(const Var &var) const {
+Expr &Var::operator&&(const Var &var) const {
     return generator->expr(ExprOp::LAnd, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
-Expr & Var::operator||(const Var &var) const {
+Expr &Var::operator||(const Var &var) const {
     return generator->expr(ExprOp::LOr, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
@@ -521,6 +521,7 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
         throw UserException(::format("module is null for {0}", name));
     if (!is_valid_variable_name(name))
         throw UserException(::format("{0} is a SystemVerilog keyword", name));
+    if (width() == 0) throw UserException(::format("variable {0} cannot have size 0", name));
 }
 
 IRNode *Var::parent() { return generator; }
@@ -1218,7 +1219,7 @@ PackedSlice &VarPackedStruct::operator[](const std::string &member_name) {
 }
 
 VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_)
-    : Var(m, name, 0, 1, false), struct_(std::move(packed_struct_)) {
+    : Var(m, name, 1, 1, false), struct_(std::move(packed_struct_)) {
     // compute the width
     uint32_t width = 0;
     for (auto const &def : struct_.attributes) {
@@ -1239,8 +1240,11 @@ void VarPackedStruct::set_is_packed(bool value) {
     if (!value) throw UserException("Unable to set packed struct unpacked");
 }
 
-Enum::Enum(std::string name, const std::map<std::string, uint64_t> &values, uint32_t width)
-    : name(std::move(name)), width_(width) {
+Enum::Enum(const std::string &name, const std::map<std::string, uint64_t> &values, uint32_t width)
+    : name(name), width_(width) {
+    if (!is_valid_variable_name(name)) {
+        throw UserException(::format("{0} is a SystemVerilog keyword", name));
+    }
     for (auto const &[n, value] : values) {
         auto c = std::make_shared<EnumConst>(Const::const_gen(), value, width, this, n);
         this->values.emplace(n, c);
@@ -1330,7 +1334,7 @@ std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
 FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStmtBlock> &func_def,
                                  const std::map<std::string, std::shared_ptr<Var>> &args,
                                  bool has_return)
-    : Var(m, "", 0, 0, false), func_def_(func_def.get()), args_(args) {
+    : Var(m, "", 1, 1, false), func_def_(func_def.get()), args_(args) {
     // check the function call types
     auto ports = func_def->ports();
     for (auto const &[port_name, func_port] : ports) {

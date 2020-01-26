@@ -576,7 +576,7 @@ private:
 
 struct Enum : std::enable_shared_from_this<Enum> {
 public:
-    Enum(std::string name, const std::map<std::string, uint64_t> &values, uint32_t width);
+    Enum(const std::string &name, const std::map<std::string, uint64_t> &values, uint32_t width);
     std::map<std::string, std::shared_ptr<EnumConst>> values;
     std::string name;
 

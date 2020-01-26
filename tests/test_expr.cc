@@ -319,3 +319,14 @@ TEST(expr, bit_slice) { // NOLINT
     EXPECT_EQ(v_1.var_high(), 1);
     EXPECT_EQ(v_1.var_low(), 1);
 }
+
+TEST(var, valid_check) {    // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+
+    EXPECT_THROW(context.generator("var"), UserException);
+    EXPECT_THROW(mod.var("config", 1), UserException);
+    EXPECT_THROW(mod.var("a", 0), UserException);
+    EXPECT_THROW(Enum("var", {}, 1), UserException);
+
+}
