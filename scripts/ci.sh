@@ -4,17 +4,17 @@ set -e
 if [[ "$OS" == "linux" ]]; then
     if [[ "$BUILD_WHEEL" == true ]]; then
         docker pull keyiz/manylinux
-        docker pull keyiz/garnet-flow
+        docker pull keyiz/kratos:test
         docker run -d --name manylinux --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos keyiz/manylinux bash
-        docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/garnet-flow bash
+        docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/kratos:test bash
 
         docker exec -i manylinux bash -c 'cd kratos && python setup.py bdist_wheel'
         docker exec -i manylinux bash -c 'cd kratos && auditwheel show dist/*'
         docker exec -i manylinux bash -c 'cd kratos && auditwheel repair dist/*'
         docker exec -i manylinux-test bash -c 'cd kratos && pip install pytest wheelhouse/* && pytest -v tests/'
     elif [[ "$BUILD_WHEEL" == false ]]; then
-        docker pull keyiz/garnet-flow
-        docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/garnet-flow bash
+        docker pull keyiz/kratos:test
+        docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/kratos:test bash
 
         docker exec -i manylinux-test bash -c 'cd kratos && mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug'
         docker exec -i manylinux-test bash -c "cd kratos/build && make -j2"
