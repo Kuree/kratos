@@ -86,6 +86,7 @@ add_subdirectory(extern/sqlite)
 
 ############# Tests #############
 include(GoogleTest)
+include (CTest)
 
 add_subdirectory(src)
 add_subdirectory(python)

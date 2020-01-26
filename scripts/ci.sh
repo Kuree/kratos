@@ -18,7 +18,7 @@ if [[ "$OS" == "linux" ]]; then
 
         docker exec -i manylinux-test bash -c 'cd kratos && mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug'
         docker exec -i manylinux-test bash -c "cd kratos/build && make -j2"
-        docker exec -i manylinux-test bash -c "cd kratos/build && make test"
+        docker exec -i manylinux-test bash -c "cd kratos/build && ctest -T memcheck"
     else
         docker pull keyiz/clang-tidy
         docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/clang-tidy bash
