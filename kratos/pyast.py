@@ -142,8 +142,14 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 self.key_pair.append((target.id, value))
                 n = self.visit(n)
                 self.key_pair.pop(len(self.key_pair) - 1)
-                new_node.append(n)
-                self.target_node[n] = (target.id, value)
+
+                if isinstance(n, list):
+                    for n_ in n:
+                        new_node.append(n_)
+                        self.target_node[n_] = (target.id, value)
+                else:
+                    new_node.append(n)
+                    self.target_node[n] = (target.id, value)
         return new_node
 
     def __change_if_predicate(self, node):

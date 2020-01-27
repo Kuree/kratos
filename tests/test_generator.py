@@ -1537,5 +1537,21 @@ def test_wiring_with_instantiation():
     assert ".out_port1(b)" in r["parent"]
 
 
+def test_nested_loop():
+    mod = Generator("mod")
+    a = mod.var("a", 8)
+
+    @always_comb
+    def code():
+        for i in range(2):
+            a[i] = i
+            for j in range(4):
+                a[i * 4 + j] = 1
+
+    mod.add_always(code)
+    src = verilog(mod)["mod"]
+    assert "a[7] = 1'h1;" in src
+
+
 if __name__ == "__main__":
-    test_wiring_with_instantiation()
+    test_nested_loop()
