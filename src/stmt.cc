@@ -64,15 +64,16 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
     if (right == nullptr) throw UserException("right hand side is empty");
     // check for sign
     if (left->is_signed() != right->is_signed()) {
-        throw VarException(::format("left ({0})'s sign does not match with right ({1}). {2} <- {3}",
-                                    left->name, right->name, left->is_signed(), right->is_signed()),
-                           {left.get(), right.get()});
+        throw VarException(
+            ::format("left ({0})'s sign does not match with right ({1}). {2} <- {3}",
+                     left->to_string(), right->to_string(), left->is_signed(), right->is_signed()),
+            {left.get(), right.get()});
     }
     // check for width
     if (left->width() != right->width()) {
         throw VarException(
-            ::format("left ({0})'s width does not match with right ({1}). {2} <- {3}", left->name,
-                     right->name, left->width(), right->width()),
+            ::format("left ({0})'s width does not match with right ({1}). {2} <- {3}",
+                     left->to_string(), right->to_string(), left->width(), right->width()),
             {left.get(), right.get()});
     }
     if (((left->size().front() > 1 || left->size().size() > 1 || left->explicit_array()) ||
@@ -245,10 +246,10 @@ void SequentialStmtBlock::add_condition(
     conditions_.emplace_back(condition);
 }
 
-IRNode * SequentialStmtBlock::get_child(uint64_t index) {
+IRNode *SequentialStmtBlock::get_child(uint64_t index) {
     if (index < stmts_.size()) {
         return stmts_[index].get();
-    } else  if (index < stmts_.size() + conditions_.size()) {
+    } else if (index < stmts_.size() + conditions_.size()) {
         auto const &cond = conditions_[index - stmts_.size()];
         return cond.second.get();
     }
