@@ -27,5 +27,5 @@ endif()
 # clang-tidy
 if (${USE_CLANG_TIDY})
     MESSAGE("Running clang-tidy")
-    set_target_properties(kratos PROPERTIES CXX_CLANG_TIDY "clang-tidy;-checks=bugprone-*,clang-*,misc-*,modernize-*,readability;--warnings-as-errors=*")
+    set_target_properties(kratos PROPERTIES CXX_CLANG_TIDY "clang-tidy")
 endif()

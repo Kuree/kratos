@@ -28,7 +28,7 @@ std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_
 class AssignmentTypeVisitor : public IRVisitor {
 public:
     explicit AssignmentTypeVisitor(AssignmentType type, bool check_type = true)
-        : IRVisitor(), type_(type), check_type_(check_type) {}
+        : type_(type), check_type_(check_type) {}
     void visit(AssignStmt* stmt) override {
         if (stmt->assign_type() == AssignmentType::Undefined) {
             stmt->set_assign_type(type_);
@@ -2469,7 +2469,7 @@ private:
 
     class IfVisitor : public IRVisitor {
     public:
-        explicit IfVisitor(Var* var) : IRVisitor(), var_(var) {}
+        explicit IfVisitor(Var* var) : var_(var) {}
         void visit(IfStmt* stmt) override {
             if (has_var(stmt->predicate().get(), var_)) ifs_.emplace(stmt);
         }

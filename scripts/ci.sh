@@ -20,8 +20,8 @@ if [[ "$OS" == "linux" ]]; then
         docker exec -i manylinux-test bash -c "cd kratos/build && make -j2"
         docker exec -i manylinux-test bash -c "cd kratos/build && ctest -T memcheck"
     else
-        docker pull keyiz/clang-tidy
-        docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/clang-tidy bash
+        docker pull keyiz/kratos:test
+        docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/kratos:test bash
 
         docker exec -i manylinux-test bash -c 'cd kratos && mkdir build && cd build && cmake -DUSE_CLANG_TIDY=TRUE ..'
         docker exec -i manylinux-test bash -c "cd kratos/build && make kratos -j2"

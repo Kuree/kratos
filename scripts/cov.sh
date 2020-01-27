@@ -2,7 +2,6 @@
 set -e
 
 docker run -it -d --name cov --mount type=bind,source="$(pwd)"/../kratos,target=/kratos keyiz/kratos:test bash
-docker exec -i cov bash -c "apt update && apt install -y lcov"
 docker exec -i cov bash -c "cd /kratos && KRATOS_COVERAGE=1 python3 -m pip install -e ."
 docker exec -i cov bash -c "cd /kratos/build/temp.linux-x86_64-3.7 && make -j2"
 docker exec -i cov bash -c "cd /kratos/build/temp.linux-x86_64-3.7 && make test"

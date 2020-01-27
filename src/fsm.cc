@@ -375,7 +375,8 @@ std::shared_ptr<AssignStmt> FSM::get_next_state_stmt(
 }
 std::shared_ptr<FunctionCallStmt>& FSM::get_func_call_stmt(
     const std::shared_ptr<FunctionStmtBlock>& func_def, const FSMState* fsm_state,
-    std::shared_ptr<FunctionCallStmt>& func_stmt) const {  // get arg mapping
+    std::shared_ptr<FunctionCallStmt>& func_stmt) {
+    // get arg mapping
     std::map<std::string, std::shared_ptr<Var>> mapping;
     auto const& output_values = fsm_state->output_values();
     for (auto const& [var_from, var_to] : output_values) {

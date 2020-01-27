@@ -82,9 +82,9 @@ private:
     void generate_output(Enum &enum_def, EnumVar &current_state,
                          const std::unordered_map<FSMState *, std::string> &state_name_mapping);
     std::shared_ptr<FunctionStmtBlock> get_func_def();
-    std::shared_ptr<FunctionCallStmt> &get_func_call_stmt(
+    static std::shared_ptr<FunctionCallStmt> &get_func_call_stmt(
         const std::shared_ptr<FunctionStmtBlock> &func_def, const FSMState *fsm_state,
-        std::shared_ptr<FunctionCallStmt> &func_stmt) const;
+        std::shared_ptr<FunctionCallStmt> &func_stmt);
 
     FSM *parent_fsm_ = nullptr;
     std::map<std::string, FSM *> child_fsms_;

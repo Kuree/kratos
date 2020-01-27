@@ -102,7 +102,7 @@ void inject_debug_break_points(Generator *top) {
 
 class InstanceIdVisitor : public IRVisitor {
 public:
-    explicit InstanceIdVisitor(Context *context) : context_(context), mutex_() {}
+    explicit InstanceIdVisitor(Context *context) : context_(context) {}
 
     void visit(Generator *gen) override {
         if (gen->generator_id < 0) {
@@ -771,7 +771,7 @@ public:
     void visit(SequentialStmtBlock *block) override { process_block(block); }
     void visit(CombinationalStmtBlock *block) override { process_block(block); }
 
-    void process_block(StmtBlock *block) const {
+    static void process_block(StmtBlock *block) {
         auto stmt_count = block->child_count();
         std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
         for (uint64_t i = 0; i < stmt_count; i++) {

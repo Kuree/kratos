@@ -13,7 +13,7 @@ namespace kratos {
 
 class DependencyVisitor : public IRVisitor {
 public:
-    DependencyVisitor() : dependency_() {}
+    DependencyVisitor() = default;
 
     void visit(Generator *generator) override {
         // visit the top and find out top level assignments
