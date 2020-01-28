@@ -984,6 +984,9 @@ TEST(pass, merge_if_1) {  // NOLINT
     if2->add_then_stmt(assign2);
     comb->add_stmt(if_);
     comb->add_stmt(if2);
+    auto attr = std::make_shared<Attribute>();
+    attr->value_str = "merge_if_block";
+    comb->add_attribute(attr);
     merge_if_block(&mod);
     EXPECT_EQ(comb->size(), 1);
     EXPECT_EQ(comb->get_child(0), if_.get());
@@ -1007,6 +1010,9 @@ TEST(pass, merge_if_2) {  // NOLINT
     if2->add_then_stmt(assign2);
     comb->add_stmt(if_);
     comb->add_stmt(if2);
+    auto attr = std::make_shared<Attribute>();
+    attr->value_str = "merge_if_block";
+    comb->add_attribute(attr);
     merge_if_block(&mod);
     EXPECT_EQ(comb->size(), 1);
     EXPECT_EQ(comb->get_child(0), if_.get());

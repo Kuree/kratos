@@ -1554,23 +1554,27 @@ def test_nested_loop():
 
 
 def test_turn_off_optimization():
-    mod = Generator("mod")
-    a = mod.var("a", 2)
-    b = mod.var("b", 2)
-    c = mod.var("c", 2)
-    clk = mod.clock("clk")
+    class Mod(Generator):
+        def __init__(self, merge):
+            super().__init__("mod")
+            a = self.var("a", 2)
+            b = self.var("b", 2)
+            c = self.var("c", 2)
+            clk = self.clock("clk")
 
-    @always_ff((posedge, clk))
-    def code():
-        if a == 0:
-            b = 0
-        if a == 1:
-            c = 1
+            @always_ff((posedge, clk))
+            def code():
+                if a == 0:
+                    b = 0
+                if a == 1:
+                    c = 1
 
-    mod.add_always(code, merge_if=False)
-    src = verilog(mod)["mod"]
+            self.add_always(code, merge_if_block=merge)
+    src = verilog(Mod(False))["mod"]
     assert "  if (a == 2'h1) begin" in src
-    assert "elif" not in src
+    assert "else if" not in src
+    src = verilog(Mod(True))["mod"]
+    assert "else if" in src
 
 
 if __name__ == "__main__":

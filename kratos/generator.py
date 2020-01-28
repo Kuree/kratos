@@ -572,8 +572,8 @@ class Generator(metaclass=GeneratorMeta):
             from .passes import Attribute
             for key, value in kargs.items():
                 bool_val = bool(value)
-                if not bool_val:
-                    node.add_attribute(Attribute.create("skip_" + key))
+                if bool_val:
+                    node.add_attribute(Attribute.create(key))
         return node
 
     add_code = add_always
