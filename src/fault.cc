@@ -367,8 +367,13 @@ std::string get_filename_after_root(const std::string &root, const std::string &
     return filename.substr(pos);
 }
 
+
 void FaultAnalyzer::output_coverage_xml(const std::string &filename) {
     std::ofstream stream(filename, std::ofstream::trunc | std::ostream::out);
+    output_coverage_xml(stream);
+}
+
+void FaultAnalyzer::output_coverage_xml(std::ostream &stream) {
     const std::string header =
         "<!DOCTYPE coverage SYSTEM "
         "'http://cobertura.sourceforge.net/xml/coverage-04.dtd'>";
@@ -403,7 +408,7 @@ void FaultAnalyzer::output_coverage_xml(const std::string &filename) {
     std::unordered_map<IRNode *, uint32_t> line_cover_count;
     for (auto stmt : total_lines) {
         auto parent = has_parent(total_branches, stmt);
-        if (parent) {
+        if (parent && branch_cover_count.find(parent) != branch_cover_count.end()) {
             auto count = branch_cover_count.at(parent);
             line_cover_count.emplace(stmt, count);
         }

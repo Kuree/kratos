@@ -1,4 +1,5 @@
 #include <fmt/format.h>
+#include <sstream>
 
 #include "../src/except.hh"
 #include "../src/fault.hh"
@@ -79,7 +80,7 @@ std::pair<Generator &, SequentialStmtBlock *> create_verilator_mod(Context &c) {
 }
 
 TEST(fault, parse_verilog_cov_file) {  // NOLINT
-    // const std::string filename = "cov.dat";
+    const std::string filename = "cov.dat";
     Context c;
     auto iter = create_verilator_mod(c);
     auto &mod = iter.first;
@@ -90,7 +91,7 @@ TEST(fault, parse_verilog_cov_file) {  // NOLINT
 
     auto if_ = seq->get_stmt(0)->as<IfStmt>();
 
-    auto coverage = parse_verilator_coverage(&mod, "cov.dat");
+    auto coverage = parse_verilator_coverage(&mod, filename);
     EXPECT_EQ(coverage.size(), 2);
     EXPECT_TRUE(coverage.find(if_->then_body().get()) != coverage.end());
     EXPECT_TRUE(coverage.find(if_->else_body().get()) != coverage.end());
@@ -106,7 +107,7 @@ TEST(fault, parse_verilog_cov_file) {  // NOLINT
 }
 
 TEST(fault, produce_cov_xml) {  // NOLINT
-    // const std::string filename = "cov.dat";
+    const std::string filename = "cov.dat";
     Context c;
     auto iter = create_verilator_mod(c);
     auto &mod = iter.first;
@@ -115,22 +116,16 @@ TEST(fault, produce_cov_xml) {  // NOLINT
     // fake the output
     mod.verilog_fn = "mod.sv";
 
-    auto coverage = parse_verilator_coverage(&mod, "cov.dat");
+    auto coverage = parse_verilator_coverage(&mod, filename);
     auto run = std::make_shared<SimulationRun>(&mod);
     run->add_simulation_coverage(coverage);
     FaultAnalyzer fault(&mod);
     fault.add_simulation_run(run);
     fault.compute_fault_stmts_from_coverage();
 
-    // we only does this test on linux
-    // so it should be fine
-    auto temp_dir = fs::temp_directory_path();
-    std::string output_filename = fs::join(temp_dir, "cov.xml");
-    fault.output_coverage_xml(output_filename);
-
-    // read the input in
-    std::ifstream in(output_filename);
-    std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    std::stringstream stream;
+    fault.output_coverage_xml(stream);
+    auto content = stream.str();
 
     // make sure both if statements and assignments are covered
     auto seq = iter.second;

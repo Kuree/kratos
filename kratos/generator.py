@@ -97,6 +97,9 @@ class CodeBlock:
     def __getitem__(self, item):
         return self._block[item]
 
+    def add_attribute(self, attr):
+        self._block.add_attribute(attr)
+
 
 class SequentialCodeBlock(CodeBlock):
     def __init__(self, generator, sensitivity_list,
@@ -524,8 +527,9 @@ class Generator(metaclass=GeneratorMeta):
         return self.__generator
 
     def add_always(self, fn, comment="", label="", sensitivity=None,
-                   fn_ln=None):
+                   fn_ln=None, **kargs):
         if self.is_cloned:
+            # TODO: fix this with kargs
             self.__cached_initialization.append((self.add_code, [fn, comment]))
             return
         block_type, raw_sensitives, stmts = transform_stmt_block(self, fn,
@@ -564,6 +568,12 @@ class Generator(metaclass=GeneratorMeta):
             node.comment = comment
         if label:
             self.mark_stmt(label, node)
+        if len(kargs) > 0:
+            from .passes import Attribute
+            for key, value in kargs.items():
+                bool_val = bool(value)
+                if not bool_val:
+                    node.add_attribute(Attribute.create("skip_" + key))
         return node
 
     add_code = add_always

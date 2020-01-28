@@ -16,15 +16,17 @@ void init_fault(py::module &main_m) {
         .def("mark_wrong_value", &SimulationRun::mark_wrong_value)
         .def_property_readonly("has_wrong_value", &SimulationRun::has_wrong_value)
         .def("get_state", &SimulationRun::get_state, py::return_value_policy::reference)
-        .def_property_readonly("num_states", &SimulationRun::num_states);
+        .def_property_readonly("num_states", &SimulationRun::num_states)
+        .def("add_simulation_coverage", &SimulationRun::add_simulation_coverage);
 
     auto fault = py::class_<FaultAnalyzer>(m, "FaultAnalyzer");
-    fault.def(py::init<Generator*>())
-    .def("add_simulation_run", &FaultAnalyzer::add_simulation_run)
-    .def_property_readonly("num_runs", &FaultAnalyzer::num_runs)
-    .def("compute_coverage", &FaultAnalyzer::compute_coverage)
-    .def("compute_fault_stmts_from_coverage", &FaultAnalyzer::compute_fault_stmts_from_coverage)
-    .def("output_coverage_xml", &FaultAnalyzer::output_coverage_xml);
+    fault.def(py::init<Generator *>())
+        .def("add_simulation_run", &FaultAnalyzer::add_simulation_run)
+        .def_property_readonly("num_runs", &FaultAnalyzer::num_runs)
+        .def("compute_coverage", &FaultAnalyzer::compute_coverage)
+        .def("compute_fault_stmts_from_coverage", &FaultAnalyzer::compute_fault_stmts_from_coverage)
+        .def("output_coverage_xml",
+             py::overload_cast<const std::string &>(&FaultAnalyzer::output_coverage_xml));
 
     // helper functions
     m.def("parse_verilator_coverage", &parse_verilator_coverage);

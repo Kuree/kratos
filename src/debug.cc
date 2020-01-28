@@ -159,13 +159,12 @@ std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top) {
 
 class InsertVerilatorPublic : public IRVisitor {
 public:
-    void visit(Var *var) override {
-        // all ports
-        insert_str(var);
-    }
-
-    void visit(Port *var) override {
-        insert_str(var);
+    void visit(Generator* generator) override {
+        auto vars = generator->get_all_var_names();
+        for (auto const &var_name: vars) {
+            auto var = generator->get_var(var_name);
+            insert_str(var.get());
+        }
     }
 
 private:
@@ -174,7 +173,7 @@ private:
 
 void insert_verilator_public(Generator *top) {
     InsertVerilatorPublic visitor;
-    visitor.visit_root(top);
+    visitor.visit_generator_root_p(top);
 }
 
 class VarSourceVisitor : public IRVisitor {

@@ -110,7 +110,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
             "Compiling to verilog requires sv2v"
 
     if insert_verilator_info:
-        generator.name = "TOP"
         _kratos.passes.insert_verilator_public(generator.internal_generator)
 
     if output_dir is not None:

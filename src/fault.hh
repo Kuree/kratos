@@ -45,6 +45,7 @@ public:
     std::unordered_set<Stmt *> compute_coverage(uint32_t index);
     std::unordered_set<Stmt *> compute_fault_stmts_from_coverage();
     void output_coverage_xml(const std::string &filename);
+    void output_coverage_xml(std::ostream &stream);
 
 private:
     Generator *generator_;

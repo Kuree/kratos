@@ -26,6 +26,11 @@ from _kratos import Interface
 # FSMs
 from _kratos import FSM, FSMState
 
+# fault
+# TODO fix this namespace
+from _kratos.fault import SimulationRun, FaultAnalyzer,\
+    parse_verilator_coverage
+
 posedge = BlockEdgeType.Posedge
 negedge = BlockEdgeType.Negedge
 

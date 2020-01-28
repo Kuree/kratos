@@ -26,6 +26,7 @@ void init_stmt(py::module &m) {
         .def_property_readonly("scope_context", [](Stmt &stmt) { return stmt.scope_context(); });
 
     def_trace<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
+    def_attributes<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
 
     py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt> assign_(
         m, "AssignStmt", R"pbdoc(Assignment statement)pbdoc");

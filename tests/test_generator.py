@@ -1553,5 +1553,25 @@ def test_nested_loop():
     assert "a[7] = 1'h1;" in src
 
 
+def test_turn_off_optimization():
+    mod = Generator("mod")
+    a = mod.var("a", 2)
+    b = mod.var("b", 2)
+    c = mod.var("c", 2)
+    clk = mod.clock("clk")
+
+    @always_ff((posedge, clk))
+    def code():
+        if a == 0:
+            b = 0
+        if a == 1:
+            c = 1
+
+    mod.add_always(code, merge_if=False)
+    src = verilog(mod)["mod"]
+    assert "  if (a == 2'h1) begin" in src
+    assert "elif" not in src
+
+
 if __name__ == "__main__":
-    test_nested_loop()
+    test_turn_off_optimization()

@@ -1237,6 +1237,8 @@ private:
     // if target is the same
     // all equality comparison and against an constant
     void static transform_block(StmtBlock* block) {
+        // skip this if it has an attribute called skip_merge_if
+        if (block->has_attribute("skip_merge_if")) return;
         std::map<Var*, std::vector<IfStmtType>> result;
         get_targeted_if(block, result);
         std::unordered_set<IfStmt*> merged_if;
