@@ -50,10 +50,12 @@ def test_debug_mock():
         mod = Mod()
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
-        # inject verilator public
-        _kratos.passes.insert_verilator_public(mod.internal_generator)
         verilog(mod, filename=filename, insert_debug_info=True,
-                debug_db_filename=debug_db)
+                insert_verilator_info=True, debug_db_filename=debug_db)
+        # make sure the verilator public is there
+        with open(filename) as f:
+            content = f.read()
+        assert "verilator public" in content
 
 
 def test_seq_debug():

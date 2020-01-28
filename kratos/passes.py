@@ -31,6 +31,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             filename: str = None,
             output_dir: str = None,
             insert_debug_info: bool = False,
+            insert_verilator_info: bool = False,
             insert_break_on_edge: bool = False,
             debug_db_filename: str = "",
             use_parallel: bool = True,
@@ -107,6 +108,10 @@ def verilog(generator: Generator, optimize_if: bool = True,
         import shutil
         assert shutil.which("sv2v") is not None,\
             "Compiling to verilog requires sv2v"
+
+    if insert_verilator_info:
+        generator.name = "TOP"
+        _kratos.passes.insert_verilator_public(generator.internal_generator)
 
     if output_dir is not None:
         if not os.path.isdir(output_dir):
