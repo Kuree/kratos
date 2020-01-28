@@ -23,7 +23,8 @@ void init_fault(py::module &main_m) {
     .def("add_simulation_run", &FaultAnalyzer::add_simulation_run)
     .def_property_readonly("num_runs", &FaultAnalyzer::num_runs)
     .def("compute_coverage", &FaultAnalyzer::compute_coverage)
-    .def("compute_fault_stmts_from_coverage", &FaultAnalyzer::compute_fault_stmts_from_coverage);
+    .def("compute_fault_stmts_from_coverage", &FaultAnalyzer::compute_fault_stmts_from_coverage)
+    .def("output_coverage_xml", &FaultAnalyzer::output_coverage_xml);
 
     // helper functions
     m.def("parse_verilator_coverage", &parse_verilator_coverage);

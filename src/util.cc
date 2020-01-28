@@ -557,6 +557,14 @@ std::string basename(const std::string &filename) {
 #endif
 }
 
+char separator() {
+#ifdef _WIN32
+    return '\\';
+#else
+    return '/';
+#endif
+}
+
 }  // namespace fs
 
 namespace string {

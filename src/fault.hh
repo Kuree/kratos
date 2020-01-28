@@ -44,6 +44,7 @@ public:
     [[nodiscard]] uint64_t num_runs() const { return runs_.size(); }
     std::unordered_set<Stmt *> compute_coverage(uint32_t index);
     std::unordered_set<Stmt *> compute_fault_stmts_from_coverage();
+    void output_coverage_xml(const std::string &filename);
 
 private:
     Generator *generator_;

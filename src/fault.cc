@@ -1,6 +1,8 @@
 #include "fault.hh"
 
+#include <chrono>
 #include <fstream>
+#include <stack>
 
 #include "eval.hh"
 #include "except.hh"
@@ -121,8 +123,7 @@ void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stm
         auto block = cast<StmtBlock>(stmt);
         // normal sequential block and combinational block always gets executed
         // as a result, we're only interested in the conditional statement block, i.e. scoped block
-        if (block->block_type() == StatementBlockType::Scope)
-            result.emplace(stmt);
+        if (block->block_type() == StatementBlockType::Scope) result.emplace(stmt);
         for (auto const &s : *block) {
             compute_hit_stmts(state, result, s.get());
         }
@@ -196,9 +197,313 @@ std::unordered_set<Stmt *> FaultAnalyzer::compute_fault_stmts_from_coverage() {
     return result;
 }
 
+class XMLWriter {
+    // code is adapted from
+    // https://gist.github.com/sebclaeys/1227644/3761c33416d71c20efc300e78ea1dc36221185c5
+public:
+    XMLWriter(std::ostream &stream, const std::string &header) : stream_(stream) {
+        stream_ << HEADER_;
+        stream_ << header << std::endl;
+    }
+
+    XMLWriter &open_elt(const std::string &tag) {
+        close_tag();
+        if (!elt_stack_.empty()) stream_ << std::endl;
+        indent();
+        stream_ << "<" << tag;
+        elt_stack_.emplace(tag);
+        tag_open_ = true;
+        new_line_ = false;
+        return *this;
+    }
+
+    XMLWriter &close_elt() {
+        close_tag();
+        auto elt = elt_stack_.top();
+        elt_stack_.pop();
+        if (new_line_) {
+            stream_ << std::endl;
+            indent();
+        }
+        new_line_ = true;
+        stream_ << "</" << elt << ">";
+        return *this;
+    }
+
+    XMLWriter &close_all() {
+        while (!elt_stack_.empty()) close_elt();
+        return *this;
+    }
+
+    XMLWriter &attr(const std::string &key, const std::string &value) {
+        stream_ << " " << key << "=\"";
+        write_escape(value);
+        stream_ << "\"";
+        return *this;
+    }
+
+    template <class T>
+    XMLWriter &attr(const std::string &key, T value) {
+        return attr(key, ::format("{0}", value));
+    }
+
+    XMLWriter &content(const std::string &var) {
+        close_tag();
+        write_escape(var);
+        return *this;
+    }
+
+private:
+    std::ostream &stream_;
+    bool tag_open_ = false;
+    bool new_line_ = true;
+    const std::string HEADER_ = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+    const std::string INDENT_ = "    ";
+    std::stack<std::string> elt_stack_;
+
+    inline void close_tag() {
+        if (tag_open_) {
+            stream_ << ">";
+            tag_open_ = false;
+        }
+    }
+
+    inline void indent() {
+        for (uint64_t i = 0; i < elt_stack_.size(); i++) {
+            stream_ << INDENT_;
+        }
+    }
+
+    // not interested in this coverage
+    // LCOV_EXCL_START
+    inline void write_escape(const std::string &str) {
+        // not interested in coverage for this function
+        for (auto const &c : str) switch (c) {
+                case '&':
+                    stream_ << "&amp;";
+                    break;
+                case '<':
+                    stream_ << "&lt;";
+                    break;
+                case '>':
+                    stream_ << "&gt;";
+                    break;
+                case '\'':
+                    stream_ << "&apos;";
+                    break;
+                case '"':
+                    stream_ << "&quot;";
+                    break;
+                default:
+                    stream_ << c;
+                    break;
+            }
+    }
+    // LCOV_EXCL_STOP
+};
+
+class CoverageStatVisitor : public IRVisitor {
+public:
+    void visit(AssignStmt *stmt) override {
+        auto parent = stmt->parent();
+        if (parent->ir_node_kind() == IRNodeKind::StmtKind) {
+            auto st = reinterpret_cast<Stmt *>(parent);
+            // we are only interested in
+            if (st->type() == StatementType::Block) {
+                auto st_ = cast<StmtBlock>(st);
+                if (st_->block_type() == StatementBlockType::Scope) {
+                    // only add if it has coverage
+                    if (!stmt->fn_name_ln.empty()) stmts_.emplace(stmt);
+                }
+            }
+        }
+    }
+
+    void visit(ScopedStmtBlock *stmt) override {
+        if (!stmt->fn_name_ln.empty()) branches_.emplace(stmt);
+    }
+
+    [[nodiscard]] const std::unordered_set<IRNode *> &stmts() const { return stmts_; }
+    [[nodiscard]] const std::unordered_set<IRNode *> &branches() const { return branches_; }
+
+private:
+    std::unordered_set<IRNode *> stmts_;
+    std::unordered_set<IRNode *> branches_;
+};
+
+IRNode *has_parent(const std::unordered_set<IRNode *> &parents, IRNode *stmt) {
+    IRNode *node = stmt->parent();
+    do {
+        if (parents.find(node) != parents.end()) return node;
+        node = node->parent();
+    } while (node);
+    return nullptr;
+}
+
+// adapted from
+// https://www.rosettacode.org/wiki/Find_common_directory_path#C.2B.2B
+std::string longestPath(const std::vector<std::string> &dirs, char separator) {
+    if (dirs.empty()) return "";
+    auto vsi = dirs.begin();
+    int max_characters_common = static_cast<int>(vsi->length());
+    std::string compare_string = *vsi;
+    for (vsi = dirs.begin() + 1; vsi != dirs.end(); vsi++) {
+        std::pair<std::string::const_iterator, std::string::const_iterator> p =
+            std::mismatch(compare_string.begin(), compare_string.end(), vsi->begin());
+        if ((p.first - compare_string.begin()) < max_characters_common)
+            max_characters_common = p.first - compare_string.begin();
+    }
+    std::string::size_type found = compare_string.rfind(separator, max_characters_common);
+    return compare_string.substr(0, found);
+}
+
+std::string get_filename_after_root(const std::string &root, const std::string &filename) {
+    auto pos = filename.find(root) + root.size();
+    auto sep = fs::separator();
+    while (pos != std::string::npos && filename[pos] == sep) {
+        pos++;
+    }
+    if (pos == std::string::npos) return filename;
+    return filename.substr(pos);
+}
+
+void FaultAnalyzer::output_coverage_xml(const std::string &filename) {
+    std::ofstream stream(filename, std::ofstream::trunc | std::ostream::out);
+    const std::string header =
+        "<!DOCTYPE coverage SYSTEM "
+        "'http://cobertura.sourceforge.net/xml/coverage-04.dtd'>";
+    XMLWriter w(stream, header);
+
+    // need to compute all the stats
+    double line_total;
+    double covered_line;
+    double branch_total;
+    double covered_branch;
+
+    CoverageStatVisitor visitor;
+    visitor.visit_root(generator_);
+
+    auto const &total_branches = visitor.branches();
+    branch_total = static_cast<double>(total_branches.size());
+    auto const &total_lines = visitor.stmts();
+    line_total = static_cast<double>(total_lines.size());
+
+    // compute the collapsed map
+    std::unordered_map<IRNode *, uint32_t> branch_cover_count;
+    for (auto const &iter : coverage_maps_) {
+        auto const &coverage = iter.second;
+        for (auto const &stmt : coverage) {
+            if (branch_cover_count.find(stmt) == branch_cover_count.end())
+                branch_cover_count[stmt] = 0;
+            branch_cover_count[stmt] += 1;
+        }
+    }
+
+    // compute the actual coverage
+    std::unordered_map<IRNode *, uint32_t> line_cover_count;
+    for (auto stmt : total_lines) {
+        auto parent = has_parent(total_branches, stmt);
+        if (parent) {
+            auto count = branch_cover_count.at(parent);
+            line_cover_count.emplace(stmt, count);
+        }
+    }
+
+    covered_line = static_cast<double>(line_cover_count.size());
+    covered_branch = static_cast<double>(branch_cover_count.size());
+
+    // need to sort all the filename and lines
+    std::map<std::string, std::map<uint32_t, IRNode *>> coverage;
+    for (auto const &stmt : total_lines) {
+        auto const &[fn, ln] = stmt->fn_name_ln.front();
+        coverage[fn][ln] = stmt;
+    }
+
+    for (auto const &stmt : total_branches) {
+        auto const &[fn, ln] = stmt->fn_name_ln.front();
+        coverage[fn][ln] = stmt;
+    }
+
+    // find the root path
+    // using the longest path
+    std::vector<std::string> filenames;
+    filenames.reserve(coverage.size());
+    for (auto const &iter : coverage) filenames.emplace_back(iter.first);
+    auto root = longestPath(filenames, fs::separator());
+
+    // start to outputting the file coverage files
+    auto now = std::chrono::system_clock::now();
+    w.open_elt("coverage")
+        .attr("line-rate", line_total > 0 ? covered_line / line_total : 0.0)
+        .attr("branch-rate", branch_total > 0 ? covered_branch / branch_total : 0.0)
+        .attr("lines-covered", static_cast<uint32_t>(covered_line))
+        .attr("lines-valid", static_cast<uint32_t>(line_total))
+        .attr("branches-covered", static_cast<uint32_t>(covered_branch))
+        .attr("branches-valid", static_cast<uint32_t>(branch_total))
+        .attr("complexity", 0.0)
+        .attr("timestamp",
+              std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count())
+        .attr("version", ::format("kratos 0"));
+    w.open_elt("sources").open_elt("source").content(root).close_elt().close_elt();
+
+    // all the source files
+    // packages
+    w.open_elt("packages");
+    w.open_elt("package");
+    w.open_elt("classes");
+
+    // FIXME: need to split path based to form the packages. for now only one package
+    w.attr("line-rate", 1.0).attr("branch-rate", 1.0).attr("complexity", 1.0);
+    for (auto const &[fn, stmts] : coverage) {
+        // we need to group them by generator name
+        std::map<std::string, std::map<uint32_t, IRNode *>> classes;
+        for (auto const &[ln, stmt] : stmts) {
+            auto st = dynamic_cast<Stmt *>(stmt);
+            if (!st) throw InternalException("Unable to cast stmt");
+            auto gen_name = st->generator_parent()->name;
+            classes[gen_name].emplace(ln, stmt);
+        }
+
+        auto new_fn = get_filename_after_root(root, fn);
+
+        for (auto const &[class_name, cov] : classes) {
+            w.open_elt("class");
+
+            // TODO: add line rate and branch rate
+            w.attr("name", class_name)
+                .attr("filename", new_fn)
+                .attr("line-rate", 1.0)
+                .attr("branch-rate", 1.0)
+                .attr("complexity", 1.0);
+            // blank methods
+            w.open_elt("methods").close_elt();
+            w.open_elt("lines");
+
+            for (auto const &[ln, stmt] : cov) {
+                w.open_elt("line");
+
+                // TODO add branch
+                w.attr("number", ln);
+                uint32_t count = 0;
+                if (line_cover_count.find(stmt) != line_cover_count.end()) {
+                    count = line_cover_count.at(stmt);
+                } else if (branch_cover_count.find(stmt) != branch_cover_count.end()) {
+                    count = branch_cover_count.at(stmt);
+                }
+                w.attr("hits", count);
+                w.attr("branch", "false");
+                w.close_elt();
+            }
+
+            w.close_elt();  // lines
+            w.close_elt();  // class
+        }
+    }
+    w.close_all();
+}
+
 class CollectScopeStmtVisitor : public IRVisitor {
 public:
-
     void visit(ScopedStmtBlock *stmt) override { add_stmt(stmt); }
 
     [[nodiscard]] const std::map<std::pair<std::string, uint32_t>, Stmt *> &stmt_map() const {

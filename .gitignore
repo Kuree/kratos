@@ -71,3 +71,6 @@ clang-build
 
 # database file
 *.db
+
+# coverage output
+*.xml
