@@ -1533,7 +1533,6 @@ def test_wiring_with_instantiation():
     mod.add_child("child_inst", child,
                   in_port=a, out_port1="b", out_port2="c")
     r = verilog(mod)
-    print(r["parent"])
     assert ".out_port1(b)" in r["parent"]
 
 
@@ -1577,5 +1576,34 @@ def test_turn_off_optimization():
     assert "else if" in src
 
 
+def test_generator_property(check_gold):
+    from kratos import Sequence
+    mod = Generator("mod")
+    a = mod.input("a", 1)
+    a_tmp = mod.var("a_tmp", 1)
+    b = mod.output("b", 1)
+    # any sequence-based property needs a clock
+    clk = mod.clock("clk")
+
+    @always_ff((posedge, clk))
+    def code():
+        if (a == 1) & ~a_tmp:
+            b = 0
+            a_tmp = 1
+        elif a_tmp:
+            b = 1
+
+    mod.add_code(code)
+
+    seq = Sequence(a == 1)
+    # if a == 1, then it imply b == 0, and the next cycle, b == 1
+    seq.imply(b == 0).wait(1).imply(b == 1)
+    # add this sequence to the generator
+    mod.property("rule1", seq)
+
+    check_gold(mod, gold_name="test_generator_property")
+
+
 if __name__ == "__main__":
-    test_turn_off_optimization()
+    from conftest import check_gold_fn
+    test_generator_property(check_gold_fn)

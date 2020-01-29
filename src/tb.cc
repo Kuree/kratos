@@ -103,20 +103,7 @@ private:
             throw StmtException(::format("Cannot codegen non-statement node. Got {0}",
                                          ast_type_to_string(node->ir_node_kind())),
                                 {node});
-        auto stmt_ptr = reinterpret_cast<Stmt *>(node);
-        if (stmt_ptr->type() == StatementType::Assert) {
-            auto assert_base = reinterpret_cast<AssertBase *>(stmt_ptr);
-            switch (assert_base->assert_type()) {
-                case AssertType::AssertValue:
-                    stmt_code(reinterpret_cast<AssertValueStmt *>(stmt_ptr));
-                    break;
-                case AssertType::AssertProperty:
-                    stmt_code(reinterpret_cast<AssertPropertyStmt *>(stmt_ptr));
-                    break;
-            }
-        } else {
-            SystemVerilogCodeGen::dispatch_node(node);
-        }
+        SystemVerilogCodeGen::dispatch_node(node);
     }
 
     std::string var_name(Var *var) {
@@ -129,65 +116,6 @@ private:
 protected:
     void stmt_code(AssertValueStmt *stmt) {
         stream_ << indent() << "assert (" << stmt->value()->handle_name(true) << ");"
-                << stream_.endl();
-    }
-
-    void stmt_code(AssertPropertyStmt *stmt) {
-        auto property = stmt->property();
-        stream_ << indent() << "property " << property->property_name() << ";" << stream_.endl();
-        increase_indent();
-        auto edge = property->edge();
-        auto seq = property->sequence();
-        // automatically determine the clock, only if it's safe to do so (only one clock in the
-        // design
-        if (!edge.first && seq->next()) {
-            // try to determine the clock
-            // it's concurrent property, we have to have a clock
-            auto generator = stmt->generator_parent();
-            // because it's a test bench, the variable doesn't have type
-            // we need to source for connected modules to see what they are connected to
-            auto children = generator->get_child_generators();
-            std::vector<Var *> clk_vars;
-            for (auto const &gen : children) {
-                auto clks = gen->get_ports(PortType::Clock);
-                for (auto const &clk_name : clks) {
-                    auto clk = gen->get_port(clk_name);
-                    auto source = clk->sources();
-                    for (auto const &assign : source) {
-                        auto src_var = assign->right();
-                        if (src_var->generator == generator) {
-                            if (src_var->type() == VarType::BaseCasted) {
-                                // only casted to clock
-                                auto casted = src_var->as<VarCasted>();
-                                if (casted->cast_type() == VarCastType::Clock)
-                                    clk_vars.emplace_back(src_var);
-                            }
-                        }
-                    }
-                }
-            }
-            if (clk_vars.size() == 1) {
-                edge.first = clk_vars[0];
-                edge.second = BlockEdgeType::Posedge;
-            } else {
-                // next is not null but edge is not set
-                throw StmtException(
-                    ::format("Clock edge not set for sequence {0}", seq->to_string()), {stmt});
-            }
-        }
-        if (edge.first) {
-            auto const &[var, type] = edge;
-            stream_ << indent()
-                    << ::format("@({0} {1}) ",
-                                type == BlockEdgeType::Posedge ? "posedge" : "negedge",
-                                var->handle_name(true));
-        }
-        stream_ << seq->to_string() << ";" << stream_.endl();
-        decrease_indent();
-        stream_ << indent() << "endproperty" << stream_.endl();
-
-        // put assert here
-        stream_ << indent() << "assert property (" << property->property_name() << ");"
                 << stream_.endl();
     }
 
@@ -236,11 +164,7 @@ std::string TestBench::codegen() {
     // sort initials in case we need to access internal signals
     sort_initials(top_);
 
-    // need to convert properties into properties statement
-    for (auto const &iter : properties_) {
-        auto stmt = std::make_shared<AssertPropertyStmt>(iter.second);
-        top_->add_stmt(stmt);
-    }
+    change_property_into_stmt(top_);
 
     // code gen the module top
     TestBenchCodeGen code_gen(top_);

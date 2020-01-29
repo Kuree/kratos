@@ -662,6 +662,9 @@ class Generator(metaclass=GeneratorMeta):
         fsm.set_reset_high(reset_high)
         return fsm
 
+    def property(self, property_name: str, seq):
+        return self.__generator.property(property_name, seq)
+
     def add_stmt(self, stmt):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_stmt, [stmt]))

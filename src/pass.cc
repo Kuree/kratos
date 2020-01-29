@@ -15,6 +15,7 @@
 #include "graph.hh"
 #include "interface.hh"
 #include "port.hh"
+#include "tb.hh"
 #include "util.hh"
 
 using fmt::format;
@@ -2753,6 +2754,23 @@ void remove_empty_block(Generator* top) {
     visitor.visit_root(top);
 }
 
+class GeneratorPropertyVisitor: public IRVisitor {
+public:
+    void visit(Generator *generator) override {
+        auto const &properties = generator->properties();
+        for (auto const &iter: properties) {
+            auto stmt = std::make_shared<AssertPropertyStmt>(iter.second);
+            generator->add_stmt(stmt);
+            stmt->set_parent(generator);
+        }
+    }
+};
+
+void change_property_into_stmt(Generator *top) {
+    GeneratorPropertyVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
 class GeneratorVarVisitor : public IRVisitor {
 public:
     explicit GeneratorVarVisitor(bool registers_only) : registers_only_(registers_only) {}
@@ -2894,6 +2912,8 @@ void PassManager::register_builtin_passes() {
     register_pass("convert_continuous_stmt", &convert_continuous_stmt);
 
     register_pass("propagate_scope_variable", &propagate_scope_variable);
+
+    register_pass("change_property_into_stmt", &change_property_into_stmt);
 
     // TODO:
     //  add inline pass

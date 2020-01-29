@@ -2,6 +2,7 @@
 #define KRATOS_CODEGEN_HH
 
 #include <sstream>
+
 #include "context.hh"
 #include "ir.hh"
 #include "pass.hh"
@@ -106,7 +107,7 @@ protected:
 
     void stmt_code(ModuleInstantiationStmt* stmt);
 
-    void stmt_code(InterfaceInstantiationStmt *stmt);
+    void stmt_code(InterfaceInstantiationStmt* stmt);
 
     void stmt_code(SwitchStmt* stmt);
 
@@ -122,8 +123,10 @@ protected:
 
     void stmt_code(RawStringStmt* stmt);
 
+    void stmt_code(AssertPropertyStmt* stmt);
+
     void enum_code_(Enum* enum_);
-    static void enum_code_(Stream &stream_, Enum* enum_, bool debug);
+    static void enum_code_(Stream& stream_, Enum* enum_, bool debug);
     void generate_enums(kratos::Generator* generator);
 
     // reverse indexing the named blocks
@@ -134,14 +137,14 @@ protected:
     void output_module_def(Generator* generator);
 
     // code gen port interface
-    void generate_port_interface(InstantiationStmt *stmt);
-    void generate_interface(Generator *generator);
+    void generate_port_interface(InstantiationStmt* stmt);
+    void generate_interface(Generator* generator);
 };
 
 std::string create_stub(Generator* top);
 
 // useful to tools that doesn't support N-D array
-Generator &create_wrapper_flatten(Generator *top, const std::string &wrapper_name);
+Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_name);
 
 }  // namespace kratos
 #endif  // KRATOS_CODEGEN_HH

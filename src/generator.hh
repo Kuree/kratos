@@ -67,6 +67,12 @@ public:
 
     Expr &expr(ExprOp op, Var *left, Var *right);
     void add_expr(const std::shared_ptr<Expr> &expr) { exprs_.emplace(expr); }
+    // create properties
+    std::shared_ptr<Property> property(const std::string &property_name,
+                                       const std::shared_ptr<Sequence> &sequence);
+    [[nodiscard]] const std::map<std::string, std::shared_ptr<Property>> &properties() const {
+        return properties_;
+    }
 
     // ports and vars
     std::shared_ptr<Port> get_port(const std::string &port_name) const;
@@ -162,7 +168,7 @@ public:
                                                  const std::shared_ptr<Var> &var2);
     void wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
                         const std::shared_ptr<InterfaceRef> &inst2);
-    void wire(Var &left, Var& right);
+    void wire(Var &left, Var &right);
 
     bool debug = false;
 
@@ -273,6 +279,8 @@ private:
     std::unordered_map<uint32_t, std::shared_ptr<Var>> auxiliary_vars_;
     // interfaces
     std::map<std::string, std::shared_ptr<InterfaceRef>> interfaces_;
+    // properties
+    std::map<std::string, std::shared_ptr<Property>> properties_;
 };
 
 }  // namespace kratos

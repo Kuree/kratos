@@ -57,6 +57,8 @@ void check_combinational_loop(Generator *top);
 
 void remove_empty_block(Generator *top);
 
+void change_property_into_stmt(Generator *top);
+
 std::map<std::string, std::string> generate_verilog(Generator* top);
 // this function outputs every module into a single file in the targeted direction
 // if header filename is not empty,

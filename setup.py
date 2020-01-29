@@ -47,7 +47,7 @@ class CMakeBuild(build_ext):
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
 
         # test env variable to determine whether to build in debug
-        if os.environ.get("KRATOS_COVERAGE") is not None or \
+        if True or os.environ.get("KRATOS_COVERAGE") is not None or \
                 os.environ.get("KRATOS_DEBUG") is not None:
             cfg = 'Debug'
         else:

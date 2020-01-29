@@ -12,6 +12,7 @@
 #include "stmt.hh"
 #include "syntax.hh"
 #include "util.hh"
+#include "tb.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -241,6 +242,16 @@ std::shared_ptr<DPIFunctionStmtBlock> Generator::dpi_function(const std::string 
     func_index_.emplace(static_cast<uint32_t>(funcs_.size()), func_name);
     funcs_.emplace(func_name, p);
     return p;
+}
+
+std::shared_ptr<Property> Generator::property(const std::string &property_name,
+                                              const std::shared_ptr<Sequence> &sequence) {
+    if (properties_.find(property_name) != properties_.end())
+        throw UserException(
+            ::format("Property {0} already exists in {1}", property_name, name));
+    auto prop = std::make_shared<Property>(property_name, sequence);
+    properties_.emplace(property_name, prop);
+    return prop;
 }
 
 std::shared_ptr<FunctionStmtBlock> Generator::get_function(const std::string &func_name) const {

@@ -60,7 +60,8 @@ void init_pass(py::module &m) {
         .def("merge_if_block", &merge_if_block)
         .def("find_driver_signal", &find_driver_signal)
         .def("extract_register_names", &extract_register_names)
-        .def("extract_var_names", &extract_var_names);
+        .def("extract_var_names", &extract_var_names)
+        .def("change_property_into_stmt", &change_property_into_stmt);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
 This class gives you the fined control over which pass to run and in which order.

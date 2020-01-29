@@ -9,6 +9,7 @@
 #include "../src/generator.hh"
 #include "../src/interface.hh"
 #include "../src/stmt.hh"
+#include "../src/tb.hh"
 
 namespace py = pybind11;
 using std::shared_ptr;
@@ -101,6 +102,7 @@ void init_generator(py::module &m) {
         .def("has_var", &Generator::has_var)
         .def("has_port", &Generator::has_port)
         .def("add_stmt", &Generator::add_stmt)
+        .def("property", &Generator::property)
         .def("remove_port", &Generator::remove_port)
         .def("remove_var", &Generator::remove_var)
         .def("remove_stmt", &Generator::remove_stmt)

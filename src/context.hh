@@ -47,6 +47,7 @@ class FunctionCallStmt;
 class ReturnStmt;
 class ModuleInstantiationStmt;
 class InterfaceInstantiationStmt;
+class AssertPropertyStmt;
 class AssertBase;
 class FSM;
 enum class AssignmentType : int;
@@ -55,6 +56,9 @@ struct IDefinition;
 struct InterfaceModPortDefinition;
 struct InterfaceDefinition;
 struct InterfaceRef;
+class Property;
+class Sequence;
+
 
 class Context {
 private:

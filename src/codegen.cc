@@ -522,8 +522,82 @@ void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
             stream_ << ";" << stream_.endl();
         }
     } else {
-        throw StmtException("Property assertion in design files not allowed", {stmt});
+        auto st = stmt->as<AssertPropertyStmt>();
+        stmt_code(st.get());
     }
+}
+
+void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt *stmt) {
+    auto property = stmt->property();
+    stream_ << indent() << "property " << property->property_name() << ";" << stream_.endl();
+    increase_indent();
+    auto edge = property->edge();
+    auto seq = property->sequence();
+    // automatically determine the clock, only if it's safe to do so (only one clock in the
+    // design
+    if (!edge.first && seq->next()) {
+        std::vector<Var *> clk_vars;
+        // try to determine the clock
+        // it's concurrent property, we have to have a clock
+        auto generator = stmt->generator_parent();
+        {
+            auto clk_ports = generator->get_ports(PortType::Clock);
+            if (clk_ports.size() == 1) {
+                // that's it
+                clk_vars.emplace_back(generator->get_port(clk_ports.front()).get());
+            } else {
+                for (auto const &port_name: clk_ports) {
+                    clk_vars.emplace_back(generator->get_port(port_name).get());
+                }
+            }
+        }
+        if (clk_vars.empty()) {
+            // there might be some casted types, typically in test bench
+            // we need to source for connected modules to see what they are connected to
+            auto children = generator->get_child_generators();
+            for (auto const &gen : children) {
+                auto clks = gen->get_ports(PortType::Clock);
+                for (auto const &clk_name : clks) {
+                    auto clk = gen->get_port(clk_name);
+                    auto source = clk->sources();
+                    for (auto const &assign : source) {
+                        auto src_var = assign->right();
+                        if (src_var->generator == generator) {
+                            if (src_var->type() == VarType::BaseCasted) {
+                                // only casted to clock
+                                auto casted = src_var->as<VarCasted>();
+                                if (casted->cast_type() == VarCastType::Clock)
+                                    clk_vars.emplace_back(src_var);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (clk_vars.size() == 1) {
+            edge.first = clk_vars[0];
+            edge.second = BlockEdgeType::Posedge;
+        } else {
+            // next is not null but edge is not set
+            throw StmtException(
+                ::format("Clock edge not set for sequence {0}", seq->to_string()), {stmt});
+        }
+    }
+    if (edge.first) {
+        auto const &[var, type] = edge;
+        stream_ << indent()
+                << ::format("@({0} {1}) ",
+                            type == BlockEdgeType::Posedge ? "posedge" : "negedge",
+                            var->handle_name(true));
+    }
+    stream_ << seq->to_string() << ";" << stream_.endl();
+    decrease_indent();
+    stream_ << indent() << "endproperty" << stream_.endl();
+
+    // put assert here
+    stream_ << indent() << "assert property (" << property->property_name() << ");"
+            << stream_.endl();
 }
 
 void SystemVerilogCodeGen::stmt_code(CommentStmt* stmt) {
