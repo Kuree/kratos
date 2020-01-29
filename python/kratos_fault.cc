@@ -29,5 +29,6 @@ void init_fault(py::module &main_m) {
              py::overload_cast<const std::string &>(&FaultAnalyzer::output_coverage_xml));
 
     // helper functions
-    m.def("parse_verilator_coverage", &parse_verilator_coverage);
+    m.def("parse_verilator_coverage", &parse_verilator_coverage)
+    .def("parse_icc_coverage", &parse_icc_coverage);
 }

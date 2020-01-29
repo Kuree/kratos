@@ -29,7 +29,7 @@ from _kratos import FSM, FSMState
 # fault
 # TODO fix this namespace
 from _kratos.fault import SimulationRun, FaultAnalyzer,\
-    parse_verilator_coverage
+    parse_verilator_coverage, parse_icc_coverage
 
 posedge = BlockEdgeType.Posedge
 negedge = BlockEdgeType.Negedge
