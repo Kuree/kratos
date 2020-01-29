@@ -367,7 +367,6 @@ std::string get_filename_after_root(const std::string &root, const std::string &
     return filename.substr(pos);
 }
 
-
 void FaultAnalyzer::output_coverage_xml(const std::string &filename) {
     std::ofstream stream(filename, std::ofstream::trunc | std::ostream::out);
     output_coverage_xml(stream);
@@ -613,6 +612,32 @@ std::unordered_map<Stmt *, uint32_t> parse_verilator_coverage(Generator *top,
     return reverse_map;
 }
 
+std::vector<std::string> get_icc_tokens(std::string str) {
+    std::vector<std::string> result;
+    // trim the input and output
+    string::trim(str);
+    std::string buf;
+    for (uint64_t pos = 0; pos < str.size(); pos++) {
+        if (str[pos] == ' ') {
+            if (pos < str.size() - 1) {
+                if (str[pos + 1] == ' ') {
+                    // end of token
+                    string::trim(buf);
+                    if (!buf.empty())
+                        result.emplace_back(buf);
+                    buf = "";
+                    continue;
+                }
+            }
+        }
+        buf += str[pos]; // maybe more efficient way to do this?
+    }
+
+    if (!buf.empty()) result.emplace_back(buf);
+    return result;
+}
+
+
 std::unordered_map<Stmt *, uint32_t> parse_icc_coverage(Generator *top,
                                                         const std::string &filename) {
     std::set<std::tuple<std::string, uint32_t, uint32_t>> parse_result;
@@ -650,12 +675,24 @@ std::unordered_map<Stmt *, uint32_t> parse_icc_coverage(Generator *top,
                 state = 0;
                 continue;
             }
-            auto tokens = string::get_tokens(line, " ");
+            auto tokens = get_icc_tokens(line);
             if (tokens.size() < 6)
                 throw UserException(::format("Unable to parse line {0} at file {1}:{2}", line,
                                              filename, line_count));
             auto count_s = tokens[0];
             auto line_num = tokens[2];
+            // only takes the blocks if we are interested
+            // since only the control statements determine what to run
+            // we need to see if any of the branch has taken
+            auto kind = tokens[3];
+            const static std::unordered_set<std::string> allowed_branch_kind = {"true part of",
+                                                                                "false part of",
+                                                                                "a case item of"};
+            if (allowed_branch_kind.find(kind) == allowed_branch_kind.end()) {
+                // skip since it is just a normal code block
+                continue;
+            }
+
             auto count = static_cast<uint32_t>(std::stoi(count_s));
             auto fn = static_cast<uint32_t>(std::stoi(line_num));
             if (current_filename.empty())
