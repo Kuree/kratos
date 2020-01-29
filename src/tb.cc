@@ -103,6 +103,14 @@ private:
             throw StmtException(::format("Cannot codegen non-statement node. Got {0}",
                                          ast_type_to_string(node->ir_node_kind())),
                                 {node});
+        auto stmt_ptr = reinterpret_cast<Stmt *>(node);
+        if (stmt_ptr->type() == StatementType::Assert) {
+            auto assert_base = reinterpret_cast<AssertBase *>(stmt_ptr);
+            if (assert_base->assert_type() == AssertType::AssertValue) {
+                stmt_code(reinterpret_cast<AssertValueStmt *>(stmt_ptr));
+                return;
+            }
+        }
         SystemVerilogCodeGen::dispatch_node(node);
     }
 
@@ -164,6 +172,8 @@ std::string TestBench::codegen() {
     // sort initials in case we need to access internal signals
     sort_initials(top_);
 
+    // pass the properties through
+    top_->set_properties(properties_);
     change_property_into_stmt(top_);
 
     // code gen the module top

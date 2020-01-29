@@ -1505,8 +1505,6 @@ def test_if_logical_cond():
         if 1 and a:
             c = 1
 
-    verilog(mod, filename="test.sv")
-
     # test illegal
     try:
         mod.add_always(illegal)

@@ -73,6 +73,9 @@ public:
     [[nodiscard]] const std::map<std::string, std::shared_ptr<Property>> &properties() const {
         return properties_;
     }
+    void set_properties(const std::map<std::string, std::shared_ptr<Property>> &properties) {
+        properties_ = properties;
+    }
 
     // ports and vars
     std::shared_ptr<Port> get_port(const std::string &port_name) const;
