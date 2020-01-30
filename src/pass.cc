@@ -601,47 +601,11 @@ void generate_verilog(Generator* top, const std::string& output_dir,
         }
     }
 
-    // we will write out the dpi and struct ones to the header file
-    // this is to ensure everything will be set if this function is called
-    // output the guard
-    auto struct_info = extract_struct_info(top);
-    auto dpi_info = extract_dpi_function(top, true);
-    auto enum_info = extract_enum_info(top);
-    auto interface_info = extract_interface_info(top);
     header_filename = kratos::fs::join(output_dir, header_filename);
-    std::stringstream stream;
-    // output the guard
-    std::string guard_name = "kratos_" + package_name;
-    // make it upper case
-    std::for_each(guard_name.begin(), guard_name.end(),
-                  [](char& c) { c = static_cast<char>(::toupper(c)); });
-    stream << "`ifndef " << guard_name << std::endl;
-    stream << "`define " << guard_name << std::endl;
-    // package header
-    stream << "package " << package_name << ";" << std::endl;
-
-    for (auto const& iter : dpi_info) {
-        // this is an ordered map
-        stream << iter.second << std::endl << std::endl;
-    }
-    for (auto const& iter : struct_info) {
-        // ordered map as well
-        stream << iter.second << std::endl << std::endl;
-    }
-    for (auto const& iter : enum_info) {
-        stream << iter.second << std::endl;
-    }
-    for (auto const& iter : interface_info) {
-        stream << iter.second << std::endl;
-    }
-
-    // closing
-    stream << "endpackage" << std::endl;
-    // end of guard
-    stream << "`endif" << std::endl;
 
     // compare it with the old one, if exists. this is for incremental build
-    auto def_str = stream.str();
+    auto values = generate_sv_package_header(top, package_name, true);
+    auto def_str = values.first;
     if (kratos::fs::exists(header_filename)) {
         std::ifstream in(header_filename);
         std::stringstream content_stream;

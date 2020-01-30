@@ -6,6 +6,5 @@ typedef struct packed {
     logic [15:0] data;
 } config_data;
 
-
 endpackage
 `endif

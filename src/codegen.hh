@@ -146,5 +146,11 @@ std::string create_stub(Generator* top);
 // useful to tools that doesn't support N-D array
 Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_name);
 
+std::pair<std::string, uint32_t> generate_sv_package_header(Generator* top,
+                                                            const std::string& package_name,
+                                                            bool include_guard);
+
+void fix_verilog_ln(Generator* generator, uint32_t offset);
+
 }  // namespace kratos
 #endif  // KRATOS_CODEGEN_HH

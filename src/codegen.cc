@@ -8,6 +8,7 @@
 #include "except.hh"
 #include "expr.hh"
 #include "generator.hh"
+#include "graph.hh"
 #include "interface.hh"
 #include "pass.hh"
 #include "tb.hh"
@@ -527,7 +528,7 @@ void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
     }
 }
 
-void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt *stmt) {
+void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
     auto property = stmt->property();
     stream_ << indent() << "property " << property->property_name() << ";" << stream_.endl();
     increase_indent();
@@ -536,7 +537,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt *stmt) {
     // automatically determine the clock, only if it's safe to do so (only one clock in the
     // design
     if (!edge.first && seq->next()) {
-        std::vector<Var *> clk_vars;
+        std::vector<Var*> clk_vars;
         // try to determine the clock
         // it's concurrent property, we have to have a clock
         auto generator = stmt->generator_parent();
@@ -546,7 +547,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt *stmt) {
                 // that's it
                 clk_vars.emplace_back(generator->get_port(clk_ports.front()).get());
             } else {
-                for (auto const &port_name: clk_ports) {
+                for (auto const& port_name : clk_ports) {
                     clk_vars.emplace_back(generator->get_port(port_name).get());
                 }
             }
@@ -555,12 +556,12 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt *stmt) {
             // there might be some casted types, typically in test bench
             // we need to source for connected modules to see what they are connected to
             auto children = generator->get_child_generators();
-            for (auto const &gen : children) {
+            for (auto const& gen : children) {
                 auto clks = gen->get_ports(PortType::Clock);
-                for (auto const &clk_name : clks) {
+                for (auto const& clk_name : clks) {
                     auto clk = gen->get_port(clk_name);
                     auto source = clk->sources();
-                    for (auto const &assign : source) {
+                    for (auto const& assign : source) {
                         auto src_var = assign->right();
                         if (src_var->generator == generator) {
                             if (src_var->type() == VarType::BaseCasted) {
@@ -580,15 +581,14 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt *stmt) {
             edge.second = BlockEdgeType::Posedge;
         } else {
             // next is not null but edge is not set
-            throw StmtException(
-                ::format("Clock edge not set for sequence {0}", seq->to_string()), {stmt});
+            throw StmtException(::format("Clock edge not set for sequence {0}", seq->to_string()),
+                                {stmt});
         }
     }
     if (edge.first) {
-        auto const &[var, type] = edge;
+        auto const& [var, type] = edge;
         stream_ << indent()
-                << ::format("@({0} {1}) ",
-                            type == BlockEdgeType::Posedge ? "posedge" : "negedge",
+                << ::format("@({0} {1}) ", type == BlockEdgeType::Posedge ? "posedge" : "negedge",
                             var->handle_name(true));
     }
     stream_ << seq->to_string() << ";" << stream_.endl();
@@ -1092,15 +1092,15 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
         } else {
             // need to flatten the array
             uint32_t num_slices = 1;
-            for (auto const &s: p->size())
-                num_slices *= s;
+            for (auto const& s : p->size()) num_slices *= s;
             // create port for them based on the slice
             for (uint32_t slice_num = 0; slice_num < num_slices; slice_num++) {
                 std::vector<uint32_t> slice;
-                std::vector<uint32_t> size_ = std::vector<uint32_t>(p->size().begin(), p->size().end());
+                std::vector<uint32_t> size_ =
+                    std::vector<uint32_t>(p->size().begin(), p->size().end());
                 std::reverse(size_.begin(), size_.end());
                 uint32_t sn = slice_num;
-                for (auto const &s: size_) {
+                for (auto const& s : size_) {
                     auto r = sn % s;
                     slice.emplace_back(r);
                     sn = sn / s;
@@ -1111,20 +1111,85 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
                 std::string name = port_name;
                 for (auto const& s : slice) name = ::format("{0}_{1}", name, s);
                 auto slice_port = &(*p)[slice[0]];
-                for (uint64_t i = 1; i < slice.size(); i++)
-                    slice_port = &(*slice_port)[slice[i]];
+                for (uint64_t i = 1; i < slice.size(); i++) slice_port = &(*slice_port)[slice[i]];
                 if (slice_port->size().size() != 1 || slice_port->size()[0] != 1)
                     throw InternalException("Unable to slice ports when flattening");
                 auto& new_port = gen.port(p->port_direction(), name, slice_port->var_width());
                 if (p->port_direction() == PortDirection::In) {
                     gen.add_stmt(slice_port->assign(new_port, AssignmentType::Blocking));
                 } else {
-                    gen.add_stmt(new_port.assign(slice_port->shared_from_this(), AssignmentType::Blocking));
+                    gen.add_stmt(
+                        new_port.assign(slice_port->shared_from_this(), AssignmentType::Blocking));
                 }
             }
         }
     }
     return gen;
+}
+
+std::pair<std::string, uint32_t> generate_sv_package_header(Generator* top,
+                                                            const std::string& package_name,
+                                                            bool include_guard) {
+    Stream stream(nullptr, nullptr);
+    // we will write out the dpi and struct ones to the header file
+    // this is to ensure everything will be set if this function is called
+    // output the guard
+    auto struct_info = extract_struct_info(top);
+    auto dpi_info = extract_dpi_function(top, true);
+    auto enum_info = extract_enum_info(top);
+    auto interface_info = extract_interface_info(top);
+    if (include_guard) {
+        // output the guard
+        std::string guard_name = "kratos_" + package_name;
+        // make it upper case
+        std::for_each(guard_name.begin(), guard_name.end(),
+                      [](char& c) { c = static_cast<char>(::toupper(c)); });
+        stream << "`ifndef " << guard_name << stream.endl();
+        stream << "`define " << guard_name << stream.endl();
+        // package header
+        stream << "package " << package_name << ";" << stream.endl();
+    }
+
+
+    // all the information list
+    auto info_list = {dpi_info, struct_info, enum_info, interface_info};
+    for (auto const &info : info_list) {
+        for (auto const &iter: info) {
+            auto def = iter.second;
+            // split on new line to replace with the stream new line so that we can track
+            // the new lines
+            auto lines = string::get_tokens(def, "\n");
+            for (auto const &line: lines) {
+                stream << line << stream.endl();
+            }
+            stream << stream.endl();
+        }
+    }
+
+    // closing
+    stream << "endpackage" << stream.endl();
+    // end of guard
+    if (include_guard) stream << "`endif" << stream.endl();
+
+    return {stream.str(), static_cast<uint32_t>(stream.line_no())};
+}
+
+void fix_verilog_ln(Generator* generator, uint32_t offset) {
+    // need to fix every variable and statement verilog line number by an offset
+    if (!generator->debug) return;
+    // fix the variable declaration
+    auto const& var_names = generator->get_all_var_names();
+    for (auto const& var_name : var_names) {
+        auto var = generator->get_var(var_name);
+        var->verilog_ln += offset;
+    }
+    // get all the statement graph
+    StatementGraph graph(generator);
+    auto stmts = graph.nodes();
+    for (auto const& iter : stmts) {
+        auto stmt = iter.first;
+        stmt->verilog_ln += offset;
+    }
 }
 
 }  // namespace kratos

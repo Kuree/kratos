@@ -37,11 +37,12 @@ struct StmtNode {
 
 class StatementGraph {
 public:
-    explicit StatementGraph(StmtBlock *stmt);
+    explicit StatementGraph(Generator *generator);
+    [[nodiscard]] const std::unordered_map<Stmt*, StmtNode> &nodes() const { return nodes_; }
 
 private:
     std::unordered_map<Stmt*, StmtNode> nodes_;
-    StmtNode *root_;
+    Generator *root_;
 
     void build_graph();
     void add_stmt_child(Stmt* stmt);

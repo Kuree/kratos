@@ -143,9 +143,7 @@ std::vector<std::vector<Generator *>> GeneratorGraph::get_leveled_generators() {
     return result;
 }
 
-StatementGraph::StatementGraph(StmtBlock *stmt) {
-    nodes_.emplace(stmt, StmtNode{nullptr, stmt, {}});
-    root_ = &nodes_.at(stmt);
+StatementGraph::StatementGraph(Generator *generator) : root_(generator) {
     // build the control flow graph
     build_graph();
 }
@@ -168,8 +166,8 @@ void StatementGraph::add_stmt_child(Stmt *stmt) {
 }
 
 void StatementGraph::build_graph() {
-    auto stmt = root_->stmt;
-    add_stmt_child(stmt);
+    auto stmts = root_->get_all_stmts();
+    for (auto const &stmt : stmts) add_stmt_child(stmt.get());
 }
 
 }  // namespace kratos
