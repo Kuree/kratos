@@ -507,6 +507,21 @@ class FuncScope(Scope):
         return stmt
 
 
+def transform_block_comment(fn_body):
+    for i in range(len(fn_body.body)):
+        node = fn_body.body[i]
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Str):
+            comment = node.value.s
+            comment = comment.replace("\"", "").replace("'", "")
+            node.value.s = comment
+            fn_body.body[i] = ast.Expr(
+                value=ast.Call(func=ast.Name(id="comment"),
+                               args=[node.value],
+                               cts=ast.Load(),
+                               keywords=[])
+            )
+
+
 def add_stmt_to_scope(fn_body):
     for i in range(len(fn_body.body)):
         node = fn_body.body[i]
@@ -547,6 +562,9 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     if transform_return:
         return_visitor = ReturnNodeVisitor("scope", generator.debug)
         return_visitor.visit(fn_body)
+
+    # change to block comment to comment_
+    transform_block_comment(fn_body)
 
     # transform aug assign
     aug_assign_visitor = AugAssignNodeVisitor()

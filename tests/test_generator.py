@@ -1646,10 +1646,13 @@ def transform_block_comment():
     def code():
         """
         this is comment
-        this is another commend
+        this is another comment
         """
 
     mod.add_always(code)
+    src = verilog(mod)["mod"]
+    assert "this is comment" in src
+    assert "this is another comment" in src
 
 
 if __name__ == "__main__":
