@@ -1639,6 +1639,19 @@ def test_verilog_ln_fix():
     assert mod.get_stmt_by_index(0)[1].then_body().verilog_ln == stmt_1 + 2
 
 
+def transform_block_comment():
+    mod = Generator("mod")
+
+    @always_comb
+    def code():
+        """
+        this is comment
+        this is another commend
+        """
+
+    mod.add_always(code)
+
+
 if __name__ == "__main__":
-    test_verilog_ln_fix()
+    transform_block_comment()
 
