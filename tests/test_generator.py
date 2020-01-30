@@ -1602,6 +1602,43 @@ def test_generator_property(check_gold):
     check_gold(mod, gold_name="test_generator_property")
 
 
+def test_verilog_ln_fix():
+    from kratos.func import dpi_function
+
+    @dpi_function(8)
+    def add(arg0, arg1):
+        pass
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod", debug=True)
+            self._in = self.input("in", 2)
+            self._out = self.output("out", 8)
+            self.add_always(self.code)
+
+        @always_comb
+        def code(self):
+            self._out = add(self._in, const(1, 2))
+            if self._in == 0:
+                self._out = 1
+
+    mod = Mod()
+    with tempfile.TemporaryDirectory() as temp:
+        filename = os.path.join(temp, "test.sv")
+        src = verilog(mod, filename=filename)[0]
+        content = src["mod"]
+
+    mod_i = mod.internal_generator
+    assert mod_i.verilog_ln == 2
+    lines = content.split("\n")
+    stmt_0 = min([i for i in range(len(lines)) if "add (" in lines[i]])
+    stmt_1 = min([i for i in range(len(lines)) if "if" in lines[i]])
+    # + 1 for using starting-1 line number format
+    # another + 1 for DPI header offset
+    assert mod.get_stmt_by_index(0)[0].verilog_ln == stmt_0 + 1 + 1
+    assert mod.get_stmt_by_index(0)[1].then_body().verilog_ln == stmt_1 + 2
+
+
 if __name__ == "__main__":
-    from conftest import check_gold_fn
-    test_generator_property(check_gold_fn)
+    test_verilog_ln_fix()
+

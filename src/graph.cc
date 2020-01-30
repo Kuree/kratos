@@ -150,7 +150,11 @@ StatementGraph::StatementGraph(Generator *generator) : root_(generator) {
 
 void StatementGraph::add_stmt_child(Stmt *stmt) {
     auto child_count = stmt->child_count();
-    auto parent_node = &nodes_.at(stmt);
+    StmtNode *parent_node;
+    if (nodes_.find(stmt) == nodes_.end())
+        parent_node = nullptr;
+    else
+        parent_node = &nodes_.at(stmt);
     for (uint64_t i = 0; i < child_count; i++) {
         auto ir_node = stmt->get_child(i);
         if (ir_node->ir_node_kind() != IRNodeKind::StmtKind) continue;
@@ -161,7 +165,9 @@ void StatementGraph::add_stmt_child(Stmt *stmt) {
         StmtNode node_value{parent_node, s, {}};
         nodes_.emplace(s, node_value);
         auto node = &nodes_.at(s);
-        parent_node->children.emplace(node);
+        if (parent_node)
+            parent_node->children.emplace(node);
+        add_stmt_child(s);
     }
 }
 

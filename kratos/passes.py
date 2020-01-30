@@ -182,7 +182,10 @@ def output_verilog(filename, mod_src, info, struct_info, dpi_func, enum_def,
                 if track_generated_definition \
                         and name in __generated_definitions:
                     continue
-                f.write(def_ + "\n")
+                lines = def_.split("\n")
+                for line in lines:
+                    f.write(line + "\n")
+                    line_no += 1
                 if track_generated_definition:
                     __generated_definitions.add(name)
 
@@ -193,6 +196,13 @@ def output_verilog(filename, mod_src, info, struct_info, dpi_func, enum_def,
                     mod_name in __generated_definitions:
                 continue
             src = mod_src[mod_name]
+            # get mod
+            mods = Generator.get_context().get_generators_by_name(mod_name)
+            for mod in mods:
+                # fix the line number
+                # need to subtract 1 since on the C++'s side already
+                # has 1 offset
+                _kratos.fix_verilog_ln(mod, line_no - 1)
             mod_info = info[mod_name] if mod_name in info else {}
             lines = src.split("\n")
             for index, line in enumerate(lines):

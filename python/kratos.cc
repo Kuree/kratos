@@ -33,7 +33,6 @@ void init_cast(py::module &m);
 void init_lib(py::module &m);
 void init_fault(py::module &m);
 
-
 void init_context(py::module &m) {
     auto context = py::class_<Context>(m, "Context");
     context.def(py::init())
@@ -61,7 +60,11 @@ void init_code_gen(py::module &m) {
         .def("run_passes", &VerilogModule::run_passes)
         .def("pass_manager", &VerilogModule::pass_manager, py::return_value_policy::reference);
 
-    m.def("create_wrapper_flatten", &create_wrapper_flatten, py::return_value_policy::reference);
+    m.def("create_wrapper_flatten", &create_wrapper_flatten, py::return_value_policy::reference)
+        .def("generate_sv_package_header",
+             py::overload_cast<Generator *, const std::string &, bool>(&generate_sv_package_header))
+        .def("generate_sv_package_header", &generate_sv_package_header)
+        .def("fix_verilog_ln", &fix_verilog_ln);
 }
 
 PYBIND11_MODULE(_kratos, m) {

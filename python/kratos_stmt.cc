@@ -40,8 +40,6 @@ void init_stmt(py::module &m) {
             py::return_value_policy::reference)
         .def_property("delay", &AssignStmt::get_delay, &AssignStmt::set_delay);
 
-    def_attributes<py::class_<AssignStmt, ::shared_ptr<AssignStmt>, Stmt>, AssignStmt>(assign_);
-
     py::class_<IfStmt, ::shared_ptr<IfStmt>, Stmt>(m, "IfStmt")
         .def(py::init<::shared_ptr<Var>>())
         .def("predicate", &IfStmt::predicate, py::return_value_policy::reference)

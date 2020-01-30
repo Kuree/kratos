@@ -18,7 +18,8 @@ void def_trace(T &class_) {
         }
     })
     .def_readwrite("comment", &K::comment)
-    .def_readwrite("fn_name_ln", &K::fn_name_ln);
+    .def_readwrite("fn_name_ln", &K::fn_name_ln)
+    .def_property_readonly("verilog_ln", [](K& k) { return k.verilog_ln; });
 }
 
 #endif  // KRATOS_KRATOS_DEBUG_HH

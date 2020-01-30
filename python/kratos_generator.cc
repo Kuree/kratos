@@ -65,23 +65,25 @@ void init_generator(py::module &m) {
              py::overload_cast<PortDirection, const std::string &, const std::shared_ptr<Enum> &>(
                  &Generator::port),
              py::return_value_policy::reference)
-        .def("port", py::overload_cast<const Port &>(&Generator::port), py::return_value_policy::reference)
+        .def("port", py::overload_cast<const Port &>(&Generator::port),
+             py::return_value_policy::reference)
         .def("parameter",
              py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
              py::return_value_policy::reference)
         .def("interface", [](Generator &generator, const std::shared_ptr<InterfaceDefinition> &def,
                              const std::string &name,
                              bool is_port) { return generator.interface(def, name, is_port); })
-        .def("interface", [](Generator &generator, const std::shared_ptr<InterfaceModPortDefinition> &def,
-                             const std::string &name,
-                             bool is_port) { return generator.interface(def, name, is_port); })
+        .def("interface",
+             [](Generator &generator, const std::shared_ptr<InterfaceModPortDefinition> &def,
+                const std::string &name,
+                bool is_port) { return generator.interface(def, name, is_port); })
         .def("has_interface",
              [](Generator &gen, const std::string &name) {
                  auto const &interfaces = gen.interfaces();
                  return interfaces.find(name) != interfaces.end();
              })
         .def("get_interface",
-             [](Generator &gen, const std::string &name) ->std::shared_ptr<InterfaceRef> {
+             [](Generator &gen, const std::string &name) -> std::shared_ptr<InterfaceRef> {
                  auto const &interfaces = gen.interfaces();
                  if (name == "__len__") return nullptr;
                  if (interfaces.find(name) == interfaces.end())
@@ -215,9 +217,12 @@ void init_generator(py::module &m) {
         .def("parent_generator", &Generator::parent_generator)
         .def_readwrite("verilog_fn", &Generator::verilog_fn);
 
-    generator.def("add_fn_ln", [](Generator &var, const std::pair<std::string, uint32_t> &info) {
-        var.fn_name_ln.emplace_back(info);
-    });
+    generator
+        .def("add_fn_ln",
+             [](Generator &var, const std::pair<std::string, uint32_t> &info) {
+                 var.fn_name_ln.emplace_back(info);
+             })
+        .def_property_readonly("verilog_ln", [](Generator &gen) { return gen.verilog_ln; });
 
     auto bundle_def = py::class_<PortBundleDefinition, std::shared_ptr<PortBundleDefinition>>(
         m, "PortBundleDefinition");

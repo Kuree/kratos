@@ -184,7 +184,7 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
         // import everything
         stream_ << "import " << package_name_ << "::*;" << stream_.endl();
     }
-
+    if (generator->debug) generator->verilog_ln = stream_.line_no();
     stream_ << ::format("module {0} ", generator->name);
     generate_parameters(generator);
     stream_ << indent() << "(" << stream_.endl();
@@ -1178,6 +1178,7 @@ void fix_verilog_ln(Generator* generator, uint32_t offset) {
     // need to fix every variable and statement verilog line number by an offset
     if (!generator->debug) return;
     // fix the variable declaration
+    generator->verilog_ln += offset;
     auto const& var_names = generator->get_all_var_names();
     for (auto const& var_name : var_names) {
         auto var = generator->get_var(var_name);
