@@ -11,8 +11,8 @@
 #include "interface.hh"
 #include "stmt.hh"
 #include "syntax.hh"
-#include "util.hh"
 #include "tb.hh"
+#include "util.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -131,8 +131,11 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
     return *p;
 }
 
-Port &Generator::port(const Port &p) {
-    auto &p_ = port(p.port_direction(), p.name, p.width(), p.size(), p.port_type(), p.is_signed());
+Port &Generator::port(const Port &p) { return port(p, p.name); }
+
+Port &Generator::port(const Port &p, const std::string &port_name) {
+    auto &p_ =
+        port(p.port_direction(), port_name, p.width(), p.size(), p.port_type(), p.is_signed());
     p_.set_explicit_array(p.explicit_array());
     p_.set_is_packed(p.is_packed());
     return p_;
@@ -247,8 +250,7 @@ std::shared_ptr<DPIFunctionStmtBlock> Generator::dpi_function(const std::string 
 std::shared_ptr<Property> Generator::property(const std::string &property_name,
                                               const std::shared_ptr<Sequence> &sequence) {
     if (properties_.find(property_name) != properties_.end())
-        throw UserException(
-            ::format("Property {0} already exists in {1}", property_name, name));
+        throw UserException(::format("Property {0} already exists in {1}", property_name, name));
     auto prop = std::make_shared<Property>(property_name, sequence);
     properties_.emplace(property_name, prop);
     return prop;

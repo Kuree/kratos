@@ -67,6 +67,8 @@ void init_generator(py::module &m) {
              py::return_value_policy::reference)
         .def("port", py::overload_cast<const Port &>(&Generator::port),
              py::return_value_policy::reference)
+        .def("port", py::overload_cast<const Port &, const std::string &>(&Generator::port),
+             py::return_value_policy::reference)
         .def("parameter",
              py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
              py::return_value_policy::reference)
