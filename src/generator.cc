@@ -135,7 +135,7 @@ Port &Generator::port(const Port &p) { return port(p, p.name); }
 
 Port &Generator::port(const Port &p, const std::string &port_name) {
     auto &p_ =
-        port(p.port_direction(), port_name, p.width(), p.size(), p.port_type(), p.is_signed());
+        port(p.port_direction(), port_name, p.var_width(), p.size(), p.port_type(), p.is_signed());
     p_.set_explicit_array(p.explicit_array());
     p_.set_is_packed(p.is_packed());
     return p_;
