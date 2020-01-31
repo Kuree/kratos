@@ -655,6 +655,7 @@ void Simulator::process_stmt(kratos::SwitchStmt *switch_, Var *var) {
         auto value = *val;
         for (auto const &[cond, stmt] : body) {
             // we compare bits
+            if (!cond) continue;
             int64_t cond_val = cond->value();
             int64_t *v_p = &cond_val;
             uint64_t bits = *(reinterpret_cast<uint64_t *>(v_p));

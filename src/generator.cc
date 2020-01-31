@@ -500,8 +500,8 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
         throw VarException(::format("{0} already exists in {1}", interface_name, instance_name),
                            {vars_.at(interface_name).get()});
     }
-    if (interfaces_.find(def->name()) != interfaces_.end()) {
-        throw UserException(::format("{0} already exists in {1}", def->name(), instance_name));
+    if (interfaces_.find(interface_name) != interfaces_.end()) {
+        throw UserException(::format("{0} already exists in {1}", interface_name, instance_name));
     }
     // check to see if it's a valid name
     if (!is_valid_variable_name(interface_name)) {
@@ -530,7 +530,7 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
         if (is_port) ports_.emplace(var_name);
     }
     // put it in the interface
-    interfaces_.emplace(def->name(), ref);
+    interfaces_.emplace(interface_name, ref);
     return ref;
 }
 

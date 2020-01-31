@@ -128,6 +128,8 @@ TEST(sim, array_access) {   // NOLINT
     auto res = sim.get(&a[b.shared_from_this()]);
     EXPECT_TRUE(res != std::nullopt);
     EXPECT_EQ(*res, value);
+    res = sim.get(&a[2]);
+    EXPECT_EQ(*res, 5);
 }
 
 TEST(sim, sequential) {  // NOLINT
@@ -192,13 +194,36 @@ TEST(sim, if_) {  // NOLINT
     EXPECT_EQ(*v, 1);
 }
 
+TEST(sim, case_) {  // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    auto &in = mod.port(PortDirection::In, "in", 1);
+    auto comb = mod.combinational();
+    auto case_ = std::make_shared<SwitchStmt>(in);
+    case_->add_switch_case(constant(1, 1).as<Const>(), a.assign(b));
+    case_->add_switch_case(nullptr, a.assign(constant(0, 1)));
+    comb->add_stmt(case_);
+
+    Simulator sim(&mod);
+    auto v = sim.get(&a);
+    EXPECT_EQ(v, std::nullopt);
+    sim.set(&in, 1);
+    sim.set(&b, 1);
+    v = sim.get(&a);
+    EXPECT_EQ(*v, 1);
+}
+
 TEST(sim, expr) {   // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.port(PortDirection::In, "a", 16);
     auto &expr = a + a + a + a;
     auto &b = mod.port(PortDirection::Out, "b", 16);
+    auto &c = mod.var("c", a.width() + b.width());
     mod.add_stmt(b.assign(expr));
+    mod.add_stmt(c.assign(a.concat(b)));
 
     Simulator sim(&mod);
     auto v = sim.get(&b);
@@ -206,6 +231,8 @@ TEST(sim, expr) {   // NOLINT
     sim.set(&a, 2);
     v = sim.get(&b);
     EXPECT_EQ(*v, 2 * 4);
+    v = sim.get(&c);
+    EXPECT_EQ(*v, 2u << 16u | 2u * 4);
 }
 
 TEST(eval, bin_op) {  // NOLINT

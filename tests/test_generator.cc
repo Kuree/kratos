@@ -1124,6 +1124,55 @@ TEST(interface, mod_port) {  // NOLINT
     EXPECT_TRUE(str.find("Config.R bus\n") != std::string::npos);
 }
 
+TEST(interface, extract_interface_definition) { // NOLINT
+    Context c;
+    auto &mod1 = c.generator("mod");
+    auto config_0 = std::make_shared<InterfaceDefinition>("Config");
+    auto &v = mod1.var("v", 1);
+    config_0->input("read", 1, 1);
+    config_0->output("write", 1, 1);
+    auto i1 = mod1.interface(config_0, "bus1", false);
+    auto config_1 = std::make_shared<InterfaceDefinition>("Config");
+    config_1->input("read", 1, 1);
+    config_1->output("write", 1, 1);
+    config_1->output("write_", 1, 1);
+    auto i2 = mod1.interface(config_1, "bus2", false);
+    mod1.add_stmt(i1->port("read").assign(v));
+    mod1.add_stmt(i2->port("read").assign(v));
+
+    create_interface_instantiation(&mod1);
+    EXPECT_THROW(extract_interface_info(&mod1), UserException);
+
+
+    auto &mod2 = c.generator("mod");
+    auto &v2 = mod2.var("v", 1);
+    auto config_2 = std::make_shared<InterfaceDefinition>("Config");
+    config_2->input("read", 1, 1);
+    config_2->output("write", 1, 2);
+    auto i3 = mod2.interface(config_1, "bus1", false);
+    auto i4 = mod2.interface(config_2, "bus2", false);
+    mod2.add_stmt(i3->port("read").assign(v2));
+    mod2.add_stmt(i4->port("read").assign(v2));
+    create_interface_instantiation(&mod2);
+    EXPECT_THROW(extract_interface_info(&mod2), UserException);
+
+    auto &mod3 = c.generator("mod");
+    auto &v3 = mod3.var("v", 1);
+    auto config_3 = std::make_shared<InterfaceDefinition>("Config");
+    config_3->input("read", 1, 1);
+    config_3->output("write", 1, 1);
+    config_3->var("v", 1, 1);
+    auto i5 = mod3.interface(config_1, "bus1", false);
+    auto i6 = mod3.interface(config_3, "bus2", false);
+    mod3.add_stmt(i5->port("read").assign(v3));
+    mod3.add_stmt(i6->port("read").assign(v3));
+    create_interface_instantiation(&mod3);
+    EXPECT_THROW(extract_interface_info(&mod3), UserException);
+
+    EXPECT_THROW(mod3.interface(config_1, "bus1", false), UserException);
+}
+
+
 TEST(pass, multiple_driver) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("mod1");
