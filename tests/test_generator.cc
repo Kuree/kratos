@@ -375,11 +375,27 @@ TEST(pass, replace) {  // NOLINT
     auto &out3 = mod3.port(PortDirection::Out, "out", 2);
     mod3.add_stmt(out3.assign(in3));
 
+    auto &mod4 = c.generator("module4");
+    mod4.port(PortDirection::In, "in", 1);
+    mod4.port(PortDirection::Out, "out", 1);
+    mod4.port(PortDirection::Out, "out2", 1);
+
     mod1.add_child_generator("inst0", mod2.shared_from_this());
     mod1.add_stmt(in2.assign(in1));
     mod1.add_stmt(out1.assign(out2));
 
+    auto &mod5 = c.generator("module5");
+    mod5.port(PortDirection::Out, "in", 1);
+    mod5.port(PortDirection::Out, "out", 1);
+
+    auto &mod6 = c.generator("module6");
+    mod6.port(PortDirection::In, "in", 1, PortType::Clock);
+    mod6.port(PortDirection::Out, "out", 1);
+
     EXPECT_THROW(mod1.replace(mod2.instance_name, mod3.shared_from_this()), VarException);
+    EXPECT_THROW(mod1.replace(mod2.instance_name, mod4.shared_from_this()), VarException);
+    EXPECT_THROW(mod1.replace(mod2.instance_name, mod5.shared_from_this()), VarException);
+    EXPECT_THROW(mod1.replace(mod2.instance_name, mod6.shared_from_this()), VarException);
     in3.var_width() = 1;
     out3.var_width() = 1;
     EXPECT_NO_THROW(mod1.replace(mod2.instance_name, mod3.shared_from_this()));
@@ -1220,4 +1236,20 @@ TEST(pass, mixed_assignment) {  // NOLINT
 
     fix_assignment_type(&mod);
     EXPECT_THROW(check_mixed_assignment(&mod), StmtException);
+}
+
+TEST(pass, test_merge_wire_assignment_block) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 4);
+    auto &b = mod.var("b", 4);
+
+    auto comb = mod.combinational();
+    for (auto i = 0; i < 4; i++) {
+        comb->add_stmt(a[i].assign(b[i]));
+    }
+
+    fix_assignment_type(&mod);
+    merge_wire_assignments(&mod);
+    EXPECT_EQ(comb->size(), 1);
 }

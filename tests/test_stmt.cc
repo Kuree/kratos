@@ -3,6 +3,7 @@
 #include "../src/stmt.hh"
 #include "gtest/gtest.h"
 #include "../src/except.hh"
+#include "../src/util.hh"
 
 using namespace kratos;
 
@@ -81,4 +82,27 @@ TEST(stmt, switch_) {  // NOLINT
     EXPECT_EQ(switch_block.body().size(), 2);
     EXPECT_EQ(switch_block.target(), var1.shared_from_this());
     EXPECT_THROW(switch_block.add_switch_case(condition1.as<Const>(), stmt), StmtException);
+}
+
+TEST(stmt, stmt_removal) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("test");
+    auto &var1 = mod.var("a", 1);
+    auto &var2 = mod.var("b", 1);
+    auto comb = mod.combinational();
+    auto if_stmt = std::make_shared<IfStmt>(var1);
+    if_stmt->add_then_stmt(var2.assign(var1));
+    auto switch_stmt = std::make_shared<SwitchStmt>(var1);
+    auto stmt = var2.assign(var1);
+    auto case_ = constant(1, 1).as<Const>();
+    switch_stmt->add_switch_case(case_, stmt);
+
+    // remove stmt
+    remove_stmt_from_parent(if_stmt->then_body()->get_stmt(0));
+    EXPECT_TRUE(if_stmt->then_body()->empty());
+    remove_stmt_from_parent(stmt);
+    EXPECT_TRUE(switch_stmt->body().at(case_)->empty());
+    remove_stmt_from_parent(if_stmt);
+    remove_stmt_from_parent(switch_stmt);
+    EXPECT_EQ(comb->size(), 0);
 }

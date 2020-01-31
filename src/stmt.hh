@@ -146,7 +146,8 @@ private:
 
 class SwitchStmt : public Stmt {
 public:
-    explicit SwitchStmt(const std::shared_ptr<Var> &target);
+    explicit SwitchStmt(const std::shared_ptr<Var> &target): SwitchStmt(*target) {}
+    explicit SwitchStmt(Var& target);
 
     ScopedStmtBlock &add_switch_case(const std::shared_ptr<Const> &switch_case,
                                      const std::shared_ptr<Stmt> &stmt);

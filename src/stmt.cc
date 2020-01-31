@@ -256,15 +256,15 @@ IRNode *SequentialStmtBlock::get_child(uint64_t index) {
     return nullptr;
 }
 
-SwitchStmt::SwitchStmt(const std::shared_ptr<Var> &target)
-    : Stmt(StatementType::Switch), target_(target) {
+SwitchStmt::SwitchStmt(Var &target)
+    : Stmt(StatementType::Switch), target_(target.shared_from_this()) {
     // we don't allow const target
-    if (target->type() == VarType::ConstValue)
-        throw StmtException(::format("switch target cannot be const value {0}", target->name),
-                            {this, target.get()});
+    if (target.type() == VarType::ConstValue)
+        throw StmtException(::format("switch target cannot be const value {0}", target.name),
+                            {this, &target});
 
     // just to add the sinks
-    auto stmt = target->generator->get_auxiliary_var(target->width())->assign(target);
+    auto stmt = target.generator->get_auxiliary_var(target.width())->assign(target);
     stmt->set_parent(this);
 }
 

@@ -125,6 +125,9 @@ TEST(expr, concat) {  // NOLINT
     // test raw constructor
     const auto &concat = VarConcat(var1.shared_from_this(), var2.shared_from_this());
     EXPECT_EQ(concat.to_string(), var3.to_string());
+    EXPECT_EQ(concat.handle_name(true), "{a, b}");
+    EXPECT_EQ(concat.handle_name(false), "{mod.a, mod.b}");
+    EXPECT_EQ(concat.handle_name(&mod), "{a, b}");
 }
 
 TEST(expr, param) {  // NOLINT
@@ -171,6 +174,9 @@ TEST(expr, ternary) {  // NOLINT
     auto result =
         ConditionalExpr(cond.shared_from_this(), a.shared_from_this(), b.shared_from_this());
     EXPECT_EQ(result.to_string(), "cond ? a: b");
+    EXPECT_EQ(result.handle_name(true), "cond ? a: b");
+    EXPECT_EQ(result.handle_name(false), "mod.cond ? mod.a: mod.b");
+    EXPECT_EQ(result.handle_name(&mod), "cond ? a: b");
 }
 
 TEST(expr, unary) {  // NOLINT

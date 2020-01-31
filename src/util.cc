@@ -398,6 +398,8 @@ std::vector<std::string> line_wrap(const std::string &text, uint32_t line_width)
     return result;
 }
 
+// not interested in this coverage since it's just color conversion
+// LCOV_EXCL_START
 namespace color {
 Color hsv_to_rgb(double h, double s, double v) {
     auto h_i = static_cast<int>(h * 6);
@@ -453,6 +455,7 @@ Color hsv_to_rgb(double h, double s, double v) {
     return {r, g, b};
 }
 }  // namespace color
+// LCOV_EXCL_STOP
 
 namespace fs {
 std::string which(const std::string &name) {
