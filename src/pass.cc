@@ -747,7 +747,13 @@ private:
         } else if (port_direction == PortDirection::Out) {
             // same logic as the port dir in
             // if we're connected to a base variable, we are good
-            const auto& sinks = port->sinks();
+            const auto& sinks_ = port->sinks();
+            // we are only interested in parent level port connection
+            std::unordered_set<std::shared_ptr<AssignStmt>> sinks;
+            for (auto const &stmt: sinks_) {
+                if (stmt->generator_parent() == port->generator->parent_generator())
+                    sinks.emplace(stmt);
+            }
             if (sinks.empty()) {
                 return;
             }

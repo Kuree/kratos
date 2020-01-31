@@ -3,6 +3,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 
 #include "expr.hh"
 #include "stmt.hh"
@@ -16,6 +17,9 @@ constexpr uint32_t CODE_RANGE = 2;
 constexpr uint32_t LINE_WIDTH = 80;
 
 namespace kratos {
+
+// a mutex so that it won't jammed the console output when in multi-processing mode
+std::mutex print_ast_mutex_;
 
 std::string inline blue_line() {
     std::string result;
@@ -31,6 +35,7 @@ void print_ast_node(const IRNode* node) {
     if (!node) {
         return;
     }
+    print_ast_mutex_.lock();
     if (!node->fn_name_ln.empty()) {
         // print out a blue line
         for (auto const& [filename, line_number] : node->fn_name_ln) {
@@ -53,6 +58,7 @@ void print_ast_node(const IRNode* node) {
             }
         }
     }
+    print_ast_mutex_.unlock();
 }
 
 VarException::VarException(const std::string& message,
