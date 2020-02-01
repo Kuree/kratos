@@ -8,7 +8,6 @@
 #include "../src/generator.hh"
 #include "../src/pass.hh"
 #include "../src/stmt.hh"
-#include "../src/util.hh"
 #include "kratos_expr.hh"
 
 namespace py = pybind11;
