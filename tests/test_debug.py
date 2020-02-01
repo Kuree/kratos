@@ -444,7 +444,7 @@ def test_array_packed():
             if value == "s.read" and name == "ss.read":
                 correct_struct = True
         assert correct_array and correct_struct
-
+        conn.close()
 
 
 if __name__ == "__main__":
