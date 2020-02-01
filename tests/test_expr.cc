@@ -334,5 +334,13 @@ TEST(var, valid_check) {    // NOLINT
     EXPECT_THROW(mod.var("config", 1), UserException);
     EXPECT_THROW(mod.var("a", 0), UserException);
     EXPECT_THROW(Enum("var", {}, 1), UserException);
+}
 
+TEST(var, size_1_slice) {   // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 4, {1, 1});
+    auto &b = a[0][0];
+    EXPECT_EQ(b.width(), 4);
+    EXPECT_EQ(b.to_string(), "a[0][0]");
 }

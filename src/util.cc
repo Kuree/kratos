@@ -352,11 +352,10 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *ge
 }
 
 
-std::vector<std::vector<uint32_t>> get_flatten_slices(Var *var, bool ignore_size_1) {
+std::vector<std::vector<uint32_t>> get_flatten_slices(Var *var) {
     uint32_t num_slices = var->width() / var->var_width();
-    if (num_slices == 1 && ignore_size_1) return {};
     std::vector<std::vector<uint32_t>> result;
-
+    result.reserve(num_slices);
     std::vector<uint32_t> sizes = std::vector<uint32_t>(var->size().begin(), var->size().end());
     std::reverse(sizes.begin(), sizes.end());
     for (uint32_t i = 0; i < num_slices; i++) {

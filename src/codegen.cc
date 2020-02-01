@@ -1091,7 +1091,7 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
             }
         } else {
             // need to flatten the array
-            auto slices = get_flatten_slices(p.get(), false);
+            auto slices = get_flatten_slices(p.get());
             // create port for them based on the slice
             for (auto const &slice: slices) {
                 std::string name = port_name;

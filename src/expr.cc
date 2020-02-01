@@ -283,6 +283,22 @@ void Var::set_width_param(kratos::Param *param) {
 
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 
+uint32_t num_size_decrease(Var *var) {
+    if (var->type() == VarType::Slice) {
+        auto slice = reinterpret_cast<VarSlice *>(var);
+        auto parent = slice->parent_var;
+        auto diff = parent->size().size() - slice->size().size();
+        if (parent->type() == VarType::Slice) {
+            return diff + num_size_decrease(reinterpret_cast<VarSlice *>(parent));
+        } else {
+            // base case 1
+            return diff;
+        }
+    }
+    // base case 0
+    return 0;
+}
+
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     : Var(parent->generator, "", parent->var_width(), 1, parent->is_signed(), VarType::Slice),
       parent_var(parent),
@@ -292,6 +308,12 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     // compute the width
     // notice that if the user has explicit set it to be an array
     // we need to honer their wish
+    // we also need to honer the way the dimension the array is set
+    auto diff = num_size_decrease(parent);
+    bool dropped_dim_size1 = low == 0 && high == 0 &&
+                             parent->get_var_root_parent()->size().size() > 1 &&
+                             parent->get_var_root_parent()->size().front() == 1 &&
+                             diff == parent->get_var_root_parent()->size().size() - 1;
     if (parent->size().size() == 1 && parent->size().front() == 1 && parent->explicit_array()) {
         if (high != 0 || low != 0) {
             throw VarException(::format("Parent {0} is a scalar but used marked as an explicit "
@@ -299,7 +321,10 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
                                         parent->to_string()),
                                {parent});
         }
-    } else if (parent->size().size() == 1 && parent->size().front() == 1) {
+    } else if (parent->size().size() == 1 && parent->size().front() == 1 && !dropped_dim_size1) {
+        // even it is true, we still need to make sure cases such as
+        // [3:0][0:0] declaration (from size = (4, 1)), can be sliced twice before hitting
+        // the wire, which means we need to count the number of size decreases
         // this is the actual slice
         var_width_ = high - low + 1;
         is_packed_ = false;
@@ -339,12 +364,14 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
         }
     } else {
         // it's a slice
-        if (parent->size().size() == 1 && parent->size().front() == 1) {
-            auto slice = dynamic_cast<VarSlice *>(parent);
+        auto slice = dynamic_cast<VarSlice *>(parent);
+        if (parent->size().size() == 1 && parent->size().front() == 1 && !dropped_dim_size1) {
             var_low_ = low + slice->var_low();
             var_high_ = (high + 1) + slice->var_low() - 1;
+        } else if (parent->size().size() == 1 && parent->size().front() == 1 && dropped_dim_size1) {
+            var_low_ = slice->var_low();
+            var_high_ = slice->var_high();
         } else {
-            auto slice = dynamic_cast<VarSlice *>(parent);
             uint32_t base_width = parent->var_width();
             for (uint64_t i = 1; i < parent->size().size(); i++) base_width *= parent->size()[i];
             var_low_ = slice->var_low() + low * base_width;
@@ -360,8 +387,7 @@ std::string VarSlice::to_string() const {
             return parent_name;
         }
         return ::format("{0}[{1}]", parent_name, high);
-    }
-    else {
+    } else {
         return ::format("{0}[{1}:{2}]", parent_name, high, low);
     }
 }
