@@ -62,27 +62,33 @@ def flog2(x: int) -> int:
 
 
 # these are helper functions tp construct complex expressions
+def __reduce(func, args):
+    r = functools.reduce(func, args)
+    if isinstance(r, (list, tuple)) and len(r) == 1:
+        return r[0]
+    return r
+
+
 def reduce_or(*args):
-    return functools.reduce(operator.or_, args)
+    return __reduce(operator.or_, args)
 
 
 def reduce_and(*args):
-    return functools.reduce(operator.and_, args)
+    return __reduce(operator.and_, args)
 
 
 def reduce_add(*args):
-    return functools.reduce(operator.add, args)
+    return __reduce(operator.add, args)
 
 
 def reduce_mul(*args):
-    return functools.reduce(operator.mul, args)
+    return __reduce(operator.mul, args)
 
 
 def concat(*args):
-    expr = args[0].concat(args[1])
-    for i in range(2, len(args)):
-        expr = expr.concat(args[i])
-    return expr
+    def _concat(a, b):
+        return a.concat(b)
+    return __reduce(_concat, args)
 
 
 def ext(var, target_width):

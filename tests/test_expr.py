@@ -163,6 +163,14 @@ def test_bool_except():
         assert True
 
 
+def test_single_concat():
+    from kratos import concat
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+    r = concat([a])
+    assert id(r) == id(a)
+
+
 if __name__ == "__main__":
-    test_bool_except()
+    test_single_concat()
 
