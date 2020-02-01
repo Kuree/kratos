@@ -1091,23 +1091,9 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
             }
         } else {
             // need to flatten the array
-            uint32_t num_slices = 1;
-            for (auto const& s : p->size()) num_slices *= s;
+            auto slices = get_flatten_slices(p.get());
             // create port for them based on the slice
-            for (uint32_t slice_num = 0; slice_num < num_slices; slice_num++) {
-                std::vector<uint32_t> slice;
-                std::vector<uint32_t> size_ =
-                    std::vector<uint32_t>(p->size().begin(), p->size().end());
-                std::reverse(size_.begin(), size_.end());
-                uint32_t sn = slice_num;
-                for (auto const& s : size_) {
-                    auto r = sn % s;
-                    slice.emplace_back(r);
-                    sn = sn / s;
-                }
-                if (slice.size() != p->size().size())
-                    throw InternalException("Unable to compute slice");
-                std::reverse(slice.begin(), slice.end());
+            for (auto const &slice: slices) {
                 std::string name = port_name;
                 for (auto const& s : slice) name = ::format("{0}_{1}", name, s);
                 auto slice_port = &(*p)[slice[0]];

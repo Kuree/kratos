@@ -56,6 +56,8 @@ std::pair<uint32_t, uint32_t> compute_var_high_low(
 
 std::vector<std::string> get_tokens(const std::string &line, const std::string &delimiter);
 
+std::vector<std::vector<uint32_t>> get_flatten_slices(Var *var);
+
 std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *generator,
                                                                    const std::string &src,
                                                                    const std::string &top_name);

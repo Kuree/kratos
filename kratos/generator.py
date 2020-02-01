@@ -589,7 +589,7 @@ class Generator(metaclass=GeneratorMeta):
             stmt = var_to.assign(var_from)
         else:
             stmt = var_from.assign(var_to)
-        self.add_stmt(stmt)
+        self.add_stmt(stmt, False)
         return stmt
 
     def wire(self, var_to, var_from,
@@ -665,11 +665,14 @@ class Generator(metaclass=GeneratorMeta):
     def property(self, property_name: str, seq):
         return self.__generator.property(property_name, seq)
 
-    def add_stmt(self, stmt):
+    def add_stmt(self, stmt, add_ln_info=True):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_stmt, [stmt]))
             return
         self.__generator.add_stmt(stmt)
+        if add_ln_info and self.debug:
+            stmt.add_fn_ln(get_fn_ln())
+            add_scope_context(stmt, get_frame_local(2))
 
     def remove_stmt(self, stmt):
         if self.is_cloned:

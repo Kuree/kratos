@@ -351,6 +351,28 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *ge
     return result;
 }
 
+
+std::vector<std::vector<uint32_t>> get_flatten_slices(Var *var) {
+    uint32_t num_slices = var->width() / var->var_width();
+    if (num_slices == 1) return {};
+    std::vector<std::vector<uint32_t>> result;
+
+    std::vector<uint32_t> sizes = std::vector<uint32_t>(var->size().begin(), var->size().end());
+    std::reverse(sizes.begin(), sizes.end());
+    for (uint32_t i = 0; i < num_slices; i++) {
+        std::vector<uint32_t> slice;
+        slice.reserve(sizes.size());
+        uint32_t value = i;
+        for (auto l: sizes) {
+            slice.emplace_back(value % l);
+            value /= l;
+        }
+        std::reverse(slice.begin(), slice.end());
+        result.emplace_back(slice);
+    }
+    return result;
+}
+
 std::map<std::string, std::shared_ptr<Port>> get_port_from_verilog(Generator *generator,
                                                                    const std::string &src,
                                                                    const std::string &top_name) {

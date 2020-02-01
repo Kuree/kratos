@@ -419,5 +419,33 @@ def test_nested_scope():
             assert var == "3"
 
 
+def test_array_packed():
+    from kratos import PackedStruct
+    mod = Generator("mod", True)
+    aa = mod.var("a", 2, size=(2, 4), packed=True)
+    struct = PackedStruct("s", [("read", 16, False),
+                                ("data", 16, False)])
+    ss = mod.var_packed("s", struct)
+    mod.add_stmt(aa.assign(4))
+    mod.add_stmt(ss["read"].assign(0))
+    mod.add_stmt(ss["data"].assign(1))
+
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        verilog(mod, debug_db_filename=debug_db, insert_debug_info=True)
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM variable")
+        vars_ = c.fetchall()
+        correct_struct, correct_array = False, False
+        for _, _, value, name, _, _ in vars_:
+            if value == "a[1][3]" and name == "aa.1.3":
+                correct_array = True
+            if value == "s.read" and name == "ss.read":
+                correct_struct = True
+        assert correct_array and correct_struct
+
+
+
 if __name__ == "__main__":
-    test_nested_scope()
+    test_array_packed()

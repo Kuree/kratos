@@ -159,9 +159,9 @@ std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top) {
 
 class InsertVerilatorPublic : public IRVisitor {
 public:
-    void visit(Generator* generator) override {
+    void visit(Generator *generator) override {
         auto vars = generator->get_all_var_names();
-        for (auto const &var_name: vars) {
+        for (auto const &var_name : vars) {
             auto var = generator->get_var(var_name);
             insert_str(var.get());
         }
@@ -519,25 +519,23 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             // it is an variable
             if (var_->size().size() > 1 || var_->size().front() > 1) {
                 // it's an array. need to flatten it
-                // use recursion to do it
-                std::function<void(const std::string &, const std::string &, uint32_t)>
-                    add_data_point =
-                        [&](const std::string &value, const std::string &name, uint32_t index) {
-                            if (index >= var_->size().size()) return;
-                            auto width = var_->size()[index];
-                            for (uint32_t i = 0; i < width; i++) {
-                                v.name = ::format("{0}.{1}", name, i);
-                                v.value = ::format("{0}[{1}]", value, i);
-                                v.id = variable_count++;
-                                storage.replace(v);
-                                add_context();
-
-                                auto new_name = ::format("{0}.{1}", name, i);
-                                auto new_value = ::format("{0}[1]", value, i);
-                                add_data_point(new_name, new_value, index + 1);
-                            }
-                        };
-                add_data_point(var_->name, name_, 0);
+                auto slices = get_flatten_slices(var_);
+                for (auto const &slice : slices) {
+                    std::string new_name;
+                    if (!name_.empty()) {
+                        new_name = name_;
+                        for (auto const &s: slice)
+                            new_name = ::format("{0}.{1}", new_name, s);
+                    }
+                    std::string value = var_->name;
+                    for (auto const &s: slice)
+                        value = ::format("{0}[{1}]", value, s);
+                    v.name = new_name;
+                    v.value = value;
+                    v.id = variable_count++;
+                    storage.replace(v);
+                    add_context();
+                }
             } else if (var_->is_struct()) {
                 // it's an packed array
                 if (var_->type() == VarType::PortIO) {
@@ -558,7 +556,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     for (auto const &iter : def.attributes) {
                         auto const &attr_name = std::get<0>(iter);
                         // we need to store lots of them
-                        v.name = ::format("{0}.{1}", name_, attr_name);
+                        if (!name_.empty()) v.name = ::format("{0}.{1}", name_, attr_name);
                         v.value = ::format("{0}.{1}", var_->name, attr_name);
                         v.id = variable_count++;
                         storage.replace(v);
