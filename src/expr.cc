@@ -310,9 +310,15 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     // we need to honer their wish
     // we also need to honer the way the dimension the array is set
     auto diff = num_size_decrease(parent);
+    auto diff_parent = true;
+    if (low == 0 && high == 0 && parent->type() == VarType::Slice) {
+        auto p_d = num_size_decrease(reinterpret_cast<VarSlice*>(parent)->parent_var);
+        diff_parent = diff != p_d;
+    }
     bool dropped_dim_size1 = low == 0 && high == 0 &&
                              parent->get_var_root_parent()->size().size() > 1 &&
-                             parent->get_var_root_parent()->size().front() == 1 &&
+                             parent->get_var_root_parent()->size().back() == 1 &&
+                             diff_parent &&
                              diff == parent->get_var_root_parent()->size().size() - 1;
     if (parent->size().size() == 1 && parent->size().front() == 1 && parent->explicit_array()) {
         if (high != 0 || low != 0) {
@@ -327,6 +333,10 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
         // the wire, which means we need to count the number of size decreases
         // this is the actual slice
         var_width_ = high - low + 1;
+        is_packed_ = false;
+    } else if (parent->size().size() == 1 && parent->size().front() == 1 && dropped_dim_size1) {
+        // need to keep the var width calculation correct
+        var_width_ = parent->var_width();
         is_packed_ = false;
     } else {
         if (high == low) {

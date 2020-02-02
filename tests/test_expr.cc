@@ -343,4 +343,10 @@ TEST(var, size_1_slice) {   // NOLINT
     auto &b = a[0][0];
     EXPECT_EQ(b.width(), 4);
     EXPECT_EQ(b.to_string(), "a[0][0]");
+    auto &c = mod.var("c", 4, {2, 1});
+    auto &d = c[0];
+    auto &e = d[0];
+    EXPECT_EQ(e.width(), 4);
+    EXPECT_NO_THROW(e[1]);
+    EXPECT_EQ(e[0].width(), 1);
 }
