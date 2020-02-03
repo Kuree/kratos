@@ -6,6 +6,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.25] - 2020-02-02
+### Added
+- add bulking wiring when adding a child instance in python wrapper
+- Add sanity check on width 0
+- Add dedicated docker image for kratos testing
+- Add source-level coverage report in xml cobertura format
+  - ncsim
+  - verilator
+- Add insert verilator info to verilog function
+- Add support for block comment in Python, which will turn into a normal comment stmt
+
+### Changed
+- Relax output port inline requirements
+- Code base refactoring based on clang-tidy-9
+- All C++ unit tests tested against valgrind
+- Use to_string() instead of name when throwing an exception
+- merge_if_block is off by default and need to turn on by an attribute
+- Allow sequence-based property to be inserted into normal design
+- util.py helper functions now support single arguments
+
+### Fixed
+- Fix nested fsm next state inferred as latch (#95)
+- Fix a bug where explicit array is not passed down to the wrapper
+- Fix bit select on logic
+- Fix nested loop in pyast
+- Fix line number tracking when merging code in Python side
+- Fix a bug in the simulator where default case will hit seg-fault
+- Fix array flattening logic when dumping debug database
+- Fix [n, 1] slicing where the last dim is 1
+
 ## [0.0.24.3] - 2020-01-23
 ### Fixed
 - Fix multi-driver algorithm again
