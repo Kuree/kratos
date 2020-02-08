@@ -171,15 +171,17 @@ ternary = mux
 
 
 # helper function to interface with magma
-def to_magma(kratos_inst, flatten_array=False, **kargs):
+def to_magma(kratos_inst, flatten_array=False, top_name=None, **kargs):
     import magma as m
     from kratos import verilog, Generator
     from _kratos import create_wrapper_flatten
     if flatten_array:
         inst = create_wrapper_flatten(kratos_inst.internal_generator,
                                       kratos_inst.name + "_W")
-        kratos_inst = Generator(kratos_inst.name, debug=kratos_inst.debug,
+        kratos_inst = Generator(kratos_inst.name,
                                 internal_generator=inst)
+        if top_name is not None:
+            kratos_inst.instance_name = top_name
     circ_name = kratos_inst.name
     internal_gen = kratos_inst.internal_generator
     ports = internal_gen.get_port_names()
