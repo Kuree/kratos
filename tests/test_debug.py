@@ -1,4 +1,5 @@
 from kratos import Generator, always_ff, verilog, posedge, always_comb
+from kratos.util import reduce_add
 import _kratos
 import sqlite3
 import tempfile
@@ -447,5 +448,66 @@ def test_array_packed():
         conn.close()
 
 
+def test_multiple_instance():
+    class Mod(Generator):
+        def __init__(self, width, param):
+            super().__init__("child_{0}_{1}".format(width, param), True)
+            in_ = self.input("child_in", width)
+            out_ = self.output("child_out", width)
+
+            @always_comb
+            def code():
+                out_ = 0
+                for i in range(param):
+                    out_ = in_ + param
+
+            self.add_always(code)
+
+    top = Generator("parent", True)
+    top_in = top.input("in", 8)
+    top_out = top.output("out", 8)
+    children = []
+    out_ports = []
+    num_instance = 3
+    for i in range(num_instance):
+        child = Mod(8, i + 2)
+        children.append(child)
+    for i in range(num_instance):
+        child = children[i]
+        top.add_child("child_{0}".format(i), child,
+                      child_in=top_in)
+        out_ports.append(child.ports.child_out)
+
+    top.wire(top_out, reduce_add(*out_ports))
+
+    # testing code
+    with tempfile.TemporaryDirectory() as temp:
+        filename = os.path.join(temp, "test.sv")
+        verilog(top, filename=filename, insert_debug_info=True, debug_fn_ln=True)
+        # check the id and line info
+        with open(filename) as f:
+            content = f.read()
+            assert ".KRATOS_INSTANCE_ID(32'h2))" in content
+        # make sure that the line is mapped correctly
+        with open(__file__) as f:
+            lines = f.readlines()
+            index = -1
+            for i in range(len(lines)):
+                if "out_ = in_ + param" in lines[i]:
+                    index = i
+                    break
+            assert index != -1
+        line_no = index + 1  # 1 offset for line number
+        with open(filename + ".debug") as f:
+            import json
+            content = json.load(f)
+        count = 0
+        for _, entry in content.items():
+            __, ln = entry[0]
+            if ln == line_no:
+                count += 1
+        assert count == num_instance * (num_instance + 3) / 2
+
+
 if __name__ == "__main__":
-    test_array_packed()
+    test_multiple_instance()

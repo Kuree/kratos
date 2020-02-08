@@ -20,7 +20,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             optimize_bundle: bool = True,
             reorder_stmts: bool = False,
             check_active_high: bool = True,
-            debug: bool = False,
+            debug_fn_ln: bool = False,
             additional_passes: Dict = None,
             int_dpi_interface: bool = True,
             remove_assertion: bool = False,
@@ -120,13 +120,13 @@ def verilog(generator: Generator, optimize_if: bool = True,
         _kratos.passes.generate_verilog(generator.internal_generator,
                                         output_dir,
                                         package_name,
-                                        debug)
+                                        debug_fn_ln)
         r = None
     else:
         src = code_gen.verilog_src()
         result = [src]
         gen = generator.internal_generator
-        if debug:
+        if debug_fn_ln:
             info = _kratos.passes.extract_debug_info(gen)
             result.append(info)
         else:

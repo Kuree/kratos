@@ -276,7 +276,7 @@ def test_debug():
             self.out_2 = self.in_
 
     mod = Mod()
-    mod_src, mod_debug = verilog(mod, debug=True)
+    mod_src, mod_debug = verilog(mod, debug_fn_ln=True)
     src_mapping = mod_debug["mod1"]
     assert len(src_mapping) == 7
     verilog_lines = mod_src["mod1"].split("\n")
@@ -392,7 +392,7 @@ def test_static_eval_for_loop(check_gold):
 
     loop = 4
     mod = Mod(loop)
-    mod_src, mod_debug = verilog(mod, debug=True)
+    mod_src, mod_debug = verilog(mod, debug_fn_ln=True)
     mod_mapping = mod_debug["mod1"]
     lines = list(mod_mapping.keys())
     lines.sort()
@@ -500,7 +500,7 @@ def test_packed_struct(check_gold, check_file):
     mod = Mod(True)
     mod.name = "packed_struct"
     with tempfile.TemporaryDirectory() as temp:
-        verilog(mod, output_dir=temp, debug=True)
+        verilog(mod, output_dir=temp, debug_fn_ln=True)
         mod_file = os.path.join(temp, "packed_struct.sv")
         def_file = os.path.join(temp, "packed_struct_pkg.svh")
         import json
@@ -516,7 +516,7 @@ def test_packed_struct(check_gold, check_file):
 @pytest.mark.skipif(no_verilator, reason="verilator not available")
 def test_more_debug1():
     mod = PassThroughTop()
-    mod_src, debug_info = verilog(mod, debug=True)
+    mod_src, debug_info = verilog(mod, debug_fn_ln=True)
     debug = debug_info["top"]
     assert is_valid_verilog(mod_src)
     assert len(debug) > 3
@@ -542,7 +542,7 @@ def test_more_debug2():
             self.ports.out = self["pass"].ports.out
 
     mod = Top()
-    mod_src, debug_info = verilog(mod, debug=True)
+    mod_src, debug_info = verilog(mod, debug_fn_ln=True)
     debug = debug_info["top"]
     assert is_valid_verilog(mod_src)
     assert len(debug) > 3
@@ -553,7 +553,7 @@ def test_verilog_file():
     mod = PassThroughTop()
     with tempfile.TemporaryDirectory() as tempdir:
         filename = os.path.join(tempdir, "mod.sv")
-        verilog(mod, filename=filename, debug=True, optimize_passthrough=False)
+        verilog(mod, filename=filename, debug_fn_ln=True, optimize_passthrough=False)
         with open(filename) as f:
             src = f.read()
             assert is_valid_verilog(src)
