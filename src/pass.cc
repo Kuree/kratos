@@ -1537,31 +1537,37 @@ std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_
 class PortPackedVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
-        auto const& port_names = generator->get_port_names();
-        for (auto const& port_name : port_names) {
-            auto port = generator->get_port(port_name);
-            if (port->is_struct()) {
-                auto ptr = port->as<PortPackedStruct>();
-                auto const port_struct = ptr->packed_struct();
-                if (structs_.find(port_struct.struct_name) != structs_.end()) {
+        auto const& var_names = generator->get_all_var_names();
+        for (auto const& var_name : var_names) {
+            auto var = generator->get_var(var_name);
+            if (var->is_struct()) {
+                PackedStruct struct_def("", {});
+                if (var->type() == VarType::PortIO) {
+                    auto ptr = var->as<PortPackedStruct>();
+                    struct_def = ptr->packed_struct();
+                } else {
+                    auto ptr = var->as<VarPackedStruct>();
+                    struct_def = ptr->packed_struct();
+                }
+                if (structs_.find(struct_def.struct_name) != structs_.end()) {
                     // do some checking
-                    auto struct_ = structs_.at(port_struct.struct_name);
-                    if (struct_.attributes.size() != port_struct.attributes.size())
+                    auto struct_ = structs_.at(struct_def.struct_name);
+                    if (struct_.attributes.size() != struct_def.attributes.size())
                         throw VarException(::format("redefinition of different packed struct {0}",
-                                                    port_struct.struct_name),
-                                           {port.get(), struct_ports_.at(port_struct.struct_name)});
-                    for (uint64_t i = 0; i < port_struct.attributes.size(); i++) {
+                                                    struct_def.struct_name),
+                                           {var.get(), struct_ports_.at(struct_def.struct_name)});
+                    for (uint64_t i = 0; i < struct_def.attributes.size(); i++) {
                         auto const& [name1, width1, signed_1] = struct_.attributes[i];
-                        auto const& [name2, width2, signed_2] = port_struct.attributes[i];
+                        auto const& [name2, width2, signed_2] = struct_def.attributes[i];
                         if (name1 != name2 || width1 != width2 || signed_1 != signed_2)
                             throw VarException(
                                 ::format("redefinition of different packed struct {0}",
-                                         port_struct.struct_name),
-                                {port.get(), struct_ports_.at(port_struct.struct_name)});
+                                         struct_def.struct_name),
+                                {var.get(), struct_ports_.at(struct_def.struct_name)});
                     }
                 } else {
-                    structs_.emplace(port_struct.struct_name, port_struct);
-                    struct_ports_.emplace(port_struct.struct_name, port.get());
+                    structs_.emplace(struct_def.struct_name, struct_def);
+                    struct_ports_.emplace(struct_def.struct_name, var.get());
                 }
             }
         }
@@ -1571,7 +1577,7 @@ public:
 
 private:
     std::map<std::string, PackedStruct> structs_;
-    std::map<std::string, Port*> struct_ports_;
+    std::map<std::string, Var*> struct_ports_;
 };
 
 std::map<std::string, std::string> extract_struct_info(Generator* top) {
