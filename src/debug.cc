@@ -510,7 +510,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             if (is_context_) {
                 // create context mapping as well
                 ContextVariable c_v{std::make_unique<uint32_t>(breakpoint_id_),
-                                    std::make_unique<int>(v.id), name_};
+                                    std::make_unique<int>(v.id), v.name};
                 storage.replace(c_v);
             }
         };
