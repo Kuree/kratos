@@ -80,6 +80,10 @@ Var &Generator::var(const std::string &var_name, uint32_t width,
     return var(var_name, width, size, false);
 }
 
+Var & Generator::var(const std::string &var_name, uint32_t width) {
+    return var(var_name, width, std::vector<uint32_t>{1});
+}
+
 Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed) {
     const auto &lst = std::vector<uint32_t>{size};
     return var(var_name, width, lst, is_signed);

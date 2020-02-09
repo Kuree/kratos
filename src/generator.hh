@@ -27,7 +27,7 @@ public:
 
     Var &var(const std::string &var_name, uint32_t width, uint32_t size);
     Var &var(const std::string &var_name, uint32_t width, const std::vector<uint32_t> &size);
-    Var &var(const std::string &var_name, uint32_t width) { return var(var_name, width, 1); }
+    Var &var(const std::string &var_name, uint32_t width);
     Var &var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed);
     Var &var(const std::string &var_name, uint32_t width, const std::vector<uint32_t> &size,
              bool is_signed);
