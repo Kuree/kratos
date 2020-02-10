@@ -1,7 +1,7 @@
 import _kratos
 from .generator import Generator, transform_stmt_block, CodeBlockType, \
     InitialCodeBlock, VarProxy
-from .util import get_fn_ln
+from _kratos import get_fn_ln
 
 
 def assert_(expr):

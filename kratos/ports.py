@@ -1,5 +1,5 @@
-from _kratos import PortBundleDefinition, PortType, PortDirection
-from .util import get_fn_ln
+from _kratos import PortBundleDefinition, PortType, PortDirection, \
+    get_fn_ln
 
 
 # a helper class to deal with port interface

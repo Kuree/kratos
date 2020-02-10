@@ -1,4 +1,4 @@
-from .util import get_fn_ln
+from _kratos import get_fn_ln
 
 
 class FSM:

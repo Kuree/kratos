@@ -428,6 +428,7 @@ def test_array_packed():
                                 ("data", 16, False)])
     ss = mod.var_packed("s", struct)
     mod.add_stmt(aa.assign(4))
+    setattr(mod, "sss", ss)
     mod.add_stmt(ss["read"].assign(0))
     mod.add_stmt(ss["data"].assign(1))
 
@@ -438,13 +439,15 @@ def test_array_packed():
         c = conn.cursor()
         c.execute("SELECT * FROM variable")
         vars_ = c.fetchall()
-        correct_struct, correct_array = False, False
+        correct_struct, correct_array, correct_self = False, False, False
         for _, _, value, name, _, _ in vars_:
             if value == "a[1][3]" and name == "aa.1.3":
                 correct_array = True
             if value == "s.read" and name == "ss.read":
                 correct_struct = True
-        assert correct_array and correct_struct
+            if "self.sss" in name:
+                correct_self = True
+        assert correct_array and correct_struct, correct_self
         conn.close()
 
 
@@ -510,4 +513,4 @@ def test_multiple_instance():
 
 
 if __name__ == "__main__":
-    test_multiple_instance()
+    test_array_packed()

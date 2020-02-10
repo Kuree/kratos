@@ -2,7 +2,7 @@ import sys
 from typing import Union, List
 import os
 import math
-from _kratos import mux as _mux, get_fn_ln, comment as _comment, \
+from _kratos import mux as _mux, comment as _comment, \
     create_stub as _create_stub
 import _kratos
 import enum
@@ -171,15 +171,18 @@ ternary = mux
 
 
 # helper function to interface with magma
-def to_magma(kratos_inst, flatten_array=False, top_name=None, **kargs):
+def to_magma(kratos_inst, flatten_array=False, top_name=None, **kargs):  # pragma: no cover
     import magma as m
     from kratos import verilog, Generator
     from _kratos import create_wrapper_flatten
     if flatten_array:
         inst = create_wrapper_flatten(kratos_inst.internal_generator,
                                       kratos_inst.name + "_W")
-        kratos_inst = Generator(kratos_inst.name,
-                                internal_generator=inst)
+        inst = Generator(kratos_inst.name,
+                         internal_generator=inst)
+        # only add the child, nothing more
+        inst.add_child(kratos_inst.instance_name, kratos_inst, python_only=True)
+        kratos_inst = inst
         if top_name is not None:
             kratos_inst.instance_name = top_name
     circ_name = kratos_inst.name

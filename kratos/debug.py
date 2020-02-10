@@ -25,23 +25,17 @@ def extract_symbol_table(generator: Generator):
                 name = "self." + name
                 if isinstance(var, _kratos.Var):
                     # I think bundle -> packed struct will not work here
-                    if isinstance(var, (_kratos.PortPackedStruct,
-                                        _kratos.VarPackedStruct,
-                                        _kratos.PortBundleRef)):
-                        member_names = var.member_names()
-                        for var_name in member_names:
-                            var = var[var_name]
                     gen_entry[name] = var
                 elif isinstance(var, (bool, int, str)):
                     self_entry[name] = str(var)
             gen_table[gen] = gen_entry
             self_table[gen] = self_entry
-            # push all the child generator to the queue
-            children = gen.child_generator()
-            for _, child in children.items():
-                if child.internal_generator.parent_generator() is not None:
-                    # it could be removed
-                    gen_queue.put(child)
+        # push all the child generator to the queue
+        children = gen.child_generator()
+        for _, child in children.items():
+            if child.internal_generator.parent_generator() is not None:
+                # it could be removed
+                gen_queue.put(child)
     return gen_table, self_table
 
 

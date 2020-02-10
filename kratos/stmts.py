@@ -1,6 +1,7 @@
 import _kratos
-from .util import get_fn_ln, const
+from .util import const
 from typing import Union, List
+from _kratos import get_fn_ln
 
 
 class IfStmt:

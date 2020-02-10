@@ -1655,6 +1655,14 @@ def transform_block_comment():
     assert "this is another comment" in src
 
 
+def test_add_only():
+    # this is for testing internal public API, advanced user only
+    parent = Generator("parent")
+    child = Generator("child")
+    parent.add_child(child.instance_name, child, python_only=True)
+    assert child not in parent
+
+
 if __name__ == "__main__":
-    transform_block_comment()
+    test_add_only()
 

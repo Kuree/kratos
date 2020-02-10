@@ -1,12 +1,13 @@
 import enum
 from .pyast import transform_stmt_block, CodeBlockType, add_scope_context, \
     get_frame_local, AlwaysWrapper
-from .util import get_fn_ln, clog2, max_value, cast, VarCastType
+from .util import clog2, max_value, cast, VarCastType
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
 from .interface import InterfaceWrapper
 import _kratos
+from _kratos import get_fn_ln
 from typing import List, Dict, Union, Tuple
 
 __GLOBAL_DEBUG = False
@@ -681,12 +682,11 @@ class Generator(metaclass=GeneratorMeta):
         self.__generator.remove_stmt(stmt)
 
     def add_child_generator(self, instance_name: str, generator: "Generator",
-                            comment="", **kargs):
+                            comment="", python_only=False, **kargs):
         if self.is_cloned:
             self.__cached_initialization.append((self.add_child_generator,
                                                  (instance_name, generator)))
             return
-        generator.__generator.instance_name = instance_name
         if instance_name in self.__child_generator:
             raise Exception(
                 "{0} already exists in {1}".format(self.instance_name,
@@ -696,6 +696,14 @@ class Generator(metaclass=GeneratorMeta):
 
         self.__child_generator[instance_name] = generator
         generator.__parent = self
+
+        if python_only:
+            # only add it to the python level interface, the caller is
+            # responsible for the connections etc
+            return
+        else:
+            generator.__generator.instance_name = instance_name
+
         if self.debug:
             fn, ln = get_fn_ln()
             self.__generator.add_child_generator(instance_name,
