@@ -1,0 +1,59 @@
+image: Visual Studio 2019
+
+clone_depth: 1
+
+platform:
+  - Win32
+
+configuration:
+  - Release
+
+environment:
+  matrix:
+    - PYTHON: "36"
+    - PYTHON: "37"
+    - PYTHON: "38"
+
+# scripts that are called at very beginning, before repo cloning
+init:
+  # if it's not tagged, only run py37
+  - ps: If (($env:APPVEYOR_REPO_TAG -notmatch "true" ) -and ($env:PYTHON -ne "37"))  {Exit-AppveyorBuild}
+  - cmd: cmake --version
+
+install:
+  - git submodule update --init --recursive
+  - SET PATH=C:\\Python%PYTHON%-x64;C:\\Python%PYTHON%-x64\\Scripts;%PATH%
+  - python --version
+  - python -m pip install wheel cmake==3.15.3 pytest
+  - SET MAKE_PROGRAM=C:\\msys64\\usr\\bin\\make
+  - echo %MAKE_PROGRAM%
+
+build_script:
+  # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - python setup.py bdist_wheel
+  # install the wheel
+  - pip install --find-links=dist kratos
+
+test_script:
+  - pytest -v tests/
+
+artifacts:
+  - path: dist\*
+    name: pypiartifacts
+
+deploy_script:
+  - pip install twine
+  # copied from here
+  - # https://github.com/AndrewAnnex/SpiceyPy/blob/master/appveyor.yml
+  - echo "Starting Artifact Deployment"
+  # populate pypirc file for twine
+  - echo [distutils]                                  > %USERPROFILE%\\.pypirc
+  - echo index-servers =                             >> %USERPROFILE%\\.pypirc
+  - echo     pypi                                    >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
+  - echo username=keyi                               >> %USERPROFILE%\\.pypirc
+  - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc
+  # upload to pypi for windows
+  - set HOME=%USERPROFILE%
+  - ps: If ($env:APPVEYOR_REPO_TAG -imatch "true" ) { Invoke-Expression "twine upload --skip-existing dist/*.whl" } Else { write-output "Not on a tag on master, won't deploy to pypi"}
+  - echo "Finished Artifact Deployment"
