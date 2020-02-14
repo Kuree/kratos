@@ -1,0 +1,6 @@
+#ifndef KRATOS_FORMAL_HH
+#define KRATOS_FORMAL_HH
+
+
+
+#endif  // KRATOS_FORMAL_HH
