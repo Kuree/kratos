@@ -9,6 +9,7 @@
 #include "../src/port.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
+#include "../src/formal.hh"
 #include "gtest/gtest.h"
 
 using namespace kratos;
@@ -1301,4 +1302,26 @@ TEST(pass, test_merge_wire_assignment_block) {  // NOLINT
     fix_assignment_type(&mod);
     merge_wire_assignments(&mod);
     EXPECT_EQ(comb->size(), 1);
+}
+
+TEST(formal, test_remove_async) {   // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &rst = mod.port(PortDirection::In, "rst", 1, PortType::AsyncReset);
+    auto &var = mod.var("v", 1);
+    auto var_rst = var.cast(VarCastType::AsyncReset);
+    auto seq1 = mod.sequential();
+    auto seq2 = mod.sequential();
+    auto seq3 = mod.sequential();
+    seq1->add_condition({BlockEdgeType::Negedge, rst.shared_from_this()});
+    seq2->add_condition({BlockEdgeType::Negedge, var_rst});
+    seq3->add_condition({BlockEdgeType::Negedge, rst.shared_from_this()});
+    seq3->add_condition({BlockEdgeType::Negedge, var_rst});
+
+    remove_async_reset(&mod);
+
+    EXPECT_TRUE(seq1->get_conditions().empty());
+    EXPECT_TRUE(seq2->get_conditions().empty());
+    EXPECT_TRUE(seq3->get_conditions().empty());
+
 }

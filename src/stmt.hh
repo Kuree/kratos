@@ -60,7 +60,7 @@ public:
                                     bool override);
 
     virtual void remove_from_parent();
-    virtual void remove_stmt(const std::shared_ptr<Stmt>&) {}
+    virtual void remove_stmt(const std::shared_ptr<Stmt> &) {}
 
 protected:
     StatementType type_;
@@ -146,8 +146,8 @@ private:
 
 class SwitchStmt : public Stmt {
 public:
-    explicit SwitchStmt(const std::shared_ptr<Var> &target): SwitchStmt(*target) {}
-    explicit SwitchStmt(Var& target);
+    explicit SwitchStmt(const std::shared_ptr<Var> &target) : SwitchStmt(*target) {}
+    explicit SwitchStmt(Var &target);
 
     ScopedStmtBlock &add_switch_case(const std::shared_ptr<Const> &switch_case,
                                      const std::shared_ptr<Stmt> &stmt);
@@ -239,6 +239,10 @@ public:
     SequentialStmtBlock() : StmtBlock(StatementBlockType::Sequential) {}
 
     const std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> &get_conditions() const {
+        return conditions_;
+    }
+
+    std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> &get_conditions() {
         return conditions_;
     }
 
@@ -354,10 +358,7 @@ public:
     const std::map<Var *, Stmt *> &port_debug() const { return port_debug_; }
     const std::unordered_set<AssignStmt *> &connection_stmt() const { return connection_stmt_; }
 
-    enum class InstantiationType {
-        Module,
-        Interface
-    };
+    enum class InstantiationType { Module, Interface };
 
     [[nodiscard]] virtual InstantiationType instantiation_type() const = 0;
 
@@ -390,7 +391,7 @@ class InterfaceInstantiationStmt : public Stmt, public InstantiationStmt {
 public:
     InterfaceInstantiationStmt(Generator *parent, InterfaceRef *interface);
 
-    [[nodiscard]] const InterfaceRef* interface() const { return interface_; }
+    [[nodiscard]] const InterfaceRef *interface() const { return interface_; }
 
     InstantiationType instantiation_type() const override { return InstantiationType::Interface; }
 
@@ -412,7 +413,7 @@ private:
     constexpr static uint32_t default_width = 100;
 };
 
-class RawStringStmt: public Stmt {
+class RawStringStmt : public Stmt {
 public:
     explicit RawStringStmt(const std::string &stmt);
     explicit RawStringStmt(const std::vector<std::string> &stmt);

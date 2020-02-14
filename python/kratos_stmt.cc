@@ -115,7 +115,7 @@ void init_stmt(py::module &m) {
     py::class_<SequentialStmtBlock, ::shared_ptr<SequentialStmtBlock>, StmtBlock>(
         m, "SequentialStmtBlock")
         .def(py::init<>())
-        .def("get_conditions", &SequentialStmtBlock::get_conditions)
+        .def("get_conditions", py::overload_cast<>(&SequentialStmtBlock::get_conditions))
         .def("add_condition", &SequentialStmtBlock::add_condition);
 
     py::class_<ModuleInstantiationStmt, ::shared_ptr<ModuleInstantiationStmt>, Stmt>(
