@@ -1,5 +1,7 @@
 from kratos import Generator, always_ff, posedge, negedge, reduce_add, verilog
 from kratos.formal import output_btor
+import tempfile
+import os
 
 
 class Parent(Generator):
@@ -34,11 +36,15 @@ class Parent(Generator):
         self.wire(out, reduce_add(*[mod.ports.out for mod in children]))
 
 
-def _test_output_btor():
+def test_output_btor():
     p = Parent()
-    # verilog(p, filename="test.sv")
-    output_btor(p, "test.btor")
+    with tempfile.TemporaryDirectory() as temp:
+        btor_filename = os.path.join(temp, "test.btor")
+        output_btor(p, btor_filename, quite=True)
+        with open(btor_filename) as f:
+            lines = f.readlines()
+        assert len(lines) > 10
 
 
 if __name__ == "__main__":
-    _test_output_btor()
+    test_output_btor()

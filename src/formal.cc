@@ -7,6 +7,7 @@ class AsyncVisitor: public IRVisitor {
 public:
     void visit(Generator* gen) override {
         auto const stmt_count = gen->stmts_count();
+        std::unordered_set<Port*> rst_ports;
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = gen->get_stmt(i);
             if (stmt->type() == StatementType::Block) {
@@ -23,6 +24,7 @@ public:
                                 if (port->port_type() == PortType::AsyncReset) {
                                     // need to remove this one
                                     reset_to_remove.emplace(iter);
+                                    rst_ports.emplace(port.get());
                                 }
                             }
                         } else {
@@ -38,6 +40,10 @@ public:
                     }
                 }
             }
+        }
+
+        for (auto const &var: rst_ports) {
+            var->set_port_type(PortType::Reset);
         }
     }
 };

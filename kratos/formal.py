@@ -7,7 +7,7 @@ import subprocess
 
 
 def output_btor(generator, filename, remove_async_reset=True, yosys_path="",
-                **kargs):
+                quite=False, **kargs):
     # check yosys
     if yosys_path == "" or not os.path.isfile(yosys_path):
         # need to figure out yosys by ourselves
@@ -27,10 +27,13 @@ def output_btor(generator, filename, remove_async_reset=True, yosys_path="",
         # need to output the yosys file
         yosys_file = os.path.join(temp, "convert.ys")
         with open(yosys_file, "w+") as f:
-            f.write("read_verilog -formal {0}\n".format(verilog_filename))
+            f.write("read_verilog -formal -sv {0}\n".format(verilog_filename))
             f.write("prep -top {0}\n".format(generator.name))
-
+            f.write("flatten\n")
             f.write("write_btor {0}\n".format(filename))
 
         # call yosys
-        subprocess.check_call([yosys_path] + ["-s"] + [yosys_file])
+        extra_args = ["-s"]
+        if quite:
+            extra_args = ["-q"] + extra_args
+        subprocess.check_call([yosys_path] + extra_args + [yosys_file])

@@ -74,3 +74,6 @@ clang-build
 
 # coverage output
 *.xml
+
+# btor file
+*.btor
