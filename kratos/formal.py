@@ -1,22 +1,18 @@
 from _kratos.formal import remove_async_reset as _remove_async_reset
-from .util import verilog
+from .passes import verilog
 import tempfile
 import os
 import shutil
 import subprocess
 
 
-def output_btor(generator, filename, remove_async_reset=True, yosys_path="",   # pragma: no cover
-                **kargs):     # pragma: no cover
+def output_btor(generator, filename, remove_async_reset=True, yosys_path="",
+                **kargs):
     # check yosys
     if yosys_path == "" or not os.path.isfile(yosys_path):
         # need to figure out yosys by ourselves
-        has_yosys = shutil.which("yosys") is not None
-        if not has_yosys and "YOSYS_BIN" in os.environ:
-            yosys_path = os.environ["YOSYS_BIN"]
-            if os.path.isfile(yosys_path):
-                has_yosys = True
-        assert has_yosys, "Yosys not found"
+        yosys_path = shutil.which("yosys")
+        assert yosys_path, "Yosys not found"
     # remove async reset if necessary
     if remove_async_reset:
         _remove_async_reset(generator.internal_generator)

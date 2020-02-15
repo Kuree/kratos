@@ -1,0 +1,44 @@
+from kratos import Generator, always_ff, posedge, negedge, reduce_add, verilog
+from kratos.formal import output_btor
+
+
+class Parent(Generator):
+    def __init__(self):
+        super().__init__("Parent")
+        in_ = self.input("in", 16)
+        out = self.output("out", 16)
+        clk = self.clock("clk")
+        rst = self.reset("rst")
+
+        class Child(Generator):
+            def __init__(self):
+                super().__init__("Child")
+                child_in = self.input("child_in", 16)
+                child_out = self.output("out", 16)
+                child_clk = self.clock("clk")
+                child_rst = self.reset("rst")
+
+                @always_ff((posedge, child_clk), (negedge, child_rst))
+                def code():
+                    if ~child_rst:
+                        child_out = 0
+                    else:
+                        child_out = child_in
+                self.add_always(code)
+        children = []
+        for i in range(2):
+            child = Child()
+            children.append(child)
+            self.add_child("child_{0}".format(i), child,
+                           child_in=in_, clk=clk, rst=rst)
+        self.wire(out, reduce_add(*[mod.ports.out for mod in children]))
+
+
+def _test_output_btor():
+    p = Parent()
+    # verilog(p, filename="test.sv")
+    output_btor(p, "test.btor")
+
+
+if __name__ == "__main__":
+    _test_output_btor()
