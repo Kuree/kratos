@@ -2,6 +2,10 @@ from kratos import Generator, always_ff, posedge, negedge, reduce_add, verilog
 from kratos.formal import output_btor
 import tempfile
 import os
+import pytest
+import shutil
+
+has_yosys = shutil.which("yosys") is not None
 
 
 class Parent(Generator):
@@ -36,6 +40,7 @@ class Parent(Generator):
         self.wire(out, reduce_add(*[mod.ports.out for mod in children]))
 
 
+@pytest.mark.skipif(not has_yosys, reason="yosys is not available")
 def test_output_btor():
     p = Parent()
     with tempfile.TemporaryDirectory() as temp:
