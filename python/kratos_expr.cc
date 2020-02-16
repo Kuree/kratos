@@ -311,16 +311,18 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
             [](Var &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
                 return left.assign(convert_int_to_const(left, right));
             },
-            py::return_value_policy::reference)
-        .def("assign", py::overload_cast<const shared_ptr<Var> &>(&Var::assign))
-        .def("__call__",
-             [](Var &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
-                 return left.assign(convert_int_to_const(left, right));
-             })
-        .def("__call__", py::overload_cast<const shared_ptr<Var> &>(&Var::assign))
+            py::return_value_policy::reference, py::arg("rhs"))
+        .def("assign", py::overload_cast<const shared_ptr<Var> &>(&Var::assign), py::arg("rhs"))
+        .def(
+            "__call__",
+            [](Var &left, const int64_t right) -> std::shared_ptr<AssignStmt> {
+                return left.assign(convert_int_to_const(left, right));
+            },
+            py::arg("rhs"))
+        .def("__call__", py::overload_cast<const shared_ptr<Var> &>(&Var::assign), py::arg("rhs"))
         .def("type", &Var::type)
-        .def("concat", &Var::concat, py::return_value_policy::reference)
-        .def("extend", &Var::extend, py::return_value_policy::reference)
+        .def("concat", &Var::concat, py::return_value_policy::reference, py::arg("var"))
+        .def("extend", &Var::extend, py::return_value_policy::reference, py::arg("width"))
         .def_readwrite("name", &Var::name)
         .def_property(
             "width", [](Var &var) { return var.var_width(); },

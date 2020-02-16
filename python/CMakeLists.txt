@@ -5,7 +5,7 @@ set(CMAKE_EXE_LINKER_FLAGS " -static")
 pybind11_add_module(_kratos kratos.cc kratos_expr.cc kratos_expr.hh kratos_pass.cc kratos_generator.cc
         kratos_debug.hh kratos_stmt.cc kratos_fsm.cc kratos_except.cc kratos_tb.cc kratos_debug.cc
         kratos_enum.cc kratos_python.cc kratos_sim.cc kratos_interface.cc kratos_lib.cc kratos_fault.cc
-        kratos_util.cc kratos_formal.cc)
+        kratos_util.cc kratos_formal.cc kratos_codegen.cc kratos_context.cc)
 target_link_libraries(_kratos PRIVATE kratos)
 target_link_libraries(_kratos PUBLIC ${STATIC_FLAG})
 
