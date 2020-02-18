@@ -464,7 +464,7 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(Var *var) 
         return {};
     }
     auto slice = var->as<VarSlice>();
-    auto result = get_slice_index(slice->parent_var);
+    auto result = get_slice_index(slice->parent_var());
     uint32_t high, low;
     if (slice->sliced_by_var()) {
         auto var_slice = slice->as<VarVarSlice>();

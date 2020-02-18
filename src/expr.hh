@@ -2,10 +2,10 @@
 #define KRATOS_EXPR_HH
 
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include <stdexcept>
 
 #include "context.hh"
 #include "ir.hh"
@@ -37,7 +37,6 @@ enum class ExprOp : uint64_t {
     // logical
     LAnd,
     LOr,
-
 
     // relational
     LessThan,
@@ -253,9 +252,9 @@ public:
     VarCasted(Var *parent, VarCastType cast_type);
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
-    void set_parent(Var *parent) { parent_var_ = parent; }
+    void set_parent(Var *parent) { parent_var_ = parent->weak_from_this(); }
 
-    const Var *get_var_root_parent() const override { return parent_var_; }
+    const Var *get_var_root_parent() const override { return parent_var_.lock().get(); }
 
     std::string to_string() const override;
 
@@ -266,24 +265,24 @@ public:
     // however, getting this to work with pybind with virtual inheritance is a pain
     // so just copy the code here
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const override {
-        return parent_var_->sinks();
+        return parent_var_.lock()->sinks();
     };
     void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override {
-        parent_var_->remove_sink(stmt);
+        parent_var_.lock()->remove_sink(stmt);
     }
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
-        return parent_var_->sources();
+        return parent_var_.lock()->sources();
     };
-    void clear_sinks() override { parent_var_->clear_sources(); }
-    void clear_sources() override { parent_var_->clear_sinks(); }
+    void clear_sinks() override { parent_var_.lock()->clear_sources(); }
+    void clear_sources() override { parent_var_.lock()->clear_sinks(); }
     void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
-        parent_var_->remove_source(stmt);
+        parent_var_.lock()->remove_source(stmt);
     }
 
-    void move_linked_to(Var *new_var) override { parent_var_->move_linked_to(new_var); }
+    void move_linked_to(Var *new_var) override { parent_var_.lock()->move_linked_to(new_var); }
 
-    void set_enum_type(Enum *enum_) { enum_type_ = enum_; }
-    const Enum *enum_type() const override { return enum_type_; }
+    void set_enum_type(Enum *enum_);
+    const Enum *enum_type() const override { return enum_type_.lock().get(); }
 
     bool is_enum() const override { return cast_type_ == VarCastType ::Enum; }
 
@@ -292,16 +291,16 @@ protected:
                                          AssignmentType type) override;
 
 private:
-    Var *parent_var_ = nullptr;
+    std::weak_ptr<Var> parent_var_;
 
     VarCastType cast_type_;
     // only used for enum
-    Enum *enum_type_ = nullptr;
+    std::weak_ptr<Enum> enum_type_;
 };
 
 struct VarSlice : public Var {
 public:
-    Var *parent_var = nullptr;
+    Var *parent_var() const { return parent_var_.lock().get(); };
     uint32_t low = 0;
     uint32_t high = 0;
 
@@ -312,7 +311,7 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
-    void set_parent(Var *parent) { parent_var = parent; }
+    void set_parent(Var *parent) { parent_var_ = parent->weak_from_this(); }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
@@ -331,6 +330,8 @@ public:
     virtual bool sliced_by_var() const { return false; }
 
 protected:
+    std::weak_ptr<Var> parent_var_;
+
     uint32_t var_high_ = 0;
     uint32_t var_low_ = 0;
 

@@ -896,7 +896,7 @@ private:
             return has_non_port(context, expr->left) || has_non_port(context, expr->right);
         } else if (var->type() == VarType::Slice) {
             auto slice = dynamic_cast<VarSlice*>(var);
-            return has_non_port(context, slice->parent_var);
+            return has_non_port(context, slice->parent_var());
         } else {
             return var->generator() != context && var->type() != VarType::PortIO &&
                    var->type() != VarType ::ConstValue;
@@ -1821,8 +1821,8 @@ private:
         for (auto const& assign_stmt : sliced_stmts) {
             auto left_slice = assign_stmt->left()->as<VarSlice>();
             auto right_slice = assign_stmt->right()->as<VarSlice>();
-            Var* left_parent = left_slice->parent_var;
-            Var* right_parent = right_slice->parent_var;
+            Var* left_parent = left_slice->parent_var();
+            Var* right_parent = right_slice->parent_var();
             // only deal with 1D for now
             if (left_parent->type() == VarType::Slice) continue;
             if (right_parent->type() == VarType::Slice) continue;

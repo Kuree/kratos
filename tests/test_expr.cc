@@ -52,7 +52,7 @@ TEST(expr, arith) {  // NOLINT
     // test slice
     Var &wire = mod.var("d", 4);
     auto &slice_expr = wire[{2, 0}];
-    EXPECT_EQ(slice_expr.parent_var, wire.shared_from_this().get());
+    EXPECT_EQ(slice_expr.parent_var(), wire.shared_from_this().get());
     EXPECT_EQ(slice_expr.high, 2);
     EXPECT_EQ(slice_expr.low, 0);
     EXPECT_EQ(slice_expr.to_string(), "d[2:0]");
@@ -144,10 +144,10 @@ TEST(expr, port_packed) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto struct_ = PackedStruct("data", {{"value1", 1, false}, {"value2", 2, false}});
-    auto port = PortPackedStruct(&mod, PortDirection::In, "in", struct_);
+    auto port = std::make_shared<PortPackedStruct>(&mod, PortDirection::In, "in", struct_);
 
-    auto slice1 = PackedSlice(&port, "value2");
-    auto &slice2 = port["value2"];
+    auto slice1 = PackedSlice(port.get(), "value2");
+    auto &slice2 = (*port)["value2"];
 
     EXPECT_EQ(slice1.to_string(), "in.value2");
     EXPECT_EQ(slice1.to_string(), slice2.to_string());

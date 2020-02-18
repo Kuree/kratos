@@ -287,7 +287,7 @@ VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 uint32_t num_size_decrease(Var *var) {
     if (var->type() == VarType::Slice) {
         auto slice = reinterpret_cast<VarSlice *>(var);
-        auto parent = slice->parent_var;
+        auto parent = slice->parent_var();
         auto diff = parent->size().size() - slice->size().size();
         if (parent->type() == VarType::Slice) {
             return diff + num_size_decrease(reinterpret_cast<VarSlice *>(parent));
@@ -302,9 +302,9 @@ uint32_t num_size_decrease(Var *var) {
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     : Var(parent->generator(), "", parent->var_width(), 1, parent->is_signed(), VarType::Slice),
-      parent_var(parent),
       low(low),
       high(high),
+      parent_var_(parent->weak_from_this()),
       op_({high, low}) {
     // compute the width
     // notice that if the user has explicit set it to be an array
@@ -313,7 +313,7 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     auto diff = num_size_decrease(parent);
     auto diff_parent = true;
     if (low == 0 && high == 0 && parent->type() == VarType::Slice) {
-        auto p_d = num_size_decrease(reinterpret_cast<VarSlice *>(parent)->parent_var);
+        auto p_d = num_size_decrease(reinterpret_cast<VarSlice *>(parent)->parent_var());
         diff_parent = diff != p_d;
     }
     bool dropped_dim_size1 = low == 0 && high == 0 &&
@@ -391,6 +391,7 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
 }
 
 std::string VarSlice::to_string() const {
+    auto parent_var = parent_var_.lock();
     auto const &parent_name = parent_var->to_string();
     if (high == low) {
         if (high == 0 && parent_var->width() == 1) {
@@ -403,15 +404,15 @@ std::string VarSlice::to_string() const {
 }
 
 const Var *VarSlice::get_var_root_parent() const {
-    Var *parent = parent_var;
+    Var *parent = parent_var_.lock().get();
     while (parent->type() == VarType::Slice) {
-        parent = parent->as<VarSlice>()->parent_var;
+        parent = parent->as<VarSlice>()->parent_var();
     }
     return parent;
 }
 
 std::vector<std::pair<uint32_t, uint32_t>> VarSlice::get_slice_index() const {
-    std::vector<std::pair<uint32_t, uint32_t>> result = parent_var->get_slice_index();
+    std::vector<std::pair<uint32_t, uint32_t>> result = parent_var()->get_slice_index();
     result.emplace_back(std::make_pair(high, low));
     return result;
 }
@@ -464,7 +465,7 @@ void VarVarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
 }
 
 std::string VarVarSlice::to_string() const {
-    return ::format("{0}[{1}]", parent_var->to_string(), sliced_var_->to_string());
+    return ::format("{0}[{1}]", parent_var()->to_string(), sliced_var_->to_string());
 }
 
 Expr::Expr(ExprOp op, Var *left, Var *right)
@@ -557,29 +558,27 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
     if (!is_valid_variable_name(name))
         throw UserException(::format("{0} is a SystemVerilog keyword", name));
     if (width() == 0) throw UserException(::format("variable {0} cannot have size 0", name));
-    if (m)
-        set_generator(m);
+    if (m) set_generator(m);
 }
 
-Generator * Var::generator() const {
+Generator *Var::generator() const {
     auto gen = generator_.lock();
     // this is unlikely to happen, therefore exclude it from coverage
     // LCOV_EXCL_START
     if (!gen) {
-        throw UserException("Parent's scope is gone yet the variable is still valid. "
-                            "Make sure that the memory allocation is correct, e.g. the context is"
-                            "still valid");
+        throw UserException(
+            "Parent's scope is gone yet the variable is still valid. "
+            "Make sure that the memory allocation is correct, e.g. the context is"
+            "still valid");
     }
     // LCOV_EXCL_STOP
     return gen.get();
 }
 
-void Var::set_generator(Generator *gen) {
-    generator_ = gen->weak_from_this();
-}
+void Var::set_generator(Generator *gen) { generator_ = gen->weak_from_this(); }
 
 IRNode *Var::parent() { return generator(); }
-IRNode *VarSlice::parent() { return parent_var; }
+IRNode *VarSlice::parent() { return parent_var(); }
 
 std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var) {
     return assign(var, AssignmentType::Undefined);
@@ -664,7 +663,7 @@ std::shared_ptr<Generator> Const::const_generator_ = nullptr;
 
 VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     : Var(parent->generator(), "", parent->width(), parent->size(), false, parent->type()),
-      parent_var_(parent),
+      parent_var_(parent->weak_from_this()),
       cast_type_(cast_type) {
     type_ = VarType::BaseCasted;
     if (cast_type_ == VarCastType::Signed) {
@@ -681,30 +680,36 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     }
 }
 
+void VarCasted::set_enum_type(Enum *enum_) { enum_type_ = enum_->weak_from_this(); }
+
 std::shared_ptr<AssignStmt> VarCasted::assign__(const std::shared_ptr<Var> &, AssignmentType) {
     throw VarException(::format("{0} is not allowed to be a sink", to_string()), {this});
 }
 
 std::string VarCasted::to_string() const {
+    auto parent_var = parent_var_.lock();
     if (cast_type_ == VarCastType::Signed) {
-        return ::format("signed'({0})", parent_var_->to_string());
+        return ::format("signed'({0})", parent_var->to_string());
     } else if (cast_type_ == VarCastType::Unsigned) {
-        return ::format("unsigned'({0})", parent_var_->to_string());
+        return ::format("unsigned'({0})", parent_var->to_string());
     } else if (cast_type_ == VarCastType::Enum) {
-        if (!enum_type_) {
+        auto enum_ = enum_type_.lock();
+        if (!enum_) {
             throw UserException(
                 ::format("Variable {0} is casted as a enum without "
                          "enum type information",
-                         parent_var_->to_string()));
+                         parent_var->to_string()));
         }
-        auto const &enum_name = enum_type_->name;
-        return ::format("{0}'({1})", enum_name, parent_var_->to_string());
+        auto const &enum_name = enum_->name;
+        return ::format("{0}'({1})", enum_name, parent_var->to_string());
     } else {
-        return parent_var_->to_string();
+        return parent_var->to_string();
     }
 }
 
-void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }
+void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    parent_var_.lock()->add_sink(stmt);
+}
 
 std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
     if (cast_type == VarCastType::Signed && is_signed_) {
@@ -965,7 +970,7 @@ void set_var_parent(Var *&var, Var *target, Var *new_var, bool check_target) {
         // this is for nested slicing
         slice = parent_var->as<VarSlice>();
         slices.emplace_back(slice);
-        parent_var = slice->parent_var;
+        parent_var = slice->parent_var();
     }
     if (parent_var != target) {
         if (check_target)
@@ -1160,12 +1165,12 @@ void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
 }
 
 void VarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    Var *parent = parent_var;
+    Var *parent = parent_var();
     parent->add_sink(stmt);
 }
 
 void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
-    Var *parent = parent_var;
+    Var *parent = parent_var();
     parent->add_source(stmt);
 }
 
@@ -1263,7 +1268,7 @@ shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
 }
 
 std::string PackedSlice::to_string() const {
-    return ::format("{0}.{1}", parent_var->to_string(), member_name_);
+    return ::format("{0}.{1}", parent_var()->to_string(), member_name_);
 }
 
 PackedSlice &VarPackedStruct::operator[](const std::string &member_name) {

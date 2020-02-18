@@ -633,12 +633,12 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
     Var *root1 = var1.get();
     while (root1->type() == VarType::Slice) {
         auto var = dynamic_cast<VarSlice *>(root1);
-        root1 = var->parent_var;
+        root1 = var->parent_var();
     }
     Var *root2 = var2.get();
     while (root2->type() == VarType::Slice) {
         auto var = dynamic_cast<VarSlice *>(root2);
-        root2 = var->parent_var;
+        root2 = var->parent_var();
     }
     if (root1->type() != VarType::PortIO && root2->type() != VarType::PortIO) {
         // there is nothing we can do
