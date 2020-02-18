@@ -418,7 +418,7 @@ std::vector<std::pair<uint32_t, uint32_t>> VarSlice::get_slice_index() const {
 }
 
 VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
-    : VarSlice(parent, 0, 0), sliced_var_(slice) {
+    : VarSlice(parent, 0, 0), sliced_var_(slice->weak_from_this()) {
     // check the size or width
     // we need to re-compute var_high, var_low, width, and other stuff by ourselves here
     // there is an issue about the var_high and var_low; the problem will only show up during
@@ -444,11 +444,11 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         // we need to compute the clog2 here
         uint32_t required_width =
             std::max<uint32_t>(1, std::ceil(std::log2(parent->size().front())));
-        if (required_width != sliced_var_->width()) {
+        if (required_width != slice->width()) {
             // error message copied from verilator
             throw VarException(
                 ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
-                         parent->size().front() - 1, required_width, sliced_var_->width()),
+                         parent->size().front() - 1, required_width, slice->width()),
                 {parent, slice});
         }
     }
@@ -456,29 +456,29 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
 
 void VarVarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     VarSlice::add_sink(stmt);
-    sliced_var_->add_sink(stmt);
+    sliced_var_.lock()->add_sink(stmt);
 }
 
 void VarVarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
     VarSlice::add_source(stmt);
-    sliced_var_->add_sink(stmt);
+    sliced_var_.lock()->add_sink(stmt);
 }
 
 std::string VarVarSlice::to_string() const {
-    return ::format("{0}[{1}]", parent_var()->to_string(), sliced_var_->to_string());
+    return ::format("{0}[{1}]", parent_var()->to_string(), sliced_var_.lock()->to_string());
 }
 
 Expr::Expr(ExprOp op, Var *left, Var *right)
     : Var(left->generator(), "", left->var_width(), left->size(), left->is_signed(),
           VarType::Expression),
       op(op),
-      left(left),
-      right(right) {
-    if (right != nullptr && left->width() != right->width())
+      left_(left),
+      right_(right) {
+    if (right_ != nullptr && left_->width() != right_->width())
         throw VarException(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
-                     left->to_string(), left->width(), right->to_string(), right->width()),
-            {left, right});
+                     left_->to_string(), left_->width(), right_->to_string(), right_->width()),
+            {left_, right_});
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op) || is_reduction_op(op))
         var_width_ = 1;
@@ -497,8 +497,8 @@ Expr::Expr(Var *left, Var *right)
     : Var(left->generator(), "", left->var_width(), left->size(), left->is_signed(),
           VarType::Expression),
       op(ExprOp::Add),
-      left(left),
-      right(right) {
+      left_(left),
+      right_(right) {
     type_ = VarType::Expression;
     size_ = std::vector<uint32_t>(left->size().begin(), left->size().end());
     set_parent();
@@ -507,23 +507,23 @@ Expr::Expr(Var *left, Var *right)
 void Expr::set_parent() {
     // compute the right parent for the expr
     // it can only go up
-    if (!right) {
-        set_generator(left->generator());
+    if (!right()) {
+        set_generator(left()->generator());
     } else {
-        auto left_gen = left->generator();
-        auto right_gen = right->generator();
+        auto left_gen = left()->generator();
+        auto right_gen = right()->generator();
         if (left_gen == Const::const_gen()) {
             set_generator(right_gen);
         } else if (right_gen == Const::const_gen()) {
             set_generator(left_gen);
         } else if (left_gen == right_gen) {
-            set_generator(left->generator());
+            set_generator(left()->generator());
         } else {
             // choose the higher/lower one based on the var type
-            if (left_gen == right_gen->parent() && right->type() == VarType::PortIO) {
+            if (left_gen == right_gen->parent() && right()->type() == VarType::PortIO) {
                 set_generator(left_gen);
             } else if (left_gen->parent() == right_gen->parent() &&
-                       left->type() == VarType::PortIO && right->type() == VarType::PortIO) {
+                       left()->type() == VarType::PortIO && right()->type() == VarType::PortIO) {
                 set_generator(dynamic_cast<Generator *>(left_gen->parent()));
             } else {
                 set_generator(right_gen);
@@ -768,17 +768,18 @@ void Param::set_value(int64_t new_value) {
 
     // change the width of parametrized variables
     for (auto &var : param_vars_) {
-        var->var_width() = new_value;
+        var.lock()->var_width() = new_value;
     }
     // change the entire chain
     for (auto &param : param_params_) {
-        param->set_value(new_value);
+        param.lock()->set_value(new_value);
     }
 }
 
 void Param::set_value(const std::shared_ptr<Param> &param) {
-    param->param_params_.emplace(this);
-    parent_param_ = param.get();
+    std::weak_ptr<Param> p = std::static_pointer_cast<Param>(shared_from_this());
+    param->param_params_.emplace(p);
+    parent_param_ = std::static_pointer_cast<Param>(param);
 }
 
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
@@ -915,8 +916,8 @@ std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle
         return ::format("({0})", use_handle ? expr->handle_name(ignore_top)
                                             : scope ? expr->handle_name(scope) : expr->to_string());
 
-    auto left = expr->left;
-    auto right = expr->right;
+    auto left = expr->left();
+    auto right = expr->right();
 
     auto left_str = left->type() == VarType::Expression
                         ? expr_to_string(left->as<Expr>().get(), expr->op == left->as<Expr>()->op,
@@ -955,9 +956,9 @@ std::string Expr::handle_name(kratos::Generator *scope) const {
 
 IRNode *Expr::get_child(uint64_t index) {
     if (index == 0)
-        return left;
+        return left();
     else if (index == 1)
-        return right ? right : nullptr;
+        return right() ? right() : nullptr;
     else
         return nullptr;
 }
@@ -990,28 +991,28 @@ void set_var_parent(Var *&var, Var *target, Var *new_var, bool check_target) {
 
 void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var) {
     if (!new_var || !target) throw InternalException("Variable is NULL");
-    if (expr->left->type() == VarType::Expression) {
-        change_var_expr(expr->left->as<Expr>(), target, new_var);
+    if (expr->left()->type() == VarType::Expression) {
+        change_var_expr(expr->left()->as<Expr>(), target, new_var);
     }
-    if (expr->right && expr->right->type() == VarType::Expression) {
-        change_var_expr(expr->right->as<Expr>(), target, new_var);
+    if (expr->right() && expr->right()->type() == VarType::Expression) {
+        change_var_expr(expr->right()->as<Expr>(), target, new_var);
     }
 
-    if (expr->left == target) {
-        expr->left = new_var;
-        expr->left->move_linked_to(new_var);
+    if (expr->left() == target) {
+        expr->set_left(new_var);
+        expr->left()->move_linked_to(new_var);
     }
-    if (expr->right && expr->right == target) {
-        expr->right = new_var;
-        expr->right->move_linked_to(new_var);
+    if (expr->right() && expr->right() == target) {
+        expr->set_right(new_var);
+        expr->right()->move_linked_to(new_var);
     }
 
     // need to change the parent as well
-    if (expr->left->type() == VarType::Slice) {
-        set_var_parent(expr->left, target, new_var, false);
+    if (expr->left()->type() == VarType::Slice) {
+        set_var_parent(expr->left(), target, new_var, false);
     }
-    if (expr->right && expr->right->type() == VarType::Slice) {
-        set_var_parent(expr->right, target, new_var, false);
+    if (expr->right() && expr->right()->type() == VarType::Slice) {
+        set_var_parent(expr->right(), target, new_var, false);
     }
     // we did some tricks on the concatenation, need to update them there
     if (expr->op == ExprOp::Concat) {
@@ -1160,8 +1161,8 @@ void Var::move_linked_to(kratos::Var *new_var) {
 }
 
 void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    left->add_sink(stmt);
-    if (right) right->add_sink(stmt);
+    left()->add_sink(stmt);
+    if (right()) right()->add_sink(stmt);
 }
 
 void VarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
@@ -1187,34 +1188,34 @@ IRNode *ConditionalExpr::get_child(uint64_t index) {
     if (index == 0)
         return condition;
     else if (index == 1)
-        return left;
+        return left();
     else if (index == 2)
-        return right;
+        return right();
     else
         return nullptr;
 }
 
 void ConditionalExpr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     condition->add_sink(stmt);
-    left->add_sink(stmt);
-    right->add_sink(stmt);
+    left()->add_sink(stmt);
+    right()->add_sink(stmt);
 }
 
 std::string ConditionalExpr::to_string() const {
     std::string cond_str = condition->type() == VarType::Expression
                                ? ::format("({0})", condition->to_string())
                                : condition->to_string();
-    return ::format("{0} ? {1}: {2}", cond_str, left->to_string(), right->to_string());
+    return ::format("{0} ? {1}: {2}", cond_str, left()->to_string(), right()->to_string());
 }
 
 std::string ConditionalExpr::handle_name(bool ignore_top) const {
     return ::format("{0} ? {1}: {2}", condition->handle_name(ignore_top),
-                    left->handle_name(ignore_top), right->handle_name(ignore_top));
+                    left()->handle_name(ignore_top), right()->handle_name(ignore_top));
 }
 
 std::string ConditionalExpr::handle_name(kratos::Generator *scope) const {
-    return ::format("{0} ? {1}: {2}", condition->handle_name(scope), left->handle_name(scope),
-                    right->handle_name(scope));
+    return ::format("{0} ? {1}: {2}", condition->handle_name(scope), left()->handle_name(scope),
+                    right()->handle_name(scope));
 }
 
 PackedStruct::PackedStruct(std::string struct_name,

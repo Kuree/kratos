@@ -101,9 +101,9 @@ private:
             }
             case VarType ::Expression: {
                 auto const &expr = reinterpret_cast<Expr *>(var);
-                get_var_deps(expr->left, dep, linked_dep);
-                if (expr->right) {
-                    get_var_deps(expr->right, dep, linked_dep);
+                get_var_deps(expr->left(), dep, linked_dep);
+                if (expr->right()) {
+                    get_var_deps(expr->right(), dep, linked_dep);
                 }
                 break;
             }
@@ -773,9 +773,9 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) cons
                 return value;
             }
         } else {
-            auto left_val = get_complex_value_(expr->left);
+            auto left_val = get_complex_value_(expr->left());
             if (!left_val) return left_val;
-            auto right_val = get_complex_value_(expr->right);
+            auto right_val = get_complex_value_(expr->right());
             if (!is_unary_op(expr->op)) {
                 if (!right_val) return std::nullopt;
                 if ((*left_val).size() > 1) throw std::runtime_error("Not implemented");

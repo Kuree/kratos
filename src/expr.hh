@@ -349,16 +349,16 @@ public:
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
     std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override {
-        return var->operator[](sliced_var_->shared_from_this()).shared_from_this();
+        return var->operator[](sliced_var_.lock()).shared_from_this();
     }
 
     bool sliced_by_var() const override { return true; }
-    Var *sliced_var() const { return sliced_var_; }
+    Var *sliced_var() const { return sliced_var_.lock().get(); }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
-    Var *sliced_var_;
+    std::weak_ptr<Var> sliced_var_;
 };
 
 struct Const : public Var {
@@ -408,19 +408,19 @@ public:
 
     std::string inline value_str() const { return Const::to_string(); }
 
-    const std::unordered_set<Var *> &param_vars() const { return param_vars_; }
-    void add_param_var(Var *var) { param_vars_.emplace(var); }
+    const std::set<std::weak_ptr<Var>> &param_vars() const { return param_vars_; }
+    void add_param_var(Var *var) { param_vars_.emplace(var->weak_from_this()); }
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);
 
-    const Param *parent_param() const { return parent_param_; }
+    const Param *parent_param() const { return parent_param_.lock().get(); }
 
 private:
     std::string parameter_name_;
 
-    std::unordered_set<Var *> param_vars_;
-    std::unordered_set<Param *> param_params_;
-    Param *parent_param_ = nullptr;
+    std::set<std::weak_ptr<Var>> param_vars_;
+    std::set<std::weak_ptr<Param>> param_params_;
+    std::weak_ptr<Param> parent_param_;
 };
 
 struct PackedStruct {
@@ -480,8 +480,10 @@ private:
 struct Expr : public Var {
 public:
     ExprOp op;
-    Var *left;
-    Var *right;
+    inline Var* left() const { return left_; }
+    inline Var* right() const { return right_; }
+    inline void set_left(Var *var) { left_ = var; }
+    inline void set_right(Var *var) { right_ = var; }
 
     Expr(ExprOp op, Var *left, Var *right);
     std::string to_string() const override;
@@ -489,7 +491,7 @@ public:
 
     // AST
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
-    uint64_t child_count() override { return right ? 2 : 1; }
+    uint64_t child_count() override { return right_ ? 2 : 1; }
     IRNode *get_child(uint64_t index) override;
 
     std::string handle_name(bool ignore_top) const override;
@@ -501,6 +503,9 @@ protected:
 
 private:
     void set_parent();
+
+    Var *left_;
+    Var *right_;
 };
 
 struct VarConcat : public Expr {
@@ -667,6 +672,11 @@ public:
 private:
     InterfaceRef *interface_ = nullptr;
 };
+
+// for set and map
+inline bool operator<(const std::weak_ptr<Var> &left, const std::weak_ptr<Var> &right) {
+    return left.lock() < right.lock();
+}
 
 // helper functions
 namespace util {

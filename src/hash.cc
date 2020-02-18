@@ -219,7 +219,7 @@ static uint64_t hash_var(Var* var) {
     if (var->type() == VarType::Expression) {
         auto expr = reinterpret_cast<Expr*>(var);
         auto op_hash = (uint64_t)expr->op;
-        return hash_var(expr->left) ^ hash_var(expr->right) ^ op_hash;
+        return hash_var(expr->left()) ^ hash_var(expr->right()) ^ op_hash;
     } else if (var->type() == VarType::ConstValue) {
         auto c = reinterpret_cast<Const*>(var);
         return static_cast<uint64_t>(c->value());
