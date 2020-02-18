@@ -13,7 +13,7 @@ class SinglePortSRAM(Generator):
         else:
             self.sram = sram_def
         Generator.__init__(self, macro_name, is_clone=is_clone,
-                           internal_generator=self.sram)
+                           internal_generator=self.sram.generator())
 
     # proxy for properties
     @property

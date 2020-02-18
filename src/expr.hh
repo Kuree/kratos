@@ -130,8 +130,8 @@ public:
     std::shared_ptr<AssignStmt> assign(Var &var, AssignmentType type);
     void unassign(const std::shared_ptr<AssignStmt> &stmt);
 
-    Generator *generator() const { return generator_; }
-    void set_generator(Generator *gen) { generator_ = gen; }
+    Generator *generator() const;
+    void set_generator(Generator *gen);
 
     IRNode *parent() override;
 
@@ -232,7 +232,7 @@ protected:
 
     bool is_packed_ = false;
 
-    Generator *generator_;
+    std::weak_ptr<Generator> generator_;
 
     // assign function
     virtual std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,

@@ -507,25 +507,25 @@ void Expr::set_parent() {
     // compute the right parent for the expr
     // it can only go up
     if (!right) {
-        generator_ = left->generator();
+        set_generator(left->generator());
     } else {
         auto left_gen = left->generator();
         auto right_gen = right->generator();
         if (left_gen == Const::const_gen()) {
-            generator_ = right_gen;
+            set_generator(right_gen);
         } else if (right_gen == Const::const_gen()) {
-            generator_ = left_gen;
+            set_generator(left_gen);
         } else if (left_gen == right_gen) {
-            generator_ = left->generator();
+            set_generator(left->generator());
         } else {
             // choose the higher/lower one based on the var type
             if (left_gen == right_gen->parent() && right->type() == VarType::PortIO) {
-                generator_ = left_gen;
+                set_generator(left_gen);
             } else if (left_gen->parent() == right_gen->parent() &&
                        left->type() == VarType::PortIO && right->type() == VarType::PortIO) {
-                generator_ = dynamic_cast<Generator *>(left_gen->parent());
+                set_generator(dynamic_cast<Generator *>(left_gen->parent()));
             } else {
-                generator_ = right_gen;
+                set_generator(right_gen);
             }
         }
     }
@@ -550,14 +550,32 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
       var_width_(var_width),
       size_(std::move(size)),
       is_signed_(is_signed),
-      type_(type),
-      generator_(m) {
+      type_(type) {
     // only constant allows to be null generator
     if (m == nullptr && type != VarType::ConstValue)
         throw UserException(::format("module is null for {0}", name));
     if (!is_valid_variable_name(name))
         throw UserException(::format("{0} is a SystemVerilog keyword", name));
     if (width() == 0) throw UserException(::format("variable {0} cannot have size 0", name));
+    if (m)
+        set_generator(m);
+}
+
+Generator * Var::generator() const {
+    auto gen = generator_.lock();
+    // this is unlikely to happen, therefore exclude it from coverage
+    // LCOV_EXCL_START
+    if (!gen) {
+        throw UserException("Parent's scope is gone yet the variable is still valid. "
+                            "Make sure that the memory allocation is correct, e.g. the context is"
+                            "still valid");
+    }
+    // LCOV_EXCL_STOP
+    return gen.get();
+}
+
+void Var::set_generator(Generator *gen) {
+    generator_ = gen->weak_from_this();
 }
 
 IRNode *Var::parent() { return generator(); }
@@ -628,7 +646,7 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
 Const::Const(int64_t value, uint32_t width, bool is_signed)
     : Const(nullptr, value, width, is_signed) {
     if (!const_generator_) const_generator_ = std::make_shared<Generator>(nullptr, "");
-    generator_ = const_generator_.get();
+    set_generator(const_generator_.get());
 }
 
 Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
@@ -701,7 +719,7 @@ std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
 
 void Const::set_value(int64_t new_value) {
     try {
-        Const c(generator_, new_value, width(), is_signed_);
+        Const c(generator(), new_value, width(), is_signed_);
         value_ = new_value;
     } catch (::runtime_error &) {
         std::cerr << ::format("Unable to set value from {0} to {1}", value_, new_value)
@@ -723,7 +741,7 @@ void Const::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     auto parent = generator->parent();
     if (parent && parent->ir_node_kind() == GeneratorKind) {
         auto gen = dynamic_cast<Generator *>(parent);
-        this->generator_ = gen;
+        set_generator(gen);
     }
 }
 
@@ -1413,7 +1431,7 @@ void FunctionCallVar::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     // FIXME: this is a very hacky fix on constant generators
     if (generator() == Const::const_gen()) {
         // use left hand size of stmt
-        generator_ = stmt->left()->generator();
+        set_generator(stmt->left()->generator());
         // change the function def to the new generator
         if (!generator()->has_function(func_def_->function_name())) {
             generator()->add_function(func_def_->as<FunctionStmtBlock>());
