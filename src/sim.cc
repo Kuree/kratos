@@ -736,15 +736,15 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) cons
         // there are couple special ones
         if (expr->op == ExprOp::Concat) {
             auto var_concat = reinterpret_cast<VarConcat *>(expr);
-            auto vars = std::vector<Var *>(var_concat->vars().begin(), var_concat->vars().end());
+            auto vars = std::vector<std::weak_ptr<Var>>(var_concat->vars().begin(), var_concat->vars().end());
             std::reverse(vars.begin(), vars.end());
             uint32_t shift_amount = 0;
             uint64_t value = 0;
             for (auto var_ : vars) {
-                auto v = get_value_(var_);
+                auto v = get_value_(var_.lock().get());
                 if (v) {
                     value |= (*v) << shift_amount;
-                    shift_amount += var_->width();
+                    shift_amount += var_.lock()->width();
                 } else {
                     return std::nullopt;
                 }

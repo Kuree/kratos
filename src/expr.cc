@@ -210,7 +210,7 @@ VarConcat &Var::concat(Var &var) {
     // vars
     for (auto const &exist_var : concat_vars_) {
         // reuse the existing variables
-        if (exist_var->vars().size() == 2 && exist_var->vars().back() == ptr) {
+        if (exist_var->vars().size() == 2 && exist_var->vars().back().lock().get() == ptr) {
             return *exist_var;
         }
     }
@@ -784,20 +784,20 @@ void Param::set_value(const std::shared_ptr<Param> &param) {
 
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
     for (auto &var : vars_) {
-        var->add_source(stmt);
+        var.lock()->add_source(stmt);
     }
 }
 
 void VarConcat::add_sink(const std::shared_ptr<kratos::AssignStmt> &stmt) {
     for (auto &var : vars_) {
-        var->add_sink(stmt);
+        var.lock()->add_sink(stmt);
     }
 }
 
 std::string VarConcat::to_string() const {
     std::vector<std::string> var_names;
     for (const auto &ptr : vars_) {
-        var_names.emplace_back(ptr->to_string());
+        var_names.emplace_back(ptr.lock()->to_string());
     }
     auto content = join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
@@ -806,7 +806,7 @@ std::string VarConcat::to_string() const {
 std::string VarConcat::handle_name(bool ignore_top) const {
     std::vector<std::string> var_names;
     for (const auto &ptr : vars_) {
-        var_names.emplace_back(ptr->handle_name(ignore_top));
+        var_names.emplace_back(ptr.lock()->handle_name(ignore_top));
     }
     auto content = join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
@@ -815,7 +815,7 @@ std::string VarConcat::handle_name(bool ignore_top) const {
 std::string VarConcat::handle_name(kratos::Generator *scope) const {
     std::vector<std::string> var_names;
     for (const auto &ptr : vars_) {
-        var_names.emplace_back(ptr->handle_name(scope));
+        var_names.emplace_back(ptr.lock()->handle_name(scope));
     }
     auto content = join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
@@ -827,8 +827,8 @@ VarConcat::VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
             {first.get(), second.get()});
-    vars_ = std::vector<Var *>(first->vars_.begin(), first->vars_.end());
-    vars_.emplace_back(second.get());
+    vars_ = std::vector<std::weak_ptr<Var>>(first->vars_.begin(), first->vars_.end());
+    vars_.emplace_back(second->weak_from_this());
     var_width_ = first->width() + second->width();
     op = ExprOp::Concat;
 }
@@ -839,7 +839,7 @@ VarConcat::VarConcat(const std::shared_ptr<Var> &first, const std::shared_ptr<Va
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
             {first.get(), second.get()});
-    vars_ = {first.get(), second.get()};
+    vars_ = {first->weak_from_this(), second->weak_from_this()};
     var_width_ = first->width() + second->width();
     op = ExprOp::Concat;
 }
@@ -847,14 +847,14 @@ VarConcat::VarConcat(const std::shared_ptr<Var> &first, const std::shared_ptr<Va
 VarConcat &VarConcat::concat(kratos::Var &var) {
     auto result = std::make_shared<VarConcat>(as<VarConcat>(), var.shared_from_this());
     // add it to the first one
-    vars_[0]->add_concat_var(result);
+    vars_[0].lock()->add_concat_var(result);
     return *result;
 }
 
 void VarConcat::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
-    auto pos = std::find(vars_.begin(), vars_.end(), target.get());
+    auto pos = std::find(vars_.begin(), vars_.end(), target->weak_from_this());
     if (pos != vars_.end()) {
-        *pos = item.get();
+        *pos = item->weak_from_this();
     }
 }
 

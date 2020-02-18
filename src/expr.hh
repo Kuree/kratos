@@ -480,8 +480,8 @@ private:
 struct Expr : public Var {
 public:
     ExprOp op;
-    inline Var* left() const { return left_.lock().get(); }
-    inline Var* right() const { return right_.lock().get(); }
+    inline Var *left() const { return left_.lock().get(); }
+    inline Var *right() const { return right_.lock().get(); }
     inline void set_left(Var *var) { left_ = var->weak_from_this(); }
     inline void set_right(Var *var) { right_ = var->weak_from_this(); }
     inline std::weak_ptr<Var> &left_ptr() { return left_; }
@@ -519,14 +519,14 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
-    std::vector<Var *> &vars() { return vars_; }
+    std::vector<std::weak_ptr<Var>> &vars() { return vars_; }
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
     VarConcat &concat(Var &var) override;
 
     uint64_t child_count() override { return vars_.size(); }
     IRNode *get_child(uint64_t index) override {
-        return index < vars_.size() ? vars_[index] : nullptr;
+        return index < vars_.size() ? vars_[index].lock().get() : nullptr;
     }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
@@ -536,7 +536,7 @@ public:
     std::string handle_name(Generator *scope) const override;
 
 private:
-    std::vector<Var *> vars_;
+    std::vector<std::weak_ptr<Var>> vars_;
 };
 
 struct VarExtend : public Expr {
@@ -675,9 +675,12 @@ private:
     InterfaceRef *interface_ = nullptr;
 };
 
-// for set and map
+// for set and map and stl algorithms
 inline bool operator<(const std::weak_ptr<Var> &left, const std::weak_ptr<Var> &right) {
     return left.lock() < right.lock();
+}
+inline bool operator==(const std::weak_ptr<Var> &left, const std::weak_ptr<Var> &right) {
+    return left.lock() == right.lock();
 }
 
 // helper functions
