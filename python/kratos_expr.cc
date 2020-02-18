@@ -328,7 +328,7 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
             "width", [](Var &var) { return var.var_width(); },
             [](Var &var, uint32_t width) {
                 var.var_width() = width;
-                if (var.generator->debug) {
+                if (var.generator()->debug) {
                     auto fn_ln = get_fn_ln(1);
                     if (fn_ln) {
                         var.fn_name_ln.emplace_back(*fn_ln);
@@ -345,7 +345,7 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("cast", &Var::cast)
         .def_property("is_packed", &Var::is_packed, &Var::set_is_packed)
         .def_property_readonly(
-            "generator", [](const Var &var) { return var.generator; },
+            "generator", [](const Var &var) { return var.generator(); },
             py::return_value_policy::reference)
         .def_static("move_src_to", &Var::move_src_to)
         .def_static("move_sink_to", &Var::move_sink_to)
@@ -415,7 +415,7 @@ void init_expr(py::module &m) {
             auto v = value.cast<const std::shared_ptr<Param>>();
             param.set_value(v);
         }
-        if (param.generator->debug) {
+        if (param.generator()->debug) {
             // store the line change info
             auto info = get_fn_ln(1);
             if (info) {

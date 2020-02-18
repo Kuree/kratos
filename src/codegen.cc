@@ -342,7 +342,7 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
 void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
     if (stmt->left()->type() == VarType::PortIO) {
         auto port = stmt->left()->as<Port>();
-        if (port->port_direction() == PortDirection::In && stmt->left()->generator == generator_) {
+        if (port->port_direction() == PortDirection::In && stmt->left()->generator() == generator_) {
             throw StmtException("Cannot drive a module's input from itself",
                                 {stmt, stmt->left(), stmt->right()});
         }
@@ -563,7 +563,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
                     auto source = clk->sources();
                     for (auto const& assign : source) {
                         auto src_var = assign->right();
-                        if (src_var->generator == generator) {
+                        if (src_var->generator() == generator) {
                             if (src_var->type() == VarType::BaseCasted) {
                                 // only casted to clock
                                 auto casted = src_var->as<VarCasted>();
@@ -667,7 +667,7 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
             if (param->parent_param()) {
                 auto p = param->parent_param();
                 // checking on parameter parent
-                auto p_gen = p->generator;
+                auto p_gen = p->generator();
                 if (p_gen != stmt->generator_parent()) {
                     throw VarException(
                         ::format("{0}.{1} is not declared in generator {2}", p_gen->name, p->name,

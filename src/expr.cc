@@ -51,110 +51,111 @@ uint32_t Var::width() const {
 }
 
 Expr &Var::operator-(const Var &var) const {
-    return generator->expr(ExprOp::Minus, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::Minus, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator-() const {
-    return generator->expr(ExprOp::Minus, const_cast<Var *>(this), nullptr);
+    return generator()->expr(ExprOp::Minus, const_cast<Var *>(this), nullptr);
 }
 
 Expr &Var::operator~() const {
-    return generator->expr(ExprOp::UInvert, const_cast<Var *>(this), nullptr);
+    return generator()->expr(ExprOp::UInvert, const_cast<Var *>(this), nullptr);
 }
 
 Expr &Var::operator+() const {
-    return generator->expr(ExprOp::UPlus, const_cast<Var *>(this), nullptr);
+    return generator()->expr(ExprOp::UPlus, const_cast<Var *>(this), nullptr);
 }
 
 Expr &Var::r_or() const {
-    auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UOr, const_cast<Var *>(this), nullptr);
+    auto var = generator()->get_var(name);
+    return generator()->expr(ExprOp::UOr, const_cast<Var *>(this), nullptr);
 }
 Expr &Var::r_and() const {
-    auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UAnd, const_cast<Var *>(this), nullptr);
+    auto var = generator()->get_var(name);
+    return generator()->expr(ExprOp::UAnd, const_cast<Var *>(this), nullptr);
 }
 Expr &Var::r_xor() const {
-    auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UXor, const_cast<Var *>(this), nullptr);
+    auto var = generator()->get_var(name);
+    return generator()->expr(ExprOp::UXor, const_cast<Var *>(this), nullptr);
 }
 Expr &Var::r_not() const {
-    auto var = generator->get_var(name);
-    return generator->expr(ExprOp::UNot, const_cast<Var *>(this), nullptr);
+    auto var = generator()->get_var(name);
+    return generator()->expr(ExprOp::UNot, const_cast<Var *>(this), nullptr);
 }
 
 Expr &Var::operator+(const Var &var) const {
-    return generator->expr(ExprOp::Add, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::Add, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator*(const Var &var) const {
-    return generator->expr(ExprOp::Multiply, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::Multiply, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator%(const Var &var) const {
-    return generator->expr(ExprOp::Mod, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::Mod, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator/(const Var &var) const {
-    return generator->expr(ExprOp::Divide, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::Divide, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator>>(const Var &var) const {
-    return generator->expr(ExprOp::LogicalShiftRight, const_cast<Var *>(this),
-                           const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::LogicalShiftRight, const_cast<Var *>(this),
+                             const_cast<Var *>(&var));
 }
 
 Expr &Var::operator<<(const Var &var) const {
-    return generator->expr(ExprOp::ShiftLeft, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::ShiftLeft, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator|(const Var &var) const {
-    return generator->expr(ExprOp::Or, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::Or, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator&(const Var &var) const {
-    return generator->expr(ExprOp::And, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::And, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator^(const Var &var) const {
-    return generator->expr(ExprOp::Xor, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::Xor, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::ashr(const Var &var) const {
-    return generator->expr(ExprOp::SignedShiftRight, const_cast<Var *>(this),
-                           const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::SignedShiftRight, const_cast<Var *>(this),
+                             const_cast<Var *>(&var));
 }
 
 Expr &Var::operator<(const Var &var) const {
-    return generator->expr(ExprOp::LessThan, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::LessThan, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator>(const Var &var) const {
-    return generator->expr(ExprOp::GreaterThan, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::GreaterThan, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator<=(const Var &var) const {
-    return generator->expr(ExprOp::LessEqThan, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::LessEqThan, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator>=(const Var &var) const {
-    return generator->expr(ExprOp::GreaterEqThan, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::GreaterEqThan, const_cast<Var *>(this),
+                             const_cast<Var *>(&var));
 }
 
 Expr &Var::eq(const Var &var) const {
-    return generator->expr(ExprOp::Eq, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::Eq, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator!=(const Var &var) const {
-    return generator->expr(ExprOp::Neq, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::Neq, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator&&(const Var &var) const {
-    return generator->expr(ExprOp::LAnd, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::LAnd, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 Expr &Var::operator||(const Var &var) const {
-    return generator->expr(ExprOp::LOr, const_cast<Var *>(this), const_cast<Var *>(&var));
+    return generator()->expr(ExprOp::LOr, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
@@ -245,9 +246,9 @@ IRNode *Var::get_child(uint64_t index) {
 std::string Var::handle_name() const { return handle_name(false); }
 
 std::string Var::handle_name(bool ignore_top) const {
-    auto gen_name = generator->handle_name(ignore_top);
+    auto gen_name = generator()->handle_name(ignore_top);
     if (!gen_name.empty())
-        return ::format("{0}.{1}", generator->handle_name(ignore_top), to_string());
+        return ::format("{0}.{1}", generator()->handle_name(ignore_top), to_string());
     else
         return to_string();
 }
@@ -259,8 +260,8 @@ std::string Var::handle_name(kratos::Generator *scope) const {
     auto pos = var_name.find(gen_name);
     if (pos != 0) {
         throw VarException(
-            ::format("{0} is not accessible from {1}", gen_name, generator->handle_name()),
-            {this, scope, this->generator});
+            ::format("{0} is not accessible from {1}", gen_name, generator()->handle_name()),
+            {this, scope, this->generator()});
     }
     // we +1 because there is a dot there
     return var_name.substr(pos + gen_name.size() + 1);
@@ -300,7 +301,7 @@ uint32_t num_size_decrease(Var *var) {
 }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
-    : Var(parent->generator, "", parent->var_width(), 1, parent->is_signed(), VarType::Slice),
+    : Var(parent->generator(), "", parent->var_width(), 1, parent->is_signed(), VarType::Slice),
       parent_var(parent),
       low(low),
       high(high),
@@ -312,13 +313,12 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     auto diff = num_size_decrease(parent);
     auto diff_parent = true;
     if (low == 0 && high == 0 && parent->type() == VarType::Slice) {
-        auto p_d = num_size_decrease(reinterpret_cast<VarSlice*>(parent)->parent_var);
+        auto p_d = num_size_decrease(reinterpret_cast<VarSlice *>(parent)->parent_var);
         diff_parent = diff != p_d;
     }
     bool dropped_dim_size1 = low == 0 && high == 0 &&
                              parent->get_var_root_parent()->size().size() > 1 &&
-                             parent->get_var_root_parent()->size().back() == 1 &&
-                             diff_parent &&
+                             parent->get_var_root_parent()->size().back() == 1 && diff_parent &&
                              diff == parent->get_var_root_parent()->size().size() - 1;
     if (parent->size().size() == 1 && parent->size().front() == 1 && parent->explicit_array()) {
         if (high != 0 || low != 0) {
@@ -468,7 +468,7 @@ std::string VarVarSlice::to_string() const {
 }
 
 Expr::Expr(ExprOp op, Var *left, Var *right)
-    : Var(left->generator, "", left->var_width(), left->size(), left->is_signed(),
+    : Var(left->generator(), "", left->var_width(), left->size(), left->is_signed(),
           VarType::Expression),
       op(op),
       left(left),
@@ -493,7 +493,7 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
 }
 
 Expr::Expr(Var *left, Var *right)
-    : Var(left->generator, "", left->var_width(), left->size(), left->is_signed(),
+    : Var(left->generator(), "", left->var_width(), left->size(), left->is_signed(),
           VarType::Expression),
       op(ExprOp::Add),
       left(left),
@@ -507,25 +507,25 @@ void Expr::set_parent() {
     // compute the right parent for the expr
     // it can only go up
     if (!right) {
-        generator = left->generator;
+        generator_ = left->generator();
     } else {
-        auto left_gen = left->generator;
-        auto right_gen = right->generator;
+        auto left_gen = left->generator();
+        auto right_gen = right->generator();
         if (left_gen == Const::const_gen()) {
-            generator = right_gen;
+            generator_ = right_gen;
         } else if (right_gen == Const::const_gen()) {
-            generator = left_gen;
+            generator_ = left_gen;
         } else if (left_gen == right_gen) {
-            generator = left->generator;
+            generator_ = left->generator();
         } else {
             // choose the higher/lower one based on the var type
             if (left_gen == right_gen->parent() && right->type() == VarType::PortIO) {
-                generator = left_gen;
+                generator_ = left_gen;
             } else if (left_gen->parent() == right_gen->parent() &&
                        left->type() == VarType::PortIO && right->type() == VarType::PortIO) {
-                generator = dynamic_cast<Generator *>(left_gen->parent());
+                generator_ = dynamic_cast<Generator *>(left_gen->parent());
             } else {
-                generator = right_gen;
+                generator_ = right_gen;
             }
         }
     }
@@ -547,11 +547,11 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
          std::vector<uint32_t> size, bool is_signed, kratos::VarType type)
     : IRNode(IRNodeKind::VarKind),
       name(name),
-      generator(m),
       var_width_(var_width),
       size_(std::move(size)),
       is_signed_(is_signed),
-      type_(type) {
+      type_(type),
+      generator_(m) {
     // only constant allows to be null generator
     if (m == nullptr && type != VarType::ConstValue)
         throw UserException(::format("module is null for {0}", name));
@@ -560,7 +560,7 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
     if (width() == 0) throw UserException(::format("variable {0} cannot have size 0", name));
 }
 
-IRNode *Var::parent() { return generator; }
+IRNode *Var::parent() { return generator(); }
 IRNode *VarSlice::parent() { return parent_var; }
 
 std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var) {
@@ -594,7 +594,7 @@ void Var::unassign(const std::shared_ptr<AssignStmt> &stmt) {
     sources_.erase(stmt);
     // erase from parent if any
     // TODO: fix this will proper parent
-    generator->remove_stmt(stmt);
+    generator()->remove_stmt(stmt);
 }
 
 Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed)
@@ -628,7 +628,7 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
 Const::Const(int64_t value, uint32_t width, bool is_signed)
     : Const(nullptr, value, width, is_signed) {
     if (!const_generator_) const_generator_ = std::make_shared<Generator>(nullptr, "");
-    generator = const_generator_.get();
+    generator_ = const_generator_.get();
 }
 
 Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
@@ -645,7 +645,7 @@ std::unordered_set<std::shared_ptr<Const>> Const::consts_ = {};
 std::shared_ptr<Generator> Const::const_generator_ = nullptr;
 
 VarCasted::VarCasted(Var *parent, VarCastType cast_type)
-    : Var(parent->generator, "", parent->width(), parent->size(), false, parent->type()),
+    : Var(parent->generator(), "", parent->width(), parent->size(), false, parent->type()),
       parent_var_(parent),
       cast_type_(cast_type) {
     type_ = VarType::BaseCasted;
@@ -701,7 +701,7 @@ std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
 
 void Const::set_value(int64_t new_value) {
     try {
-        Const c(generator, new_value, width(), is_signed_);
+        Const c(generator_, new_value, width(), is_signed_);
         value_ = new_value;
     } catch (::runtime_error &) {
         std::cerr << ::format("Unable to set value from {0} to {1}", value_, new_value)
@@ -717,13 +717,13 @@ void Const::add_source(const std::shared_ptr<AssignStmt> &) {
 void Const::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     auto left = stmt->left();
     // if it's a port, we change the constant's generator to that of port
-    auto generator = left->generator;
+    auto generator = left->generator();
     if (!generator)
         throw StmtException(::format("Unable to find left hand side generator"), {stmt.get()});
     auto parent = generator->parent();
     if (parent && parent->ir_node_kind() == GeneratorKind) {
         auto gen = dynamic_cast<Generator *>(parent);
-        this->generator = gen;
+        this->generator_ = gen;
     }
 }
 
@@ -1411,13 +1411,13 @@ void FunctionCallVar::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
         iter.second->add_sink(stmt);
     }
     // FIXME: this is a very hacky fix on constant generators
-    if (generator == Const::const_gen()) {
+    if (generator() == Const::const_gen()) {
         // use left hand size of stmt
-        generator = stmt->left()->generator;
+        generator_ = stmt->left()->generator();
         // change the function def to the new generator
-        if (!generator->has_function(func_def_->function_name())) {
-            generator->add_function(func_def_->as<FunctionStmtBlock>());
-            generator->add_call_var(as<FunctionCallVar>());
+        if (!generator()->has_function(func_def_->function_name())) {
+            generator()->add_function(func_def_->as<FunctionStmtBlock>());
+            generator()->add_call_var(as<FunctionCallVar>());
         }
     }
 }
@@ -1454,7 +1454,7 @@ std::string InterfaceVar::base_name() const { return interface_->base_name(); }
 std::shared_ptr<Expr> util::mux(Var &cond, Var &left, Var &right) {
     auto expr = std::make_shared<ConditionalExpr>(cond.shared_from_this(), left.shared_from_this(),
                                                   right.shared_from_this());
-    cond.generator->add_expr(expr);
+    cond.generator()->add_expr(expr);
     return expr;
 }
 

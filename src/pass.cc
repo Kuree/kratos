@@ -714,7 +714,7 @@ private:
                         // here we are okay with input sliced in
                         (src->type() == VarType::Slice && src->parent() == generator->parent())) {
                         // remove it from the parent generator
-                        src->generator->remove_stmt(stmt);
+                        src->generator()->remove_stmt(stmt);
                         return;
                     }
                 }
@@ -751,7 +751,7 @@ private:
             // we are only interested in parent level port connection
             std::unordered_set<std::shared_ptr<AssignStmt>> sinks;
             for (auto const &stmt: sinks_) {
-                if (stmt->generator_parent() == port->generator->parent_generator())
+                if (stmt->generator_parent() == port->generator()->parent_generator())
                     sinks.emplace(stmt);
             }
             if (sinks.empty()) {
@@ -768,7 +768,7 @@ private:
                 } else {
                     correct_src_type_ = true;
                 }
-                if (correct_src_type_ && src->generator == generator->parent() &&
+                if (correct_src_type_ && src->generator() == generator->parent() &&
                     stmt->right() == port) {
                     // remove it from the parent generator
                     stmt->remove_from_parent();
@@ -898,13 +898,13 @@ private:
             auto slice = dynamic_cast<VarSlice*>(var);
             return has_non_port(context, slice->parent_var);
         } else {
-            return var->generator != context && var->type() != VarType::PortIO &&
+            return var->generator() != context && var->type() != VarType::PortIO &&
                    var->type() != VarType ::ConstValue;
         }
     }
 
     static void check_var_parent(Generator* generator, Var* dst_var, Var* var, Stmt* stmt) {
-        auto gen = var->generator;
+        auto gen = var->generator();
         if (gen == Const::const_gen()) return;
         if (generator != gen) {
             // if it's an input port, the parent context is different
@@ -915,7 +915,7 @@ private:
             if (dst_var->type() == VarType::PortIO) {
                 auto port = dynamic_cast<Port*>(dst_var);
                 if (port->port_direction() == PortDirection::In) {
-                    auto context_g = dst_var->generator->parent();
+                    auto context_g = dst_var->generator()->parent();
                     if (gen != context_g && gen->parent() != context_g &&
                         gen->parent() != context_g) {
                         throw VarException(
@@ -1161,7 +1161,7 @@ private:
         auto target = expr->left;
         std::shared_ptr<SwitchStmt> switch_ =
             std::make_shared<SwitchStmt>(target->shared_from_this());
-        if (target->generator->debug) {
+        if (target->generator()->debug) {
             switch_->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
                 stmt->fn_name_ln.begin(), stmt->fn_name_ln.end());
             switch_->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));

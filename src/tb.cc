@@ -131,8 +131,8 @@ protected:
         if (stmt->assign_type() != AssignmentType::Blocking) {
             throw StmtException("Test bench assignment as to be blocking", {stmt});
         }
-        if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator != top_) ||
-            (stmt->right()->type() == VarType::PortIO && stmt->right()->generator != top_))
+        if ((stmt->left()->type() == VarType::PortIO && stmt->left()->generator() != top_) ||
+            (stmt->right()->type() == VarType::PortIO && stmt->right()->generator() != top_))
             return;
         std::string delay_str;
         if (stmt->get_delay() > 0) {

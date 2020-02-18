@@ -80,7 +80,7 @@ Var &Generator::var(const std::string &var_name, uint32_t width,
     return var(var_name, width, size, false);
 }
 
-Var & Generator::var(const std::string &var_name, uint32_t width) {
+Var &Generator::var(const std::string &var_name, uint32_t width) {
     return var(var_name, width, std::vector<uint32_t>{1});
 }
 
@@ -481,7 +481,7 @@ void Generator::rename_var(const std::string &old_name, const std::string &new_n
 
 void Generator::add_call_var(const std::shared_ptr<FunctionCallVar> &var) {
     calls_.emplace(var);
-    var->generator = this;
+    var->set_generator(this);
 }
 
 std::shared_ptr<Param> Generator::get_param(const std::string &param_name) const {
@@ -573,8 +573,8 @@ void inline check_direction(const Port *port1, Port *port2, bool same_direction 
 }
 
 std::pair<bool, bool> correct_port_direction(Port *port1, Port *port2, Generator *top) {
-    auto parent1 = port1->generator;
-    auto parent2 = port2->generator;
+    auto parent1 = port1->generator();
+    auto parent2 = port2->generator();
     std::shared_ptr<AssignStmt> stmt;
     if (parent1 == parent2 && parent1 == top) {
         // it's the same module
@@ -646,19 +646,19 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
     } else if (root1->type() == VarType::PortIO && root2->type() != VarType::PortIO) {
         // var1 is port and var2 is not
         auto port1 = dynamic_cast<Port *>(root1);
-        if (port1->generator == this) {
+        if (port1->generator() == this) {
             bool flip_dir = false;
             if (port1->is_interface()) {
                 auto port_i = reinterpret_cast<InterfacePort *>(port1);
                 auto ref = port_i->interface();
-                flip_dir = !(ref->is_port() && root2->generator == this);
+                flip_dir = !(ref->is_port() && root2->generator() == this);
             }
             return {!flip_dir ? port1->port_direction() == PortDirection::Out
                               : port1->port_direction() == PortDirection::In,
                     true};
         } else {
-            if (!has_child_generator(port1->generator->shared_from_this())) {
-                throw VarException(::format("{0}.{1} is not part of {2}", port1->generator->name,
+            if (!has_child_generator(port1->generator()->shared_from_this())) {
+                throw VarException(::format("{0}.{1} is not part of {2}", port1->generator()->name,
                                             var1->to_string(), name),
                                    {port1});
             }
@@ -668,19 +668,19 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
     } else if (root2->type() == VarType::PortIO && root1->type() != VarType::PortIO) {
         // var2 is port and var1 is not
         auto port2 = dynamic_cast<Port *>(root2);
-        if (port2->generator == this) {
+        if (port2->generator() == this) {
             bool flip_dir = false;
             if (port2->is_interface()) {
                 auto port_i = reinterpret_cast<InterfacePort *>(port2);
                 auto ref = port_i->interface();
-                flip_dir = !(ref->is_port() && root1->generator == this);
+                flip_dir = !(ref->is_port() && root1->generator() == this);
             }
             return {!flip_dir ? port2->port_direction() == PortDirection::In
                               : port2->port_direction() == PortDirection::Out,
                     true};
         } else {
-            if (!has_child_generator(port2->generator->shared_from_this())) {
-                throw VarException(::format("{0}.{1} is not part of {2}", port2->generator->name,
+            if (!has_child_generator(port2->generator()->shared_from_this())) {
+                throw VarException(::format("{0}.{1} is not part of {2}", port2->generator()->name,
                                             var1->to_string(), name),
                                    {port2});
             }

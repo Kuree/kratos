@@ -43,7 +43,7 @@ TEST(expr, arith) {  // NOLINT
     // we have to use the reference version to use shared_from_this
     Var &var3 = mod.var("c", 1);
     expr = Expr(ExprOp::Add, &var1, &var3);
-    EXPECT_EQ(expr.generator, &mod);
+    EXPECT_EQ(expr.generator(), &mod);
 
     // test to_string
     EXPECT_EQ(var1.to_string(), "a");

@@ -206,7 +206,7 @@ std::string InterfacePort::to_string() const {
 std::string InterfacePort::base_name() const { return interface_->base_name(); }
 
 ModportPort::ModportPort(InterfaceRef* ref, kratos::Var* var, kratos::PortDirection dir)
-    : InterfacePort(ref, var->generator, dir, var->name, var->width(), var->size(), PortType::Data,
+    : InterfacePort(ref, var->generator(), dir, var->name, var->width(), var->size(), PortType::Data,
                     var->is_signed()),
       var_(var) {
     explicit_array_ = var->explicit_array();

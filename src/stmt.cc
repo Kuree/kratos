@@ -127,7 +127,7 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
     else_body_->set_parent(this);
 
     // just to add the sinks
-    auto stmt = predicate_->generator->get_auxiliary_var(predicate_->width())->assign(predicate_);
+    auto stmt = predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
     stmt->set_parent(this);
 }
 
@@ -264,7 +264,7 @@ SwitchStmt::SwitchStmt(Var &target)
                             {this, &target});
 
     // just to add the sinks
-    auto stmt = target.generator->get_auxiliary_var(target.width())->assign(target);
+    auto stmt = target.generator()->get_auxiliary_var(target.width())->assign(target);
     stmt->set_parent(this);
 }
 
@@ -345,9 +345,9 @@ std::unordered_set<std::shared_ptr<AssignStmt>> filter_assignments_with_target(
     std::unordered_set<std::shared_ptr<AssignStmt>> result;
     for (const auto &stmt : stmts) {
         if (lhs) {
-            if (stmt->left()->generator == target) result.emplace(stmt);
+            if (stmt->left()->generator() == target) result.emplace(stmt);
         } else {
-            if (stmt->right()->generator == target) result.emplace(stmt);
+            if (stmt->right()->generator() == target) result.emplace(stmt);
         }
     }
     return result;

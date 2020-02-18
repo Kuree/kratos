@@ -396,7 +396,7 @@ public:
                     if (parent_var->type() != VarType::PortIO) {
                         continue;
                     }
-                    auto gen = parent_var->generator;
+                    auto gen = parent_var->generator();
                     auto gen_handle = gen->handle_name();
                     // the direction is var -> var
                     lock_.lock();
