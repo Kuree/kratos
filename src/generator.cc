@@ -21,7 +21,7 @@ using std::vector;
 
 namespace kratos {
 
-Generator &Generator::from_verilog(Context *context, const std::string &src_file,
+std::shared_ptr<Generator> Generator::from_verilog(Context *context, const std::string &src_file,
                                    const std::string &top_name,
                                    const std::vector<std::string> &lib_files,
                                    const std::map<std::string, PortType> &port_types) {
@@ -61,7 +61,7 @@ Generator &Generator::from_verilog(Context *context, const std::string &src_file
         port_p->set_port_type(port_type);
     }
 
-    return mod;
+    return mod.shared_from_this();
 }
 
 Generator::Generator(kratos::Context *context, const std::string &name)

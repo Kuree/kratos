@@ -16,14 +16,14 @@ using namespace kratos;
 
 TEST(generator, load) {  // NOLINT
     Context c;
-    auto &mod = Generator::from_verilog(&c, "module1.sv", "module1", {}, {});
-    EXPECT_TRUE(mod.get_port("f") != nullptr);
+    auto mod = Generator::from_verilog(&c, "module1.sv", "module1", {}, {});
+    EXPECT_TRUE(mod->get_port("f") != nullptr);
     mod = Generator::from_verilog(&c, "module1.sv", "module2", {}, {});
-    EXPECT_TRUE(mod.get_port("f") != nullptr);
+    EXPECT_TRUE(mod->get_port("f") != nullptr);
     ASSERT_ANY_THROW(Generator::from_verilog(&c, "module1.sv", "module3", {}, {}));
     ASSERT_ANY_THROW(Generator::from_verilog(&c, "module1.sv", "module1", {"NON_EXIST"}, {}));
     mod = Generator::from_verilog(&c, "module1.sv", "module1", {}, {{"a", PortType::Clock}});
-    EXPECT_EQ(mod.get_port("a")->port_type(), PortType::Clock);
+    EXPECT_EQ(mod->get_port("a")->port_type(), PortType::Clock);
     ASSERT_ANY_THROW(
         Generator::from_verilog(&c, "module1.sv", "module1", {}, {{"aa", PortType::Clock}}));
 }
