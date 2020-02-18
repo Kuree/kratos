@@ -39,7 +39,7 @@ Port::Port(kratos::Generator* module, kratos::PortDirection direction, const std
 }
 
 std::shared_ptr<AssignStmt> Port::assign__(const std::shared_ptr<Var>& var,
-                                         enum kratos::AssignmentType type) {
+                                           enum kratos::AssignmentType type) {
     // notice that we have the following rules
     // var <- port. this is considered as a lower cast, hence it's allowed
     // port <- var. this is considered as an upper cast, which needs explicit casting
@@ -75,7 +75,7 @@ void Port::set_active_high(bool value) {
 EnumPort::EnumPort(kratos::Generator* m, kratos::PortDirection direction, const std::string& name,
                    const std::shared_ptr<Enum>& enum_type)
     : Port(m, direction, name, enum_type->width(), 1, PortType::Data, false),
-      enum_type_(enum_type.get()) {}
+      enum_type_(enum_type->weak_from_this()) {}
 
 std::shared_ptr<AssignStmt> EnumPort::assign__(const std::shared_ptr<Var>& var,
                                                AssignmentType type) {
@@ -84,7 +84,7 @@ std::shared_ptr<AssignStmt> EnumPort::assign__(const std::shared_ptr<Var>& var,
         throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
     if (var->type() == VarType::ConstValue) {
         auto p = var->as<EnumConst>();
-        if (p->enum_def()->name != enum_type_->name)
+        if (p->enum_def()->name != enum_type()->name)
             throw VarException("Cannot assign different enum type", {this, var.get()});
     } else {
         auto p = dynamic_cast<EnumType*>(var.get());
@@ -94,7 +94,7 @@ std::shared_ptr<AssignStmt> EnumPort::assign__(const std::shared_ptr<Var>& var,
                                         "Please use a cast if it's intended",
                                         var->handle_name()),
                                {var.get()});
-        if (p->enum_type()->name != enum_type_->name) {
+        if (p->enum_type()->name != enum_type()->name) {
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }
     }
@@ -160,11 +160,14 @@ PortBundleDefinition PortBundleDefinition::flip() {
     return flipped_;
 }
 
+PortBundleRef::PortBundleRef(kratos::Generator* generator, kratos::PortBundleDefinition def)
+    : generator_(generator->weak_from_this()), definition_(std::move(def)) {}
+
 Port& PortBundleRef::get_port(const std::string& name) {
     if (name_mappings_.find(name) == name_mappings_.end())
         throw UserException(::format("Unable to find {0} in port bundle", name));
     auto const& port_name = name_mappings_.at(name);
-    return *generator->get_port(port_name);
+    return *generator_.lock()->get_port(port_name);
 }
 
 void PortBundleRef::assign(const std::shared_ptr<PortBundleRef>& other, Generator* parent,
@@ -175,16 +178,17 @@ void PortBundleRef::assign(const std::shared_ptr<PortBundleRef>& other, Generato
     if (self_def.size() != other_def.size()) {
         throw UserException("PortBundle definition doesn't match");
     }
+    auto gen = generator_.lock();
     for (auto const& iter : self_def) {
         auto attr_name = iter.first;
         auto self_real_port = name_mappings_.at(attr_name);
-        auto self_port = generator->get_port(self_real_port);
+        auto self_port = gen->get_port(self_real_port);
         if (other_def.find(attr_name) == other_def.end())
             throw VarException(
-                ::format("Unable to find {0} from {1}", attr_name, other->generator->name),
+                ::format("Unable to find {0} from {1}", attr_name, other->generator_.lock()->name),
                 {self_port.get()});
         auto other_real_port = other->name_mappings_.at(attr_name);
-        auto other_port = other->generator->get_port(other_real_port);
+        auto other_port = other->generator_.lock()->get_port(other_real_port);
         // make stmt
         auto stmt = parent->wire_ports(self_port, other_port);
         if (parent->debug)
@@ -198,17 +202,24 @@ std::set<std::string> PortBundleRef::member_names() const {
     return result;
 }
 
+InterfacePort::InterfacePort(kratos::InterfaceRef* interface, kratos::Generator* module,
+                             kratos::PortDirection direction, const std::string& name,
+                             uint32_t width, const std::vector<uint32_t>& size,
+                             kratos::PortType type, bool is_signed)
+    : Port(module, direction, name, width, size, type, is_signed),
+      interface_(interface->weak_from_this()) {}
+
 std::string InterfacePort::to_string() const {
-    std::string parent_name = interface_->name();
+    std::string parent_name = interface_.lock()->name();
     return ::format("{0}.{1}", parent_name, Var::to_string());
 }
 
-std::string InterfacePort::base_name() const { return interface_->base_name(); }
+std::string InterfacePort::base_name() const { return interface_.lock()->base_name(); }
 
 ModportPort::ModportPort(InterfaceRef* ref, kratos::Var* var, kratos::PortDirection dir)
-    : InterfacePort(ref, var->generator(), dir, var->name, var->width(), var->size(), PortType::Data,
-                    var->is_signed()),
-      var_(var) {
+    : InterfacePort(ref, var->generator(), dir, var->name, var->width(), var->size(),
+                    PortType::Data, var->is_signed()),
+      var_(var->weak_from_this()) {
     explicit_array_ = var->explicit_array();
 }
 
