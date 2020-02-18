@@ -648,6 +648,11 @@ Const::Const(int64_t value, uint32_t width, bool is_signed)
     set_generator(const_generator_.get());
 }
 
+Generator *Const::const_gen() {
+    if (!const_generator_) const_generator_ = std::make_shared<Generator>(nullptr, "");
+    return const_generator_.get();
+}
+
 Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
     auto p = std::make_shared<Const>(value, width, is_signed);
     consts_.emplace(p);
@@ -859,37 +864,36 @@ void VarConcat::replace_var(const std::shared_ptr<Var> &target, const std::share
 }
 
 VarExtend::VarExtend(const std::shared_ptr<Var> &var, uint32_t width)
-    : Expr(ExprOp::Extend, var.get(), nullptr), parent_(var.get()) {
-    if (width < parent_->width()) {
-        throw VarException(::format("Cannot extend {0} (width={1}) to {2}", parent_->to_string(),
-                                    parent_->width(), width),
-                           {parent_});
+    : Expr(ExprOp::Extend, var.get(), nullptr), parent_(var->weak_from_this()) {
+    if (width < var->width()) {
+        throw VarException(
+            ::format("Cannot extend {0} (width={1}) to {2}", var->to_string(), var->width(), width),
+            {var.get()});
     }
     var_width_ = width;
-    is_signed_ = parent_->is_signed();
-    if (parent_->size().size() > 1 || parent_->size().front() > 1 ||
-        (parent_->is_packed() && parent_->type() != VarType::ConstValue)) {
-        throw VarException(::format("Cannot extend an array ({0})", parent_->to_string()),
-                           {parent_});
+    is_signed_ = var->is_signed();
+    if (var->size().size() > 1 || var->size().front() > 1 ||
+        (var->is_packed() && var->type() != VarType::ConstValue)) {
+        throw VarException(::format("Cannot extend an array ({0})", var->to_string()), {var.get()});
     }
 }
 
 void VarExtend::add_source(const std::shared_ptr<AssignStmt> &) {
     throw StmtException(
-        ::format("Cannot add source to an extended variable ({0})", parent_->to_string()),
-        {parent_});
+        ::format("Cannot add source to an extended variable ({0})", parent_var()->to_string()),
+        {parent_var()});
 }
 
-void VarExtend::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_->add_sink(stmt); }
+void VarExtend::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var()->add_sink(stmt); }
 
 void VarExtend::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
-    if (target.get() == parent_) {
-        parent_ = item.get();
+    if (target.get() == parent_var()) {
+        parent_ = item->weak_from_this();
     }
 }
 
 std::string VarExtend::to_string() const {
-    return ::format("{0}'({1})", width(), parent_->to_string());
+    return ::format("{0}'({1})", width(), parent_.lock()->to_string());
 }
 
 std::string Const::to_string() const {
@@ -1178,7 +1182,7 @@ void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
 ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,
                                  const std::shared_ptr<Var> &left,
                                  const std::shared_ptr<Var> &right)
-    : Expr(ExprOp::Conditional, left.get(), right.get()), condition(condition.get()) {
+    : Expr(ExprOp::Conditional, left.get(), right.get()), condition_(condition->weak_from_this()) {
     if (condition->width() != 1)
         throw VarException("Ternary operator's condition has to be a binary value",
                            {condition.get()});
@@ -1186,7 +1190,7 @@ ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,
 
 IRNode *ConditionalExpr::get_child(uint64_t index) {
     if (index == 0)
-        return condition;
+        return condition();
     else if (index == 1)
         return left();
     else if (index == 2)
@@ -1196,25 +1200,25 @@ IRNode *ConditionalExpr::get_child(uint64_t index) {
 }
 
 void ConditionalExpr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    condition->add_sink(stmt);
+    condition()->add_sink(stmt);
     left()->add_sink(stmt);
     right()->add_sink(stmt);
 }
 
 std::string ConditionalExpr::to_string() const {
-    std::string cond_str = condition->type() == VarType::Expression
-                               ? ::format("({0})", condition->to_string())
-                               : condition->to_string();
+    std::string cond_str = condition()->type() == VarType::Expression
+                               ? ::format("({0})", condition()->to_string())
+                               : condition()->to_string();
     return ::format("{0} ? {1}: {2}", cond_str, left()->to_string(), right()->to_string());
 }
 
 std::string ConditionalExpr::handle_name(bool ignore_top) const {
-    return ::format("{0} ? {1}: {2}", condition->handle_name(ignore_top),
+    return ::format("{0} ? {1}: {2}", condition()->handle_name(ignore_top),
                     left()->handle_name(ignore_top), right()->handle_name(ignore_top));
 }
 
 std::string ConditionalExpr::handle_name(kratos::Generator *scope) const {
-    return ::format("{0} ? {1}: {2}", condition->handle_name(scope), left()->handle_name(scope),
+    return ::format("{0} ? {1}: {2}", condition()->handle_name(scope), left()->handle_name(scope),
                     right()->handle_name(scope));
 }
 
@@ -1307,14 +1311,25 @@ Enum::Enum(const std::string &name, const std::map<std::string, uint64_t> &value
     }
     for (auto const &[n, value] : values) {
         auto c = std::make_shared<EnumConst>(Const::const_gen(), value, width, this, n);
-        this->values.emplace(n, c);
+        this->values_.emplace(n, c);
     }
 }
 
 std::shared_ptr<EnumConst> Enum::get_enum(const std::string &enum_name) {
-    if (values.find(enum_name) == values.end())
+    if (values_.find(enum_name) == values_.end())
         throw UserException(::format("Cannot find {0} in {1}", enum_name, name));
-    return values.at(enum_name);
+    auto p = values_.at(enum_name);
+    // may need to reassign the parent if necessary
+    if (!p->enum_parent()) {
+        p->set_enum_def(this);
+    }
+    return p;
+}
+
+std::set<std::string> Enum::enum_names() const {
+    std::set<std::string> names;
+    for (auto const &iter : values_) names.emplace(iter.first);
+    return names;
 }
 
 void Enum::verify_naming_conflict(const std::map<std::string, std::shared_ptr<Enum>> &enums,
@@ -1333,10 +1348,10 @@ void Enum::verify_naming_conflict(const std::map<std::string, std::shared_ptr<En
     std::unordered_map<std::string, Enum *> name_mapping;
     for (auto const &iter : enums) {
         auto const &enum_ = iter.second;
-        auto const &values_ = enum_->values;
-        for (auto const &iter2 : values_) {
-            used_names.emplace(iter2.first);
-            name_mapping.emplace(iter2.first, enum_.get());
+        auto const enum_names = enum_->enum_names();
+        for (auto const &n : enum_names) {
+            used_names.emplace(n);
+            name_mapping.emplace(n, enum_.get());
         }
     }
     // if there is an overlap/intersection
@@ -1353,17 +1368,21 @@ void Enum::verify_naming_conflict(const std::map<std::string, std::shared_ptr<En
 
 void Enum::add_debug_info(const std::string &enum_name,
                           const std::pair<std::string, uint32_t> &debug) {
-    auto var = values.at(enum_name);
+    auto var = values_.at(enum_name);
     var->fn_name_ln.emplace_back(debug);
 }
 
 EnumConst::EnumConst(kratos::Generator *m, int64_t value, uint32_t width, kratos::Enum *parent,
                      std::string name)
-    : Const(m, value, width, false), parent_(parent), name_(std::move(name)) {}
+    : Const(m, value, width, false), parent_(parent->weak_from_this()), name_(std::move(name)) {}
+
+void EnumConst::set_enum_def(Enum *def) { parent_ = def->weak_from_this(); }
 
 std::string EnumConst::to_string() const {
-    if (parent_->values.find(name_) == parent_->values.end()) {
-        throw VarException(::format("{0} is not in enum type {1}", name_, parent_->name), {this});
+    auto const names = parent_.lock()->enum_names();
+    if (names.find(name_) == names.end()) {
+        throw VarException(::format("{0} is not in enum type {1}", name_, parent_.lock()->name),
+                           {this});
     }
     return name_;
 }
@@ -1374,7 +1393,7 @@ std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
         throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
     if (var->type() == VarType::ConstValue) {
         auto p = var->as<EnumConst>();
-        if (p->enum_def()->name != enum_type_->name)
+        if (p->enum_def()->name != enum_type_.lock()->name)
             throw VarException("Cannot assign different enum type", {this, var.get()});
     } else {
         auto p = dynamic_cast<EnumType *>(var.get());
@@ -1384,7 +1403,7 @@ std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
                                         "Please use a cast if it's intended",
                                         var->handle_name()),
                                {var.get()});
-        if (p->enum_type()->name != enum_type_->name) {
+        if (p->enum_type()->name != enum_type_.lock()->name) {
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }
     }
@@ -1394,7 +1413,9 @@ std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
 FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStmtBlock> &func_def,
                                  const std::map<std::string, std::shared_ptr<Var>> &args,
                                  bool has_return)
-    : Var(m, "", 1, 1, false), func_def_(func_def.get()), args_(args) {
+    : Var(m, "", 1, 1, false),
+      func_def_(std::static_pointer_cast<FunctionStmtBlock>(func_def)),
+      args_(args) {
     // check the function call types
     auto ports = func_def->ports();
     for (auto const &[port_name, func_port] : ports) {
@@ -1439,21 +1460,21 @@ void FunctionCallVar::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
         // use left hand size of stmt
         set_generator(stmt->left()->generator());
         // change the function def to the new generator
-        if (!generator()->has_function(func_def_->function_name())) {
-            generator()->add_function(func_def_->as<FunctionStmtBlock>());
+        if (!generator()->has_function(func_def_.lock()->function_name())) {
+            generator()->add_function(func_def_.lock());
             generator()->add_call_var(as<FunctionCallVar>());
         }
     }
 }
 
 std::string FunctionCallVar::to_string() const {
-    std::string result = func_def_->function_name() + " (";
+    std::string result = func_def_.lock()->function_name() + " (";
     std::vector<std::string> names;
     names.reserve(args_.size());
     for (auto const &iter : args_) names.emplace_back(iter.second->to_string());
     // calling ordering
-    if (!func_def_->port_ordering().empty()) {
-        auto ordering = func_def_->port_ordering();
+    if (!func_def_.lock()->port_ordering().empty()) {
+        auto ordering = func_def_.lock()->port_ordering();
         std::unordered_map<std::string, uint32_t> indexing;
         indexing.reserve(ordering.size());
         for (auto const &[var_name, var] : args_) {
@@ -1468,12 +1489,17 @@ std::string FunctionCallVar::to_string() const {
     return result;
 }
 
+InterfaceVar::InterfaceVar(kratos::InterfaceRef *interface, kratos::Generator *m,
+                           const std::string &name, uint32_t var_width,
+                           const std::vector<uint32_t> &size, bool is_signed)
+    : Var(m, name, var_width, size, is_signed), interface_(interface->weak_from_this()) {}
+
 std::string InterfaceVar::to_string() const {
-    std::string parent_name = interface_->name();
+    std::string parent_name = interface_.lock()->name();
     return ::format("{0}.{1}", parent_name, Var::to_string());
 }
 
-std::string InterfaceVar::base_name() const { return interface_->base_name(); }
+std::string InterfaceVar::base_name() const { return interface_.lock()->base_name(); }
 
 std::shared_ptr<Expr> util::mux(Var &cond, Var &left, Var &right) {
     auto expr = std::make_shared<ConditionalExpr>(cond.shared_from_this(), left.shared_from_this(),

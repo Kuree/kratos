@@ -2247,7 +2247,7 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
             auto enum_var = dynamic_cast<EnumType*>(stmt_->target().get());
             if (!enum_var) throw InternalException("Unable to resolve enum type");
             auto enum_def = enum_var->enum_type();
-            targeted_cases = enum_def->values.size();
+            targeted_cases = enum_def->size();
         } else {
             targeted_cases = 1u << stmt_->target()->width();
         }

@@ -914,19 +914,18 @@ void SystemVerilogCodeGen::enum_code_(kratos::Stream& stream_, kratos::Enum* enu
     uint32_t count = 0;
     auto const indent = "  ";
     // sort it by the values
-    std::vector<std::string> names;
-    names.reserve(enum_->values.size());
-    for (auto const& iter : enum_->values) names.emplace_back(iter.first);
+    auto const enum_names = enum_->enum_names();
+    std::vector<std::string> names(enum_names.begin(), enum_names.end());
     std::sort(names.begin(), names.end(), [&](const auto& a, const auto& b) {
-        return enum_->values.at(a)->value() < enum_->values.at(b)->value();
+        return enum_->get_enum(a)->value() < enum_->get_enum(b)->value();
     });
     for (auto const& name : names) {
-        auto& c = enum_->values.at(name);
+        auto c = enum_->get_enum(name);
         if (debug) {
             c->verilog_ln = stream_.line_no();
         }
         stream_ << indent << name << " = " << c->value_string();
-        if (++count != enum_->values.size()) stream_ << ",";
+        if (++count != names.size()) stream_ << ",";
         stream_ << stream_.endl();
     }
     stream_ << "} " << enum_->name << ";" << stream_.endl();

@@ -380,7 +380,7 @@ public:
     static Const &constant(int64_t value, uint32_t width, bool is_signed);
     Const(int64_t value, uint32_t width, bool is_signed);
 
-    static Generator *const_gen() { return const_generator_.get(); }
+    static Generator *const_gen();
 
     // struct is always packed
     bool is_packed() const override { return true; }
@@ -548,13 +548,13 @@ public:
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
     uint64_t child_count() override { return 1; }
-    IRNode *get_child(uint64_t index) override { return index == 0 ? parent_ : nullptr; }
+    IRNode *get_child(uint64_t index) override { return index == 0 ? parent_var() : nullptr; }
 
     std::string to_string() const override;
-    Var *parent_var() { return parent_; }
+    Var *parent_var() { return parent_.lock().get(); }
 
 private:
-    Var *parent_;
+    std::weak_ptr<Var> parent_;
 };
 
 struct ConditionalExpr : public Expr {
@@ -567,7 +567,10 @@ struct ConditionalExpr : public Expr {
     std::string handle_name(bool ignore_top) const override;
     std::string handle_name(Generator *scope) const override;
 
-    Var *condition;
+    Var *condition() const { return condition_.lock().get(); }
+
+private:
+    std::weak_ptr<Var> condition_;
 };
 
 struct EnumConst : public Const {
@@ -577,19 +580,21 @@ public:
     std::string value_string() { return Const::to_string(); }
 
     bool inline is_enum() const override { return true; }
-    const inline Enum *enum_def() const { return parent_; }
+    const inline Enum *enum_def() const { return parent_.lock().get(); }
+    void set_enum_def(Enum *def);
+
+    [[nodiscard]] Enum *enum_parent() const { return parent_.lock().get(); }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
-    Enum *parent_;
+    std::weak_ptr<Enum> parent_;
     std::string name_;
 };
 
 struct Enum : std::enable_shared_from_this<Enum> {
 public:
     Enum(const std::string &name, const std::map<std::string, uint64_t> &values, uint32_t width);
-    std::map<std::string, std::shared_ptr<EnumConst>> values;
     std::string name;
 
     uint32_t inline width() { return width_; }
@@ -605,9 +610,13 @@ public:
     bool local() const { return local_; }
     bool &local() { return local_; }
 
+    [[nodiscard]] uint64_t size() const { return values_.size(); }
+    [[nodiscard]] std::set<std::string> enum_names() const;
+
 private:
     uint32_t width_;
     bool local_ = true;
+    std::map<std::string, std::shared_ptr<EnumConst>> values_;
 };
 
 struct EnumVar : public Var, public EnumType {
@@ -615,9 +624,9 @@ public:
     bool inline is_enum() const override { return true; }
 
     EnumVar(Generator *m, const std::string &name, const std::shared_ptr<Enum> &enum_type)
-        : Var(m, name, enum_type->width(), 1, false), enum_type_(enum_type.get()) {}
+        : Var(m, name, enum_type->width(), 1, false), enum_type_(enum_type->weak_from_this()) {}
 
-    const inline Enum *enum_type() const override { return enum_type_; }
+    const inline Enum *enum_type() const override { return enum_type_.lock().get(); }
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 protected:
@@ -625,7 +634,7 @@ protected:
                                          AssignmentType type) override;
 
 private:
-    Enum *enum_type_;
+    std::weak_ptr<Enum> enum_type_;
 };
 
 struct FunctionCallVar : public Var {
@@ -634,7 +643,7 @@ public:
                     const std::map<std::string, std::shared_ptr<Var>> &args,
                     bool has_return = true);
     bool is_function() const override { return true; }
-    FunctionStmtBlock *func() { return func_def_; }
+    FunctionStmtBlock *func() { return func_def_.lock().get(); }
 
     VarSlice &operator[](std::pair<uint32_t, uint32_t>) override {
         throw std::runtime_error("Slice a function call is not allowed");
@@ -655,15 +664,14 @@ public:
     const std::map<std::string, std::shared_ptr<Var>> &args() const { return args_; }
 
 private:
-    FunctionStmtBlock *func_def_;
+    std::weak_ptr<FunctionStmtBlock> func_def_;
     std::map<std::string, std::shared_ptr<Var>> args_;
 };
 
 struct InterfaceVar : public Var {
 public:
     InterfaceVar(InterfaceRef *interface, Generator *m, const std::string &name, uint32_t var_width,
-                 const std::vector<uint32_t> &size, bool is_signed)
-        : Var(m, name, var_width, size, is_signed), interface_(interface) {}
+                 const std::vector<uint32_t> &size, bool is_signed);
 
     std::string to_string() const override;
 
@@ -672,7 +680,7 @@ public:
     std::string base_name() const override;
 
 private:
-    InterfaceRef *interface_ = nullptr;
+    std::weak_ptr<InterfaceRef> interface_;
 };
 
 // for set and map and stl algorithms
