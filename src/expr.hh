@@ -179,10 +179,10 @@ public:
     virtual std::string handle_name(bool ignore_top) const;
     virtual std::string handle_name(Generator *scope) const;
     // is parametrized
-    bool parametrized() const { return param_ != nullptr; }
+    bool parametrized() const { return param_.lock() != nullptr; }
     void set_width_param(const std::shared_ptr<Param> &param);
     void set_width_param(Param *param);
-    Param *param() const { return param_; }
+    Param *param() const { return param_.lock().get(); }
     void set_explicit_array(bool value) { explicit_array_ = value; }
     bool explicit_array() const { return explicit_array_; }
     virtual std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const { return {}; }
@@ -228,7 +228,7 @@ protected:
     bool explicit_array_ = false;
 
     // parametrization
-    Param *param_ = nullptr;
+    std::weak_ptr<Param> param_;
 
     bool is_packed_ = false;
 

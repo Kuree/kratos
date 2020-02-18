@@ -278,7 +278,7 @@ void Var::set_width_param(kratos::Param *param) {
                            {param});
     }
     var_width_ = param->value();
-    param_ = param;
+    param_ = std::static_pointer_cast<Param>(param->shared_from_this());
     param->add_param_var(this);
 }
 
