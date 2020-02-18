@@ -18,10 +18,10 @@ public:
     std::string instance_name;
     int generator_id = -1;
 
-    static Generator from_verilog(Context *context, const std::string &src_file,
-                                  const std::string &top_name,
-                                  const std::vector<std::string> &lib_files,
-                                  const std::map<std::string, PortType> &port_types);
+    static Generator &from_verilog(Context *context, const std::string &src_file,
+                                   const std::string &top_name,
+                                   const std::vector<std::string> &lib_files,
+                                   const std::map<std::string, PortType> &port_types);
 
     Generator(Context *context, const std::string &name);
 
@@ -235,6 +235,9 @@ public:
 
     // used for to find out which verilog file it generates to
     std::string verilog_fn;
+
+    Generator(const Generator &gen) = delete;
+    Generator() = delete;
 
 private:
     std::vector<std::string> lib_files_;

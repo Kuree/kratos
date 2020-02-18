@@ -16,7 +16,7 @@ using namespace kratos;
 
 TEST(generator, load) {  // NOLINT
     Context c;
-    auto mod = Generator::from_verilog(&c, "module1.sv", "module1", {}, {});
+    auto &mod = Generator::from_verilog(&c, "module1.sv", "module1", {}, {});
     EXPECT_TRUE(mod.get_port("f") != nullptr);
     mod = Generator::from_verilog(&c, "module1.sv", "module2", {}, {});
     EXPECT_TRUE(mod.get_port("f") != nullptr);
