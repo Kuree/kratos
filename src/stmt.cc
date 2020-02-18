@@ -59,7 +59,10 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
 
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right,
                        AssignmentType type)
-    : Stmt(StatementType ::Assign), left_(left.get()), right_(right.get()), assign_type_(type) {
+    : Stmt(StatementType ::Assign),
+      left_(left->weak_from_this()),
+      right_(right->weak_from_this()),
+      assign_type_(type) {
     if (left == nullptr) throw UserException("left hand side is empty");
     if (right == nullptr) throw UserException("right hand side is empty");
     // check for sign
@@ -91,18 +94,18 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
 }
 
 bool AssignStmt::equal(const std::shared_ptr<AssignStmt> &stmt) const {
-    return left_ == stmt->left_ && right_ == stmt->right_;
+    return left() == stmt->left() && right() == stmt->right();
 }
 
 bool AssignStmt::operator==(const AssignStmt &stmt) const {
-    return left_ == stmt.left_ && right_ == stmt.right_;
+    return left() == stmt.left() && right() == stmt.right();
 }
 
 IRNode *AssignStmt::get_child(uint64_t index) {
     if (index == 0)
-        return left_;
+        return left();
     else if (index == 1)
-        return right_;
+        return right();
     else
         return nullptr;
 }
@@ -113,8 +116,8 @@ void AssignStmt::set_parent(kratos::IRNode *parent) {
     // push the stmt into its sources
     if (!has_parent) {
         // if it has parent, it means we've already added the source and sink
-        right_->add_sink(as<AssignStmt>());
-        left_->add_source(as<AssignStmt>());
+        right()->add_sink(as<AssignStmt>());
+        left()->add_source(as<AssignStmt>());
     }
 }
 

@@ -480,10 +480,12 @@ private:
 struct Expr : public Var {
 public:
     ExprOp op;
-    inline Var* left() const { return left_; }
-    inline Var* right() const { return right_; }
-    inline void set_left(Var *var) { left_ = var; }
-    inline void set_right(Var *var) { right_ = var; }
+    inline Var* left() const { return left_.lock().get(); }
+    inline Var* right() const { return right_.lock().get(); }
+    inline void set_left(Var *var) { left_ = var->weak_from_this(); }
+    inline void set_right(Var *var) { right_ = var->weak_from_this(); }
+    inline std::weak_ptr<Var> &left_ptr() { return left_; }
+    inline std::weak_ptr<Var> &right_ptr() { return right_; }
 
     Expr(ExprOp op, Var *left, Var *right);
     std::string to_string() const override;
@@ -491,7 +493,7 @@ public:
 
     // AST
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
-    uint64_t child_count() override { return right_ ? 2 : 1; }
+    uint64_t child_count() override { return right() ? 2 : 1; }
     IRNode *get_child(uint64_t index) override;
 
     std::string handle_name(bool ignore_top) const override;
@@ -504,8 +506,8 @@ protected:
 private:
     void set_parent();
 
-    Var *left_;
-    Var *right_;
+    std::weak_ptr<Var> left_;
+    std::weak_ptr<Var> right_;
 };
 
 struct VarConcat : public Expr {

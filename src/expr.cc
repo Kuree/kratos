@@ -472,13 +472,13 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
     : Var(left->generator(), "", left->var_width(), left->size(), left->is_signed(),
           VarType::Expression),
       op(op),
-      left_(left),
-      right_(right) {
-    if (right_ != nullptr && left_->width() != right_->width())
+      left_(left->weak_from_this()) {
+    if (right != nullptr && left->width() != right->width())
         throw VarException(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
-                     left_->to_string(), left_->width(), right_->to_string(), right_->width()),
-            {left_, right_});
+                     left->to_string(), left->width(), right->to_string(), right->width()),
+            {left, right});
+    if (right) right_ = right->weak_from_this();
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op) || is_reduction_op(op))
         var_width_ = 1;
@@ -497,8 +497,8 @@ Expr::Expr(Var *left, Var *right)
     : Var(left->generator(), "", left->var_width(), left->size(), left->is_signed(),
           VarType::Expression),
       op(ExprOp::Add),
-      left_(left),
-      right_(right) {
+      left_(left->weak_from_this()),
+      right_(right->weak_from_this()) {
     type_ = VarType::Expression;
     size_ = std::vector<uint32_t>(left->size().begin(), left->size().end());
     set_parent();
@@ -963,17 +963,17 @@ IRNode *Expr::get_child(uint64_t index) {
         return nullptr;
 }
 
-void set_var_parent(Var *&var, Var *target, Var *new_var, bool check_target) {
+void set_var_parent(std::weak_ptr<Var> &var, Var *target, Var *new_var, bool check_target) {
     std::shared_ptr<VarSlice> slice;
-    Var *parent_var = var;
+    std::weak_ptr<Var> parent_var = var;
     std::vector<std::shared_ptr<VarSlice>> slices;
-    while (parent_var->type() == VarType::Slice) {
+    while (parent_var.lock()->type() == VarType::Slice) {
         // this is for nested slicing
-        slice = parent_var->as<VarSlice>();
+        slice = parent_var.lock()->as<VarSlice>();
         slices.emplace_back(slice);
-        parent_var = slice->parent_var();
+        parent_var = slice->parent_var()->weak_from_this();
     }
-    if (parent_var != target) {
+    if (parent_var.lock().get() != target) {
         if (check_target)
             throw InternalException("Target not found");
         else
@@ -986,7 +986,7 @@ void set_var_parent(Var *&var, Var *target, Var *new_var, bool check_target) {
     for (auto const &s : slices) {
         new_var_ptr = s->slice_var(new_var_ptr);
     }
-    var = new_var_ptr.get();
+    var = new_var_ptr->weak_from_this();
 }
 
 void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var) {
@@ -1009,10 +1009,10 @@ void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_va
 
     // need to change the parent as well
     if (expr->left()->type() == VarType::Slice) {
-        set_var_parent(expr->left(), target, new_var, false);
+        set_var_parent(expr->left_ptr(), target, new_var, false);
     }
     if (expr->right() && expr->right()->type() == VarType::Slice) {
-        set_var_parent(expr->right(), target, new_var, false);
+        set_var_parent(expr->right_ptr(), target, new_var, false);
     }
     // we did some tricks on the concatenation, need to update them there
     if (expr->op == ExprOp::Concat) {
@@ -1022,7 +1022,7 @@ void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_va
 }
 
 void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
-    auto &right = stmt->right();
+    auto right = stmt->right();
     if (right->type() == VarType::Base || right->type() == VarType::PortIO ||
         right->type() == VarType::ConstValue) {
         if (right == target) {
@@ -1032,14 +1032,14 @@ void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
             throw InternalException("Target not found");
         }
     } else if (right->type() == VarType::Slice) {
-        set_var_parent(right, target, new_var, true);
+        set_var_parent(stmt->right_ptr(), target, new_var, true);
     } else if (right->type() == VarType::Expression) {
         change_var_expr(stmt->right()->as<Expr>(), target, new_var);
     }
 }
 
 void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
-    auto &left = stmt->left();
+    auto left = stmt->left();
     if (left->type() == VarType::Base || left->type() == VarType::PortIO ||
         left->type() == VarType::ConstValue) {
         if (left == target) {
@@ -1049,7 +1049,7 @@ void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
             throw InternalException("Target not found");
         }
     } else if (left->type() == VarType::Slice) {
-        set_var_parent(left, target, new_var, true);
+        set_var_parent(stmt->left_ptr(), target, new_var, true);
     } else if (left->type() == VarType::Expression) {
         change_var_expr(stmt->left()->as<Expr>(), target, new_var);
     }

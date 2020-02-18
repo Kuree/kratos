@@ -79,13 +79,13 @@ public:
     AssignmentType assign_type() const { return assign_type_; }
     void set_assign_type(AssignmentType assign_type) { assign_type_ = assign_type; }
 
-    Var *left() const { return left_; }
-    Var *right() const { return right_; }
-    Var *&left() { return left_; }
-    Var *&right() { return right_; }
+    Var *left() const { return left_.lock().get(); }
+    Var *right() const { return right_.lock().get(); }
+    std::weak_ptr<Var> &left_ptr() { return left_; }
+    std::weak_ptr<Var> &right_ptr() { return right_; }
 
-    void set_left(const std::shared_ptr<Var> &left) { left_ = left.get(); }
-    void set_right(const std::shared_ptr<Var> &right) { right_ = right.get(); }
+    void set_left(const std::shared_ptr<Var> &left) { left_ = left->weak_from_this(); }
+    void set_right(const std::shared_ptr<Var> &right) { right_ = right->weak_from_this(); }
 
     void set_parent(IRNode *parent) override;
 
@@ -102,8 +102,8 @@ public:
     IRNode *get_child(uint64_t index) override;
 
 private:
-    Var *left_ = nullptr;
-    Var *right_ = nullptr;
+    std::weak_ptr<Var> left_;
+    std::weak_ptr<Var> right_;
 
     AssignmentType assign_type_;
 

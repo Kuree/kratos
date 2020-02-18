@@ -16,7 +16,7 @@ TEST(expr, arith) {  // NOLINT
     Var &var1 = mod.var("a", 1);
     Var &var2 = mod.var("b", 1);
     auto &expr = var1 + var2;
-    EXPECT_EQ(expr.left, &var1);
+    EXPECT_EQ(expr.left(), &var1);
 
     expr = p_in + p_out;
     EXPECT_EQ(expr.to_string(), "in + out");
