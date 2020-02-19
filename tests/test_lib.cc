@@ -7,8 +7,11 @@
 
 namespace kratos::asic {
 
+std::shared_ptr<Context> context() { return std::make_shared<Context>(); }
+
 TEST(lib, single_port_sram) {  // NOLINT
-    Context c;
+    auto c_ptr = context();
+    auto &c = *c_ptr;
     auto sram = std::make_shared<SinglePortSRAM>(&c, "sram_stub", 5, 16, true);
     auto gen = sram->generator();
     fix_assignment_type(gen);
@@ -22,7 +25,8 @@ TEST(lib, single_port_sram) {  // NOLINT
 }
 
 TEST(lib, single_port_sram_array) {  // NOLINT
-    Context c;
+    auto c_ptr = context();
+    auto &c = *c_ptr;
     auto sram_bank = std::make_shared<SinglePortSRAM>(&c, "sram_stub", 5, 16, true);
     auto sram = std::make_shared<SinglePortSRAM>(&c, "Memory", 16 * 64, sram_bank);
     auto gen = sram->generator();

@@ -14,6 +14,8 @@
 
 using namespace kratos;
 
+std::shared_ptr<Context> context() { return std::make_shared<Context>(); }
+
 TEST(generator, load) {  // NOLINT
     Context c;
     auto mod = Generator::from_verilog(&c, "module1.sv", "module1", {}, {});
@@ -152,7 +154,8 @@ TEST(pass, verilog_code_gen) {  // NOLINT
 }
 
 TEST(pass, generator_hash) {  // NOLINT
-    Context c;
+    auto c_ptr = context();
+    auto &c = *c_ptr;
     auto &mod1 = c.generator("module1");
     auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
     auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
@@ -410,7 +413,8 @@ TEST(pass, replace) {  // NOLINT
 }
 
 TEST(pass, decouple_generator_ports) {  // NOLINT
-    Context c;
+    auto c_ptr = context();
+    auto &c = *c_ptr;
     auto &mod1 = c.generator("module1");
     auto &in1 = mod1.port(PortDirection::In, "in", 1);
     auto &out1 = mod1.port(PortDirection::Out, "out", 1);
@@ -446,7 +450,8 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
 }
 
 TEST(pass, module_hash) {  // NOLINT
-    Context c;
+    auto c_ptr = context();
+    auto &c = *c_ptr;
     auto &mod1 = c.generator("module1");
     auto &in1 = mod1.port(PortDirection::In, "in", 1);
     auto &out1 = mod1.port(PortDirection::Out, "out", 1);
@@ -838,7 +843,8 @@ TEST(generator, latch_rst) {  // NOLINT
 }
 
 TEST(generator, decouple2) {  // NOLINT
-    Context c;
+    auto c_ptr = context();
+    auto &c = *c_ptr;
     auto &mod1 = c.generator("parent");
     auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
     auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
@@ -1040,7 +1046,8 @@ TEST(pass, merge_if_2) {  // NOLINT
 }
 
 TEST(debug, mock_hierarchy) {  // NOLINT
-    Context c;
+    auto c_ptr = context();
+    auto &c = *c_ptr;
     auto &mod = c.generator("mod");
     mod.instance_name = "mod1.mod2.mod3";
     mock_hierarchy(&mod, "dut");

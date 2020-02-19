@@ -9,7 +9,7 @@ namespace py = pybind11;
 
 void init_context(py::module &m) {
     using namespace kratos;
-    auto context = py::class_<Context>(m, "Context");
+    auto context = py::class_<Context, std::shared_ptr<Context>>(m, "Context");
     context.def(py::init())
         .def("generator", &Context::generator, py::return_value_policy::reference)
         .def("empty_generator", &Context::empty_generator)

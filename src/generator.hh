@@ -154,10 +154,10 @@ public:
 
     std::string get_unique_variable_name(const std::string &prefix, const std::string &var_name);
 
-    Context *context() const { return context_; }
+    Context *context() const { return context_.lock().get(); }
 
-    IRNode *parent() override { return parent_generator_; }
-    const Generator *parent_generator() const { return parent_generator_; }
+    IRNode *parent() override { return parent_generator_.lock().get(); }
+    const Generator *parent_generator() const { return parent_generator_.lock().get(); }
 
     bool is_stub() const { return is_stub_; }
     void set_is_stub(bool value) { is_stub_ = value; }
@@ -222,8 +222,8 @@ public:
     std::shared_ptr<StmtBlock> get_named_block(const std::string &block_name) const;
     void add_named_block(const std::string &block_name, const std::shared_ptr<StmtBlock> &block);
     std::unordered_set<std::string> named_blocks_labels() const;
-    Generator *def_instance() const { return def_instance_; }
-    void set_def_instance(Generator *def) { def_instance_ = def; }
+    Generator *def_instance() const { return def_instance_.lock().get(); }
+    void set_def_instance(Generator *def) { def_instance_ = def->weak_from_this(); }
     std::string handle_name() const;
     std::string handle_name(bool ignore_top) const;
     std::shared_ptr<Var> get_auxiliary_var(uint32_t width, bool signed_ = false);
@@ -241,7 +241,7 @@ public:
 
 private:
     std::vector<std::string> lib_files_;
-    Context *context_;
+    std::weak_ptr<Context> context_;
 
     std::map<std::string, std::shared_ptr<Var>> vars_;
     std::set<std::string> ports_;
@@ -256,7 +256,7 @@ private:
     std::unordered_map<std::string, std::pair<std::string, uint32_t>> children_debug_;
     std::unordered_map<std::string, std::string> children_comments_;
 
-    Generator *parent_generator_ = nullptr;
+    std::weak_ptr<Generator> parent_generator_;
 
     bool is_stub_ = false;
     bool is_external_ = false;
@@ -281,7 +281,7 @@ private:
     // function_calls
     std::set<std::shared_ptr<FunctionCallVar>> calls_;
     // cloned ref
-    Generator *def_instance_ = nullptr;
+    std::weak_ptr<Generator> def_instance_;
     // auxiliary var
     std::unordered_map<uint32_t, std::shared_ptr<Var>> auxiliary_vars_;
     // interfaces

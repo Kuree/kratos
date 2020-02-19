@@ -21,10 +21,9 @@ using std::vector;
 
 namespace kratos {
 
-std::shared_ptr<Generator> Generator::from_verilog(Context *context, const std::string &src_file,
-                                   const std::string &top_name,
-                                   const std::vector<std::string> &lib_files,
-                                   const std::map<std::string, PortType> &port_types) {
+std::shared_ptr<Generator> Generator::from_verilog(
+    Context *context, const std::string &src_file, const std::string &top_name,
+    const std::vector<std::string> &lib_files, const std::map<std::string, PortType> &port_types) {
     if (!fs::exists(src_file)) throw UserException(::format("{0} does not exist", src_file));
 
     auto &mod = context->generator(top_name);
@@ -65,10 +64,14 @@ std::shared_ptr<Generator> Generator::from_verilog(Context *context, const std::
 }
 
 Generator::Generator(kratos::Context *context, const std::string &name)
-    : IRNode(IRNodeKind::GeneratorKind), name(name), instance_name(name), context_(context) {
+    : IRNode(IRNodeKind::GeneratorKind),
+      name(name),
+      instance_name(name) {
     if (!is_valid_variable_name(name)) {
         throw UserException(::format("{0} is a SystemVerilog keyword", name));
     }
+    if (context)
+        context_ = context->weak_from_this();
 }
 
 Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size) {
@@ -297,7 +300,7 @@ void Generator::add_child_generator(const std::string &instance_name_,
     child->instance_name = instance_name_;
     if (children_.find(child->instance_name) == children_.end()) {
         children_.emplace(child->instance_name, child);
-        child->parent_generator_ = this;
+        child->parent_generator_ = weak_from_this();
         children_names_.emplace_back(child->instance_name);
     } else {
         throw GeneratorException(
@@ -351,7 +354,7 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
             }
         }
         // set parent to null
-        child->parent_generator_ = nullptr;
+        child->parent_generator_ = {};
     }
 }
 
@@ -742,7 +745,7 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
 void Generator::wire(Var &left, Var &right) { add_stmt(left.assign(right)); }
 
 std::shared_ptr<Generator> Generator::clone() {
-    auto generator = std::make_shared<Generator>(context_, name);
+    auto generator = std::make_shared<Generator>(context_.lock().get(), name);
     auto port_names = get_port_names();
     for (auto const &port_name : port_names) {
         auto port = get_port(port_name);
@@ -760,7 +763,7 @@ std::shared_ptr<Generator> Generator::clone() {
     // we won't bother checking stuff
     generator->set_external(true);
     generator->is_cloned_ = true;
-    generator->def_instance_ = this;
+    generator->def_instance_ = weak_from_this();
     return generator;
 }
 
@@ -974,19 +977,19 @@ std::string Generator::handle_name() const { return handle_name(false); }
 std::string Generator::handle_name(bool ignore_top) const {
     // this is used to identify the generator from the top level
     std::string result = instance_name;
-    auto parent = parent_generator_;
+    auto parent = parent_generator_.lock().get();
     if (ignore_top) {
         std::vector<std::string> values;
         values.emplace_back(instance_name);
         while (parent != nullptr) {
             values.emplace(values.begin(), parent->instance_name);
-            parent = parent->parent_generator_;
+            parent = parent->parent_generator_.lock().get();
         }
         result = join(values.begin() + 1, values.end(), ".");
     } else {
         while (parent != nullptr) {
             result = ::format("{0}.{1}", parent->instance_name, result);
-            parent = parent->parent_generator_;
+            parent = parent->parent_generator_.lock().get();
         }
     }
     return result;
