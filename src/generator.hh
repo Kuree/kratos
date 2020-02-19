@@ -18,10 +18,10 @@ public:
     std::string instance_name;
     int generator_id = -1;
 
-    static std::shared_ptr<Generator> from_verilog(
-        Context *context, const std::string &src_file, const std::string &top_name,
-        const std::vector<std::string> &lib_files,
-        const std::map<std::string, PortType> &port_types);
+    static Generator from_verilog(Context *context, const std::string &src_file,
+                                  const std::string &top_name,
+                                  const std::vector<std::string> &lib_files,
+                                  const std::map<std::string, PortType> &port_types);
 
     Generator(Context *context, const std::string &name);
 
@@ -154,10 +154,10 @@ public:
 
     std::string get_unique_variable_name(const std::string &prefix, const std::string &var_name);
 
-    Context *context() const { return context_.lock().get(); }
+    Context *context() const { return context_; }
 
-    IRNode *parent() override { return parent_generator_.lock().get(); }
-    const Generator *parent_generator() const { return parent_generator_.lock().get(); }
+    IRNode *parent() override { return parent_generator_; }
+    const Generator *parent_generator() const { return parent_generator_; }
 
     bool is_stub() const { return is_stub_; }
     void set_is_stub(bool value) { is_stub_ = value; }
@@ -222,8 +222,8 @@ public:
     std::shared_ptr<StmtBlock> get_named_block(const std::string &block_name) const;
     void add_named_block(const std::string &block_name, const std::shared_ptr<StmtBlock> &block);
     std::unordered_set<std::string> named_blocks_labels() const;
-    Generator *def_instance() const { return def_instance_.lock().get(); }
-    void set_def_instance(Generator *def) { def_instance_ = def->weak_from_this(); }
+    Generator *def_instance() const { return def_instance_; }
+    void set_def_instance(Generator *def) { def_instance_ = def; }
     std::string handle_name() const;
     std::string handle_name(bool ignore_top) const;
     std::shared_ptr<Var> get_auxiliary_var(uint32_t width, bool signed_ = false);
@@ -236,12 +236,9 @@ public:
     // used for to find out which verilog file it generates to
     std::string verilog_fn;
 
-    Generator(const Generator &gen) = delete;
-    Generator() = delete;
-
 private:
     std::vector<std::string> lib_files_;
-    std::weak_ptr<Context> context_;
+    Context *context_;
 
     std::map<std::string, std::shared_ptr<Var>> vars_;
     std::set<std::string> ports_;
@@ -256,7 +253,7 @@ private:
     std::unordered_map<std::string, std::pair<std::string, uint32_t>> children_debug_;
     std::unordered_map<std::string, std::string> children_comments_;
 
-    std::weak_ptr<Generator> parent_generator_;
+    Generator *parent_generator_ = nullptr;
 
     bool is_stub_ = false;
     bool is_external_ = false;
@@ -281,7 +278,7 @@ private:
     // function_calls
     std::set<std::shared_ptr<FunctionCallVar>> calls_;
     // cloned ref
-    std::weak_ptr<Generator> def_instance_;
+    Generator *def_instance_ = nullptr;
     // auxiliary var
     std::unordered_map<uint32_t, std::shared_ptr<Var>> auxiliary_vars_;
     // interfaces

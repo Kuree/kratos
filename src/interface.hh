@@ -108,7 +108,7 @@ private:
     std::set<std::string> outputs_;
 };
 
-struct InterfaceRef: public std::enable_shared_from_this<InterfaceRef> {
+struct InterfaceRef {
 public:
     explicit InterfaceRef(std::shared_ptr<IDefinition> instance, Generator *gen, std::string name)
         : definition_(std::move(instance)), gen_(gen), name_(std::move(name)) {}

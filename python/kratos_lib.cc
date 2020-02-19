@@ -13,14 +13,13 @@ void init_lib(py::module &m) {
     auto lib_m = m.def_submodule("lib");
 
     // define sram
-    auto sram = py::class_<SRAM, std::shared_ptr<SRAM>>(lib_m, "SRAM");
+    auto sram = py::class_<SRAM, std::shared_ptr<SRAM>, Generator>(lib_m, "SRAM");
     sram.def_property_readonly("num_ports", &SRAM::num_ports)
         .def_property_readonly("clock", &SRAM::clock)
         .def_property_readonly("addr_width", &SRAM::addr_width)
         .def_property_readonly("data_width", &SRAM::data_width)
         .def_property("clock_name", &SRAM::clock_name, &SRAM::set_clock_name)
-        .def("capacity", &SRAM::capacity)
-        .def("generator", &SRAM::generator, py::return_value_policy::reference);
+        .def("capacity", &SRAM::capacity);
 
     // define single port sram
     auto single_sram =

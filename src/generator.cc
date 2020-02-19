@@ -21,12 +21,13 @@ using std::vector;
 
 namespace kratos {
 
-std::shared_ptr<Generator> Generator::from_verilog(
-    Context *context, const std::string &src_file, const std::string &top_name,
-    const std::vector<std::string> &lib_files, const std::map<std::string, PortType> &port_types) {
+Generator Generator::from_verilog(Context *context, const std::string &src_file,
+                                  const std::string &top_name,
+                                  const std::vector<std::string> &lib_files,
+                                  const std::map<std::string, PortType> &port_types) {
     if (!fs::exists(src_file)) throw UserException(::format("{0} does not exist", src_file));
 
-    auto &mod = context->generator(top_name);
+    Generator mod(context, top_name);
     // the src file will be treated a a lib file as well
     mod.lib_files_.reserve(1 + lib_files.size());
     mod.lib_files_.emplace_back(src_file);
@@ -60,18 +61,14 @@ std::shared_ptr<Generator> Generator::from_verilog(
         port_p->set_port_type(port_type);
     }
 
-    return mod.shared_from_this();
+    return mod;
 }
 
 Generator::Generator(kratos::Context *context, const std::string &name)
-    : IRNode(IRNodeKind::GeneratorKind),
-      name(name),
-      instance_name(name) {
+    : IRNode(IRNodeKind::GeneratorKind), name(name), instance_name(name), context_(context) {
     if (!is_valid_variable_name(name)) {
         throw UserException(::format("{0} is a SystemVerilog keyword", name));
     }
-    if (context)
-        context_ = context->weak_from_this();
 }
 
 Var &Generator::var(const std::string &var_name, uint32_t width, uint32_t size) {
@@ -300,7 +297,7 @@ void Generator::add_child_generator(const std::string &instance_name_,
     child->instance_name = instance_name_;
     if (children_.find(child->instance_name) == children_.end()) {
         children_.emplace(child->instance_name, child);
-        child->parent_generator_ = weak_from_this();
+        child->parent_generator_ = this;
         children_names_.emplace_back(child->instance_name);
     } else {
         throw GeneratorException(
@@ -354,7 +351,7 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
             }
         }
         // set parent to null
-        child->parent_generator_ = {};
+        child->parent_generator_ = nullptr;
     }
 }
 
@@ -636,12 +633,12 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
     Var *root1 = var1.get();
     while (root1->type() == VarType::Slice) {
         auto var = dynamic_cast<VarSlice *>(root1);
-        root1 = var->parent_var();
+        root1 = var->parent_var;
     }
     Var *root2 = var2.get();
     while (root2->type() == VarType::Slice) {
         auto var = dynamic_cast<VarSlice *>(root2);
-        root2 = var->parent_var();
+        root2 = var->parent_var;
     }
     if (root1->type() != VarType::PortIO && root2->type() != VarType::PortIO) {
         // there is nothing we can do
@@ -745,7 +742,7 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
 void Generator::wire(Var &left, Var &right) { add_stmt(left.assign(right)); }
 
 std::shared_ptr<Generator> Generator::clone() {
-    auto generator = std::make_shared<Generator>(context_.lock().get(), name);
+    auto generator = std::make_shared<Generator>(context_, name);
     auto port_names = get_port_names();
     for (auto const &port_name : port_names) {
         auto port = get_port(port_name);
@@ -763,7 +760,7 @@ std::shared_ptr<Generator> Generator::clone() {
     // we won't bother checking stuff
     generator->set_external(true);
     generator->is_cloned_ = true;
-    generator->def_instance_ = weak_from_this();
+    generator->def_instance_ = this;
     return generator;
 }
 
@@ -977,19 +974,19 @@ std::string Generator::handle_name() const { return handle_name(false); }
 std::string Generator::handle_name(bool ignore_top) const {
     // this is used to identify the generator from the top level
     std::string result = instance_name;
-    auto parent = parent_generator_.lock().get();
+    auto parent = parent_generator_;
     if (ignore_top) {
         std::vector<std::string> values;
         values.emplace_back(instance_name);
         while (parent != nullptr) {
             values.emplace(values.begin(), parent->instance_name);
-            parent = parent->parent_generator_.lock().get();
+            parent = parent->parent_generator_;
         }
         result = join(values.begin() + 1, values.end(), ".");
     } else {
         while (parent != nullptr) {
             result = ::format("{0}.{1}", parent->instance_name, result);
-            parent = parent->parent_generator_.lock().get();
+            parent = parent->parent_generator_;
         }
     }
     return result;

@@ -7,36 +7,30 @@
 
 namespace kratos::asic {
 
-std::shared_ptr<Context> context() { return std::make_shared<Context>(); }
-
 TEST(lib, single_port_sram) {  // NOLINT
-    auto c_ptr = context();
-    auto &c = *c_ptr;
+    Context c;
     auto sram = std::make_shared<SinglePortSRAM>(&c, "sram_stub", 5, 16, true);
-    auto gen = sram->generator();
-    fix_assignment_type(gen);
-    verify_assignments(gen);
-    verify_generator_connectivity(gen);
-    hash_generators_parallel(gen);
-    auto result = generate_verilog(gen);
+    fix_assignment_type(sram.get());
+    verify_assignments(sram.get());
+    verify_generator_connectivity(sram.get());
+    hash_generators_parallel(sram.get());
+    auto result = generate_verilog(sram.get());
     EXPECT_EQ(result.size(), 1);
     EXPECT_TRUE(result.find("sram_stub") != result.end());
     EXPECT_TRUE(is_valid_verilog(result));
 }
 
 TEST(lib, single_port_sram_array) {  // NOLINT
-    auto c_ptr = context();
-    auto &c = *c_ptr;
+    Context c;
     auto sram_bank = std::make_shared<SinglePortSRAM>(&c, "sram_stub", 5, 16, true);
     auto sram = std::make_shared<SinglePortSRAM>(&c, "Memory", 16 * 64, sram_bank);
-    auto gen = sram->generator();
-    fix_assignment_type(gen);
-    verify_assignments(gen);
-    verify_generator_connectivity(gen);
-    create_module_instantiation(gen);
-    hash_generators_parallel(gen);
-    uniquify_generators(gen);
-    auto result = generate_verilog(gen);
+    fix_assignment_type(sram.get());
+    verify_assignments(sram.get());
+    verify_generator_connectivity(sram.get());
+    create_module_instantiation(sram.get());
+    hash_generators_parallel(sram.get());
+    uniquify_generators(sram.get());
+    auto result = generate_verilog(sram.get());
     EXPECT_EQ(result.size(), 2);
     EXPECT_TRUE(is_valid_verilog(result));
 }

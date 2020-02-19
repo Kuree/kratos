@@ -1,5 +1,4 @@
 #include "context.hh"
-
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
@@ -16,9 +15,7 @@ Generator &Context::generator(const std::string &name) {
     return *p;
 }
 
-std::shared_ptr<Generator> Context::empty_generator() {
-    return std::make_shared<Generator>(this, "");
-}
+Generator Context::empty_generator() { return Generator(this, ""); }
 
 void Context::add(Generator *generator) {
     modules_[generator->name].emplace(generator->shared_from_this());
@@ -107,7 +104,9 @@ Enum &Context::enum_(const std::string &enum_name,
     return *p;
 }
 
-void Context::reset_enum() { enum_defs_.clear(); }
+void Context::reset_enum() {
+    enum_defs_.clear();
+}
 
 void Context::reset_id() {
     max_stmt_id_ = 0;

@@ -210,7 +210,7 @@ VarConcat &Var::concat(Var &var) {
     // vars
     for (auto const &exist_var : concat_vars_) {
         // reuse the existing variables
-        if (exist_var->vars().size() == 2 && exist_var->vars().back().lock().get() == ptr) {
+        if (exist_var->vars().size() == 2 && exist_var->vars().back() == ptr) {
             return *exist_var;
         }
     }
@@ -278,7 +278,7 @@ void Var::set_width_param(kratos::Param *param) {
                            {param});
     }
     var_width_ = param->value();
-    param_ = std::static_pointer_cast<Param>(param->shared_from_this());
+    param_ = param;
     param->add_param_var(this);
 }
 
@@ -287,7 +287,7 @@ VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 uint32_t num_size_decrease(Var *var) {
     if (var->type() == VarType::Slice) {
         auto slice = reinterpret_cast<VarSlice *>(var);
-        auto parent = slice->parent_var();
+        auto parent = slice->parent_var;
         auto diff = parent->size().size() - slice->size().size();
         if (parent->type() == VarType::Slice) {
             return diff + num_size_decrease(reinterpret_cast<VarSlice *>(parent));
@@ -302,9 +302,9 @@ uint32_t num_size_decrease(Var *var) {
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     : Var(parent->generator(), "", parent->var_width(), 1, parent->is_signed(), VarType::Slice),
+      parent_var(parent),
       low(low),
       high(high),
-      parent_var_(parent->weak_from_this()),
       op_({high, low}) {
     // compute the width
     // notice that if the user has explicit set it to be an array
@@ -313,7 +313,7 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
     auto diff = num_size_decrease(parent);
     auto diff_parent = true;
     if (low == 0 && high == 0 && parent->type() == VarType::Slice) {
-        auto p_d = num_size_decrease(reinterpret_cast<VarSlice *>(parent)->parent_var());
+        auto p_d = num_size_decrease(reinterpret_cast<VarSlice *>(parent)->parent_var);
         diff_parent = diff != p_d;
     }
     bool dropped_dim_size1 = low == 0 && high == 0 &&
@@ -391,7 +391,6 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
 }
 
 std::string VarSlice::to_string() const {
-    auto parent_var = parent_var_.lock();
     auto const &parent_name = parent_var->to_string();
     if (high == low) {
         if (high == 0 && parent_var->width() == 1) {
@@ -404,21 +403,21 @@ std::string VarSlice::to_string() const {
 }
 
 const Var *VarSlice::get_var_root_parent() const {
-    Var *parent = parent_var_.lock().get();
+    Var *parent = parent_var;
     while (parent->type() == VarType::Slice) {
-        parent = parent->as<VarSlice>()->parent_var();
+        parent = parent->as<VarSlice>()->parent_var;
     }
     return parent;
 }
 
 std::vector<std::pair<uint32_t, uint32_t>> VarSlice::get_slice_index() const {
-    std::vector<std::pair<uint32_t, uint32_t>> result = parent_var()->get_slice_index();
+    std::vector<std::pair<uint32_t, uint32_t>> result = parent_var->get_slice_index();
     result.emplace_back(std::make_pair(high, low));
     return result;
 }
 
 VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
-    : VarSlice(parent, 0, 0), sliced_var_(slice->weak_from_this()) {
+    : VarSlice(parent, 0, 0), sliced_var_(slice) {
     // check the size or width
     // we need to re-compute var_high, var_low, width, and other stuff by ourselves here
     // there is an issue about the var_high and var_low; the problem will only show up during
@@ -444,11 +443,11 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         // we need to compute the clog2 here
         uint32_t required_width =
             std::max<uint32_t>(1, std::ceil(std::log2(parent->size().front())));
-        if (required_width != slice->width()) {
+        if (required_width != sliced_var_->width()) {
             // error message copied from verilator
             throw VarException(
                 ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
-                         parent->size().front() - 1, required_width, slice->width()),
+                         parent->size().front() - 1, required_width, sliced_var_->width()),
                 {parent, slice});
         }
     }
@@ -456,29 +455,29 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
 
 void VarVarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     VarSlice::add_sink(stmt);
-    sliced_var_.lock()->add_sink(stmt);
+    sliced_var_->add_sink(stmt);
 }
 
 void VarVarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
     VarSlice::add_source(stmt);
-    sliced_var_.lock()->add_sink(stmt);
+    sliced_var_->add_sink(stmt);
 }
 
 std::string VarVarSlice::to_string() const {
-    return ::format("{0}[{1}]", parent_var()->to_string(), sliced_var_.lock()->to_string());
+    return ::format("{0}[{1}]", parent_var->to_string(), sliced_var_->to_string());
 }
 
 Expr::Expr(ExprOp op, Var *left, Var *right)
     : Var(left->generator(), "", left->var_width(), left->size(), left->is_signed(),
           VarType::Expression),
       op(op),
-      left_(left->weak_from_this()) {
+      left(left),
+      right(right) {
     if (right != nullptr && left->width() != right->width())
         throw VarException(
             ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
                      left->to_string(), left->width(), right->to_string(), right->width()),
             {left, right});
-    if (right) right_ = right->weak_from_this();
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op) || is_reduction_op(op))
         var_width_ = 1;
@@ -497,8 +496,8 @@ Expr::Expr(Var *left, Var *right)
     : Var(left->generator(), "", left->var_width(), left->size(), left->is_signed(),
           VarType::Expression),
       op(ExprOp::Add),
-      left_(left->weak_from_this()),
-      right_(right->weak_from_this()) {
+      left(left),
+      right(right) {
     type_ = VarType::Expression;
     size_ = std::vector<uint32_t>(left->size().begin(), left->size().end());
     set_parent();
@@ -507,26 +506,26 @@ Expr::Expr(Var *left, Var *right)
 void Expr::set_parent() {
     // compute the right parent for the expr
     // it can only go up
-    if (!right()) {
-        set_generator(left()->generator());
+    if (!right) {
+        generator_ = left->generator();
     } else {
-        auto left_gen = left()->generator();
-        auto right_gen = right()->generator();
+        auto left_gen = left->generator();
+        auto right_gen = right->generator();
         if (left_gen == Const::const_gen()) {
-            set_generator(right_gen);
+            generator_ = right_gen;
         } else if (right_gen == Const::const_gen()) {
-            set_generator(left_gen);
+            generator_ = left_gen;
         } else if (left_gen == right_gen) {
-            set_generator(left()->generator());
+            generator_ = left->generator();
         } else {
             // choose the higher/lower one based on the var type
-            if (left_gen == right_gen->parent() && right()->type() == VarType::PortIO) {
-                set_generator(left_gen);
+            if (left_gen == right_gen->parent() && right->type() == VarType::PortIO) {
+                generator_ = left_gen;
             } else if (left_gen->parent() == right_gen->parent() &&
-                       left()->type() == VarType::PortIO && right()->type() == VarType::PortIO) {
-                set_generator(dynamic_cast<Generator *>(left_gen->parent()));
+                       left->type() == VarType::PortIO && right->type() == VarType::PortIO) {
+                generator_ = dynamic_cast<Generator *>(left_gen->parent());
             } else {
-                set_generator(right_gen);
+                generator_ = right_gen;
             }
         }
     }
@@ -551,34 +550,18 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
       var_width_(var_width),
       size_(std::move(size)),
       is_signed_(is_signed),
-      type_(type) {
+      type_(type),
+      generator_(m) {
     // only constant allows to be null generator
     if (m == nullptr && type != VarType::ConstValue)
         throw UserException(::format("module is null for {0}", name));
     if (!is_valid_variable_name(name))
         throw UserException(::format("{0} is a SystemVerilog keyword", name));
     if (width() == 0) throw UserException(::format("variable {0} cannot have size 0", name));
-    if (m) set_generator(m);
 }
-
-Generator *Var::generator() const {
-    auto gen = generator_.lock();
-    // this is unlikely to happen, therefore exclude it from coverage
-    // LCOV_EXCL_START
-    if (!gen) {
-        throw UserException(
-            "Parent's scope is gone yet the variable is still valid. "
-            "Make sure that the memory allocation is correct, e.g. the context is"
-            "still valid");
-    }
-    // LCOV_EXCL_STOP
-    return gen.get();
-}
-
-void Var::set_generator(Generator *gen) { generator_ = gen->weak_from_this(); }
 
 IRNode *Var::parent() { return generator(); }
-IRNode *VarSlice::parent() { return parent_var(); }
+IRNode *VarSlice::parent() { return parent_var; }
 
 std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var) {
     return assign(var, AssignmentType::Undefined);
@@ -645,12 +628,7 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
 Const::Const(int64_t value, uint32_t width, bool is_signed)
     : Const(nullptr, value, width, is_signed) {
     if (!const_generator_) const_generator_ = std::make_shared<Generator>(nullptr, "");
-    set_generator(const_generator_.get());
-}
-
-Generator *Const::const_gen() {
-    if (!const_generator_) const_generator_ = std::make_shared<Generator>(nullptr, "");
-    return const_generator_.get();
+    generator_ = const_generator_.get();
 }
 
 Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
@@ -668,7 +646,7 @@ std::shared_ptr<Generator> Const::const_generator_ = nullptr;
 
 VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     : Var(parent->generator(), "", parent->width(), parent->size(), false, parent->type()),
-      parent_var_(parent->weak_from_this()),
+      parent_var_(parent),
       cast_type_(cast_type) {
     type_ = VarType::BaseCasted;
     if (cast_type_ == VarCastType::Signed) {
@@ -685,36 +663,30 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     }
 }
 
-void VarCasted::set_enum_type(Enum *enum_) { enum_type_ = enum_->weak_from_this(); }
-
 std::shared_ptr<AssignStmt> VarCasted::assign__(const std::shared_ptr<Var> &, AssignmentType) {
     throw VarException(::format("{0} is not allowed to be a sink", to_string()), {this});
 }
 
 std::string VarCasted::to_string() const {
-    auto parent_var = parent_var_.lock();
     if (cast_type_ == VarCastType::Signed) {
-        return ::format("signed'({0})", parent_var->to_string());
+        return ::format("signed'({0})", parent_var_->to_string());
     } else if (cast_type_ == VarCastType::Unsigned) {
-        return ::format("unsigned'({0})", parent_var->to_string());
+        return ::format("unsigned'({0})", parent_var_->to_string());
     } else if (cast_type_ == VarCastType::Enum) {
-        auto enum_ = enum_type_.lock();
-        if (!enum_) {
+        if (!enum_type_) {
             throw UserException(
                 ::format("Variable {0} is casted as a enum without "
                          "enum type information",
-                         parent_var->to_string()));
+                         parent_var_->to_string()));
         }
-        auto const &enum_name = enum_->name;
-        return ::format("{0}'({1})", enum_name, parent_var->to_string());
+        auto const &enum_name = enum_type_->name;
+        return ::format("{0}'({1})", enum_name, parent_var_->to_string());
     } else {
-        return parent_var->to_string();
+        return parent_var_->to_string();
     }
 }
 
-void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    parent_var_.lock()->add_sink(stmt);
-}
+void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }
 
 std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
     if (cast_type == VarCastType::Signed && is_signed_) {
@@ -729,7 +701,7 @@ std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
 
 void Const::set_value(int64_t new_value) {
     try {
-        Const c(generator(), new_value, width(), is_signed_);
+        Const c(generator_, new_value, width(), is_signed_);
         value_ = new_value;
     } catch (::runtime_error &) {
         std::cerr << ::format("Unable to set value from {0} to {1}", value_, new_value)
@@ -751,7 +723,7 @@ void Const::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     auto parent = generator->parent();
     if (parent && parent->ir_node_kind() == GeneratorKind) {
         auto gen = dynamic_cast<Generator *>(parent);
-        set_generator(gen);
+        this->generator_ = gen;
     }
 }
 
@@ -773,36 +745,35 @@ void Param::set_value(int64_t new_value) {
 
     // change the width of parametrized variables
     for (auto &var : param_vars_) {
-        var.lock()->var_width() = new_value;
+        var->var_width() = new_value;
     }
     // change the entire chain
     for (auto &param : param_params_) {
-        param.lock()->set_value(new_value);
+        param->set_value(new_value);
     }
 }
 
 void Param::set_value(const std::shared_ptr<Param> &param) {
-    std::weak_ptr<Param> p = std::static_pointer_cast<Param>(shared_from_this());
-    param->param_params_.emplace(p);
-    parent_param_ = std::static_pointer_cast<Param>(param);
+    param->param_params_.emplace(this);
+    parent_param_ = param.get();
 }
 
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
     for (auto &var : vars_) {
-        var.lock()->add_source(stmt);
+        var->add_source(stmt);
     }
 }
 
 void VarConcat::add_sink(const std::shared_ptr<kratos::AssignStmt> &stmt) {
     for (auto &var : vars_) {
-        var.lock()->add_sink(stmt);
+        var->add_sink(stmt);
     }
 }
 
 std::string VarConcat::to_string() const {
     std::vector<std::string> var_names;
     for (const auto &ptr : vars_) {
-        var_names.emplace_back(ptr.lock()->to_string());
+        var_names.emplace_back(ptr->to_string());
     }
     auto content = join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
@@ -811,7 +782,7 @@ std::string VarConcat::to_string() const {
 std::string VarConcat::handle_name(bool ignore_top) const {
     std::vector<std::string> var_names;
     for (const auto &ptr : vars_) {
-        var_names.emplace_back(ptr.lock()->handle_name(ignore_top));
+        var_names.emplace_back(ptr->handle_name(ignore_top));
     }
     auto content = join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
@@ -820,7 +791,7 @@ std::string VarConcat::handle_name(bool ignore_top) const {
 std::string VarConcat::handle_name(kratos::Generator *scope) const {
     std::vector<std::string> var_names;
     for (const auto &ptr : vars_) {
-        var_names.emplace_back(ptr.lock()->handle_name(scope));
+        var_names.emplace_back(ptr->handle_name(scope));
     }
     auto content = join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
@@ -832,8 +803,8 @@ VarConcat::VarConcat(const std::shared_ptr<VarConcat> &first, const std::shared_
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
             {first.get(), second.get()});
-    vars_ = std::vector<std::weak_ptr<Var>>(first->vars_.begin(), first->vars_.end());
-    vars_.emplace_back(second->weak_from_this());
+    vars_ = std::vector<Var *>(first->vars_.begin(), first->vars_.end());
+    vars_.emplace_back(second.get());
     var_width_ = first->width() + second->width();
     op = ExprOp::Concat;
 }
@@ -844,7 +815,7 @@ VarConcat::VarConcat(const std::shared_ptr<Var> &first, const std::shared_ptr<Va
         throw VarException(
             ::format("{0} is signed but {1} is not", first->to_string(), second->to_string()),
             {first.get(), second.get()});
-    vars_ = {first->weak_from_this(), second->weak_from_this()};
+    vars_ = {first.get(), second.get()};
     var_width_ = first->width() + second->width();
     op = ExprOp::Concat;
 }
@@ -852,48 +823,49 @@ VarConcat::VarConcat(const std::shared_ptr<Var> &first, const std::shared_ptr<Va
 VarConcat &VarConcat::concat(kratos::Var &var) {
     auto result = std::make_shared<VarConcat>(as<VarConcat>(), var.shared_from_this());
     // add it to the first one
-    vars_[0].lock()->add_concat_var(result);
+    vars_[0]->add_concat_var(result);
     return *result;
 }
 
 void VarConcat::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
-    auto pos = std::find(vars_.begin(), vars_.end(), target->weak_from_this());
+    auto pos = std::find(vars_.begin(), vars_.end(), target.get());
     if (pos != vars_.end()) {
-        *pos = item->weak_from_this();
+        *pos = item.get();
     }
 }
 
 VarExtend::VarExtend(const std::shared_ptr<Var> &var, uint32_t width)
-    : Expr(ExprOp::Extend, var.get(), nullptr), parent_(var->weak_from_this()) {
-    if (width < var->width()) {
-        throw VarException(
-            ::format("Cannot extend {0} (width={1}) to {2}", var->to_string(), var->width(), width),
-            {var.get()});
+    : Expr(ExprOp::Extend, var.get(), nullptr), parent_(var.get()) {
+    if (width < parent_->width()) {
+        throw VarException(::format("Cannot extend {0} (width={1}) to {2}", parent_->to_string(),
+                                    parent_->width(), width),
+                           {parent_});
     }
     var_width_ = width;
-    is_signed_ = var->is_signed();
-    if (var->size().size() > 1 || var->size().front() > 1 ||
-        (var->is_packed() && var->type() != VarType::ConstValue)) {
-        throw VarException(::format("Cannot extend an array ({0})", var->to_string()), {var.get()});
+    is_signed_ = parent_->is_signed();
+    if (parent_->size().size() > 1 || parent_->size().front() > 1 ||
+        (parent_->is_packed() && parent_->type() != VarType::ConstValue)) {
+        throw VarException(::format("Cannot extend an array ({0})", parent_->to_string()),
+                           {parent_});
     }
 }
 
 void VarExtend::add_source(const std::shared_ptr<AssignStmt> &) {
     throw StmtException(
-        ::format("Cannot add source to an extended variable ({0})", parent_var()->to_string()),
-        {parent_var()});
+        ::format("Cannot add source to an extended variable ({0})", parent_->to_string()),
+        {parent_});
 }
 
-void VarExtend::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var()->add_sink(stmt); }
+void VarExtend::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_->add_sink(stmt); }
 
 void VarExtend::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
-    if (target.get() == parent_var()) {
-        parent_ = item->weak_from_this();
+    if (target.get() == parent_) {
+        parent_ = item.get();
     }
 }
 
 std::string VarExtend::to_string() const {
-    return ::format("{0}'({1})", width(), parent_.lock()->to_string());
+    return ::format("{0}'({1})", width(), parent_->to_string());
 }
 
 std::string Const::to_string() const {
@@ -920,8 +892,8 @@ std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle
         return ::format("({0})", use_handle ? expr->handle_name(ignore_top)
                                             : scope ? expr->handle_name(scope) : expr->to_string());
 
-    auto left = expr->left();
-    auto right = expr->right();
+    auto left = expr->left;
+    auto right = expr->right;
 
     auto left_str = left->type() == VarType::Expression
                         ? expr_to_string(left->as<Expr>().get(), expr->op == left->as<Expr>()->op,
@@ -960,24 +932,24 @@ std::string Expr::handle_name(kratos::Generator *scope) const {
 
 IRNode *Expr::get_child(uint64_t index) {
     if (index == 0)
-        return left();
+        return left;
     else if (index == 1)
-        return right() ? right() : nullptr;
+        return right ? right : nullptr;
     else
         return nullptr;
 }
 
-void set_var_parent(std::weak_ptr<Var> &var, Var *target, Var *new_var, bool check_target) {
+void set_var_parent(Var *&var, Var *target, Var *new_var, bool check_target) {
     std::shared_ptr<VarSlice> slice;
-    std::weak_ptr<Var> parent_var = var;
+    Var *parent_var = var;
     std::vector<std::shared_ptr<VarSlice>> slices;
-    while (parent_var.lock()->type() == VarType::Slice) {
+    while (parent_var->type() == VarType::Slice) {
         // this is for nested slicing
-        slice = parent_var.lock()->as<VarSlice>();
+        slice = parent_var->as<VarSlice>();
         slices.emplace_back(slice);
-        parent_var = slice->parent_var()->weak_from_this();
+        parent_var = slice->parent_var;
     }
-    if (parent_var.lock().get() != target) {
+    if (parent_var != target) {
         if (check_target)
             throw InternalException("Target not found");
         else
@@ -990,33 +962,33 @@ void set_var_parent(std::weak_ptr<Var> &var, Var *target, Var *new_var, bool che
     for (auto const &s : slices) {
         new_var_ptr = s->slice_var(new_var_ptr);
     }
-    var = new_var_ptr->weak_from_this();
+    var = new_var_ptr.get();
 }
 
 void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var) {
     if (!new_var || !target) throw InternalException("Variable is NULL");
-    if (expr->left()->type() == VarType::Expression) {
-        change_var_expr(expr->left()->as<Expr>(), target, new_var);
+    if (expr->left->type() == VarType::Expression) {
+        change_var_expr(expr->left->as<Expr>(), target, new_var);
     }
-    if (expr->right() && expr->right()->type() == VarType::Expression) {
-        change_var_expr(expr->right()->as<Expr>(), target, new_var);
+    if (expr->right && expr->right->type() == VarType::Expression) {
+        change_var_expr(expr->right->as<Expr>(), target, new_var);
     }
 
-    if (expr->left() == target) {
-        expr->set_left(new_var);
-        expr->left()->move_linked_to(new_var);
+    if (expr->left == target) {
+        expr->left = new_var;
+        expr->left->move_linked_to(new_var);
     }
-    if (expr->right() && expr->right() == target) {
-        expr->set_right(new_var);
-        expr->right()->move_linked_to(new_var);
+    if (expr->right && expr->right == target) {
+        expr->right = new_var;
+        expr->right->move_linked_to(new_var);
     }
 
     // need to change the parent as well
-    if (expr->left()->type() == VarType::Slice) {
-        set_var_parent(expr->left_ptr(), target, new_var, false);
+    if (expr->left->type() == VarType::Slice) {
+        set_var_parent(expr->left, target, new_var, false);
     }
-    if (expr->right() && expr->right()->type() == VarType::Slice) {
-        set_var_parent(expr->right_ptr(), target, new_var, false);
+    if (expr->right && expr->right->type() == VarType::Slice) {
+        set_var_parent(expr->right, target, new_var, false);
     }
     // we did some tricks on the concatenation, need to update them there
     if (expr->op == ExprOp::Concat) {
@@ -1026,7 +998,7 @@ void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_va
 }
 
 void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
-    auto right = stmt->right();
+    auto &right = stmt->right();
     if (right->type() == VarType::Base || right->type() == VarType::PortIO ||
         right->type() == VarType::ConstValue) {
         if (right == target) {
@@ -1036,14 +1008,14 @@ void stmt_set_right(AssignStmt *stmt, Var *target, Var *new_var) {
             throw InternalException("Target not found");
         }
     } else if (right->type() == VarType::Slice) {
-        set_var_parent(stmt->right_ptr(), target, new_var, true);
+        set_var_parent(right, target, new_var, true);
     } else if (right->type() == VarType::Expression) {
         change_var_expr(stmt->right()->as<Expr>(), target, new_var);
     }
 }
 
 void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
-    auto left = stmt->left();
+    auto &left = stmt->left();
     if (left->type() == VarType::Base || left->type() == VarType::PortIO ||
         left->type() == VarType::ConstValue) {
         if (left == target) {
@@ -1053,7 +1025,7 @@ void stmt_set_left(AssignStmt *stmt, Var *target, Var *new_var) {
             throw InternalException("Target not found");
         }
     } else if (left->type() == VarType::Slice) {
-        set_var_parent(stmt->left_ptr(), target, new_var, true);
+        set_var_parent(left, target, new_var, true);
     } else if (left->type() == VarType::Expression) {
         change_var_expr(stmt->left()->as<Expr>(), target, new_var);
     }
@@ -1165,24 +1137,24 @@ void Var::move_linked_to(kratos::Var *new_var) {
 }
 
 void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    left()->add_sink(stmt);
-    if (right()) right()->add_sink(stmt);
+    left->add_sink(stmt);
+    if (right) right->add_sink(stmt);
 }
 
 void VarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    Var *parent = parent_var();
+    Var *parent = parent_var;
     parent->add_sink(stmt);
 }
 
 void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
-    Var *parent = parent_var();
+    Var *parent = parent_var;
     parent->add_source(stmt);
 }
 
 ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,
                                  const std::shared_ptr<Var> &left,
                                  const std::shared_ptr<Var> &right)
-    : Expr(ExprOp::Conditional, left.get(), right.get()), condition_(condition->weak_from_this()) {
+    : Expr(ExprOp::Conditional, left.get(), right.get()), condition(condition.get()) {
     if (condition->width() != 1)
         throw VarException("Ternary operator's condition has to be a binary value",
                            {condition.get()});
@@ -1190,36 +1162,36 @@ ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,
 
 IRNode *ConditionalExpr::get_child(uint64_t index) {
     if (index == 0)
-        return condition();
+        return condition;
     else if (index == 1)
-        return left();
+        return left;
     else if (index == 2)
-        return right();
+        return right;
     else
         return nullptr;
 }
 
 void ConditionalExpr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    condition()->add_sink(stmt);
-    left()->add_sink(stmt);
-    right()->add_sink(stmt);
+    condition->add_sink(stmt);
+    left->add_sink(stmt);
+    right->add_sink(stmt);
 }
 
 std::string ConditionalExpr::to_string() const {
-    std::string cond_str = condition()->type() == VarType::Expression
-                               ? ::format("({0})", condition()->to_string())
-                               : condition()->to_string();
-    return ::format("{0} ? {1}: {2}", cond_str, left()->to_string(), right()->to_string());
+    std::string cond_str = condition->type() == VarType::Expression
+                               ? ::format("({0})", condition->to_string())
+                               : condition->to_string();
+    return ::format("{0} ? {1}: {2}", cond_str, left->to_string(), right->to_string());
 }
 
 std::string ConditionalExpr::handle_name(bool ignore_top) const {
-    return ::format("{0} ? {1}: {2}", condition()->handle_name(ignore_top),
-                    left()->handle_name(ignore_top), right()->handle_name(ignore_top));
+    return ::format("{0} ? {1}: {2}", condition->handle_name(ignore_top),
+                    left->handle_name(ignore_top), right->handle_name(ignore_top));
 }
 
 std::string ConditionalExpr::handle_name(kratos::Generator *scope) const {
-    return ::format("{0} ? {1}: {2}", condition()->handle_name(scope), left()->handle_name(scope),
-                    right()->handle_name(scope));
+    return ::format("{0} ? {1}: {2}", condition->handle_name(scope), left->handle_name(scope),
+                    right->handle_name(scope));
 }
 
 PackedStruct::PackedStruct(std::string struct_name,
@@ -1273,7 +1245,7 @@ shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
 }
 
 std::string PackedSlice::to_string() const {
-    return ::format("{0}.{1}", parent_var()->to_string(), member_name_);
+    return ::format("{0}.{1}", parent_var->to_string(), member_name_);
 }
 
 PackedSlice &VarPackedStruct::operator[](const std::string &member_name) {
@@ -1311,25 +1283,14 @@ Enum::Enum(const std::string &name, const std::map<std::string, uint64_t> &value
     }
     for (auto const &[n, value] : values) {
         auto c = std::make_shared<EnumConst>(Const::const_gen(), value, width, this, n);
-        this->values_.emplace(n, c);
+        this->values.emplace(n, c);
     }
 }
 
 std::shared_ptr<EnumConst> Enum::get_enum(const std::string &enum_name) {
-    if (values_.find(enum_name) == values_.end())
+    if (values.find(enum_name) == values.end())
         throw UserException(::format("Cannot find {0} in {1}", enum_name, name));
-    auto p = values_.at(enum_name);
-    // may need to reassign the parent if necessary
-    if (!p->enum_parent()) {
-        p->set_enum_def(this);
-    }
-    return p;
-}
-
-std::set<std::string> Enum::enum_names() const {
-    std::set<std::string> names;
-    for (auto const &iter : values_) names.emplace(iter.first);
-    return names;
+    return values.at(enum_name);
 }
 
 void Enum::verify_naming_conflict(const std::map<std::string, std::shared_ptr<Enum>> &enums,
@@ -1348,10 +1309,10 @@ void Enum::verify_naming_conflict(const std::map<std::string, std::shared_ptr<En
     std::unordered_map<std::string, Enum *> name_mapping;
     for (auto const &iter : enums) {
         auto const &enum_ = iter.second;
-        auto const enum_names = enum_->enum_names();
-        for (auto const &n : enum_names) {
-            used_names.emplace(n);
-            name_mapping.emplace(n, enum_.get());
+        auto const &values_ = enum_->values;
+        for (auto const &iter2 : values_) {
+            used_names.emplace(iter2.first);
+            name_mapping.emplace(iter2.first, enum_.get());
         }
     }
     // if there is an overlap/intersection
@@ -1368,21 +1329,17 @@ void Enum::verify_naming_conflict(const std::map<std::string, std::shared_ptr<En
 
 void Enum::add_debug_info(const std::string &enum_name,
                           const std::pair<std::string, uint32_t> &debug) {
-    auto var = values_.at(enum_name);
+    auto var = values.at(enum_name);
     var->fn_name_ln.emplace_back(debug);
 }
 
 EnumConst::EnumConst(kratos::Generator *m, int64_t value, uint32_t width, kratos::Enum *parent,
                      std::string name)
-    : Const(m, value, width, false), parent_(parent->weak_from_this()), name_(std::move(name)) {}
-
-void EnumConst::set_enum_def(Enum *def) { parent_ = def->weak_from_this(); }
+    : Const(m, value, width, false), parent_(parent), name_(std::move(name)) {}
 
 std::string EnumConst::to_string() const {
-    auto const names = parent_.lock()->enum_names();
-    if (names.find(name_) == names.end()) {
-        throw VarException(::format("{0} is not in enum type {1}", name_, parent_.lock()->name),
-                           {this});
+    if (parent_->values.find(name_) == parent_->values.end()) {
+        throw VarException(::format("{0} is not in enum type {1}", name_, parent_->name), {this});
     }
     return name_;
 }
@@ -1393,7 +1350,7 @@ std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
         throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
     if (var->type() == VarType::ConstValue) {
         auto p = var->as<EnumConst>();
-        if (p->enum_def()->name != enum_type_.lock()->name)
+        if (p->enum_def()->name != enum_type_->name)
             throw VarException("Cannot assign different enum type", {this, var.get()});
     } else {
         auto p = dynamic_cast<EnumType *>(var.get());
@@ -1403,7 +1360,7 @@ std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
                                         "Please use a cast if it's intended",
                                         var->handle_name()),
                                {var.get()});
-        if (p->enum_type()->name != enum_type_.lock()->name) {
+        if (p->enum_type()->name != enum_type_->name) {
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }
     }
@@ -1413,9 +1370,7 @@ std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
 FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStmtBlock> &func_def,
                                  const std::map<std::string, std::shared_ptr<Var>> &args,
                                  bool has_return)
-    : Var(m, "", 1, 1, false),
-      func_def_(std::static_pointer_cast<FunctionStmtBlock>(func_def)),
-      args_(args) {
+    : Var(m, "", 1, 1, false), func_def_(func_def.get()), args_(args) {
     // check the function call types
     auto ports = func_def->ports();
     for (auto const &[port_name, func_port] : ports) {
@@ -1458,23 +1413,23 @@ void FunctionCallVar::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     // FIXME: this is a very hacky fix on constant generators
     if (generator() == Const::const_gen()) {
         // use left hand size of stmt
-        set_generator(stmt->left()->generator());
+        generator_ = stmt->left()->generator();
         // change the function def to the new generator
-        if (!generator()->has_function(func_def_.lock()->function_name())) {
-            generator()->add_function(func_def_.lock());
+        if (!generator()->has_function(func_def_->function_name())) {
+            generator()->add_function(func_def_->as<FunctionStmtBlock>());
             generator()->add_call_var(as<FunctionCallVar>());
         }
     }
 }
 
 std::string FunctionCallVar::to_string() const {
-    std::string result = func_def_.lock()->function_name() + " (";
+    std::string result = func_def_->function_name() + " (";
     std::vector<std::string> names;
     names.reserve(args_.size());
     for (auto const &iter : args_) names.emplace_back(iter.second->to_string());
     // calling ordering
-    if (!func_def_.lock()->port_ordering().empty()) {
-        auto ordering = func_def_.lock()->port_ordering();
+    if (!func_def_->port_ordering().empty()) {
+        auto ordering = func_def_->port_ordering();
         std::unordered_map<std::string, uint32_t> indexing;
         indexing.reserve(ordering.size());
         for (auto const &[var_name, var] : args_) {
@@ -1489,17 +1444,12 @@ std::string FunctionCallVar::to_string() const {
     return result;
 }
 
-InterfaceVar::InterfaceVar(kratos::InterfaceRef *interface, kratos::Generator *m,
-                           const std::string &name, uint32_t var_width,
-                           const std::vector<uint32_t> &size, bool is_signed)
-    : Var(m, name, var_width, size, is_signed), interface_(interface->weak_from_this()) {}
-
 std::string InterfaceVar::to_string() const {
-    std::string parent_name = interface_.lock()->name();
+    std::string parent_name = interface_->name();
     return ::format("{0}.{1}", parent_name, Var::to_string());
 }
 
-std::string InterfaceVar::base_name() const { return interface_.lock()->base_name(); }
+std::string InterfaceVar::base_name() const { return interface_->base_name(); }
 
 std::shared_ptr<Expr> util::mux(Var &cond, Var &left, Var &right) {
     auto expr = std::make_shared<ConditionalExpr>(cond.shared_from_this(), left.shared_from_this(),

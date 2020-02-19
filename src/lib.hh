@@ -5,7 +5,7 @@
 
 namespace kratos::asic {
 
-class SRAM: public std::enable_shared_from_this<SRAM> {
+class SRAM : public Generator {
 public:
     SRAM(Context *, const std::string &sram_name);
     SRAM(Context *, const std::string &sram_name, uint16_t addr_width, uint16_t data_width);
@@ -19,8 +19,6 @@ public:
     std::string clock_name() const { return clk_->name; }
     void set_clock_name(const std::string &name) { clk_->name = name; }
 
-    Generator* generator() const { return generator_; }
-
     [[nodiscard]] uint32_t capacity() const;
 
 protected:
@@ -28,8 +26,6 @@ protected:
     std::shared_ptr<Var> data_ = nullptr;
     uint16_t addr_width_ = 11;
     uint16_t data_width_ = 64;
-
-    Generator *generator_;
 
 private:
     void init_sram();

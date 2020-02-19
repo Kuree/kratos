@@ -157,8 +157,8 @@ private:
     void static inline check_expr(Var* var, Stmt* stmt) {
         if (var->type() == VarType::Expression) {
             auto expr = reinterpret_cast<Expr*>(var);
-            auto left = expr->left();
-            auto right = expr->right();
+            auto left = expr->left;
+            auto right = expr->right;
             auto width = var->width();
             bool is_relational = is_relational_op(expr->op);
             bool is_reduction = is_reduction_op(expr->op);
@@ -461,7 +461,7 @@ public:
             generator->add_stmt(stmt);
             // remove the stmts that's fold into the instantiation statement
             for (auto const& st : stmt->connection_stmt()) {
-                st.lock()->remove_from_parent();
+                st->remove_from_parent();
             }
         }
     }
@@ -484,7 +484,7 @@ public:
 
             // remove the stmts that's fold into the instantiation statement
             for (auto const& st : stmt->connection_stmt()) {
-                st.lock()->remove_from_parent();
+                st->remove_from_parent();
             }
         }
     }
@@ -893,10 +893,10 @@ private:
         if (!var) return false;
         if (var->type() == VarType::Expression) {
             auto expr = dynamic_cast<Expr*>(var);
-            return has_non_port(context, expr->left()) || has_non_port(context, expr->right());
+            return has_non_port(context, expr->left) || has_non_port(context, expr->right);
         } else if (var->type() == VarType::Slice) {
             auto slice = dynamic_cast<VarSlice*>(var);
-            return has_non_port(context, slice->parent_var());
+            return has_non_port(context, slice->parent_var);
         } else {
             return var->generator() != context && var->type() != VarType::PortIO &&
                    var->type() != VarType ::ConstValue;
@@ -1018,7 +1018,7 @@ public:
         } else if (predicate->type() == VarType::Expression) {
             auto expr = predicate->as<Expr>();
             if (expr->op == ExprOp::UNot || expr->op == ExprOp::UInvert) {
-                auto var = expr->left()->as<Var>();
+                auto var = expr->left->as<Var>();
                 if (var->type() == VarType::PortIO) {
                     auto port = var->as<Port>();
                     if (port->port_type() == PortType::AsyncReset) {
@@ -1135,12 +1135,12 @@ private:
         if (expr->op != ExprOp::Eq) return false;
         // has to be the same variable
         if (var == nullptr) {
-            var = expr->left();
+            var = expr->left;
         } else {
-            if (var != expr->left()) return false;
+            if (var != expr->left) return false;
         }
-        if ((expr->right()->type() != VarType::ConstValue) &&
-            (expr->right()->type() != VarType::Parameter))
+        if ((expr->right->type() != VarType::ConstValue) &&
+            (expr->right->type() != VarType::Parameter))
             return false;
         if (if_->else_body()->size() > 1) return false;
 
@@ -1158,7 +1158,7 @@ private:
         std::shared_ptr<IfStmt> stmt, const std::vector<std::shared_ptr<IfStmt>>& if_stmts) {
         auto expr = stmt->predicate()->as<Expr>();
         // we assume that this is a valid case (see has_target_if)
-        auto target = expr->left();
+        auto target = expr->left;
         std::shared_ptr<SwitchStmt> switch_ =
             std::make_shared<SwitchStmt>(target->shared_from_this());
         if (target->generator()->debug) {
@@ -1168,7 +1168,7 @@ private:
         }
 
         while (std::find(if_stmts.begin(), if_stmts.end(), stmt) != if_stmts.end()) {
-            auto condition = expr->right()->as<Const>();
+            auto condition = expr->right->as<Const>();
             switch_->add_switch_case(condition, stmt->then_body());
             if (!stmt->else_body()->empty() &&
                 std::find(if_stmts.begin(), if_stmts.end(), (*stmt->else_body())[0]) ==
@@ -1265,12 +1265,12 @@ private:
                 auto predicate = if_->predicate();
                 if (predicate->type() == VarType::Expression) {
                     auto expr = predicate->as<Expr>();
-                    if (expr->op == ExprOp::Eq && expr->right() &&
-                        expr->right()->type() == VarType::ConstValue) {
+                    if (expr->op == ExprOp::Eq && expr->right &&
+                        expr->right->type() == VarType::ConstValue) {
                         // this is what we want
-                        auto target_var = expr->left();
+                        auto target_var = expr->left;
                         result[target_var].emplace_back(
-                            std::make_pair(if_, expr->right()->as<Const>()));
+                            std::make_pair(if_, expr->right->as<Const>()));
                     }
                 }
             }
@@ -1821,8 +1821,8 @@ private:
         for (auto const& assign_stmt : sliced_stmts) {
             auto left_slice = assign_stmt->left()->as<VarSlice>();
             auto right_slice = assign_stmt->right()->as<VarSlice>();
-            Var* left_parent = left_slice->parent_var();
-            Var* right_parent = right_slice->parent_var();
+            Var* left_parent = left_slice->parent_var;
+            Var* right_parent = right_slice->parent_var;
             // only deal with 1D for now
             if (left_parent->type() == VarType::Slice) continue;
             if (right_parent->type() == VarType::Slice) continue;
@@ -2247,7 +2247,7 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
             auto enum_var = dynamic_cast<EnumType*>(stmt_->target().get());
             if (!enum_var) throw InternalException("Unable to resolve enum type");
             auto enum_def = enum_var->enum_type();
-            targeted_cases = enum_def->size();
+            targeted_cases = enum_def->values.size();
         } else {
             targeted_cases = 1u << stmt_->target()->width();
         }
@@ -2461,8 +2461,8 @@ private:
         bool static has_var(Var* var, Var* target) {
             if (var->type() == VarType::Expression) {
                 auto expr = var->as<Expr>().get();
-                bool left = has_var(expr->left(), target);
-                bool right = expr->right() ? has_var(expr->right(), target) : false;
+                bool left = has_var(expr->left, target);
+                bool right = expr->right ? has_var(expr->right, target) : false;
                 return left || right;
             } else {
                 if (var->type() == VarType::Slice) {
@@ -2624,7 +2624,7 @@ private:
         if (var == target) return true;
         if (var->type() == VarType::Expression) {
             auto expr = reinterpret_cast<Expr*>(var);
-            return has_var(expr->left(), target) || has_var(expr->right(), target);
+            return has_var(expr->left, target) || has_var(expr->right, target);
         }
         return false;
     }

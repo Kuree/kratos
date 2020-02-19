@@ -58,7 +58,7 @@ public:
     EnumPort(Generator *m, PortDirection direction, const std::string &name,
              const std::shared_ptr<Enum> &enum_type);
 
-    const inline Enum *enum_type() const override { return enum_type_.lock().get(); }
+    const inline Enum *enum_type() const override { return enum_type_; }
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 protected:
@@ -66,7 +66,7 @@ protected:
                                          AssignmentType type) override;
 
 private:
-    std::weak_ptr<Enum> enum_type_;
+    Enum *enum_type_;
 };
 
 struct PortPackedStruct : public Port, public PackedInterface {
@@ -133,7 +133,8 @@ private:
 
 struct PortBundleRef : public PackedInterface {
 public:
-    PortBundleRef(Generator *generator, PortBundleDefinition def);
+    PortBundleRef(Generator *generator, PortBundleDefinition def)
+        : generator(generator), definition_(std::move(def)) {}
 
     Port &get_port(const std::string &name);
     void add_name_mapping(const std::string &port_name, const std::string &real_name) {
@@ -151,7 +152,7 @@ public:
     [[nodiscard]] std::set<std::string> member_names() const override;
 
 private:
-    std::weak_ptr<Generator> generator_;
+    Generator *generator;
     const PortBundleDefinition definition_;
     std::map<std::string, std::string> name_mappings_;
 };
@@ -159,17 +160,18 @@ private:
 struct InterfacePort : public Port {
 public:
     InterfacePort(InterfaceRef *interface, Generator *module, PortDirection direction,
-                         const std::string &name, uint32_t width, const std::vector<uint32_t> &size,
-                         PortType type, bool is_signed);
+                  const std::string &name, uint32_t width, const std::vector<uint32_t> &size,
+                  PortType type, bool is_signed)
+        : Port(module, direction, name, width, size, type, is_signed), interface_(interface) {}
 
     std::string to_string() const override;
     std::string base_name() const override;
 
     bool inline is_interface() const override { return true; };
-    const InterfaceRef *interface() const { return interface_.lock().get(); };
+    const InterfaceRef *interface() const { return interface_; };
 
 private:
-    std::weak_ptr<InterfaceRef> interface_;
+    InterfaceRef *interface_ = nullptr;
 };
 
 struct ModportPort : public InterfacePort {
@@ -179,25 +181,24 @@ public:
 
     // wraps all the critical functions
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const override {
-        return var()->sinks();
+        return var_->sinks();
     };
-    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override { var()->remove_sink(stmt); }
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override { var_->remove_sink(stmt); }
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
-        return var()->sources();
+        return var_->sources();
     };
-    void clear_sinks() override { var()->clear_sources(); }
-    void clear_sources() override { var()->clear_sinks(); }
+    void clear_sinks() override { var_->clear_sources(); }
+    void clear_sources() override { var_->clear_sinks(); }
     void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
-        var()->remove_source(stmt);
+        var_->remove_source(stmt);
     }
 
-    void move_linked_to(Var *new_var) override { var()->move_linked_to(new_var); }
-    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override { var()->add_sink(stmt); }
-    void add_source(const std::shared_ptr<AssignStmt> &stmt) override { var()->add_source(stmt); }
+    void move_linked_to(Var *new_var) override { var_->move_linked_to(new_var); }
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override { var_->add_sink(stmt); }
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override { var_->add_source(stmt); }
 
 private:
-    inline Var* var() const { return var_.lock().get(); }
-    std::weak_ptr<Var> var_;
+    Var *var_;
 };
 
 }  // namespace kratos

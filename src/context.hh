@@ -60,7 +60,7 @@ class Property;
 class Sequence;
 
 
-class Context: public std::enable_shared_from_this<Context> {
+class Context {
 private:
     std::unordered_map<std::string, std::set<std::shared_ptr<Generator>>> modules_;
     std::unordered_map<const Generator*, uint64_t> generator_hash_;
@@ -74,7 +74,7 @@ public:
     Context() = default;
 
     Generator& generator(const std::string& name);
-    std::shared_ptr<Generator> empty_generator();
+    Generator empty_generator();
 
     void remove(Generator* generator);
     void add(Generator* generator);

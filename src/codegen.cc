@@ -342,8 +342,7 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
 void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
     if (stmt->left()->type() == VarType::PortIO) {
         auto port = stmt->left()->as<Port>();
-        if (port->port_direction() == PortDirection::In &&
-            stmt->left()->generator() == generator_) {
+        if (port->port_direction() == PortDirection::In && stmt->left()->generator() == generator_) {
             throw StmtException("Cannot drive a module's input from itself",
                                 {stmt, stmt->left(), stmt->right()});
         }
@@ -832,8 +831,7 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
     std::vector<std::pair<Port*, Var*>> ports;
     auto const& mapping = stmt->port_mapping();
     ports.reserve(mapping.size());
-    for (auto const& [p, v] : mapping)
-        ports.emplace_back(std::make_pair(p.lock().get(), v.lock().get()));
+    for (auto const& iter : mapping) ports.emplace_back(iter);
     std::sort(ports.begin(), ports.end(),
               [](const auto& lhs, const auto& rhs) { return lhs.first->name < rhs.first->name; });
     auto debug_info = stmt->port_debug();
@@ -841,9 +839,8 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
     std::vector<std::pair<std::string, std::string>> connections;
     connections.reserve(ports.size());
     for (auto const& [internal, external] : ports) {
-        auto ptr = internal->weak_from_this();
-        if (generator_->debug && debug_info.find(ptr) != debug_info.end()) {
-            debug_info.at(ptr).lock()->verilog_ln = stream_.line_no();
+        if (generator_->debug && debug_info.find(internal) != debug_info.end()) {
+            debug_info.at(internal)->verilog_ln = stream_.line_no();
         }
         std::string internal_name;
         std::string external_name;
@@ -917,18 +914,19 @@ void SystemVerilogCodeGen::enum_code_(kratos::Stream& stream_, kratos::Enum* enu
     uint32_t count = 0;
     auto const indent = "  ";
     // sort it by the values
-    auto const enum_names = enum_->enum_names();
-    std::vector<std::string> names(enum_names.begin(), enum_names.end());
+    std::vector<std::string> names;
+    names.reserve(enum_->values.size());
+    for (auto const& iter : enum_->values) names.emplace_back(iter.first);
     std::sort(names.begin(), names.end(), [&](const auto& a, const auto& b) {
-        return enum_->get_enum(a)->value() < enum_->get_enum(b)->value();
+        return enum_->values.at(a)->value() < enum_->values.at(b)->value();
     });
     for (auto const& name : names) {
-        auto c = enum_->get_enum(name);
+        auto& c = enum_->values.at(name);
         if (debug) {
             c->verilog_ln = stream_.line_no();
         }
         stream_ << indent << name << " = " << c->value_string();
-        if (++count != names.size()) stream_ << ",";
+        if (++count != enum_->values.size()) stream_ << ",";
         stream_ << stream_.endl();
     }
     stream_ << "} " << enum_->name << ";" << stream_.endl();
@@ -1095,7 +1093,7 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
             // need to flatten the array
             auto slices = get_flatten_slices(p.get());
             // create port for them based on the slice
-            for (auto const& slice : slices) {
+            for (auto const &slice: slices) {
                 std::string name = port_name;
                 for (auto const& s : slice) name = ::format("{0}_{1}", name, s);
                 auto slice_port = &(*p)[slice[0]];
@@ -1138,15 +1136,16 @@ std::pair<std::string, uint32_t> generate_sv_package_header(Generator* top,
         stream << "package " << package_name << ";" << stream.endl();
     }
 
+
     // all the information list
     auto info_list = {dpi_info, struct_info, enum_info, interface_info};
-    for (auto const& info : info_list) {
-        for (auto const& iter : info) {
+    for (auto const &info : info_list) {
+        for (auto const &iter: info) {
             auto def = iter.second;
             // split on new line to replace with the stream new line so that we can track
             // the new lines
             auto lines = string::get_tokens(def, "\n");
-            for (auto const& line : lines) {
+            for (auto const &line: lines) {
                 stream << line << stream.endl();
             }
             stream << stream.endl();

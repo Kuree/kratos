@@ -86,7 +86,7 @@ private:
     void visit_module_instantiation(ModuleInstantiationStmt *stmt) {
         auto connection_stmts = stmt->connection_stmt();
         for (auto const &assign : connection_stmts) {
-            visit_assign(assign.lock().get());
+            visit_assign(assign);
         }
     }
 
@@ -101,9 +101,9 @@ private:
             }
             case VarType ::Expression: {
                 auto const &expr = reinterpret_cast<Expr *>(var);
-                get_var_deps(expr->left(), dep, linked_dep);
-                if (expr->right()) {
-                    get_var_deps(expr->right(), dep, linked_dep);
+                get_var_deps(expr->left, dep, linked_dep);
+                if (expr->right) {
+                    get_var_deps(expr->right, dep, linked_dep);
                 }
                 break;
             }
@@ -464,7 +464,7 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(Var *var) 
         return {};
     }
     auto slice = var->as<VarSlice>();
-    auto result = get_slice_index(slice->parent_var());
+    auto result = get_slice_index(slice->parent_var);
     uint32_t high, low;
     if (slice->sliced_by_var()) {
         auto var_slice = slice->as<VarVarSlice>();
@@ -736,15 +736,15 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) cons
         // there are couple special ones
         if (expr->op == ExprOp::Concat) {
             auto var_concat = reinterpret_cast<VarConcat *>(expr);
-            auto vars = std::vector<std::weak_ptr<Var>>(var_concat->vars().begin(), var_concat->vars().end());
+            auto vars = std::vector<Var *>(var_concat->vars().begin(), var_concat->vars().end());
             std::reverse(vars.begin(), vars.end());
             uint32_t shift_amount = 0;
             uint64_t value = 0;
             for (auto var_ : vars) {
-                auto v = get_value_(var_.lock().get());
+                auto v = get_value_(var_);
                 if (v) {
                     value |= (*v) << shift_amount;
-                    shift_amount += var_.lock()->width();
+                    shift_amount += var_->width();
                 } else {
                     return std::nullopt;
                 }
@@ -773,9 +773,9 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) cons
                 return value;
             }
         } else {
-            auto left_val = get_complex_value_(expr->left());
+            auto left_val = get_complex_value_(expr->left);
             if (!left_val) return left_val;
-            auto right_val = get_complex_value_(expr->right());
+            auto right_val = get_complex_value_(expr->right);
             if (!is_unary_op(expr->op)) {
                 if (!right_val) return std::nullopt;
                 if ((*left_val).size() > 1) throw std::runtime_error("Not implemented");

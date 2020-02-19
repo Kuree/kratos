@@ -7,11 +7,8 @@
 
 using namespace kratos;
 
-std::shared_ptr<Context> context() { return std::make_shared<Context>(); }
-
 TEST(debug, inst) {  // NOLINT
-    auto c_ptr = context();
-    auto &c = *c_ptr;
+    Context c;
     auto create_mod = [&]() -> Generator & {
         auto &mod = c.generator("mod");
         auto &in = mod.port(PortDirection::In, "in", 1);

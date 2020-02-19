@@ -2,10 +2,10 @@
 #define KRATOS_EXPR_HH
 
 #include <set>
-#include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <stdexcept>
 
 #include "context.hh"
 #include "ir.hh"
@@ -37,6 +37,7 @@ enum class ExprOp : uint64_t {
     // logical
     LAnd,
     LOr,
+
 
     // relational
     LessThan,
@@ -129,8 +130,8 @@ public:
     std::shared_ptr<AssignStmt> assign(Var &var, AssignmentType type);
     void unassign(const std::shared_ptr<AssignStmt> &stmt);
 
-    Generator *generator() const;
-    void set_generator(Generator *gen);
+    Generator *generator() const { return generator_; }
+    void set_generator(Generator *gen) { generator_ = gen; }
 
     IRNode *parent() override;
 
@@ -178,10 +179,10 @@ public:
     virtual std::string handle_name(bool ignore_top) const;
     virtual std::string handle_name(Generator *scope) const;
     // is parametrized
-    bool parametrized() const { return param_.lock() != nullptr; }
+    bool parametrized() const { return param_ != nullptr; }
     void set_width_param(const std::shared_ptr<Param> &param);
     void set_width_param(Param *param);
-    Param *param() const { return param_.lock().get(); }
+    Param *param() const { return param_; }
     void set_explicit_array(bool value) { explicit_array_ = value; }
     bool explicit_array() const { return explicit_array_; }
     virtual std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const { return {}; }
@@ -227,11 +228,11 @@ protected:
     bool explicit_array_ = false;
 
     // parametrization
-    std::weak_ptr<Param> param_;
+    Param *param_ = nullptr;
 
     bool is_packed_ = false;
 
-    std::weak_ptr<Generator> generator_;
+    Generator *generator_;
 
     // assign function
     virtual std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
@@ -252,9 +253,9 @@ public:
     VarCasted(Var *parent, VarCastType cast_type);
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
-    void set_parent(Var *parent) { parent_var_ = parent->weak_from_this(); }
+    void set_parent(Var *parent) { parent_var_ = parent; }
 
-    const Var *get_var_root_parent() const override { return parent_var_.lock().get(); }
+    const Var *get_var_root_parent() const override { return parent_var_; }
 
     std::string to_string() const override;
 
@@ -265,24 +266,24 @@ public:
     // however, getting this to work with pybind with virtual inheritance is a pain
     // so just copy the code here
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const override {
-        return parent_var_.lock()->sinks();
+        return parent_var_->sinks();
     };
     void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override {
-        parent_var_.lock()->remove_sink(stmt);
+        parent_var_->remove_sink(stmt);
     }
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
-        return parent_var_.lock()->sources();
+        return parent_var_->sources();
     };
-    void clear_sinks() override { parent_var_.lock()->clear_sources(); }
-    void clear_sources() override { parent_var_.lock()->clear_sinks(); }
+    void clear_sinks() override { parent_var_->clear_sources(); }
+    void clear_sources() override { parent_var_->clear_sinks(); }
     void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
-        parent_var_.lock()->remove_source(stmt);
+        parent_var_->remove_source(stmt);
     }
 
-    void move_linked_to(Var *new_var) override { parent_var_.lock()->move_linked_to(new_var); }
+    void move_linked_to(Var *new_var) override { parent_var_->move_linked_to(new_var); }
 
-    void set_enum_type(Enum *enum_);
-    const Enum *enum_type() const override { return enum_type_.lock().get(); }
+    void set_enum_type(Enum *enum_) { enum_type_ = enum_; }
+    const Enum *enum_type() const override { return enum_type_; }
 
     bool is_enum() const override { return cast_type_ == VarCastType ::Enum; }
 
@@ -291,16 +292,16 @@ protected:
                                          AssignmentType type) override;
 
 private:
-    std::weak_ptr<Var> parent_var_;
+    Var *parent_var_ = nullptr;
 
     VarCastType cast_type_;
     // only used for enum
-    std::weak_ptr<Enum> enum_type_;
+    Enum *enum_type_ = nullptr;
 };
 
 struct VarSlice : public Var {
 public:
-    Var *parent_var() const { return parent_var_.lock().get(); };
+    Var *parent_var = nullptr;
     uint32_t low = 0;
     uint32_t high = 0;
 
@@ -311,7 +312,7 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
-    void set_parent(Var *parent) { parent_var_ = parent->weak_from_this(); }
+    void set_parent(Var *parent) { parent_var = parent; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
@@ -330,8 +331,6 @@ public:
     virtual bool sliced_by_var() const { return false; }
 
 protected:
-    std::weak_ptr<Var> parent_var_;
-
     uint32_t var_high_ = 0;
     uint32_t var_low_ = 0;
 
@@ -349,16 +348,16 @@ public:
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
     std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override {
-        return var->operator[](sliced_var_.lock()).shared_from_this();
+        return var->operator[](sliced_var_->shared_from_this()).shared_from_this();
     }
 
     bool sliced_by_var() const override { return true; }
-    Var *sliced_var() const { return sliced_var_.lock().get(); }
+    Var *sliced_var() const { return sliced_var_; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
-    std::weak_ptr<Var> sliced_var_;
+    Var *sliced_var_;
 };
 
 struct Const : public Var {
@@ -380,7 +379,7 @@ public:
     static Const &constant(int64_t value, uint32_t width, bool is_signed);
     Const(int64_t value, uint32_t width, bool is_signed);
 
-    static Generator *const_gen();
+    static Generator *const_gen() { return const_generator_.get(); }
 
     // struct is always packed
     bool is_packed() const override { return true; }
@@ -408,19 +407,19 @@ public:
 
     std::string inline value_str() const { return Const::to_string(); }
 
-    const std::set<std::weak_ptr<Var>> &param_vars() const { return param_vars_; }
-    void add_param_var(Var *var) { param_vars_.emplace(var->weak_from_this()); }
+    const std::unordered_set<Var *> &param_vars() const { return param_vars_; }
+    void add_param_var(Var *var) { param_vars_.emplace(var); }
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);
 
-    const Param *parent_param() const { return parent_param_.lock().get(); }
+    const Param *parent_param() const { return parent_param_; }
 
 private:
     std::string parameter_name_;
 
-    std::set<std::weak_ptr<Var>> param_vars_;
-    std::set<std::weak_ptr<Param>> param_params_;
-    std::weak_ptr<Param> parent_param_;
+    std::unordered_set<Var *> param_vars_;
+    std::unordered_set<Param *> param_params_;
+    Param *parent_param_ = nullptr;
 };
 
 struct PackedStruct {
@@ -480,12 +479,8 @@ private:
 struct Expr : public Var {
 public:
     ExprOp op;
-    inline Var *left() const { return left_.lock().get(); }
-    inline Var *right() const { return right_.lock().get(); }
-    inline void set_left(Var *var) { left_ = var->weak_from_this(); }
-    inline void set_right(Var *var) { right_ = var->weak_from_this(); }
-    inline std::weak_ptr<Var> &left_ptr() { return left_; }
-    inline std::weak_ptr<Var> &right_ptr() { return right_; }
+    Var *left;
+    Var *right;
 
     Expr(ExprOp op, Var *left, Var *right);
     std::string to_string() const override;
@@ -493,7 +488,7 @@ public:
 
     // AST
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
-    uint64_t child_count() override { return right() ? 2 : 1; }
+    uint64_t child_count() override { return right ? 2 : 1; }
     IRNode *get_child(uint64_t index) override;
 
     std::string handle_name(bool ignore_top) const override;
@@ -505,9 +500,6 @@ protected:
 
 private:
     void set_parent();
-
-    std::weak_ptr<Var> left_;
-    std::weak_ptr<Var> right_;
 };
 
 struct VarConcat : public Expr {
@@ -519,14 +511,14 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
-    std::vector<std::weak_ptr<Var>> &vars() { return vars_; }
+    std::vector<Var *> &vars() { return vars_; }
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
     VarConcat &concat(Var &var) override;
 
     uint64_t child_count() override { return vars_.size(); }
     IRNode *get_child(uint64_t index) override {
-        return index < vars_.size() ? vars_[index].lock().get() : nullptr;
+        return index < vars_.size() ? vars_[index] : nullptr;
     }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
@@ -536,7 +528,7 @@ public:
     std::string handle_name(Generator *scope) const override;
 
 private:
-    std::vector<std::weak_ptr<Var>> vars_;
+    std::vector<Var *> vars_;
 };
 
 struct VarExtend : public Expr {
@@ -548,13 +540,13 @@ public:
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
     uint64_t child_count() override { return 1; }
-    IRNode *get_child(uint64_t index) override { return index == 0 ? parent_var() : nullptr; }
+    IRNode *get_child(uint64_t index) override { return index == 0 ? parent_ : nullptr; }
 
     std::string to_string() const override;
-    Var *parent_var() { return parent_.lock().get(); }
+    Var *parent_var() { return parent_; }
 
 private:
-    std::weak_ptr<Var> parent_;
+    Var *parent_;
 };
 
 struct ConditionalExpr : public Expr {
@@ -567,10 +559,7 @@ struct ConditionalExpr : public Expr {
     std::string handle_name(bool ignore_top) const override;
     std::string handle_name(Generator *scope) const override;
 
-    Var *condition() const { return condition_.lock().get(); }
-
-private:
-    std::weak_ptr<Var> condition_;
+    Var *condition;
 };
 
 struct EnumConst : public Const {
@@ -580,21 +569,19 @@ public:
     std::string value_string() { return Const::to_string(); }
 
     bool inline is_enum() const override { return true; }
-    const inline Enum *enum_def() const { return parent_.lock().get(); }
-    void set_enum_def(Enum *def);
-
-    [[nodiscard]] Enum *enum_parent() const { return parent_.lock().get(); }
+    const inline Enum *enum_def() const { return parent_; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
-    std::weak_ptr<Enum> parent_;
+    Enum *parent_;
     std::string name_;
 };
 
 struct Enum : std::enable_shared_from_this<Enum> {
 public:
     Enum(const std::string &name, const std::map<std::string, uint64_t> &values, uint32_t width);
+    std::map<std::string, std::shared_ptr<EnumConst>> values;
     std::string name;
 
     uint32_t inline width() { return width_; }
@@ -610,13 +597,9 @@ public:
     bool local() const { return local_; }
     bool &local() { return local_; }
 
-    [[nodiscard]] uint64_t size() const { return values_.size(); }
-    [[nodiscard]] std::set<std::string> enum_names() const;
-
 private:
     uint32_t width_;
     bool local_ = true;
-    std::map<std::string, std::shared_ptr<EnumConst>> values_;
 };
 
 struct EnumVar : public Var, public EnumType {
@@ -624,9 +607,9 @@ public:
     bool inline is_enum() const override { return true; }
 
     EnumVar(Generator *m, const std::string &name, const std::shared_ptr<Enum> &enum_type)
-        : Var(m, name, enum_type->width(), 1, false), enum_type_(enum_type->weak_from_this()) {}
+        : Var(m, name, enum_type->width(), 1, false), enum_type_(enum_type.get()) {}
 
-    const inline Enum *enum_type() const override { return enum_type_.lock().get(); }
+    const inline Enum *enum_type() const override { return enum_type_; }
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 protected:
@@ -634,7 +617,7 @@ protected:
                                          AssignmentType type) override;
 
 private:
-    std::weak_ptr<Enum> enum_type_;
+    Enum *enum_type_;
 };
 
 struct FunctionCallVar : public Var {
@@ -643,7 +626,7 @@ public:
                     const std::map<std::string, std::shared_ptr<Var>> &args,
                     bool has_return = true);
     bool is_function() const override { return true; }
-    FunctionStmtBlock *func() { return func_def_.lock().get(); }
+    FunctionStmtBlock *func() { return func_def_; }
 
     VarSlice &operator[](std::pair<uint32_t, uint32_t>) override {
         throw std::runtime_error("Slice a function call is not allowed");
@@ -664,14 +647,15 @@ public:
     const std::map<std::string, std::shared_ptr<Var>> &args() const { return args_; }
 
 private:
-    std::weak_ptr<FunctionStmtBlock> func_def_;
+    FunctionStmtBlock *func_def_;
     std::map<std::string, std::shared_ptr<Var>> args_;
 };
 
 struct InterfaceVar : public Var {
 public:
     InterfaceVar(InterfaceRef *interface, Generator *m, const std::string &name, uint32_t var_width,
-                 const std::vector<uint32_t> &size, bool is_signed);
+                 const std::vector<uint32_t> &size, bool is_signed)
+        : Var(m, name, var_width, size, is_signed), interface_(interface) {}
 
     std::string to_string() const override;
 
@@ -680,16 +664,8 @@ public:
     std::string base_name() const override;
 
 private:
-    std::weak_ptr<InterfaceRef> interface_;
+    InterfaceRef *interface_ = nullptr;
 };
-
-// for set and map and stl algorithms
-inline bool operator<(const std::weak_ptr<Var> &left, const std::weak_ptr<Var> &right) {
-    return left.lock() < right.lock();
-}
-inline bool operator==(const std::weak_ptr<Var> &left, const std::weak_ptr<Var> &right) {
-    return left.lock() == right.lock();
-}
 
 // helper functions
 namespace util {

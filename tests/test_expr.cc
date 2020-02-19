@@ -9,14 +9,14 @@ using namespace kratos;
 
 TEST(expr, arith) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
     Port &p_in = mod.port(PortDirection::In, "in", 1);
     Port &p_out = mod.port(PortDirection::Out, "out", 1);
 
     Var &var1 = mod.var("a", 1);
     Var &var2 = mod.var("b", 1);
     auto &expr = var1 + var2;
-    EXPECT_EQ(expr.left(), &var1);
+    EXPECT_EQ(expr.left, &var1);
 
     expr = p_in + p_out;
     EXPECT_EQ(expr.to_string(), "in + out");
@@ -52,7 +52,7 @@ TEST(expr, arith) {  // NOLINT
     // test slice
     Var &wire = mod.var("d", 4);
     auto &slice_expr = wire[{2, 0}];
-    EXPECT_EQ(slice_expr.parent_var(), wire.shared_from_this().get());
+    EXPECT_EQ(slice_expr.parent_var, wire.shared_from_this().get());
     EXPECT_EQ(slice_expr.high, 2);
     EXPECT_EQ(slice_expr.low, 0);
     EXPECT_EQ(slice_expr.to_string(), "d[2:0]");
@@ -77,7 +77,7 @@ TEST(expr, arith) {  // NOLINT
 
 TEST(expr, relational) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
 
     auto &var1 = mod.var("a", 2);
     auto &var2 = mod.var("b", 2);
@@ -87,7 +87,7 @@ TEST(expr, relational) {  // NOLINT
 
 TEST(expr, assign) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
 
     auto &var1 = mod.var("a", 1);
     auto &var2 = mod.var("b", 1);
@@ -105,6 +105,7 @@ TEST(expr, assign) {  // NOLINT
 
 TEST(expr, const_val) {  // NOLINT
     Context c;
+    auto mod = c.generator("mod");
     auto &c0 = constant(10, 4);
     EXPECT_ANY_THROW(constant(10, 4, true));
     auto &c1 = constant(-4, 4, true);
@@ -114,7 +115,7 @@ TEST(expr, const_val) {  // NOLINT
 
 TEST(expr, concat) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
     auto &var1 = mod.var("a", 1);
     auto &var2 = mod.var("b", 1);
     auto &var3 = var1.concat(var2);
@@ -131,7 +132,7 @@ TEST(expr, concat) {  // NOLINT
 
 TEST(expr, param) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
     auto p = Param(&mod, "a", 2, false);
     auto value = 2;
     p.set_value(value);
@@ -142,12 +143,12 @@ TEST(expr, param) {  // NOLINT
 
 TEST(expr, port_packed) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
     auto struct_ = PackedStruct("data", {{"value1", 1, false}, {"value2", 2, false}});
-    auto port = std::make_shared<PortPackedStruct>(&mod, PortDirection::In, "in", struct_);
+    auto port = PortPackedStruct(&mod, PortDirection::In, "in", struct_);
 
-    auto slice1 = PackedSlice(port.get(), "value2");
-    auto &slice2 = (*port)["value2"];
+    auto slice1 = PackedSlice(&port, "value2");
+    auto &slice2 = port["value2"];
 
     EXPECT_EQ(slice1.to_string(), "in.value2");
     EXPECT_EQ(slice1.to_string(), slice2.to_string());
@@ -157,7 +158,7 @@ TEST(expr, port_packed) {  // NOLINT
 
 TEST(expr, array_slice) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
     auto &array0 = mod.var("t", 4, 3, false);
     auto &slice0 = array0[2];
     EXPECT_EQ(slice0.to_string(), "t[2]");
@@ -166,7 +167,7 @@ TEST(expr, array_slice) {  // NOLINT
 
 TEST(expr, ternary) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
     auto &cond = mod.var("cond", 1);
     auto &a = mod.var("a", 1);
     auto &b = mod.var("b", 1);
@@ -180,7 +181,7 @@ TEST(expr, ternary) {  // NOLINT
 
 TEST(expr, unary) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
     auto &a = mod.var("a", 1);
     auto &b = mod.var("b", 1);
     EXPECT_EQ(a.r_or().to_string(), "|a");
@@ -192,7 +193,7 @@ TEST(expr, unary) {  // NOLINT
 
 TEST(expr, slice_by_var) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
     auto &a = mod.var("a", 16, 4);
     auto &b = mod.var("b", 2);
     auto &slice = a[b.shared_from_this()];
@@ -201,7 +202,7 @@ TEST(expr, slice_by_var) {  // NOLINT
 
 TEST(expr, keyword) {  // NOLINT
     Context c;
-    auto &mod = c.generator("mod");
+    auto mod = c.generator("mod");
 
     EXPECT_THROW(mod.var("var", 1), UserException);
 }
