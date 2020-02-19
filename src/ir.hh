@@ -1,8 +1,10 @@
 #ifndef KRATOS_IR_HH
 #define KRATOS_IR_HH
 
+#include <cereal/types/common.hpp>
 #include <cstdint>
 #include <vector>
+
 #include "context.hh"
 
 namespace kratos {
@@ -22,23 +24,32 @@ public:
 
 private:
     std::shared_ptr<void> target_ = nullptr;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(type_str, value_str);
+    }
+
+    Attribute() = default;
 };
 
 struct IRNode {
 public:
-    explicit IRNode(IRNodeKind type) : ast_node_type_(type) {}
+    explicit IRNode(IRNodeKind type) : id_node_kind_(type) {}
 
     virtual void accept(IRVisitor *) {}
     virtual uint64_t child_count() { return 0; }
     virtual IRNode *get_child(uint64_t) { return nullptr; }
     // the caller is responsible to check the return value; if it's larger than count + 1
     // it means its not found. default implementation is linear search
-    virtual uint64_t index_of(IRNode* node);
+    virtual uint64_t index_of(IRNode *node);
 
     IRNode *ast_node() { return this; }
 
     virtual IRNode *parent() { return nullptr; }
-    IRNodeKind ir_node_kind() { return ast_node_type_; }
+    IRNodeKind ir_node_kind() { return id_node_kind_; }
 
     std::vector<std::pair<std::string, uint32_t>> fn_name_ln;
 
@@ -58,8 +69,17 @@ public:
     virtual ~IRNode() = default;
 
 private:
-    IRNodeKind ast_node_type_;
+    IRNodeKind id_node_kind_;
     std::vector<std::shared_ptr<Attribute>> attributes_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(verilog_ln, comment, id_node_kind_, attributes_);
+    }
+
+    IRNode() = default;
 };
 
 class IRVisitor {
@@ -77,7 +97,7 @@ public:
     virtual inline void visit(Var *) {}
     virtual inline void visit(Port *) {}
     virtual inline void visit(VarSlice *) {}
-    virtual inline void visit(VarVarSlice*) {}
+    virtual inline void visit(VarVarSlice *) {}
     virtual inline void visit(VarConcat *) {}
     virtual inline void visit(Expr *) {}
     virtual inline void visit(EnumVar *) {}

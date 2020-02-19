@@ -299,33 +299,13 @@ public:
     // serialization
     template <class Archive>
     inline void serialize(Archive &ar) {
-        ar(lib_files_);
-        ar(context_);
-        ar(vars_);
-        ar(ports_);
-        ar(params_);
-        ar(exprs_);
-        ar(port_bundle_mapping_);
-        ar(stmts_);
-        ar(children_);
-        ar(children_names_);
-        ar(children_debug_);
-        ar(children_comments_);
-        ar(parent_generator_);
-        ar(is_stub_);
-        ar(is_external_);
-        ar(clones_);
-        ar(is_cloned_);
-        ar(named_blocks_);
-        ar(enums_);
-        // TODO add fsms
-        ar(funcs_);
-        ar(func_index_);
-        ar(calls_);
-        ar(def_instance_);
-        ar(auxiliary_vars_);
-        ar(interfaces_);
-        ar(properties_);
+        ar(cereal::base_class<IRNode>(this), lib_files_, context_, vars_, ports_, params_, exprs_,
+           port_bundle_mapping_, stmts_, children_, children_names_, children_debug_,
+           children_comments_, parent_generator_, is_stub_, is_external_, clones_, is_cloned_,
+           named_blocks_, enums_,
+           /* TODO add fsms */
+           funcs_, func_index_, calls_, cereal::defer(def_instance_), auxiliary_vars_, interfaces_,
+           properties_);
     }
 };
 

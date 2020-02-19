@@ -1,6 +1,11 @@
 #ifndef KRATOS_EXPR_HH
 #define KRATOS_EXPR_HH
 
+#include <cereal/cereal.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/tuple.hpp>
+#include <cereal/types/unordered_set.hpp>
+#include <cereal/types/vector.hpp>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -240,6 +245,15 @@ protected:
 private:
     std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
     std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> extended_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<IRNode>(this), var_width_, size_, is_signed_, sinks_, sources_, type_,
+           concat_vars_, slices_, before_var_str_, after_var_str_, explicit_array_,
+           cereal::defer(param_), is_packed_, cereal::defer(generator_), casted_, extended_);
+    }
 };
 
 struct EnumType {
@@ -296,6 +310,13 @@ private:
     VarCastType cast_type_;
     // only used for enum
     std::weak_ptr<Enum> enum_type_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Var>(this), cereal::defer(parent_var_), cast_type_, enum_type_);
+    }
 };
 
 struct VarSlice : public Var {
@@ -336,6 +357,14 @@ protected:
     uint32_t var_low_ = 0;
 
     std::pair<uint32_t, uint32_t> op_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Var>(this), low, high, cereal::defer(parent_var_), var_high_,
+           var_low_, op_);
+    }
 };
 
 struct VarVarSlice : public VarSlice {
@@ -359,6 +388,13 @@ public:
 
 private:
     std::weak_ptr<Var> sliced_var_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<VarSlice>(this), cereal::defer(sliced_var_));
+    }
 };
 
 struct Const : public Var {
@@ -391,6 +427,13 @@ private:
     // created without a generator holder
     static std::unordered_set<std::shared_ptr<Const>> consts_;
     static std::shared_ptr<Generator> const_generator_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Var>(this), cereal::defer(value_));
+    }
 };
 
 // helper function
@@ -421,6 +464,14 @@ private:
     std::set<std::weak_ptr<Var>> param_vars_;
     std::set<std::weak_ptr<Param>> param_params_;
     std::weak_ptr<Param> parent_param_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Const>(this), parameter_name_, cereal::defer(param_vars_),
+           cereal::defer(param_params_), cereal::defer(parent_param_));
+    }
 };
 
 struct PackedStruct {
@@ -430,6 +481,14 @@ public:
 
     PackedStruct(std::string struct_name,
                  std::vector<std::tuple<std::string, uint32_t, bool>> attributes);
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(struct_name);
+        ar(attributes);
+    }
 };
 
 struct PackedSlice : public VarSlice {
@@ -444,6 +503,13 @@ public:
 private:
     void set_up(const PackedStruct &struct_, const std::string &member_name);
     std::string member_name_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<VarSlice>(this), member_name_);
+    }
 };
 
 struct PackedInterface {
@@ -475,6 +541,13 @@ public:
 
 private:
     PackedStruct struct_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Var>(this), struct_);
+    }
 };
 
 struct Expr : public Var {
@@ -508,6 +581,13 @@ private:
 
     std::weak_ptr<Var> left_;
     std::weak_ptr<Var> right_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Var>(this), cereal::defer(left_), cereal::defer(right_));
+    }
 };
 
 struct VarConcat : public Expr {
@@ -537,6 +617,13 @@ public:
 
 private:
     std::vector<std::weak_ptr<Var>> vars_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Expr>(this), cereal::defer(vars_));
+    }
 };
 
 struct VarExtend : public Expr {
@@ -555,6 +642,13 @@ public:
 
 private:
     std::weak_ptr<Var> parent_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Expr>(this), cereal::defer(parent_));
+    }
 };
 
 struct ConditionalExpr : public Expr {
@@ -571,6 +665,13 @@ struct ConditionalExpr : public Expr {
 
 private:
     std::weak_ptr<Var> condition_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Expr>(this), cereal::defer(condition_));
+    }
 };
 
 struct EnumConst : public Const {
@@ -590,6 +691,13 @@ public:
 private:
     std::weak_ptr<Enum> parent_;
     std::string name_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Const>(this), cereal::defer(parent_), name);
+    }
 };
 
 struct Enum : std::enable_shared_from_this<Enum> {
@@ -617,6 +725,15 @@ private:
     uint32_t width_;
     bool local_ = true;
     std::map<std::string, std::shared_ptr<EnumConst>> values_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(width_);
+        ar(local_);
+        ar(values_);
+    }
 };
 
 struct EnumVar : public Var, public EnumType {
@@ -635,6 +752,13 @@ protected:
 
 private:
     std::weak_ptr<Enum> enum_type_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Var>(this), cereal::defer(enum_type_));
+    }
 };
 
 struct FunctionCallVar : public Var {
@@ -666,6 +790,13 @@ public:
 private:
     std::weak_ptr<FunctionStmtBlock> func_def_;
     std::map<std::string, std::shared_ptr<Var>> args_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Var>(this), cereal::defer(func_def_), args_);
+    }
 };
 
 struct InterfaceVar : public Var {
@@ -681,6 +812,13 @@ public:
 
 private:
     std::weak_ptr<InterfaceRef> interface_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Var>(this), cereal::defer(interface_));
+    }
 };
 
 // for set and map and stl algorithms

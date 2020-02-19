@@ -50,3 +50,8 @@ add_executable(test_fault test_fault.cc)
 target_link_libraries(test_fault gtest kratos gtest_main)
 gtest_discover_tests(test_fault
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vectors)
+
+add_executable(test_serialize test_serialize.cc)
+target_link_libraries(test_serialize gtest kratos gtest_main)
+gtest_discover_tests(test_serialize
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vectors)

@@ -8,7 +8,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <cereal/types/unordered_map.hpp>
-#include <cereal/types/unordered_set.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/memory.hpp>
 
 namespace kratos {
 
@@ -106,6 +107,17 @@ public:
     void reset_enum();
 
     void clear();
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(modules_);
+        ar(generator_hash_);
+        ar(max_instance_id_);
+        ar(max_stmt_id_);
+        ar(enum_defs_);
+    }
 };
 
 }  // namespace kratos

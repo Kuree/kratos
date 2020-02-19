@@ -1,6 +1,9 @@
 #ifndef KRATOS_PORT_HH
 #define KRATOS_PORT_HH
 
+#include <cereal/cereal.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/optional.hpp>
 #include <optional>
 #include <set>
 #include <string>
@@ -48,6 +51,13 @@ private:
     PortType type_;
 
     std::optional<bool> active_high_ = std::nullopt;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Var>(this), direction_, type_, active_high_);
+    }
 };
 
 // diamond virtual inheritance is close to impossible in pybind. duplicate the logic here
@@ -67,6 +77,13 @@ protected:
 
 private:
     std::weak_ptr<Enum> enum_type_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Port>(this), cereal::defer(enum_type_));
+    }
 };
 
 struct PortPackedStruct : public Port, public PackedInterface {
@@ -96,6 +113,13 @@ public:
 
 private:
     PackedStruct struct_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Port>(this), struct_);
+    }
 };
 
 struct PortBundleDefinition {
@@ -129,6 +153,16 @@ private:
     std::map<std::string, std::pair<std::string, uint32_t>> debug_info_;
 
     PortBundleDefinition() = default;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(name_);
+        ar(definitions_);
+        ar(flipped_definitions_);
+        ar(debug_info_);
+    }
 };
 
 struct PortBundleRef : public PackedInterface {
@@ -154,13 +188,22 @@ private:
     std::weak_ptr<Generator> generator_;
     const PortBundleDefinition definition_;
     std::map<std::string, std::string> name_mappings_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::defer(generator_));
+        ar(definition_);
+        ar(name_mappings_);
+    }
 };
 
 struct InterfacePort : public Port {
 public:
     InterfacePort(InterfaceRef *interface, Generator *module, PortDirection direction,
-                         const std::string &name, uint32_t width, const std::vector<uint32_t> &size,
-                         PortType type, bool is_signed);
+                  const std::string &name, uint32_t width, const std::vector<uint32_t> &size,
+                  PortType type, bool is_signed);
 
     std::string to_string() const override;
     std::string base_name() const override;
@@ -170,6 +213,13 @@ public:
 
 private:
     std::weak_ptr<InterfaceRef> interface_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Port>(this), cereal::defer(interface_));
+    }
 };
 
 struct ModportPort : public InterfacePort {
@@ -196,8 +246,16 @@ public:
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override { var()->add_source(stmt); }
 
 private:
-    inline Var* var() const { return var_.lock().get(); }
+    inline Var *var() const { return var_.lock().get(); }
     std::weak_ptr<Var> var_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<InterfacePort>(this), cereal::defer(var_));
+    }
+
 };
 
 }  // namespace kratos
