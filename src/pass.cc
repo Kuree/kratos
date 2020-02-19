@@ -461,7 +461,7 @@ public:
             generator->add_stmt(stmt);
             // remove the stmts that's fold into the instantiation statement
             for (auto const& st : stmt->connection_stmt()) {
-                st->remove_from_parent();
+                st.lock()->remove_from_parent();
             }
         }
     }
@@ -484,7 +484,7 @@ public:
 
             // remove the stmts that's fold into the instantiation statement
             for (auto const& st : stmt->connection_stmt()) {
-                st->remove_from_parent();
+                st.lock()->remove_from_parent();
             }
         }
     }

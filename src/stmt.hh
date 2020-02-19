@@ -38,7 +38,7 @@ public:
     }
 
     IRNode *parent() override;
-    virtual void set_parent(IRNode *parent) { parent_ = parent; }
+    virtual void set_parent(IRNode *parent);
     Generator *generator_parent() const;
 
     void accept(IRVisitor *) override {}
@@ -64,7 +64,7 @@ public:
 
 protected:
     StatementType type_;
-    IRNode *parent_ = nullptr;
+    std::weak_ptr<IRNode> parent_;
     int stmt_id_ = -1;
 
     std::map<std::string, std::pair<bool, std::string>> scope_context_;
@@ -142,6 +142,11 @@ private:
     std::shared_ptr<Var> predicate_;
     std::shared_ptr<ScopedStmtBlock> then_body_;
     std::shared_ptr<ScopedStmtBlock> else_body_;
+
+    bool has_initialized_ = false;
+    void initialize_parent();
+    // just to pass connectivity check
+    std::shared_ptr<Stmt> predicate_stmt_;
 };
 
 class SwitchStmt : public Stmt {
@@ -182,6 +187,11 @@ private:
     std::shared_ptr<Var> target_;
     // default case will be indexed as nullptr
     std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> body_;
+
+    // for connectivity
+    void initialize_parent();
+    bool has_initialized_ = false;
+    std::shared_ptr<Stmt> target_stmt_;
 };
 
 class StmtBlock : public Stmt {
@@ -273,7 +283,7 @@ public:
     void set_port_ordering(const std::map<std::string, uint32_t> &ordering);
     void set_port_ordering(const std::map<uint32_t, std::string> &ordering);
     const std::map<std::string, uint32_t> &port_ordering() const { return port_ordering_; }
-    Generator *generator() { return parent_; }
+    Generator *generator() { return parent_.lock().get(); }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
@@ -281,7 +291,7 @@ public:
     virtual bool is_dpi() { return false; }
 
 protected:
-    Generator *parent_;
+    std::weak_ptr<Generator> parent_;
     std::string function_name_;
 
     std::map<std::string, std::shared_ptr<Port>> ports_;
@@ -326,11 +336,10 @@ public:
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
-    const FunctionStmtBlock *func_def() const { return func_def_; }
     std::shared_ptr<Var> value() const { return value_; }
 
 private:
-    FunctionStmtBlock *func_def_;
+    std::weak_ptr<FunctionStmtBlock> func_def_;
     std::shared_ptr<Var> value_;
 };
 
@@ -354,9 +363,17 @@ private:
 // TODO: Merge module instantiation and Interface instantiation stmt
 class InstantiationStmt {
 public:
-    const std::map<Port *, Var *> &port_mapping() const { return port_mapping_; }
-    const std::map<Var *, Stmt *> &port_debug() const { return port_debug_; }
-    const std::unordered_set<AssignStmt *> &connection_stmt() const { return connection_stmt_; }
+    [[nodiscard]] inline const std::map<std::weak_ptr<Port>, std::weak_ptr<Var>> &port_mapping()
+        const {
+        return port_mapping_;
+    }
+    [[nodiscard]] inline const std::map<std::weak_ptr<Var>, std::weak_ptr<Stmt>> &port_debug()
+        const {
+        return port_debug_;
+    }
+    [[nodiscard]] const std::set<std::weak_ptr<AssignStmt>> &connection_stmt() const {
+        return connection_stmt_;
+    }
 
     enum class InstantiationType { Module, Interface };
 
@@ -365,10 +382,10 @@ public:
     virtual ~InstantiationStmt() = default;
 
 protected:
-    std::map<Port *, Var *> port_mapping_;
+    std::map<std::weak_ptr<Port>, std::weak_ptr<Var>> port_mapping_;
 
-    std::map<Var *, Stmt *> port_debug_;
-    std::unordered_set<AssignStmt *> connection_stmt_;
+    std::map<std::weak_ptr<Var>, std::weak_ptr<Stmt>> port_debug_;
+    std::set<std::weak_ptr<AssignStmt>> connection_stmt_;
 
     void process_port(kratos::Port *port, Generator *parent, const std::string &target_name);
 };
@@ -381,24 +398,24 @@ public:
 
     InstantiationType instantiation_type() const override { return InstantiationType::Module; }
 
-    const Generator *target() { return target_; }
+    const Generator *target() { return target_.lock().get(); }
 
 private:
-    Generator *target_;
+    std::weak_ptr<Generator> target_;
 };
 
 class InterfaceInstantiationStmt : public Stmt, public InstantiationStmt {
 public:
     InterfaceInstantiationStmt(Generator *parent, InterfaceRef *interface);
 
-    [[nodiscard]] const InterfaceRef *interface() const { return interface_; }
+    [[nodiscard]] const InterfaceRef *interface() const { return interface_.lock().get(); }
 
     InstantiationType instantiation_type() const override { return InstantiationType::Interface; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 private:
-    InterfaceRef *interface_;
+    std::weak_ptr<InterfaceRef> interface_;
 };
 
 class CommentStmt : public Stmt {
@@ -423,6 +440,11 @@ public:
 private:
     std::vector<std::string> stmts_;
 };
+
+// for set and map and stl algorithms
+inline bool operator<(const std::weak_ptr<Stmt> &left, const std::weak_ptr<Stmt> &right) {
+    return left.lock() < right.lock();
+}
 
 }  // namespace kratos
 

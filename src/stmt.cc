@@ -14,10 +14,22 @@ using std::move;
 
 namespace kratos {
 
-IRNode *Stmt::parent() { return parent_; }
+IRNode *Stmt::parent() { return parent_.lock().get(); }
+
+void Stmt::set_parent(IRNode *parent) {
+    if (parent->ir_node_kind() == IRNodeKind::GeneratorKind) {
+        auto p = reinterpret_cast<Generator *>(parent);
+        parent_ = p->weak_from_this();
+    } else if (parent->ir_node_kind() == IRNodeKind::StmtKind) {
+        auto p = reinterpret_cast<Stmt *>(parent);
+        parent_ = p->weak_from_this();
+    } else {
+        throw UserException("Statement can only be added to Generator or another Statement");
+    }
+}
 
 Generator *Stmt::generator_parent() const {
-    IRNode *p = parent_;
+    IRNode *p = parent_.lock().get();
     // we don't do while loop here to prevent infinite loop
     // 100000 is sufficient for almost all designs.
     for (uint32_t i = 0; i < 100000u && p; i++) {
@@ -42,12 +54,13 @@ void Stmt::add_scope_variable(const std::string &name, const std::string &value,
 }
 
 void Stmt::remove_from_parent() {
-    if (!parent_) throw StmtException("Cannot remove stmt whose parent is null", {this});
-    if (parent_->ir_node_kind() == IRNodeKind::GeneratorKind) {
-        auto gen = reinterpret_cast<Generator *>(parent_);
+    auto p = parent();
+    if (!p) throw StmtException("Cannot remove stmt whose parent is null", {this});
+    if (p->ir_node_kind() == IRNodeKind::GeneratorKind) {
+        auto gen = reinterpret_cast<Generator *>(p);
         gen->remove_stmt(shared_from_this());
-    } else if (parent_->ir_node_kind() == IRNodeKind::StmtKind) {
-        auto stmt = reinterpret_cast<Stmt *>(parent_);
+    } else if (p->ir_node_kind() == IRNodeKind::StmtKind) {
+        auto stmt = reinterpret_cast<Stmt *>(p);
         stmt->remove_stmt(shared_from_this());
     } else {
         throw StmtException("Statement parent is null", {this});
@@ -111,7 +124,7 @@ IRNode *AssignStmt::get_child(uint64_t index) {
 }
 
 void AssignStmt::set_parent(kratos::IRNode *parent) {
-    bool has_parent = parent_ != nullptr;
+    bool has_parent = this->parent() != nullptr;
     Stmt::set_parent(parent);
     // push the stmt into its sources
     if (!has_parent) {
@@ -126,21 +139,20 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
     then_body_ = std::make_shared<ScopedStmtBlock>();
     else_body_ = std::make_shared<ScopedStmtBlock>();
 
-    then_body_->set_parent(this);
-    else_body_->set_parent(this);
-
     // just to add the sinks
-    auto stmt = predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
-    stmt->set_parent(this);
+    predicate_stmt_ =
+        predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
 }
 
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
+    initialize_parent();
     if (stmt->type() == StatementType::Block)
         throw StmtException("cannot add statement block to the if statement body", {this});
     then_body_->add_stmt(stmt);
 }
 
 void IfStmt::add_else_stmt(const std::shared_ptr<Stmt> &stmt) {
+    initialize_parent();
     if (stmt->type() == StatementType::Block)
         throw StmtException("cannot add statement block to the if statement body", {this});
     else_body_->add_stmt(stmt);
@@ -170,6 +182,7 @@ void IfStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
 }
 
 IRNode *IfStmt::get_child(uint64_t index) {
+    initialize_parent();
     if (index == 0)
         return predicate_.get();
     else if (index == 1)
@@ -185,6 +198,16 @@ void IfStmt::add_scope_variable(const std::string &name, const std::string &valu
     Stmt::add_scope_variable(name, value, is_var, override);
     then_body_->add_scope_variable(name, value, is_var, override);
     else_body_->add_scope_variable(name, value, is_var, override);
+}
+
+void IfStmt::initialize_parent() {
+    if (!has_initialized_) {
+        then_body_->set_parent(this);
+        else_body_->set_parent(this);
+
+        predicate_stmt_->set_parent(this);
+        has_initialized_ = true;
+    }
 }
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
@@ -267,12 +290,12 @@ SwitchStmt::SwitchStmt(Var &target)
                             {this, &target});
 
     // just to add the sinks
-    auto stmt = target.generator()->get_auxiliary_var(target.width())->assign(target);
-    stmt->set_parent(this);
+    target_stmt_ = target.generator()->get_auxiliary_var(target.width())->assign(target);
 }
 
 ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                                              const std::shared_ptr<Stmt> &stmt) {
+    initialize_parent();
     stmt->set_parent(this);
     if (body_.find(switch_case) == body_.end()) {
         auto block = std::make_shared<ScopedStmtBlock>();
@@ -289,6 +312,13 @@ ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switc
         body_[switch_case]->add_stmt(stmt);
     }
     return *body_[switch_case];
+}
+
+void SwitchStmt::initialize_parent() {
+    if (!has_initialized_) {
+        target_stmt_->set_parent(this);
+        has_initialized_ = true;
+    }
 }
 
 ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
@@ -370,7 +400,7 @@ std::vector<std::shared_ptr<VarSlice>> filter_slice_pairs_with_target(
 
 FunctionStmtBlock::FunctionStmtBlock(kratos::Generator *parent, std::string function_name)
     : StmtBlock(StatementBlockType::Function),
-      parent_(parent),
+      parent_(parent->weak_from_this()),
       function_name_(std::move(function_name)) {}
 
 void FunctionStmtBlock::create_function_handler(uint32_t width, bool is_signed) {
@@ -379,13 +409,13 @@ void FunctionStmtBlock::create_function_handler(uint32_t width, bool is_signed) 
                            {function_handler_.get()});
     }
     function_handler_ =
-        std::make_shared<Port>(parent_, PortDirection::In, function_name_ + "_return", width, 1,
+        std::make_shared<Port>(generator(), PortDirection::In, function_name_ + "_return", width, 1,
                                PortType::Data, is_signed);
 }
 
 std::shared_ptr<Port> FunctionStmtBlock::input(const std::string &name, uint32_t width,
                                                bool is_signed) {
-    auto p = std::make_shared<Port>(parent_, PortDirection::In, name, width, 1, PortType::Data,
+    auto p = std::make_shared<Port>(generator(), PortDirection::In, name, width, 1, PortType::Data,
                                     is_signed);
     ports_.emplace(name, p);
     return p;
@@ -423,7 +453,7 @@ std::shared_ptr<Port> DPIFunctionStmtBlock::output(const std::string &name, uint
                                                    bool is_signed) {
     // record the ordering
     port_ordering_.emplace(name, port_ordering_.size());
-    auto p = std::make_shared<Port>(parent_, PortDirection::Out, name, width, 1, PortType::Data,
+    auto p = std::make_shared<Port>(generator(), PortDirection::Out, name, width, 1, PortType::Data,
                                     is_signed);
     ports_.emplace(name, p);
     return p;
@@ -447,7 +477,9 @@ void DPIFunctionStmtBlock::set_is_pure(bool value) {
 }
 
 ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def, std::shared_ptr<Var> value)
-    : Stmt(StatementType::Return), func_def_(func_def), value_(std::move(value)) {}
+    : Stmt(StatementType::Return),
+      func_def_(std::static_pointer_cast<FunctionStmtBlock>(func_def->shared_from_this())),
+      value_(std::move(value)) {}
 
 void ReturnStmt::set_parent(kratos::IRNode *parent) {
     Stmt::set_parent(parent);
@@ -475,13 +507,14 @@ void ReturnStmt::set_parent(kratos::IRNode *parent) {
         throw ::runtime_error("Can only add return statement to function block");
     }
      */
-    func_def_->set_has_return_value(true);
+    auto def = func_def_.lock().get();
+    def->set_has_return_value(true);
     // need to handle the assignments
-    if (!func_def_->function_handler()) {
+    if (!def->function_handler()) {
         // create a function handler
-        func_def_->create_function_handler(value_->width(), value_->is_signed());
+        def->create_function_handler(value_->width(), value_->is_signed());
     }
-    auto p = func_def_->function_handler();
+    auto p = def->function_handler();
     auto s = p->assign(value_, AssignmentType::Blocking);
     s->set_parent(this);
 }
@@ -531,12 +564,14 @@ void InstantiationStmt::process_port(kratos::Port *port, Generator *parent,
                     ::format("{0}.{1} is driven by multiple nets", target_name, port_name), {port});
             // add it to the port mapping and we are good to go
             auto const &stmt = *sources.begin();
-            port_mapping_.emplace(port, stmt->right());
+            auto p_ptr = std::static_pointer_cast<Port>(port->as<Port>());
+            auto v_ptr = stmt->right()->weak_from_this();
+            port_mapping_.emplace(p_ptr, v_ptr);
             if (parent->debug) {
-                port_debug_.emplace(port, stmt.get());
+                port_debug_.emplace(port->weak_from_this(), stmt->weak_from_this());
             }
             // add it to the mapping list
-            connection_stmt_.emplace(stmt.get());
+            connection_stmt_.emplace(std::static_pointer_cast<AssignStmt>(stmt->shared_from_this()));
             // remove it from the parent
             stmt->remove_from_parent();
         } else {
@@ -552,10 +587,12 @@ void InstantiationStmt::process_port(kratos::Port *port, Generator *parent,
         if (slices.empty()) {
             if (!sinks.empty() && sinks.size() == 1) {
                 auto stmt = *sinks.begin();
-                port_mapping_.emplace(port, stmt->left());
+                auto p_ptr = std::static_pointer_cast<Port>(port->as<Port>());
+                auto v_ptr = stmt->left()->weak_from_this();
+                port_mapping_.emplace(p_ptr, v_ptr);
                 stmt->remove_from_parent();
                 if (parent->debug) {
-                    port_debug_.emplace(port, stmt.get());
+                    port_debug_.emplace(port->weak_from_this(), stmt->weak_from_this());
                 }
             } else if (!sinks.empty() && sinks.size() > 1) {
                 throw InternalException(
@@ -573,7 +610,7 @@ void InstantiationStmt::process_port(kratos::Port *port, Generator *parent,
 }
 
 ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *parent)
-    : Stmt(StatementType::ModuleInstantiation), target_(target) {
+    : Stmt(StatementType::ModuleInstantiation), target_(target->weak_from_this()) {
     auto const &port_names = target->get_port_names();
     for (auto const &port_name : port_names) {
         auto const &port_shared = target->get_port(port_name);
@@ -585,7 +622,7 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
 
 InterfaceInstantiationStmt::InterfaceInstantiationStmt(kratos::Generator *parent,
                                                        kratos::InterfaceRef *interface)
-    : Stmt(StatementType::InterfaceInstantiation), interface_(interface) {
+    : Stmt(StatementType::InterfaceInstantiation), interface_(interface->weak_from_this()) {
     for (auto const &[port_name, port] : interface->ports()) {
         process_port(port, parent, interface->name());
     }

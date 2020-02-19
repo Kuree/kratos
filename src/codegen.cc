@@ -342,7 +342,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
 void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
     if (stmt->left()->type() == VarType::PortIO) {
         auto port = stmt->left()->as<Port>();
-        if (port->port_direction() == PortDirection::In && stmt->left()->generator() == generator_) {
+        if (port->port_direction() == PortDirection::In &&
+            stmt->left()->generator() == generator_) {
             throw StmtException("Cannot drive a module's input from itself",
                                 {stmt, stmt->left(), stmt->right()});
         }
@@ -831,7 +832,8 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
     std::vector<std::pair<Port*, Var*>> ports;
     auto const& mapping = stmt->port_mapping();
     ports.reserve(mapping.size());
-    for (auto const& iter : mapping) ports.emplace_back(iter);
+    for (auto const& [p, v] : mapping)
+        ports.emplace_back(std::make_pair(p.lock().get(), v.lock().get()));
     std::sort(ports.begin(), ports.end(),
               [](const auto& lhs, const auto& rhs) { return lhs.first->name < rhs.first->name; });
     auto debug_info = stmt->port_debug();
@@ -839,8 +841,9 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
     std::vector<std::pair<std::string, std::string>> connections;
     connections.reserve(ports.size());
     for (auto const& [internal, external] : ports) {
-        if (generator_->debug && debug_info.find(internal) != debug_info.end()) {
-            debug_info.at(internal)->verilog_ln = stream_.line_no();
+        auto ptr = internal->weak_from_this();
+        if (generator_->debug && debug_info.find(ptr) != debug_info.end()) {
+            debug_info.at(ptr).lock()->verilog_ln = stream_.line_no();
         }
         std::string internal_name;
         std::string external_name;
@@ -1092,7 +1095,7 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
             // need to flatten the array
             auto slices = get_flatten_slices(p.get());
             // create port for them based on the slice
-            for (auto const &slice: slices) {
+            for (auto const& slice : slices) {
                 std::string name = port_name;
                 for (auto const& s : slice) name = ::format("{0}_{1}", name, s);
                 auto slice_port = &(*p)[slice[0]];
@@ -1135,16 +1138,15 @@ std::pair<std::string, uint32_t> generate_sv_package_header(Generator* top,
         stream << "package " << package_name << ";" << stream.endl();
     }
 
-
     // all the information list
     auto info_list = {dpi_info, struct_info, enum_info, interface_info};
-    for (auto const &info : info_list) {
-        for (auto const &iter: info) {
+    for (auto const& info : info_list) {
+        for (auto const& iter : info) {
             auto def = iter.second;
             // split on new line to replace with the stream new line so that we can track
             // the new lines
             auto lines = string::get_tokens(def, "\n");
-            for (auto const &line: lines) {
+            for (auto const& line : lines) {
                 stream << line << stream.endl();
             }
             stream << stream.endl();

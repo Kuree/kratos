@@ -86,7 +86,7 @@ private:
     void visit_module_instantiation(ModuleInstantiationStmt *stmt) {
         auto connection_stmts = stmt->connection_stmt();
         for (auto const &assign : connection_stmts) {
-            visit_assign(assign);
+            visit_assign(assign.lock().get());
         }
     }
 

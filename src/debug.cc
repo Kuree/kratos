@@ -378,7 +378,9 @@ public:
                 auto target = mod->target();
                 auto target_handle_name = target->handle_name();
                 auto mapping = mod->port_mapping();
-                for (auto [target_port, parent_var] : mapping) {
+                for (auto [target_port_ptr, parent_var_ptr] : mapping) {
+                    auto target_port = target_port_ptr.lock().get();
+                    auto parent_var = parent_var_ptr.lock().get();
                     // we ignore the constant connection
                     if (parent_var->type() != VarType::PortIO) {
                         if (target_port->port_direction() == PortDirection::In) {
