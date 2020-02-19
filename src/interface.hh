@@ -108,16 +108,24 @@ private:
     std::set<std::string> outputs_;
 };
 
-struct InterfaceRef: public std::enable_shared_from_this<InterfaceRef> {
+struct InterfaceRef : public std::enable_shared_from_this<InterfaceRef> {
 public:
-    explicit InterfaceRef(std::shared_ptr<IDefinition> instance, Generator *gen, std::string name)
-        : definition_(std::move(instance)), gen_(gen), name_(std::move(name)) {}
+    InterfaceRef(std::shared_ptr<IDefinition> instance, Generator *gen, std::string name);
+
     Var &var(const std::string &name) const;
     Port &port(const std::string &name) const;
-    void var(const std::string &name, Var *var) { vars_.emplace(name, var); }
-    void port(const std::string &name, Port *port) { ports_.emplace(name, port); }
-    [[nodiscard]] const std::unordered_map<std::string, Var *> &vars() const { return vars_; }
-    [[nodiscard]] const std::unordered_map<std::string, Port *> &ports() const { return ports_; }
+    inline void var(const std::string &name, Var *var) {
+        vars_.emplace(name, var->weak_from_this());
+    }
+    inline void port(const std::string &name, Port *port) {
+        ports_.emplace(name, std::static_pointer_cast<Port>(port->shared_from_this()));
+    }
+    [[nodiscard]] inline const std::unordered_map<std::string, std::weak_ptr<Var>> &vars() const {
+        return vars_;
+    }
+    [[nodiscard]] inline const std::unordered_map<std::string, std::weak_ptr<Port>> &ports() const {
+        return ports_;
+    }
 
     [[nodiscard]] inline bool has_var(const std::string &name) const {
         return vars_.find(name) != vars_.end();
@@ -129,7 +137,7 @@ public:
     bool &is_port() { return is_port_; }
     bool is_port() const { return is_port_; }
 
-    [[nodiscard]] Generator *gen() const { return gen_; }
+    [[nodiscard]] Generator *gen() const { return gen_.lock().get(); }
     [[nodiscard]] const std::string &name() const { return name_; }
     [[nodiscard]] std::string base_name() const;
     [[nodiscard]] bool has_instantiated() const { return has_instantiated_; }
@@ -141,11 +149,11 @@ public:
 
 private:
     std::shared_ptr<IDefinition> definition_;
-    std::unordered_map<std::string, Var *> vars_;
-    std::unordered_map<std::string, Port *> ports_;
+    std::unordered_map<std::string, std::weak_ptr<Var>> vars_;
+    std::unordered_map<std::string, std::weak_ptr<Port>> ports_;
 
     bool is_port_ = false;
-    Generator *gen_;
+    std::weak_ptr<Generator> gen_;
     std::string name_;
 
     bool has_instantiated_ = false;
@@ -154,7 +162,7 @@ private:
     // only used for modport logic
     std::unordered_map<std::string, std::shared_ptr<ModportPort>> modport_ports_;
 
-    InterfaceRef* interface_parent_ = nullptr;
+    std::weak_ptr<InterfaceRef> interface_parent_;
 };
 
 }  // namespace kratos

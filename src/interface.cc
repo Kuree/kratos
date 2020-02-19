@@ -2,6 +2,7 @@
 
 #include "except.hh"
 #include "fmt/format.h"
+#include "generator.hh"
 
 using fmt::format;
 
@@ -154,23 +155,25 @@ std::string InterfaceModPortDefinition::def_name() const {
     return ::format("{0}.{1}", def_->def_name(), name_);
 }
 
+InterfaceRef::InterfaceRef(std::shared_ptr<IDefinition> instance, kratos::Generator* gen,
+                           std::string name)
+    : definition_(std::move(instance)), gen_(gen->weak_from_this()), name_(std::move(name)) {}
+
 Var& InterfaceRef::var(const std::string& name) const {
     if (!has_var(name)) {
         throw UserException(::format("{0} not found in {1}", name, name_));
     }
-    return *vars_.at(name);
+    return *vars_.at(name).lock();
 }
 
 Port& InterfaceRef::port(const std::string& name) const {
     if (!has_port(name)) {
         throw UserException(::format("{0} not found in {1}", name, name_));
     }
-    return *ports_.at(name);
+    return *ports_.at(name).lock();
 }
 
-std::string InterfaceRef::base_name() const {
-    return name();
-}
+std::string InterfaceRef::base_name() const { return name(); }
 
 std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& name) {
     if (mod_ports_.find(name) != mod_ports_.end()) return mod_ports_.at(name);
@@ -183,8 +186,8 @@ std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& n
         throw UserException(
             ::format("Unable to find modport {0} from {1}", name, definition->name()));
     auto modport_def = modports.at(name);
-    auto new_ref =
-        std::make_shared<InterfaceRef>(modport_def, gen_, ::format("{0}.{1}", name_, name));
+    auto new_ref = std::make_shared<InterfaceRef>(modport_def, gen_.lock().get(),
+                                                  ::format("{0}.{1}", name_, name));
     // pass through the variable reference
     // since it's modport, it can only be ports
     auto ports = modport_def->ports();
@@ -201,7 +204,7 @@ std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& n
         }
     }
     mod_ports_.emplace(name, new_ref);
-    new_ref->interface_parent_ = this;
+    new_ref->interface_parent_ = this->weak_from_this();
     return new_ref;
 }
 

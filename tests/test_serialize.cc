@@ -12,8 +12,8 @@ TEST(serialize, generator) {    // NOLINT
     c.generator("mod");
 
     std::ostringstream s;
-    serialize(s, &c);
-    printf("%s\n", s.str().c_str());
+    //serialize(s, &c);
+    //printf("%s\n", s.str().c_str());
 }
 
 }

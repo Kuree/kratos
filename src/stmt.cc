@@ -624,7 +624,7 @@ InterfaceInstantiationStmt::InterfaceInstantiationStmt(kratos::Generator *parent
                                                        kratos::InterfaceRef *interface)
     : Stmt(StatementType::InterfaceInstantiation), interface_(interface->weak_from_this()) {
     for (auto const &[port_name, port] : interface->ports()) {
-        process_port(port, parent, interface->name());
+        process_port(port.lock().get(), parent, interface->name());
     }
     interface->has_instantiated() = true;
 }

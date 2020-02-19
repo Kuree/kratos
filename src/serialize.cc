@@ -31,8 +31,8 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(kratos::InterfacePort, kratos::ModportPort)
 
 namespace kratos {
 
-void serialize(std::ostream &ostream, std::shared_ptr<Context> context) {
-    cereal::JSONOutputArchive o_archive(ostream);
-    o_archive(context);
-}
+//void serialize(std::ostream &ostream, std::shared_ptr<Context> context) {
+//    cereal::JSONOutputArchive o_archive(ostream);
+//    o_archive(context);
+//}
 }

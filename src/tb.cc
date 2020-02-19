@@ -11,7 +11,7 @@ using fmt::format;
 
 namespace kratos {
 
-AssertValueStmt::AssertValueStmt(const std::shared_ptr<Var> &expr) : assert_var_(expr.get()) {
+AssertValueStmt::AssertValueStmt(const std::shared_ptr<Var> &expr) : assert_var_(expr->weak_from_this()) {
     // making sure that the expression has to be width 1
     if (expr->width() != 1) throw VarException("Assert variable has to be width 1", {expr.get()});
 }
@@ -19,11 +19,11 @@ AssertValueStmt::AssertValueStmt(const std::shared_ptr<Var> &expr) : assert_var_
 AssertValueStmt::AssertValueStmt() : AssertValueStmt(constant(0, 1).as<Const>()) {}
 
 AssertPropertyStmt::AssertPropertyStmt(const std::shared_ptr<Property> &property)
-    : property_(property.get()) {}
+    : property_(property->weak_from_this()) {}
 
 Sequence *Sequence::imply(const std::shared_ptr<Var> &var) {
     next_ = std::make_shared<Sequence>(var);
-    next_->parent_ = this;
+    next_->parent_ = weak_from_this();
     return next_.get();
 }
 
@@ -40,9 +40,9 @@ std::string Sequence::to_string() const {
     auto wait_str = wait_to_str();
     std::string seq;
     if (wait_str.empty())
-        seq = var_->handle_name(true);
+        seq = var_.lock()->handle_name(true);
     else
-        seq = ::format("{0} {1}", wait_str, var_->handle_name(true));
+        seq = ::format("{0} {1}", wait_str, var_.lock()->handle_name(true));
     if (next_) {
         auto next = next_->to_string();
         seq = ::format("{0} |-> {1}", seq, next);
@@ -61,34 +61,34 @@ Property::Property(std::string property_name, std::shared_ptr<Sequence> sequence
 
 void Property::edge(kratos::BlockEdgeType type, const std::shared_ptr<Var> &var) {
     if (var->width() != 1) throw VarException("{0} should be width 1", {var.get()});
-    edge_ = {var.get(), type};
+    edge_ = {var->weak_from_this(), type};
 }
 
 TestBench::TestBench(Context *context, const std::string &top_name) {
     auto &gen = context->generator(top_name);
-    top_ = &gen;
+    top_ = gen.weak_from_this();
 }
 
 std::shared_ptr<Property> TestBench::property(const std::string &property_name,
                                               const std::shared_ptr<Sequence> &sequence) {
     if (properties_.find(property_name) != properties_.end())
         throw UserException(
-            ::format("Property {0} already exists in {1}", property_name, top_->name));
+            ::format("Property {0} already exists in {1}", property_name, top_.lock()->name));
     auto prop = std::make_shared<Property>(property_name, sequence);
     properties_.emplace(property_name, prop);
     return prop;
 }
 
 void TestBench::wire(const std::shared_ptr<Var> &var, const std::shared_ptr<Port> &port) {
-    top_->add_stmt(var->assign(port));
+    top_.lock()->add_stmt(var->assign(port));
 }
 
 void TestBench::wire(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &port2) {
-    top_->wire_ports(port1, port2);
+    top_.lock()->wire_ports(port1, port2);
 }
 
 void TestBench::wire(const std::shared_ptr<Var> &src, const std::shared_ptr<Var> &sink) {
-    top_->add_stmt(src->assign(sink));
+    top_.lock()->add_stmt(src->assign(sink));
 }
 
 class TestBenchCodeGen : public SystemVerilogCodeGen {
@@ -165,19 +165,20 @@ void sort_initials(Generator *top) {
 
 std::string TestBench::codegen() {
     // fix connections
-    fix_assignment_type(top_);
-    create_module_instantiation(top_);
-    verify_generator_connectivity(top_);
+    auto top = top_.lock().get();
+    fix_assignment_type(top);
+    create_module_instantiation(top);
+    verify_generator_connectivity(top);
 
     // sort initials in case we need to access internal signals
-    sort_initials(top_);
+    sort_initials(top);
 
     // pass the properties through
-    top_->set_properties(properties_);
-    change_property_into_stmt(top_);
+    top->set_properties(properties_);
+    change_property_into_stmt(top);
 
     // code gen the module top
-    TestBenchCodeGen code_gen(top_);
+    TestBenchCodeGen code_gen(top);
     return code_gen.str();
 }
 

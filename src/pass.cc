@@ -687,7 +687,7 @@ public:
             auto const& interface = iter.second;
             auto const& ports = interface->ports();
             for (auto const& [port_name, port] : ports) {
-                process_port(generator, port, port_name);
+                process_port(generator, port.lock().get(), port_name);
             }
         }
     }

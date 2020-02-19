@@ -734,10 +734,10 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
             throw UserException(
                 (::format("Unable to wire interface {0} with {1}", inst1->name(), inst2->name())));
         }
-        if (port->port_direction() == PortDirection::In) {
-            add_stmt(port->assign(*v));
+        if (port.lock()->port_direction() == PortDirection::In) {
+            add_stmt(port.lock()->assign(*v));
         } else {
-            add_stmt(v->assign(*port));
+            add_stmt(v->assign(*port.lock()));
         }
     }
 }
