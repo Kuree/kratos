@@ -2,6 +2,12 @@
 
 #ifndef KRATOS_MODULE_HH
 #define KRATOS_MODULE_HH
+#include <cereal/types/map.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/unordered_set.hpp>
+#include <cereal/types/vector.hpp>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -288,6 +294,39 @@ private:
     std::map<std::string, std::shared_ptr<InterfaceRef>> interfaces_;
     // properties
     std::map<std::string, std::shared_ptr<Property>> properties_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(lib_files_);
+        ar(context_);
+        ar(vars_);
+        ar(ports_);
+        ar(params_);
+        ar(exprs_);
+        ar(port_bundle_mapping_);
+        ar(stmts_);
+        ar(children_);
+        ar(children_names_);
+        ar(children_debug_);
+        ar(children_comments_);
+        ar(parent_generator_);
+        ar(is_stub_);
+        ar(is_external_);
+        ar(clones_);
+        ar(is_cloned_);
+        ar(named_blocks_);
+        ar(enums_);
+        // TODO add fsms
+        ar(funcs_);
+        ar(func_index_);
+        ar(calls_);
+        ar(def_instance_);
+        ar(auxiliary_vars_);
+        ar(interfaces_);
+        ar(properties_);
+    }
 };
 
 }  // namespace kratos

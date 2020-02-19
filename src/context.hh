@@ -7,6 +7,8 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/unordered_set.hpp>
 
 namespace kratos {
 

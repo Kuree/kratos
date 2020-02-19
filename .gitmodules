@@ -16,3 +16,6 @@
 [submodule "extern/sqlite"]
 	path = extern/sqlite
 	url = https://github.com/Kuree/sqlite
+[submodule "extern/cereal"]
+	path = extern/cereal
+	url = https://github.com/USCiLab/cereal
