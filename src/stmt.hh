@@ -68,6 +68,16 @@ protected:
     int stmt_id_ = -1;
 
     std::map<std::string, std::pair<bool, std::string>> scope_context_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<IRNode>(this), type_, cereal::defer(parent_), stmt_id_,
+           scope_context_);
+    }
+
+    Stmt() = default;
 };
 
 class AssignStmt : public Stmt {
@@ -108,6 +118,16 @@ private:
     AssignmentType assign_type_;
 
     int delay_ = -1;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), cereal::defer(left_), cereal::defer(right_),
+           assign_type_, delay_);
+    }
+
+    AssignStmt() = default;
 };
 
 class IfStmt : public Stmt {
@@ -147,6 +167,16 @@ private:
     void initialize_parent();
     // just to pass connectivity check
     std::shared_ptr<Stmt> predicate_stmt_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), predicate_, then_body_, else_body_, has_initialized_,
+           predicate_stmt_);
+    }
+
+    IfStmt() : Stmt(StatementType::If) {}
 };
 
 class SwitchStmt : public Stmt {
@@ -192,6 +222,15 @@ private:
     void initialize_parent();
     bool has_initialized_ = false;
     std::shared_ptr<Stmt> target_stmt_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), target_, body_, has_initialized_, target_stmt_);
+    }
+
+    SwitchStmt() : Stmt(StatementType::Switch) {}
 };
 
 class StmtBlock : public Stmt {
@@ -228,6 +267,15 @@ protected:
 
 private:
     StatementBlockType block_type_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), stmts_, block_type_);
+    }
+
+    StmtBlock() : Stmt(StatementType::Block) {}
 };
 
 class ScopedStmtBlock : public StmtBlock {
@@ -265,6 +313,13 @@ public:
 
 private:
     std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<StmtBlock>(this), stmts_, conditions_);
+    }
 };
 
 class FunctionStmtBlock : public StmtBlock {
@@ -298,6 +353,16 @@ protected:
     bool has_return_value_ = false;
     std::shared_ptr<Var> function_handler_ = nullptr;
     std::map<std::string, uint32_t> port_ordering_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<StmtBlock>(this), cereal::defer(parent_), function_name_, ports_,
+           has_return_value_, function_handler_, port_ordering_);
+    }
+
+    FunctionStmtBlock() : StmtBlock(StatementBlockType::Function) {}
 };
 
 class InitialStmtBlock : public StmtBlock {
@@ -327,6 +392,16 @@ protected:
     uint32_t return_width_ = 0;
     bool is_context_ = false;
     bool is_pure_ = false;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), cereal::defer(parent_), function_name_, ports_,
+           has_return_value_, function_handler_, port_ordering_);
+    }
+
+    DPIFunctionStmtBlock() : FunctionStmtBlock() {}
 };
 
 class ReturnStmt : public Stmt {
@@ -341,6 +416,15 @@ public:
 private:
     std::weak_ptr<FunctionStmtBlock> func_def_;
     std::shared_ptr<Var> value_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), cereal::defer(func_def_), value_);
+    }
+
+    ReturnStmt() : Stmt(StatementType::Return) {}
 };
 
 class FunctionCallStmt : public Stmt {
@@ -358,6 +442,15 @@ public:
 private:
     std::shared_ptr<FunctionStmtBlock> func_;
     std::shared_ptr<FunctionCallVar> var_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), func_, var_);
+    }
+
+    FunctionCallStmt() : Stmt(StatementType::FunctionalCall) {}
 };
 
 // TODO: Merge module instantiation and Interface instantiation stmt
@@ -402,6 +495,16 @@ public:
 
 private:
     std::weak_ptr<Generator> target_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), cereal::defer(port_mapping_), cereal::defer(port_debug_),
+           cereal::defer(connection_stmt_), target_);
+    }
+
+    ModuleInstantiationStmt() : Stmt(StatementType::ModuleInstantiation) {}
 };
 
 class InterfaceInstantiationStmt : public Stmt, public InstantiationStmt {
@@ -416,6 +519,16 @@ public:
 
 private:
     std::weak_ptr<InterfaceRef> interface_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), cereal::defer(port_mapping_), cereal::defer(port_debug_),
+           cereal::defer(connection_stmt_), cereal::defer(interface_));
+    }
+
+    InterfaceInstantiationStmt() : Stmt(StatementType::InterfaceInstantiation) {}
 };
 
 class CommentStmt : public Stmt {
@@ -428,6 +541,15 @@ public:
 private:
     std::vector<std::string> comments_;
     constexpr static uint32_t default_width = 100;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), cereal::defer(comments_));
+    }
+
+    CommentStmt() : Stmt(StatementType::Comment) {}
 };
 
 class RawStringStmt : public Stmt {
@@ -439,6 +561,15 @@ public:
 
 private:
     std::vector<std::string> stmts_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), cereal::defer(stmts_));
+    }
+
+    RawStringStmt() : Stmt(StatementType::RawString) {}
 };
 
 // for set and map and stl algorithms

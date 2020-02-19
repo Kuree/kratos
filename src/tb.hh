@@ -17,7 +17,7 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 };
 
-class Sequence: public std::enable_shared_from_this<Sequence> {
+class Sequence : public std::enable_shared_from_this<Sequence> {
 public:
     explicit Sequence(const std::shared_ptr<Var> &var) : var_(var->weak_from_this()) {}
     Sequence *imply(const std::shared_ptr<Var> &var);
@@ -38,9 +38,18 @@ private:
     uint32_t wait_high_ = 0;
 
     [[nodiscard]] std::string wait_to_str() const;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::defer(var_), cereal::defer(next_), cereal::defer(parent_), wait_low_,
+           wait_high_);
+    }
+    Sequence() = default;
 };
 
-class Property: public std::enable_shared_from_this<Property> {
+class Property : public std::enable_shared_from_this<Property> {
 public:
     Property(std::string property_name, std::shared_ptr<Sequence> sequence);
 
@@ -55,6 +64,14 @@ private:
     std::string property_name_;
     std::shared_ptr<Sequence> sequence_ = nullptr;
     std::pair<std::weak_ptr<Var>, BlockEdgeType> edge_ = {{}, BlockEdgeType::Posedge};
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(property_name_, cereal::defer(sequence_), cereal::defer(edge_));
+    }
+    Property() = default;
 };
 
 class AssertValueStmt : public AssertBase {
@@ -77,6 +94,13 @@ public:
 private:
     std::weak_ptr<Var> assert_var_;
     std::shared_ptr<Stmt> else__ = nullptr;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), cereal::defer(assert_var_), cereal::defer(else__));
+    }
 };
 
 class AssertPropertyStmt : public AssertBase {
@@ -89,6 +113,15 @@ public:
 
 private:
     std::weak_ptr<Property> property_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::base_class<Stmt>(this), property_);
+    }
+
+    AssertPropertyStmt() : AssertBase() {}
 };
 
 class TestBench {

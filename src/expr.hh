@@ -361,7 +361,7 @@ protected:
 public:
     // serialization
     template <class Archive>
-    inline void serialize(Archive &ar) {
+    inline  void serialize(Archive &ar) {
         ar(cereal::base_class<Var>(this), low, high, cereal::defer(parent_var_), var_high_,
            var_low_, op_);
     }

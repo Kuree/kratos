@@ -1,11 +1,10 @@
 #ifndef KRATOS_SERIALIZE_HH
 #define KRATOS_SERIALIZE_HH
 
+#include <memory>
 #include <ostream>
 
-#include "fsm.hh"
-#include "generator.hh"
-#include "port.hh"
+#include "context.hh"
 
 namespace kratos {
 
