@@ -51,14 +51,12 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(kratos::Stmt, kratos::CommentStmt)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(kratos::Stmt, kratos::RawStringStmt)
 
 
-namespace kratos {
-
-void serialize(std::ostream &ostream, std::shared_ptr<Context> context) {
+void serialize(std::ostream &ostream, std::shared_ptr<kratos::Context> context) {
     cereal::JSONOutputArchive o_archive(ostream);
     o_archive(context);
 }
 
-void serialize(std::ostream &ostream, std::shared_ptr<Generator> gen) {
+void serialize(std::ostream &ostream, std::shared_ptr<kratos::Generator> gen) {
     cereal::JSONOutputArchive o_archive(ostream);
     o_archive(gen);
 }
@@ -69,5 +67,3 @@ void serialize(std::ostream &ostream, std::shared_ptr<Generator> gen) {
 //    i_archive(gen);
 //    return gen;
 // }
-
-}

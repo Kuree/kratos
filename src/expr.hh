@@ -2,11 +2,11 @@
 #define KRATOS_EXPR_HH
 
 #include <cereal/cereal.hpp>
+#include <cereal/types/common.hpp>
 #include <cereal/types/set.hpp>
 #include <cereal/types/tuple.hpp>
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/vector.hpp>
-#include <cereal/types/common.hpp>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -206,6 +206,19 @@ public:
     inline void set_after_var_str_(const std::string &value) { after_var_str_ = value; }
     inline const std::string &after_var_str() const { return after_var_str_; }
 
+    // other accessor functions
+    const std::weak_ptr<Param> &get_param_ptr() const { return param_; }
+    const std::weak_ptr<Generator> &get_generator_ptr() const { return generator_; }
+    const std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> &get_casted() const {
+        return casted_;
+    }
+    const std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> &get_extended() const {
+        return extended_;
+    }
+    const std::unordered_set<std::shared_ptr<VarConcat>> &get_concat_vars() const {
+        return concat_vars_;
+    }
+
     Var(const Var &var) = delete;
 
     ~Var() override = default;
@@ -245,18 +258,6 @@ protected:
 private:
     std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
     std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> extended_;
-
-public:
-    // serialization
-    template <class Archive>
-    inline void serialize(Archive &ar) {
-        ar(cereal::base_class<IRNode>(this), var_width_, size_, is_signed_, sinks_, sources_, type_,
-           concat_vars_, slices_, before_var_str_, after_var_str_, explicit_array_,
-           cereal::defer(param_), is_packed_, cereal::defer(generator_), casted_, extended_);
-    }
-
-
-    Var() = default;
 };
 
 struct EnumType {
@@ -364,7 +365,7 @@ protected:
 public:
     // serialization
     template <class Archive>
-    inline  void serialize(Archive &ar) {
+    inline void serialize(Archive &ar) {
         ar(cereal::base_class<Var>(this), low, high, cereal::defer(parent_var_), var_high_,
            var_low_, op_);
     }
