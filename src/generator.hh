@@ -2,12 +2,6 @@
 
 #ifndef KRATOS_MODULE_HH
 #define KRATOS_MODULE_HH
-#include <cereal/types/map.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/set.hpp>
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/unordered_set.hpp>
-#include <cereal/types/vector.hpp>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -245,6 +239,37 @@ public:
     Generator(const Generator &gen) = delete;
     Generator() = delete;
 
+    // other public access functions
+    using LineInfo = std::pair<std::string, uint32_t>;
+    inline const std::vector<std::string> &get_lib_files() const { return lib_files_; }
+    inline const std::weak_ptr<Context> &get_context_ptr() const { return context_; }
+    const std::map<std::string, std::shared_ptr<Var>> &get_vars_ptr() const { return vars_; }
+    inline const std::unordered_set<std::shared_ptr<Expr>> &get_exprs() const { return exprs_; }
+    const std::map<std::string, std::shared_ptr<PortBundleRef>> &get_port_bundle_mapping() const {
+        return port_bundle_mapping_;
+    }
+    const std::vector<std::shared_ptr<Stmt>> &get_stmst() const { return stmts_; }
+    inline const std::unordered_map<std::string, std::shared_ptr<Generator>> &get_children() const {
+        return children_;
+    }
+    const std::vector<std::string> &get_children_names() { return children_names_; }
+    const std::unordered_map<std::string, LineInfo> &get_children_debug() const {
+        return children_debug_;
+    }
+    const std::unordered_map<std::string, std::string> &get_children_comments() {
+        return children_comments_;
+    }
+    const std::weak_ptr<Generator> get_parent_generator_ptr() const { return parent_generator_; }
+    const std::unordered_map<std::string, std::shared_ptr<StmtBlock>> &get_named_blocks() const {
+        return named_blocks_;
+    }
+    const std::map<uint32_t, std::string> &get_func_index() const { return func_index_; }
+    const std::set<std::shared_ptr<FunctionCallVar>> &get_call_vars() const { return calls_; }
+    const std::weak_ptr<Generator> &get_def_instance_ptr() const { return def_instance_; }
+    const std::unordered_map<uint32_t, std::shared_ptr<Var>> &get_auxiliary_vars() const {
+        return auxiliary_vars_;
+    }
+
 private:
     std::vector<std::string> lib_files_;
     std::weak_ptr<Context> context_;
@@ -259,7 +284,7 @@ private:
 
     std::unordered_map<std::string, std::shared_ptr<Generator>> children_;
     std::vector<std::string> children_names_;
-    std::unordered_map<std::string, std::pair<std::string, uint32_t>> children_debug_;
+    std::unordered_map<std::string, LineInfo> children_debug_;
     std::unordered_map<std::string, std::string> children_comments_;
 
     std::weak_ptr<Generator> parent_generator_;
@@ -294,19 +319,6 @@ private:
     std::map<std::string, std::shared_ptr<InterfaceRef>> interfaces_;
     // properties
     std::map<std::string, std::shared_ptr<Property>> properties_;
-
-public:
-    // serialization
-    template <class Archive>
-    inline void serialize(Archive &ar) {
-        ar(cereal::base_class<IRNode>(this), lib_files_, cereal::defer(context_), vars_, ports_, params_, exprs_,
-           port_bundle_mapping_, stmts_, children_, children_names_, children_debug_,
-           children_comments_, parent_generator_, is_stub_, is_external_, clones_, is_cloned_,
-           named_blocks_, enums_,
-           /* TODO add fsms */
-           funcs_, func_index_, calls_, cereal::defer(def_instance_), auxiliary_vars_, interfaces_,
-           properties_);
-    }
 };
 
 }  // namespace kratos

@@ -1,18 +1,13 @@
 #ifndef KRATOS_CONTEXT_HH
 #define KRATOS_CONTEXT_HH
 
+#include <cereal/access.hpp>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/set.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/common.hpp>
-#include "cereal/types/utility.hpp"
 
 namespace kratos {
 
@@ -65,8 +60,7 @@ struct InterfaceRef;
 class Property;
 class Sequence;
 
-
-class Context: public std::enable_shared_from_this<Context> {
+class Context : public std::enable_shared_from_this<Context> {
 private:
     std::unordered_map<std::string, std::set<std::shared_ptr<Generator>>> modules_;
     std::unordered_map<std::shared_ptr<const Generator>, uint64_t> generator_hash_;
@@ -91,8 +85,8 @@ public:
     void inline clear_hash() { generator_hash_.clear(); }
 
     // managing the id for multiple invocation of dump database
-    int &max_instance_id() { return max_instance_id_; }
-    int &max_stmt_id() { return max_stmt_id_; }
+    int& max_instance_id() { return max_instance_id_; }
+    int& max_stmt_id() { return max_stmt_id_; }
     void reset_id();
 
     // for debugging
@@ -103,23 +97,21 @@ public:
     std::set<std::shared_ptr<Generator>> get_generators_by_name(const std::string& name) const;
     std::unordered_set<std::string> get_generator_names() const;
 
-    const std::map<std::string, std::shared_ptr<Enum>> &enum_defs() const { return enum_defs_; }
-    std::map<std::string, std::shared_ptr<Enum>> &enum_Defs() { return enum_defs_; }
-    Enum &enum_(const std::string &enum_name, const std::map<std::string, uint64_t> &definition,
+    const std::map<std::string, std::shared_ptr<Enum>>& enum_defs() const { return enum_defs_; }
+    Enum& enum_(const std::string& enum_name, const std::map<std::string, uint64_t>& definition,
                 uint32_t width);
     void reset_enum();
 
     void clear();
 
-public:
-    // serialization
-    template <class Archive>
-    inline void serialize(Archive &ar) {
-        ar(modules_);
-        ar(generator_hash_);
-        ar(max_instance_id_);
-        ar(max_stmt_id_);
-        ar(enum_defs_);
+    // public accessors
+    const std::unordered_map<std::string, std::set<std::shared_ptr<Generator>>>& get_modules()
+        const {
+        return modules_;
+    };
+    const std::unordered_map<std::shared_ptr<const Generator>, uint64_t>& get_generator_hash()
+        const {
+        return generator_hash_;
     }
 };
 
