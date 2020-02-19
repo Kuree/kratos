@@ -12,7 +12,7 @@ std::shared_ptr<InterfaceModPortDefinition> InterfaceDefinition::create_modport_
     const std::string& name) {
     if (mod_ports_.find(name) != mod_ports_.end())
         throw UserException(::format("{0} already exists in {1}", name, name_));
-    auto p = std::make_shared<InterfaceModPortDefinition>(this, name);
+    auto p = std::make_shared<InterfaceModPortDefinition>(shared_from_this(), name);
     mod_ports_.emplace(name, p);
     return p;
 }
@@ -89,21 +89,21 @@ bool InterfaceDefinition::has_var(const std::string& name) const {
     return vars_.find(name) != vars_.end();
 }
 
-InterfaceModPortDefinition::InterfaceModPortDefinition(kratos::InterfaceDefinition* def,
-                                                       std::string name)
+InterfaceModPortDefinition::InterfaceModPortDefinition(
+    const std::shared_ptr<InterfaceDefinition>& def, std::string name)
     : def_(def), name_(std::move(name)) {}
 
 void InterfaceModPortDefinition::set_output(const std::string& name) {
-    if (def_->has_port(name)) {
+    if (def_.lock()->has_port(name)) {
         // this is a port
-        auto const& port_def = def_->port(name);
+        auto const& port_def = def_.lock()->port(name);
         auto dir = std::get<2>(port_def);
         if (dir != PortDirection::Out) {
             throw UserException(::format(
                 "{0} is not declared as an output but is used as one in {1}", name, name_));
         }
         outputs_.emplace(name);
-    } else if (def_->has_var(name)) {
+    } else if (def_.lock()->has_var(name)) {
         // this is a variable
         outputs_.emplace(name);
     }
@@ -111,11 +111,11 @@ void InterfaceModPortDefinition::set_output(const std::string& name) {
 
 IDefinition::InterfacePortDef InterfaceModPortDefinition::port(const std::string& name) const {
     if (!has_port(name)) throw UserException(::format("{0} does not exist", name));
-    if (def_->has_port(name)) {
-        return def_->port(name);
+    if (def_.lock()->has_port(name)) {
+        return def_.lock()->port(name);
     } else {
         // create a port def
-        auto const& [width, size] = def_->var(name);
+        auto const& [width, size] = def_.lock()->var(name);
         auto port_dir =
             inputs_.find(name) != inputs_.end() ? PortDirection::In : PortDirection::Out;
         return std::make_tuple(width, size, port_dir, PortType::Data);
@@ -136,23 +136,23 @@ std::set<std::string> InterfaceModPortDefinition::ports() const {
 std::set<std::string> InterfaceModPortDefinition::vars() const { return {}; }
 
 void InterfaceModPortDefinition::set_input(const std::string& name) {
-    if (def_->has_port(name)) {
+    if (def_.lock()->has_port(name)) {
         // this is a port
-        auto const& port_def = def_->port(name);
+        auto const& port_def = def_.lock()->port(name);
         auto dir = std::get<2>(port_def);
         if (dir != PortDirection::In) {
             throw UserException(
                 ::format("{0} is not declared as an input but is used as one in {1}", name, name_));
         }
         inputs_.emplace(name);
-    } else if (def_->has_var(name)) {
+    } else if (def_.lock()->has_var(name)) {
         // this is a variable
         inputs_.emplace(name);
     }
 }
 
 std::string InterfaceModPortDefinition::def_name() const {
-    return ::format("{0}.{1}", def_->def_name(), name_);
+    return ::format("{0}.{1}", def_.lock()->def_name(), name_);
 }
 
 InterfaceRef::InterfaceRef(std::shared_ptr<IDefinition> instance, kratos::Generator* gen,

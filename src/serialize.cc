@@ -3,6 +3,8 @@
 #include "fsm.hh"
 #include "generator.hh"
 #include "port.hh"
+#include "cereal/types/polymorphic.hpp"
+#include "interface.hh"
 
 #include <cereal/archives/json.hpp>
 #include <cereal/archives/binary.hpp>
@@ -56,8 +58,21 @@ CEREAL_REGISTER_POLYMORPHIC_RELATION(kratos::Stmt, kratos::RawStringStmt)
 
 namespace kratos {
 
-//void serialize(std::ostream &ostream, std::shared_ptr<Context> context) {
-//    cereal::JSONOutputArchive o_archive(ostream);
-//    o_archive(context);
-//}
+void serialize(std::ostream &ostream, std::shared_ptr<Context> context) {
+    cereal::JSONOutputArchive o_archive(ostream);
+    o_archive(context);
+}
+
+void serialize(std::ostream &ostream, std::shared_ptr<Generator> gen) {
+    cereal::JSONOutputArchive o_archive(ostream);
+    o_archive(gen);
+}
+
+//std::shared_ptr<Generator> load_generator(std::istream &istream) {
+//    cereal::JSONInputArchive i_archive(istream);
+//    std::shared_ptr<Generator> gen;
+//    i_archive(gen);
+//    return gen;
+// }
+
 }

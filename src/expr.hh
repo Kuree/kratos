@@ -6,6 +6,7 @@
 #include <cereal/types/tuple.hpp>
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/common.hpp>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -206,7 +207,6 @@ public:
     inline const std::string &after_var_str() const { return after_var_str_; }
 
     Var(const Var &var) = delete;
-    Var() = delete;
 
     ~Var() override = default;
 
@@ -254,6 +254,9 @@ public:
            concat_vars_, slices_, before_var_str_, after_var_str_, explicit_array_,
            cereal::defer(param_), is_packed_, cereal::defer(generator_), casted_, extended_);
     }
+
+
+    Var() = default;
 };
 
 struct EnumType {

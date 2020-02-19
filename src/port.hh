@@ -58,6 +58,8 @@ public:
     inline void serialize(Archive &ar) {
         ar(cereal::base_class<Var>(this), direction_, type_, active_high_);
     }
+
+    Port() = default;
 };
 
 // diamond virtual inheritance is close to impossible in pybind. duplicate the logic here
@@ -84,6 +86,8 @@ public:
     inline void serialize(Archive &ar) {
         ar(cereal::base_class<Port>(this), cereal::defer(enum_type_));
     }
+
+    EnumPort() = default;
 };
 
 struct PortPackedStruct : public Port, public PackedInterface {
@@ -152,8 +156,6 @@ private:
     std::map<std::string, PortDef> flipped_definitions_;
     std::map<std::string, std::pair<std::string, uint32_t>> debug_info_;
 
-    PortBundleDefinition() = default;
-
 public:
     // serialization
     template <class Archive>
@@ -163,6 +165,8 @@ public:
         ar(flipped_definitions_);
         ar(debug_info_);
     }
+
+    PortBundleDefinition() = default;
 };
 
 struct PortBundleRef : public PackedInterface {
@@ -186,7 +190,7 @@ public:
 
 private:
     std::weak_ptr<Generator> generator_;
-    const PortBundleDefinition definition_;
+    PortBundleDefinition definition_;
     std::map<std::string, std::string> name_mappings_;
 
 public:
@@ -197,6 +201,8 @@ public:
         ar(definition_);
         ar(name_mappings_);
     }
+
+    PortBundleRef() = default;
 };
 
 struct InterfacePort : public Port {
@@ -220,6 +226,8 @@ public:
     inline void serialize(Archive &ar) {
         ar(cereal::base_class<Port>(this), cereal::defer(interface_));
     }
+
+    InterfacePort() = default;
 };
 
 struct ModportPort : public InterfacePort {

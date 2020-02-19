@@ -27,7 +27,8 @@ public:
     virtual ~IDefinition() = default;
 };
 
-struct InterfaceDefinition : public IDefinition {
+struct InterfaceDefinition : public IDefinition,
+                             public std::enable_shared_from_this<InterfaceDefinition> {
 public:
     explicit InterfaceDefinition(std::string name) : name_(std::move(name)) {}
 
@@ -72,11 +73,20 @@ private:
     std::map<std::string, IDefinition::InterfacePortDef> ports_;
     std::map<std::string, IDefinition::InterfaceVarDef> vars_;
     std::map<std::string, std::shared_ptr<InterfaceModPortDefinition>> mod_ports_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(name_, ports_, vars_, mod_ports_);
+    }
+
+    InterfaceDefinition() = default;
 };
 
 struct InterfaceModPortDefinition : public IDefinition {
 public:
-    InterfaceModPortDefinition(InterfaceDefinition *def, std::string name);
+    InterfaceModPortDefinition(const std::shared_ptr<InterfaceDefinition> &def, std::string name);
     void set_input(const std::string &name);
     void set_output(const std::string &name);
 
@@ -94,18 +104,27 @@ public:
     [[nodiscard]] const std::set<std::string> &inputs() const { return inputs_; }
     [[nodiscard]] const std::set<std::string> &outputs() const { return outputs_; }
 
-    [[nodiscard]] const InterfaceDefinition *def() const { return def_; }
+    [[nodiscard]] const InterfaceDefinition *def() const { return def_.lock().get(); }
     [[nodiscard]] const std::string &name() const override { return name_; }
     [[nodiscard]] std::string def_name() const override;
 
     [[nodiscard]] bool is_modport() const override { return true; }
 
 private:
-    InterfaceDefinition *def_;
+    std::weak_ptr<InterfaceDefinition> def_;
     std::string name_;
 
     std::set<std::string> inputs_;
     std::set<std::string> outputs_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(cereal::defer(def_), name_, inputs_, outputs_);
+    }
+
+    InterfaceModPortDefinition() = default;
 };
 
 struct InterfaceRef : public std::enable_shared_from_this<InterfaceRef> {
@@ -163,6 +182,16 @@ private:
     std::unordered_map<std::string, std::shared_ptr<ModportPort>> modport_ports_;
 
     std::weak_ptr<InterfaceRef> interface_parent_;
+
+public:
+    // serialization
+    template <class Archive>
+    inline void serialize(Archive &ar) {
+        ar(definition_, vars_, ports_, is_port_, cereal::defer(gen_), name_, has_instantiated_,
+           mod_ports_, modport_ports_, cereal::defer(interface_parent_));
+    }
+
+    InterfaceRef() = default;
 };
 
 }  // namespace kratos

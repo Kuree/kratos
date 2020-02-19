@@ -36,19 +36,20 @@ void Context::remove(Generator *generator) {
 }
 
 void Context::add_hash(const Generator *generator, uint64_t hash) {
-    if (generator_hash_.find(generator) != generator_hash_.end())
+    auto gen = generator->shared_from_this();
+    if (generator_hash_.find(gen) != generator_hash_.end())
         throw InternalException(::format("{0}'s hash has already been computed", generator->name));
-    generator_hash_[generator] = hash;
+    generator_hash_[gen] = hash;
 }
 
 bool Context::has_hash(const Generator *generator) const {
-    return generator_hash_.find(generator) != generator_hash_.end();
+    return generator_hash_.find(generator->shared_from_this()) != generator_hash_.end();
 }
 
 uint64_t Context::get_hash(const Generator *generator) const {
     if (!has_hash(generator))
         throw ::runtime_error(::format("{0}'s hash has not been computed", generator->name));
-    return generator_hash_.at(generator);
+    return generator_hash_.at(generator->shared_from_this());
 }
 
 void Context::change_generator_name(Generator *generator, const std::string &new_name) {

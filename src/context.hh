@@ -9,7 +9,10 @@
 #include <unordered_set>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/map.hpp>
+#include <cereal/types/set.hpp>
 #include <cereal/types/memory.hpp>
+#include <cereal/types/common.hpp>
+#include "cereal/types/utility.hpp"
 
 namespace kratos {
 
@@ -66,7 +69,7 @@ class Sequence;
 class Context: public std::enable_shared_from_this<Context> {
 private:
     std::unordered_map<std::string, std::set<std::shared_ptr<Generator>>> modules_;
-    std::unordered_map<const Generator*, uint64_t> generator_hash_;
+    std::unordered_map<std::shared_ptr<const Generator>, uint64_t> generator_hash_;
     int max_instance_id_ = 0;
     int max_stmt_id_ = 0;
 

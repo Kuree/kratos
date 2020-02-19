@@ -299,7 +299,7 @@ public:
     // serialization
     template <class Archive>
     inline void serialize(Archive &ar) {
-        ar(cereal::base_class<IRNode>(this), lib_files_, context_, vars_, ports_, params_, exprs_,
+        ar(cereal::base_class<IRNode>(this), lib_files_, cereal::defer(context_), vars_, ports_, params_, exprs_,
            port_bundle_mapping_, stmts_, children_, children_names_, children_debug_,
            children_comments_, parent_generator_, is_stub_, is_external_, clones_, is_cloned_,
            named_blocks_, enums_,
