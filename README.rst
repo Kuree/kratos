@@ -1,7 +1,7 @@
 Kratos
 ======
 
-|Build Status| |Appveyor Build status| |Github Action Status| |PyPI - Version|
+|Build Status| |Appveyor Build status| |PyPI - Version|
 |Coverage| |Documentation Status|
 
 Kratos is a hardware design language written in C++/Python. It
@@ -310,12 +310,10 @@ value inspection and breakpoints.
 Code extension that allows user to debug with Kratos. The simulator has to be
 loaded with ``kratos-runtime``.
 
-.. |Build Status| image:: https://travis-ci.com/Kuree/kratos.svg?branch=master
-   :target: https://travis-ci.com/Kuree/kratos
+.. |Build Status| image:: https://github.com/Kuree/kratos/workflows/Linux%20Wheel%20Test/badge.svg
+   :target: https://github.com/Kuree/kratos/actions
 .. |Appveyor Build status| image:: https://ci.appveyor.com/api/projects/status/en1u36q9tdqbaoh9/branch/master?svg=true
    :target: https://ci.appveyor.com/project/Kuree/kratos/branch/master
-.. |Github Action Status| image:: https://github.com/Kuree/kratos/workflows/Clang-Tidy/badge.svg
-   :target: https://github.com/Kuree/kratos
 .. |PyPI - Version| image:: https://badge.fury.io/py/kratos.svg
    :target: https://pypi.org/project/kratos/
 .. |Coverage| image:: https://codecov.io/gh/Kuree/kratos/branch/master/graph/badge.svg

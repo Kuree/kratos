@@ -1,6 +1,9 @@
 name: Linux Wheel Deploy
 
-on: [push]
+on:
+  push:
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -28,8 +31,8 @@ jobs:
         BUILD_WHEEL: true
         OS: linux
       run: |
-        source ./scripts/ci.sh
+        source ./scripts/deploy.sh
     - uses: actions/upload-artifact@v1
       with:
-        name: py3.7 wheel
+        name: Python wheels
         path: wheelhouse/
