@@ -30,8 +30,6 @@ if [[ "$OS" == "linux" ]]; then
 elif [[ "$OS" == "osx" ]]; then
     python --version
 
-    python -m pip install scikit-build
-    python -m pip install cmake twine wheel pytest
     CXX=g++-8 python setup.py bdist_wheel
     pip install dist/*.whl
     pytest -v tests/
