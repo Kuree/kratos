@@ -1,6 +1,9 @@
-name: MacOS Test
+name: MacOS Wheel Deploy
 
-on: [push]
+on:
+  push:
+    tags:
+      - '*'
 
 jobs:
   build:
