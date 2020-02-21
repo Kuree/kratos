@@ -28,19 +28,11 @@ if [[ "$OS" == "linux" ]]; then
     fi
 
 elif [[ "$OS" == "osx" ]]; then
-    wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
-    chmod +x miniconda.sh
-    ./miniconda.sh -b -p $HOME/miniconda
-    export PATH=$HOME/miniconda/bin:$PATH
-    conda config --set always_yes yes --set changeps1 no
-    conda create -q -n env3.7 python=3.7
-    source activate env3.7
-    conda install pip
     python --version
 
     python -m pip install scikit-build
     python -m pip install cmake twine wheel pytest
-    CXX=/usr/local/bin/g++-8 python setup.py bdist_wheel
+    CXX=g++-8 python setup.py bdist_wheel
     pip install dist/*.whl
     pytest -v tests/
 else
