@@ -383,6 +383,18 @@ class GenVarLocalVisitor(ast.NodeTransformer):
         return node
 
 
+def has_pragma(src_code, ast_node, pragma_name):
+    line_num = ast_node.lineno
+    lines = src_code.split("\n")
+    if len(lines) < line_num:
+        line: str = lines[line_num]
+        line = line.strip()
+        tokens = line.split(" ")
+        return len(tokens) == 3 and tokens[0] == "#" \
+            and tokens[1] == "kratos:" and tokens[2] == pragma_name
+    return False
+
+
 def add_scope_context(stmt, _locals):
     for key, value in _locals.items():
         if isinstance(value, (int, float, str, bool)):
