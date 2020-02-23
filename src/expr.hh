@@ -389,6 +389,14 @@ public:
     bool is_packed() const override { return true; }
     void set_is_packed(bool value) override;
 
+    enum class ConstantLegal {
+        Legal,
+        Small,
+        Big
+    };
+
+    static ConstantLegal is_legal(int64_t value, uint32_t width, bool is_signed);
+
 private:
     int64_t value_;
     // created without a generator holder

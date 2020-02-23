@@ -612,29 +612,41 @@ void Var::unassign(const std::shared_ptr<AssignStmt> &stmt) {
 Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed)
     : Var(generator, std::to_string(value), width, 1, is_signed, VarType::ConstValue), value_() {
     // need to deal with the signed value
+    auto is_legal = Const::is_legal(value, width, is_signed);
+    if (is_legal == ConstantLegal::Small) {
+        uint64_t temp = (~0ull) << (width - 1);
+        int64_t min = 0;
+        std::memcpy(&min, &temp, sizeof(min));
+        throw UserException(::format("{0} is smaller than the minimum value ({1}) given width {2}",
+                                     value, min, width));
+    } else if (is_legal == ConstantLegal::Big) {
+        uint64_t max = (1ull << width) - 1;
+        uint64_t unsigned_value;
+        std::memcpy(&unsigned_value, &value, sizeof(unsigned_value));
+        throw UserException(::format("{0} is larger than the maximum value ({1}) given width {2}",
+                                     value, max, width));
+    }
+    value_ = value;
+}
+
+Const::ConstantLegal Const::is_legal(int64_t value, uint32_t width, bool is_signed) {
     if (is_signed) {
         // compute the -max value
         uint64_t temp = (~0ull) << (width - 1);
         int64_t min = 0;
         std::memcpy(&min, &temp, sizeof(min));
-        if (value < min)
-            throw UserException(::format(
-                "{0} is smaller than the minimum value ({1}) given width {2}", value, min, width));
+        if (value < min) return Const::ConstantLegal::Small;
         temp = (1ull << (width - 1)) - 1;
         int64_t max;
         std::memcpy(&max, &temp, sizeof(max));
-        if (value > max)
-            throw UserException(::format(
-                "{0} is larger than the maximum value ({1}) given width {2}", value, max, width));
+        if (value > max) return Const::ConstantLegal::Big;
     } else {
         uint64_t max = (1ull << width) - 1;
         uint64_t unsigned_value;
         std::memcpy(&unsigned_value, &value, sizeof(unsigned_value));
-        if (unsigned_value > max)
-            throw UserException(::format(
-                "{0} is larger than the maximum value ({1}) given width {2}", value, max, width));
+        if (unsigned_value > max) return Const::ConstantLegal::Big;
     }
-    value_ = value;
+    return Const::ConstantLegal::Legal;
 }
 
 Const::Const(int64_t value, uint32_t width, bool is_signed)
@@ -716,7 +728,7 @@ std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
         return shared_from_this();
     } else {
         // optimize memory for speed
-        for (auto const &casted: casted_) {
+        for (auto const &casted : casted_) {
             if (casted->cast_type() == cast_type && cast_type != VarCastType::Resize) {
                 return casted;
             }
@@ -1379,14 +1391,8 @@ IterVar::IterVar(kratos::Generator *m, const std::string &name, int64_t min_valu
 }
 
 bool IterVar::safe_to_resize(uint32_t target_size, bool is_signed) {
-    try {
-        // TODO: refactor this
-        Const(generator(), min_value_, target_size, is_signed);
-        Const(generator(), max_value_, target_size, is_signed);
-        return true;
-    } catch (...) {
-        return false;
-    }
+    return Const::is_legal(min_value_, target_size, is_signed) == Const::ConstantLegal::Legal &&
+           Const::is_legal(max_value_, target_size, is_signed) == Const::ConstantLegal::Legal;
 }
 
 std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
