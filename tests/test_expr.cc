@@ -350,3 +350,21 @@ TEST(var, size_1_slice) {   // NOLINT
     EXPECT_NO_THROW(e[1]);
     EXPECT_EQ(e[0].width(), 1);
 }
+
+TEST(var, const_promote) {  // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 5);
+    EXPECT_NO_THROW(a.assign(constant(1, 2)));
+    EXPECT_THROW(a.assign(constant(100, 20)), VarException);
+}
+
+TEST(var, iter_demote) {    // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 5);
+    auto iter1 = std::make_shared<IterVar>(&mod, "iter1", 0, 4);
+    auto iter2 = std::make_shared<IterVar>(&mod, "iter1", 0, 42);
+    EXPECT_NO_THROW(a.assign(iter1));
+    EXPECT_THROW(a.assign(iter2), VarException);
+}

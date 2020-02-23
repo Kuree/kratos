@@ -334,6 +334,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         // do nothing
     } else if (stmt_ptr->type() == StatementType::RawString) {
         stmt_code(reinterpret_cast<RawStringStmt*>(node));
+    } else if (stmt_ptr->type() == StatementType::For) {
+        stmt_code(reinterpret_cast<ForStmt*>(node));
     } else {
         throw StmtException("Not implemented", {node});
     }
@@ -342,7 +344,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
 void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
     if (stmt->left()->type() == VarType::PortIO) {
         auto port = stmt->left()->as<Port>();
-        if (port->port_direction() == PortDirection::In && stmt->left()->generator() == generator_) {
+        if (port->port_direction() == PortDirection::In &&
+            stmt->left()->generator() == generator_) {
             throw StmtException("Cannot drive a module's input from itself",
                                 {stmt, stmt->left(), stmt->right()});
         }
@@ -752,6 +755,19 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionCallStmt* stmt) {
     stream_ << ";" << stream_.endl();
 }
 
+void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
+    // for loop
+    if (generator_->debug) stmt->verilog_ln = stream_.line_no();
+    auto iter = stmt->get_iter_var();
+    stream_ << indent() << "for (int " << (iter->is_signed() ? " " : "unsigned ") << iter->to_string()
+            << " = " << stmt->start() << "; " << iter->to_string()
+            << (stmt->end() > stmt->start() ? " < " : " > ") << stmt->end() << "; " << iter->to_string()
+            << (stmt->step() > 0 ? " += " : " -= ") << std::abs(stmt->step()) << ") ";
+    indent_++;
+    dispatch_node(stmt->get_loop_body().get());
+    indent_--;
+}
+
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     std::vector<std::string> strs;
     strs.reserve(8);
@@ -1093,7 +1109,7 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
             // need to flatten the array
             auto slices = get_flatten_slices(p.get());
             // create port for them based on the slice
-            for (auto const &slice: slices) {
+            for (auto const& slice : slices) {
                 std::string name = port_name;
                 for (auto const& s : slice) name = ::format("{0}_{1}", name, s);
                 auto slice_port = &(*p)[slice[0]];
@@ -1136,16 +1152,15 @@ std::pair<std::string, uint32_t> generate_sv_package_header(Generator* top,
         stream << "package " << package_name << ";" << stream.endl();
     }
 
-
     // all the information list
     auto info_list = {dpi_info, struct_info, enum_info, interface_info};
-    for (auto const &info : info_list) {
-        for (auto const &iter: info) {
+    for (auto const& info : info_list) {
+        for (auto const& iter : info) {
             auto def = iter.second;
             // split on new line to replace with the stream new line so that we can track
             // the new lines
             auto lines = string::get_tokens(def, "\n");
-            for (auto const &line: lines) {
+            for (auto const& line : lines) {
                 stream << line << stream.endl();
             }
             stream << stream.endl();

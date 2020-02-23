@@ -240,6 +240,10 @@ std::string strip_newline(std::string &str) {
     return str;
 }
 
+uint32_t clog2(uint32_t value) {
+    return std::max<uint32_t>(1, std::ceil(std::log2(value)));
+}
+
 void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt) {
     auto parent = stmt->parent();
     if (!parent) return;

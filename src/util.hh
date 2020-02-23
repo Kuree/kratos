@@ -51,6 +51,8 @@ bool is_valid_verilog(const std::map<std::string, std::string> &src);
 
 void remove_stmt_from_parent(const std::shared_ptr<Stmt> &stmt);
 
+uint32_t clog2(uint32_t value);
+
 std::pair<uint32_t, uint32_t> compute_var_high_low(
     Var *root, const std::vector<std::pair<uint32_t, uint32_t>> &index);
 

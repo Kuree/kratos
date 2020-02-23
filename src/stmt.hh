@@ -10,6 +10,7 @@ namespace kratos {
 enum class StatementType {
     If,
     Switch,
+    For,
     Assign,
     Block,
     ModuleInstantiation,
@@ -73,7 +74,7 @@ protected:
 class AssignStmt : public Stmt {
 public:
     AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
-    AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right,
+    AssignStmt(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right,
                AssignmentType type);
 
     AssignmentType assign_type() const { return assign_type_; }
@@ -182,6 +183,34 @@ private:
     std::shared_ptr<Var> target_;
     // default case will be indexed as nullptr
     std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> body_;
+};
+
+class ForStmt: public Stmt {
+public:
+    ForStmt(const std::string &iter_var_name, int64_t start, int64_t end, int64_t step);
+
+    std::shared_ptr<IterVar> get_iter_var() const { return iter_; }
+    std::shared_ptr<ScopedStmtBlock> get_loop_body() const { return loop_body_; }
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+    uint64_t child_count() override { return 1; }
+    IRNode *get_child(uint64_t index) override;
+
+    void set_parent(IRNode *node) override;
+
+    void add_stmt(const std::shared_ptr<Stmt> &stmt);
+
+    // accessors
+    int64_t start() const { return start_; }
+    int64_t end() const { return end_; }
+    int64_t step() const { return step_; }
+
+private:
+    std::shared_ptr<IterVar> iter_;
+    int64_t start_;
+    int64_t end_;
+    int64_t step_;
+    std::shared_ptr<ScopedStmtBlock> loop_body_;
 };
 
 class StmtBlock : public Stmt {

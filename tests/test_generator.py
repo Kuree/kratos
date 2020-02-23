@@ -305,7 +305,7 @@ def test_illegal_assignment_width():
             if self.in_ == const(1, 1):
                 self.out_ = const(1, 4)
             else:
-                self.out_ = const(1, 1)
+                self.out_ = const(100, 10)
 
     try:
         Mod()

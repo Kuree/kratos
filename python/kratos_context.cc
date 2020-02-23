@@ -12,7 +12,7 @@ void init_context(py::module &m) {
     auto context = py::class_<Context>(m, "Context");
     context.def(py::init())
         .def("generator", &Context::generator, py::return_value_policy::reference)
-        .def("empty_generator", &Context::empty_generator)
+        .def("empty_generator", &Context::empty_generator, py::return_value_policy::reference)
         .def("clear", &Context::clear)
         .def("get_hash", &Context::get_hash, py::arg("internal_generator"))
         .def("get_generators_by_name", &Context::get_generators_by_name, py::arg("name"))

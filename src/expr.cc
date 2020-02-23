@@ -441,14 +441,26 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         var_high_ = var_width_ - 1;
         var_low_ = 0;
         // we need to compute the clog2 here
-        uint32_t required_width =
-            std::max<uint32_t>(1, std::ceil(std::log2(parent->size().front())));
-        if (required_width != sliced_var_->width()) {
-            // error message copied from verilator
-            throw VarException(
-                ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
-                         parent->size().front() - 1, required_width, sliced_var_->width()),
-                {parent, slice});
+        uint32_t required_width = clog2(parent->size().front());
+        if (required_width < sliced_var_->width()) {
+            // may need to demote the variable if it's a var cast
+            bool has_error = true;
+            if (sliced_var_->type() == VarType::Iter) {
+                auto iter = sliced_var_->as<IterVar>();
+                if (iter->safe_to_resize(required_width, false)) {
+                    auto casted = sliced_var_->cast(VarCastType::Resize)->as<VarCasted>();
+                    casted->set_target_width(required_width);
+                    sliced_var_ = casted.get();
+                    has_error = false;
+                }
+            }
+            if (has_error || required_width != sliced_var_->width()) {
+                // error message copied from verilator
+                throw VarException(
+                    ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
+                             parent->size().front() - 1, required_width, sliced_var_->width()),
+                    {parent, slice});
+            }
         }
     }
 }
@@ -553,7 +565,7 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
       type_(type),
       generator_(m) {
     // only constant allows to be null generator
-    if (m == nullptr && type != VarType::ConstValue)
+    if (m == nullptr && type != VarType::ConstValue && type != VarType::Iter)
         throw UserException(::format("module is null for {0}", name));
     if (!is_valid_variable_name(name))
         throw UserException(::format("{0} is a SystemVerilog keyword", name));
@@ -681,9 +693,20 @@ std::string VarCasted::to_string() const {
         }
         auto const &enum_name = enum_type_->name;
         return ::format("{0}'({1})", enum_name, parent_var_->to_string());
+    } else if (cast_type_ == VarCastType::Resize) {
+        return ::format("{0}'({1})", target_width_, parent_var_->to_string());
     } else {
         return parent_var_->to_string();
     }
+}
+
+void VarCasted::set_target_width(uint32_t width) {
+    // override the current width
+    if (parent_var_->size().size() > 1 && parent_var_->size().front() != 1) {
+        throw UserException("Width casting for array not supported");
+    }
+    target_width_ = width;
+    var_width_ = width;
 }
 
 void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }
@@ -691,11 +714,16 @@ void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_-
 std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
     if (cast_type == VarCastType::Signed && is_signed_) {
         return shared_from_this();
-    } else if (casted_.find(cast_type) != casted_.end()) {
-        return casted_.at(cast_type);
     } else {
-        casted_.emplace(cast_type, std::make_shared<VarCasted>(this, cast_type));
-        return casted_.at(cast_type);
+        // optimize memory for speed
+        for (auto const &casted: casted_) {
+            if (casted->cast_type() == cast_type && cast_type != VarCastType::Resize) {
+                return casted;
+            }
+        }
+        auto v = std::make_shared<VarCasted>(this, cast_type);
+        casted_.emplace(v);
+        return v;
     }
 }
 
@@ -1128,10 +1156,9 @@ void Var::move_linked_to(kratos::Var *new_var) {
     concat_vars_.clear();
 
     // casted
-    for (auto &iter : casted_) {
-        auto var = iter.second;
+    for (auto &var : casted_) {
         var->set_parent(new_var);
-        new_var->casted_.emplace(iter);
+        new_var->casted_.emplace(var);
     }
     casted_.clear();
 }
@@ -1342,6 +1369,24 @@ std::string EnumConst::to_string() const {
         throw VarException(::format("{0} is not in enum type {1}", name_, parent_->name), {this});
     }
     return name_;
+}
+
+IterVar::IterVar(kratos::Generator *m, const std::string &name, int64_t min_value,
+                 int64_t max_value, bool signed_)
+    : Var(m, name, 32u, 1, signed_, VarType::Iter), min_value_(min_value), max_value_(max_value) {
+    // we always use 32
+    // by default it is unsigned
+}
+
+bool IterVar::safe_to_resize(uint32_t target_size, bool is_signed) {
+    try {
+        // TODO: refactor this
+        Const(generator(), min_value_, target_size, is_signed);
+        Const(generator(), max_value_, target_size, is_signed);
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,

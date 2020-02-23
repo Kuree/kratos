@@ -36,6 +36,7 @@ class Stmt;
 class AssignStmt;
 class IfStmt;
 class SwitchStmt;
+class ForStmt;
 class StmtBlock;
 class ScopedStmtBlock;
 class CombinationalStmtBlock;
@@ -70,11 +71,14 @@ private:
     // hold enum definition
     std::map<std::string, std::shared_ptr<Enum>> enum_defs_;
 
+    // just hold some generators that's not esssential
+    std::unordered_set<std::shared_ptr<Generator>> empty_generators_;
+
 public:
     Context() = default;
 
     Generator& generator(const std::string& name);
-    Generator empty_generator();
+    Generator& empty_generator();
 
     void remove(Generator* generator);
     void add(Generator* generator);

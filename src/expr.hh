@@ -60,9 +60,9 @@ bool is_reduction_op(ExprOp op);
 bool is_expand_op(ExprOp op);
 bool is_unary_op(ExprOp op);
 
-enum class VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted };
+enum class VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted, Iter };
 
-enum class VarCastType { Signed, Unsigned, Clock, AsyncReset, Enum };
+enum class VarCastType { Signed, Unsigned, Clock, AsyncReset, Enum, Resize };
 
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
@@ -239,7 +239,7 @@ protected:
                                                  AssignmentType type);
 
 private:
-    std::unordered_map<VarCastType, std::shared_ptr<VarCasted>> casted_;
+    std::set<std::shared_ptr<VarCasted>> casted_;
     std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> extended_;
 };
 
@@ -287,6 +287,8 @@ public:
 
     bool is_enum() const override { return cast_type_ == VarCastType ::Enum; }
 
+    void set_target_width(uint32_t width);
+
 protected:
     std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
                                          AssignmentType type) override;
@@ -297,6 +299,8 @@ private:
     VarCastType cast_type_;
     // only used for enum
     Enum *enum_type_ = nullptr;
+    // only used for resize
+    uint32_t target_width_ = 0;
 };
 
 struct VarSlice : public Var {
@@ -665,6 +669,17 @@ public:
 
 private:
     InterfaceRef *interface_ = nullptr;
+};
+
+class IterVar: public Var {
+public:
+    IterVar(Generator *m, const std::string &name, int64_t min_value, int64_t max_value, bool signed_ = false);
+
+    bool safe_to_resize(uint32_t target_size, bool is_signed);
+
+private:
+    int64_t min_value_;
+    int64_t max_value_;
 };
 
 // helper functions

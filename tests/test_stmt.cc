@@ -1,9 +1,10 @@
+#include "../src/codegen.hh"
 #include "../src/context.hh"
+#include "../src/except.hh"
 #include "../src/generator.hh"
 #include "../src/stmt.hh"
-#include "gtest/gtest.h"
-#include "../src/except.hh"
 #include "../src/util.hh"
+#include "gtest/gtest.h"
 
 using namespace kratos;
 
@@ -105,4 +106,22 @@ TEST(stmt, stmt_removal) {  // NOLINT
     remove_stmt_from_parent(if_stmt);
     remove_stmt_from_parent(switch_stmt);
     EXPECT_EQ(comb->size(), 0);
+}
+
+TEST(stmt, for_loop) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("test");
+    auto &var1 = mod.var("a", 4, 8);
+    auto comb = mod.combinational();
+    auto loop = std::make_shared<ForStmt>("i", 0, 4, 1);
+    comb->add_stmt(loop);
+    auto iter = loop->get_iter_var();
+    std::shared_ptr<AssignStmt> stmt;
+    EXPECT_NO_THROW(stmt = var1[iter].assign(iter, AssignmentType::Blocking));
+    loop->add_stmt(stmt);
+
+    SystemVerilogCodeGen codegen(&mod);
+    auto result = codegen.str();
+    EXPECT_TRUE(result.find("for (int unsigned i = 0; i < 4; i += 1) begin") != std::string::npos);
+    EXPECT_TRUE(result.find("a[3'(i)] = 4'(i);") != std::string::npos);
 }

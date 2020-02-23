@@ -57,7 +57,7 @@ void Stmt::remove_from_parent() {
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
     : AssignStmt(left, right, AssignmentType::Undefined) {}
 
-AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right,
+AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right,
                        AssignmentType type)
     : Stmt(StatementType ::Assign), left_(left.get()), right_(right.get()), assign_type_(type) {
     if (left == nullptr) throw UserException("left hand side is empty");
@@ -71,10 +71,35 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<V
     }
     // check for width
     if (left->width() != right->width()) {
-        throw VarException(
-            ::format("left ({0})'s width does not match with right ({1}). {2} <- {3}",
-                     left->to_string(), right->to_string(), left->width(), right->width()),
-            {left.get(), right.get()});
+        // up scale or down scale if the right hand side is a const, and it is allowed
+        bool has_error = true;
+        if (right->type() == VarType::ConstValue) {
+            auto const_ = right->as<Const>();
+            try {
+                right =
+                    constant(const_->value(), left->width(), left->is_signed()).shared_from_this();
+                has_error = false;
+            } catch (...) {
+            }
+        } else if (right->type() == VarType::Iter) {
+            // need to resize it
+            auto iter = right->as<IterVar>();
+            if (iter->safe_to_resize(left->width(), left->is_signed())) {
+                auto casted = right->cast(VarCastType::Resize)->as<VarCasted>();
+                casted->set_target_width(left->width());
+                right = casted;
+                has_error = false;
+            }
+        }
+        if (has_error || left->width() != right->width()) {
+            throw VarException(
+                ::format("left ({0})'s width does not match with right ({1}). {2} <- {3}",
+                         left->to_string(), right->to_string(), left->width(), right->width()),
+                {left.get(), right.get()});
+        } else {
+            // reassign
+            right_ = right.get();
+        }
     }
     if (((left->size().front() > 1 || left->size().size() > 1 || left->explicit_array()) ||
          (right->size().front() > 1 || right->size().size() > 1 || right->explicit_array())) &&
@@ -183,6 +208,30 @@ void IfStmt::add_scope_variable(const std::string &name, const std::string &valu
     then_body_->add_scope_variable(name, value, is_var, override);
     else_body_->add_scope_variable(name, value, is_var, override);
 }
+
+ForStmt::ForStmt(const std::string &iter_var_name, int64_t start, int64_t end, int64_t step)
+    : Stmt(StatementType::For), start_(start), end_(end), step_(step) {
+    // making a loop variable
+    // first determine if it is signed or not
+    bool sign = start < 0 || end < 0;
+    // the iter var used for iteration assignment
+    iter_ = std::make_shared<IterVar>(nullptr, iter_var_name, start, end, sign);
+    loop_body_ = std::make_shared<ScopedStmtBlock>();
+    loop_body_->set_parent(this);
+}
+
+void ForStmt::set_parent(IRNode *node) {
+    if (node->ir_node_kind() != IRNodeKind::StmtKind)
+        throw UserException("For loop can only be added to statement body");
+    auto stmt = reinterpret_cast<Stmt *>(node);
+    auto gen = stmt->generator_parent();
+    iter_->set_generator(gen);
+    Stmt::set_parent(node);
+}
+
+IRNode *ForStmt::get_child(uint64_t index) { return index < 1 ? loop_body_.get() : nullptr; }
+
+void ForStmt::add_stmt(const std::shared_ptr<Stmt> &stmt) { loop_body_->add_stmt(stmt); }
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 

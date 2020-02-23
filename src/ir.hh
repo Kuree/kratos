@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+
 #include "context.hh"
 
 namespace kratos {
@@ -33,7 +34,7 @@ public:
     virtual IRNode *get_child(uint64_t) { return nullptr; }
     // the caller is responsible to check the return value; if it's larger than count + 1
     // it means its not found. default implementation is linear search
-    virtual uint64_t index_of(IRNode* node);
+    virtual uint64_t index_of(IRNode *node);
 
     IRNode *ast_node() { return this; }
 
@@ -77,7 +78,7 @@ public:
     virtual inline void visit(Var *) {}
     virtual inline void visit(Port *) {}
     virtual inline void visit(VarSlice *) {}
-    virtual inline void visit(VarVarSlice*) {}
+    virtual inline void visit(VarVarSlice *) {}
     virtual inline void visit(VarConcat *) {}
     virtual inline void visit(Expr *) {}
     virtual inline void visit(EnumVar *) {}
@@ -89,6 +90,7 @@ public:
     virtual inline void visit(ScopedStmtBlock *) {}
     virtual inline void visit(IfStmt *) {}
     virtual inline void visit(SwitchStmt *) {}
+    virtual inline void visit(ForStmt *) {}
     virtual inline void visit(CombinationalStmtBlock *) {}
     virtual inline void visit(SequentialStmtBlock *) {}
     virtual inline void visit(FunctionStmtBlock *) {}
