@@ -182,6 +182,7 @@ private:
 };
 
 Simulator::Simulator(kratos::Generator *generator) {
+    if (!generator) return;
     // fix the assignment type
     fix_assignment_type(generator);
     // compute the dependency
@@ -193,16 +194,16 @@ Simulator::Simulator(kratos::Generator *generator) {
     init_pull_up_value(generator);
 }
 
-std::optional<uint64_t> Simulator::get_value_(kratos::Var *var) const {
+std::optional<uint64_t> Simulator::get_value_(const kratos::Var *var) const {
     if (!var) return std::nullopt;
     // only scalar
     if (var->size().size() != 1 || var->size().front() > 1) return std::nullopt;
 
     if (var->type() == VarType::Parameter) {
-        auto param = var->as<Param>();
+        auto param = reinterpret_cast<const Param*>(var);
         return param->value();
     } else if (var->type() == VarType::ConstValue) {
-        auto const_ = var->as<Const>();
+        auto const_ = reinterpret_cast<const Const*>(var);
         return const_->value();
     } else if (var->type() == VarType::Expression) {
         auto result = eval_expr(var);
@@ -242,10 +243,10 @@ std::optional<uint64_t> Simulator::get_value_(kratos::Var *var) const {
         auto value = values[base];
         return (value >> low) & (~(0xFFFFFFFFFFFFFFFF << (high + 1)));
     } else {
-        if (values_.find(var) == values_.end())
+        if (values_.find(const_cast<Var*>(var)) == values_.end())
             return std::nullopt;
         else
-            return values_.at(var);
+            return values_.at(const_cast<Var*>(var));
     }
 }
 
@@ -329,7 +330,7 @@ void Simulator::set_value_(kratos::Var *var, std::optional<uint64_t> op_value) {
     }
 }
 
-std::optional<std::vector<uint64_t>> Simulator::get_complex_value_(kratos::Var *var) const {
+std::optional<std::vector<uint64_t>> Simulator::get_complex_value_(const kratos::Var *var) const {
     if (!var) return std::nullopt;
     if (var->size().size() == 1 && var->size().front() == 1) {
         // this is a scalar
@@ -340,7 +341,6 @@ std::optional<std::vector<uint64_t>> Simulator::get_complex_value_(kratos::Var *
             return std::nullopt;
     }
     if (var->type() == VarType::Slice) {
-        auto slice = var->as<VarSlice>();
         auto root = const_cast<Var *>(var->get_var_root_parent());
         auto index = get_slice_index(var);
         if (index.empty()) return std::nullopt;
@@ -355,8 +355,9 @@ std::optional<std::vector<uint64_t>> Simulator::get_complex_value_(kratos::Var *
         auto high = var_high / root->var_width();
         return std::vector<uint64_t>(values.begin() + low, values.end() + high + 1);
     } else {
-        if (complex_values_.find(var) == complex_values_.end()) return std::nullopt;
-        return complex_values_.at(var);
+        // TODO: refactor the code to remove the const_cast
+        if (complex_values_.find(const_cast<Var*>(var)) == complex_values_.end()) return std::nullopt;
+        return complex_values_.at(const_cast<Var*>(var));
     }
 }
 
@@ -459,15 +460,15 @@ void Simulator::set_complex_value_(kratos::Var *var,
     trigger_event(fill_var, changed_bits);
 }
 
-std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(Var *var) const {
+std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(const Var *var) const {
     if (var->type() != VarType::Slice) {
         return {};
     }
-    auto slice = var->as<VarSlice>();
+    auto slice = reinterpret_cast<const VarSlice*>(var);
     auto result = get_slice_index(slice->parent_var);
     uint32_t high, low;
     if (slice->sliced_by_var()) {
-        auto var_slice = slice->as<VarVarSlice>();
+        auto var_slice = reinterpret_cast<const VarVarSlice*>(slice);
         auto v = var_slice->sliced_var();
         auto index = get_value_(v);
         // the index variable is empty
@@ -730,12 +731,12 @@ void Simulator::init_pull_up_value(Generator *generator) {
     visitor.visit_generator_root(generator);
 }
 
-std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) const {
+std::optional<std::vector<uint64_t>> Simulator::eval_expr(const kratos::Var *var) const {
     if (var->type() == VarType::Expression) {
-        auto expr = reinterpret_cast<Expr *>(var);
+        auto expr = reinterpret_cast<const Expr *>(var);
         // there are couple special ones
         if (expr->op == ExprOp::Concat) {
-            auto var_concat = reinterpret_cast<VarConcat *>(expr);
+            auto var_concat = reinterpret_cast<const VarConcat *>(expr);
             auto vars = std::vector<Var *>(var_concat->vars().begin(), var_concat->vars().end());
             std::reverse(vars.begin(), vars.end());
             uint32_t shift_amount = 0;
@@ -752,7 +753,7 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(kratos::Var *var) cons
             return std::vector<uint64_t>{value};
         } else if (expr->op == ExprOp::Extend) {
             // depends on whether it's a signed value or not
-            auto extend = reinterpret_cast<VarExtend *>(var);
+            auto extend = reinterpret_cast<const VarExtend *>(var);
             auto base_var = extend->parent_var();
             auto value = get_complex_value_(base_var);
             if (!value) return std::nullopt;

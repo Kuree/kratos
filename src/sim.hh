@@ -19,12 +19,13 @@ public:
     std::optional<std::vector<uint64_t>> get_array(Var *var) const;
 
     void eval();
+    std::optional<std::vector<uint64_t>> eval_expr(const Var *var) const;
 
 protected:
     void set_value_(Var *var, std::optional<uint64_t> op_value);
     void set_complex_value_(Var *var, const std::optional<std::vector<uint64_t>> &op_value);
-    std::optional<uint64_t> get_value_(Var *var) const;
-    std::optional<std::vector<uint64_t>> get_complex_value_(Var *var) const;
+    std::optional<uint64_t> get_value_(const Var *var) const;
+    std::optional<std::vector<uint64_t>> get_complex_value_(const Var *var) const;
 
 private:
     std::unordered_map<Var *, uint64_t> values_;
@@ -36,7 +37,7 @@ private:
     // this is prevent self triggering in always block
     std::unordered_set<Stmt *> scope_;
 
-    std::vector<std::pair<uint32_t, uint32_t>> get_slice_index(Var *var) const;
+    std::vector<std::pair<uint32_t, uint32_t>> get_slice_index(const Var *var) const;
     void trigger_event(Var *var, const std::unordered_set<uint32_t> &bit_mask);
 
     void process_stmt(Stmt *stmt, Var *var);
@@ -48,7 +49,6 @@ private:
     void process_stmt(CombinationalStmtBlock *block, Var *);
     void process_stmt(SequentialStmtBlock *block, Var *var);
 
-    std::optional<std::vector<uint64_t>> eval_expr(Var *var) const;
     std::unordered_map<Var *, std::vector<uint64_t>> nba_values_;
 
     // pull-up registers
