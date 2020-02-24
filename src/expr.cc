@@ -2,19 +2,20 @@
 
 #include <algorithm>
 #include <iostream>
+#include <queue>
 #include <stdexcept>
 
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
 #include "interface.hh"
+#include "sim.hh"
 #include "stmt.hh"
 #include "syntax.hh"
 #include "util.hh"
 
 using fmt::format;
 using std::make_shared;
-using std::runtime_error;
 using std::shared_ptr;
 using std::string;
 using std::vector;
@@ -45,7 +46,7 @@ bool is_unary_op(ExprOp op) {
 }
 
 uint32_t Var::width() const {
-    uint32_t w = var_width_;
+    uint32_t w = param_? param()->value(): var_width_;
     for (auto const &i : size_) w *= i;
     return w;
 }
@@ -442,15 +443,12 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         var_low_ = 0;
         // we need to compute the clog2 here
         uint32_t required_width = clog2(parent->size().front());
-        if (required_width < sliced_var_->width()) {
+        if (required_width != sliced_var_->width()) {
             // may need to demote the variable if it's a var cast
             bool has_error = true;
-            if (sliced_var_->type() == VarType::Iter) {
-                auto iter = sliced_var_->as<IterVar>();
-                if (iter->safe_to_resize(required_width, false)) {
-                    auto casted = sliced_var_->cast(VarCastType::Resize)->as<VarCasted>();
-                    casted->set_target_width(required_width);
-                    sliced_var_ = casted.get();
+            if (IterVar::has_iter_var(sliced_var_)) {
+                if (IterVar::safe_to_resize(sliced_var_, required_width, false)) {
+                    IterVar::fix_width(sliced_var_, required_width);
                     has_error = false;
                 }
             }
@@ -515,6 +513,20 @@ Expr::Expr(Var *left, Var *right)
     set_parent();
 }
 
+uint32_t Expr::width() const {
+    if (is_relational_op(op) || is_reduction_op(op)) return 1;
+    auto left_width = left->width();
+    if (right) {
+        auto right_width = right->width();
+        // LCOV_EXCL_START
+        if (left_width != right_width)
+            throw VarException("Unable to resolve expression width", {left, right});
+        // LCOV_EXCL_STOP
+        return left_width;
+    }
+    return left_width;
+}
+
 void Expr::set_parent() {
     // compute the right parent for the expr
     // it can only go up
@@ -569,7 +581,7 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
         throw UserException(::format("module is null for {0}", name));
     if (!is_valid_variable_name(name))
         throw UserException(::format("{0} is a SystemVerilog keyword", name));
-    if (width() == 0) throw UserException(::format("variable {0} cannot have size 0", name));
+    if (var_width == 0) throw UserException(::format("variable {0} cannot have size 0", name));
 }
 
 IRNode *Var::parent() { return generator(); }
@@ -740,13 +752,19 @@ std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
 }
 
 void Const::set_value(int64_t new_value) {
-    try {
-        Const c(generator_, new_value, width(), is_signed_);
-        value_ = new_value;
-    } catch (::runtime_error &) {
-        std::cerr << ::format("Unable to set value from {0} to {1}", value_, new_value)
-                  << std::endl;
+    if (Const::is_legal(new_value, width(), is_signed()) != Const::ConstantLegal::Legal) {
+        throw VarException(
+            ::format("Unable to set const to {0} with width {1}", new_value, width()), {this});
     }
+    value_ = new_value;
+}
+
+void Const::set_width(uint32_t target_width) {
+    if (Const::is_legal(value_, target_width, is_signed()) != Const::ConstantLegal::Legal) {
+        throw VarException(::format("Unable to set const {0} to width {1}", value_, target_width),
+                           {this});
+    }
+    var_width_ = target_width;
 }
 
 void Const::add_source(const std::shared_ptr<AssignStmt> &) {
@@ -1390,10 +1408,114 @@ IterVar::IterVar(kratos::Generator *m, const std::string &name, int64_t min_valu
     // by default it is unsigned
 }
 
-bool IterVar::safe_to_resize(uint32_t target_size, bool is_signed) {
+void extract_iter_var(const Var *var, std::vector<const IterVar *> &iters) {
+    if (!var) return;
+    if (var->type() == VarType::Iter) {
+        iters.emplace_back(reinterpret_cast<const IterVar *>(var));
+    } else if (var->type() == VarType::Expression) {
+        auto expr = reinterpret_cast<const Expr *>(var);
+        extract_iter_var(expr->left, iters);
+        extract_iter_var(expr->right, iters);
+    }
+}
+
+std::optional<int64_t> convert_value(const Var *var,
+                                     const std::optional<std::vector<uint64_t>> &values) {
+    if (!values) {
+        return std::nullopt;
+    }
+    auto v = &((*values)[0]);
+    if (var->is_signed()) {
+        auto s_v = reinterpret_cast<const int64_t *>(v);
+        return *s_v;
+    } else {
+        return *v;
+    }
+}
+
+bool safe_to_resize_(Simulator &sim, const Var *var, uint32_t target_size, bool is_signed,
+                     std::queue<const IterVar *> &vars) {
     // notice it's exclusive for max
-    return Const::is_legal(min_value_, target_size, is_signed) == Const::ConstantLegal::Legal &&
-           Const::is_legal(max_value_ - 1, target_size, is_signed) == Const::ConstantLegal::Legal;
+    if (vars.empty()) {
+        return true;
+    } else {
+        // pop one
+        auto t = const_cast<IterVar *>(vars.front());
+        vars.pop();
+        sim.set_i(t, t->min_value(), false);
+        {
+            auto v = sim.eval_expr(var);
+            auto num = convert_value(var, v);
+            if (!num) return false;
+            auto result =
+                Const::is_legal(*num, target_size, is_signed) == Const::ConstantLegal::Legal;
+            if (!result) return false;
+        }
+        // notice it's exclusive for max
+        sim.set_i(t, t->max_value() - 1, false);
+        {
+            auto v = sim.eval_expr(var);
+            auto num = convert_value(var, v);
+            if (!num) return false;
+            auto result =
+                Const::is_legal(*num, target_size, is_signed) == Const::ConstantLegal::Legal;
+            if (!result) return false;
+        }
+        auto r = safe_to_resize_(sim, var, target_size, is_signed, vars);
+        // put it back for backtracking
+        vars.push(t);
+        return r;
+    }
+}
+
+bool IterVar::safe_to_resize(const Var *var, uint32_t target_size, bool is_signed) {
+    std::vector<const IterVar *> iters;
+    extract_iter_var(var, iters);
+    // brute-force to compute every possible combinations using simulator
+    Simulator sim(nullptr);
+    // We did some hacks that, assuming the min and max value is at the boundary
+    // maybe use a SMT solver?
+    std::queue<const IterVar *> queue;
+    for (auto const &v : iters) queue.emplace(v);
+
+    auto result = safe_to_resize_(sim, var, target_size, is_signed, queue);
+
+    return result;
+}
+
+bool IterVar::has_iter_var(const Var *var) {
+    if (!var) return false;
+    if (var->type() == VarType::Iter) return true;
+    if (var->type() == VarType::Slice) {
+        auto slice = reinterpret_cast<const VarSlice *>(var);
+        return has_iter_var(slice);
+    } else if (var->type() == VarType::Expression) {
+        auto expr = reinterpret_cast<const Expr *>(var);
+        return has_iter_var(expr->left) || has_iter_var(expr->right);
+    }
+    return false;
+}
+
+void IterVar::fix_width(Var *&var, uint32_t target_width) {
+    if (var && var->type() == VarType::Iter) {
+        auto iter = reinterpret_cast<IterVar *>(var);
+        auto casted = iter->cast(VarCastType::Resize)->as<VarCasted>();
+        casted->set_target_width(target_width);
+        var = casted.get();
+    } else if (var && var->type() == VarType::ConstValue) {
+        auto c = reinterpret_cast<Const *>(var);
+        c->set_width(target_width);
+    } else if (var && var->type() == VarType::Expression) {
+        auto expr = reinterpret_cast<Expr *>(var);
+        fix_width(expr->left, target_width);
+        fix_width(expr->right, target_width);
+    } else {
+        // LCOV_EXCL_START
+        if (var) {
+            throw InternalException("Unable to fix width for " + var->handle_name());
+        }
+        // LCOV_EXCL_STOP
+    }
 }
 
 std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,

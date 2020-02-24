@@ -2,10 +2,10 @@
 #define KRATOS_EXPR_HH
 
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include <stdexcept>
 
 #include "context.hh"
 #include "ir.hh"
@@ -37,7 +37,6 @@ enum class ExprOp : uint64_t {
     // logical
     LAnd,
     LOr,
-
 
     // relational
     LessThan,
@@ -79,7 +78,7 @@ public:
     std::vector<uint32_t> &size() { return size_; }
     const std::vector<uint32_t> &size() const { return size_; }
     bool &is_signed() { return is_signed_; };
-    uint32_t width() const;
+    virtual uint32_t width() const;
     uint32_t var_width() const { return var_width_; }
     bool is_signed() const { return is_signed_; };
 
@@ -375,6 +374,7 @@ public:
     virtual void set_value(int64_t new_value);
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void set_width(uint32_t target_width);
 
     std::string to_string() const override;
     std::string handle_name(bool) const override { return to_string(); }
@@ -391,11 +391,7 @@ public:
     bool is_packed() const override { return true; }
     void set_is_packed(bool value) override;
 
-    enum class ConstantLegal {
-        Legal,
-        Small,
-        Big
-    };
+    enum class ConstantLegal { Legal, Small, Big };
 
     static ConstantLegal is_legal(int64_t value, uint32_t width, bool is_signed);
 
@@ -500,6 +496,8 @@ public:
     std::string to_string() const override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
+    uint32_t width() const override;
+
     // AST
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return right ? 2 : 1; }
@@ -525,7 +523,7 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
-    std::vector<Var *> &vars() { return vars_; }
+    const std::vector<Var *> &vars() const { return vars_; }
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
     VarConcat &concat(Var &var) override;
@@ -534,6 +532,8 @@ public:
     IRNode *get_child(uint64_t index) override {
         return index < vars_.size() ? vars_[index] : nullptr;
     }
+
+    uint32_t width() const override { return var_width_; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
@@ -553,11 +553,13 @@ public:
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
+    uint32_t width() const override { return var_width_; }
+
     uint64_t child_count() override { return 1; }
     IRNode *get_child(uint64_t index) override { return index == 0 ? parent_ : nullptr; }
 
     std::string to_string() const override;
-    Var *parent_var() { return parent_; }
+    Var *parent_var() const { return parent_; }
 
 private:
     Var *parent_;
@@ -681,11 +683,17 @@ private:
     InterfaceRef *interface_ = nullptr;
 };
 
-class IterVar: public Var {
+class IterVar : public Var {
 public:
-    IterVar(Generator *m, const std::string &name, int64_t min_value, int64_t max_value, bool signed_ = false);
+    IterVar(Generator *m, const std::string &name, int64_t min_value, int64_t max_value,
+            bool signed_ = false);
 
-    bool safe_to_resize(uint32_t target_size, bool is_signed);
+    bool static safe_to_resize(const Var *var, uint32_t target_size, bool is_signed);
+    static bool has_iter_var(const Var *var);
+    static void fix_width(Var *&var, uint32_t target_width);
+
+    [[nodiscard]] inline int64_t min_value() const { return min_value_; }
+    [[nodiscard]] inline int64_t max_value() const { return max_value_; }
 
 private:
     int64_t min_value_;

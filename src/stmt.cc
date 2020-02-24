@@ -36,8 +36,7 @@ Generator *Stmt::generator_parent() const {
             auto for_ = reinterpret_cast<ForStmt *>(parent_);
             return for_->get_iter_var()->generator();
         }
-        throw StmtException("Internal Error: cannot find parent for stmt",
-                            {const_cast<Stmt *>(this)});
+        return nullptr;
     }
     return dynamic_cast<Generator *>(p);
 }
@@ -83,19 +82,17 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, std::shared_ptr<Var> ri
         bool has_error = true;
         if (right->type() == VarType::ConstValue) {
             auto const_ = right->as<Const>();
-            try {
-                right =
-                    constant(const_->value(), left->width(), left->is_signed()).shared_from_this();
+            if (Const::is_legal(const_->value(), left->width(), left->is_signed()) == Const::ConstantLegal::Legal) {
                 has_error = false;
-            } catch (...) {
+                const_->set_width(left->width());
             }
-        } else if (right->type() == VarType::Iter) {
+        } else if (IterVar::has_iter_var(right.get())) {
             // need to resize it
-            auto iter = right->as<IterVar>();
-            if (iter->safe_to_resize(left->width(), left->is_signed())) {
-                auto casted = right->cast(VarCastType::Resize)->as<VarCasted>();
-                casted->set_target_width(left->width());
-                right = casted;
+            if (IterVar::safe_to_resize(right.get(), left->width(), left->is_signed())) {
+                // fix the width
+                auto right__ = right.get();
+                IterVar::fix_width(right__, left->width());
+                right = right__->shared_from_this();
                 has_error = false;
             }
         }
@@ -199,6 +196,12 @@ void IfStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
     }
 }
 
+void IfStmt::set_parent(IRNode *node) {
+    Stmt::set_parent(node);
+    then_body_->set_parent(this);
+    else_body_->set_parent(this);
+}
+
 IRNode *IfStmt::get_child(uint64_t index) {
     if (index == 0)
         return predicate_.get();
@@ -233,7 +236,9 @@ void ForStmt::set_parent(IRNode *node) {
         throw UserException("For loop can only be added to statement body");
     auto stmt = reinterpret_cast<Stmt *>(node);
     auto gen = stmt->generator_parent();
-    iter_->set_generator(gen);
+    if (gen) {
+        iter_->set_generator(gen);
+    }
     Stmt::set_parent(node);
     for (auto &st : (*loop_body_)) {
         st->set_parent(this);
@@ -333,6 +338,14 @@ SwitchStmt::SwitchStmt(Var &target)
     // just to add the sinks
     auto stmt = target.generator()->get_auxiliary_var(target.width())->assign(target);
     stmt->set_parent(this);
+}
+
+
+void SwitchStmt::set_parent(IRNode *parent) {
+    Stmt::set_parent(parent);
+    for (auto &iter: body_) {
+        iter.second->set_parent(this);
+    }
 }
 
 ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,

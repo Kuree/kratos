@@ -130,6 +130,8 @@ public:
     void set_then(const std::shared_ptr<ScopedStmtBlock> &stmt) { then_body_ = stmt; }
     void set_else(const std::shared_ptr<ScopedStmtBlock> &stmt) { else_body_ = stmt; }
 
+    void set_parent(IRNode *node) override;
+
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 3; }
@@ -169,6 +171,8 @@ public:
     void set_body(const std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> &body) {
         body_ = body;
     }
+
+    void set_parent(IRNode *parent) override;
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }

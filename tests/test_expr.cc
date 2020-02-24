@@ -357,6 +357,7 @@ TEST(var, const_promote) {  // NOLINT
     auto &a = mod.var("a", 5);
     EXPECT_NO_THROW(a.assign(constant(1, 2)));
     EXPECT_THROW(a.assign(constant(100, 20)), VarException);
+    EXPECT_THROW(constant(3, 2).set_width(1), VarException);
 }
 
 TEST(var, iter_demote) {    // NOLINT

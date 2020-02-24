@@ -631,7 +631,10 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
     if (!else_body->empty()) {
         // special case where there is another (and only) if statement nested inside the else body
         // i.e. the else if case
-        bool skip = else_body->size() == 1;
+        auto first_stmt = else_body->empty() ? nullptr : else_body->get_stmt(0);
+        bool skip = else_body->size() == 1 && (first_stmt->type() == StatementType::Assign ||
+                                               first_stmt->type() == StatementType::If ||
+                                               first_stmt->type() == StatementType::Return);
         if (skip) {
             stream_ << indent() << "else ";
             skip_indent_ = true;
@@ -759,10 +762,11 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
     // for loop
     if (generator_->debug) stmt->verilog_ln = stream_.line_no();
     auto iter = stmt->get_iter_var();
-    stream_ << indent() << "for (int " << (iter->is_signed() ? " " : "unsigned ") << iter->to_string()
-            << " = " << stmt->start() << "; " << iter->to_string()
-            << (stmt->end() > stmt->start() ? " < " : " > ") << stmt->end() << "; " << iter->to_string()
-            << (stmt->step() > 0 ? " += " : " -= ") << std::abs(stmt->step()) << ") ";
+    stream_ << indent() << "for (int " << (iter->is_signed() ? " " : "unsigned ")
+            << iter->to_string() << " = " << stmt->start() << "; " << iter->to_string()
+            << (stmt->end() > stmt->start() ? " < " : " > ") << stmt->end() << "; "
+            << iter->to_string() << (stmt->step() > 0 ? " += " : " -= ") << std::abs(stmt->step())
+            << ") ";
     indent_++;
     dispatch_node(stmt->get_loop_body().get());
     indent_--;

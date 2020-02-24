@@ -245,20 +245,6 @@ void remove_unused_stmts(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-
-static bool has_iter_var(const Var* var) {
-    if (!var) return false;
-    if (var->type() == VarType::Iter) return true;
-    if (var->type() == VarType::Slice) {
-        auto slice = reinterpret_cast<const VarSlice*>(var);
-        return has_iter_var(slice);
-    } else if (var->type() == VarType::Expression) {
-        auto expr = reinterpret_cast<const Expr*>(var);
-        return has_iter_var(expr->left) || has_iter_var(expr->right);
-    }
-    return false;
-}
-
 bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& bits) {
     bool result = false;
     bits.reserve(port->width());
@@ -2503,7 +2489,7 @@ private:
                 auto slice = reinterpret_cast<VarSlice*>(left);
                 if (slice->sliced_by_var()) {
                     auto var_slice = slice->as<VarVarSlice>();
-                    if (has_iter_var(var_slice->sliced_var()->get_var_root_parent()))
+                    if (IterVar::has_iter_var(var_slice->sliced_var()->get_var_root_parent()))
                         return;
                 }
                 left = const_cast<Var*>(slice->get_var_root_parent());

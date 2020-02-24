@@ -1683,4 +1683,5 @@ def test_add_only():
 
 
 if __name__ == "__main__":
-    test_nested_loop()
+    from conftest import check_gold_fn
+    test_param(check_gold_fn)
