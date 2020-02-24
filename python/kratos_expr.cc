@@ -352,7 +352,8 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("handle_name", [](const Var &var) { return var.handle_name(); })
         .def("handle_name",
              [](const Var &var, bool ignore_top) { return var.handle_name(ignore_top); })
-        .def("handle_name", [](const Var &var, Generator *gen) { return var.handle_name(gen); });
+        .def("handle_name", [](const Var &var, Generator *gen) { return var.handle_name(gen); })
+        .def("set_generator", &Var::set_generator);
 
     def_attributes<py::class_<Var, ::shared_ptr<Var>>, Var>(class_);
 }
@@ -477,6 +478,8 @@ void init_expr(py::module &m) {
 
     py::class_<VarCasted, ::shared_ptr<VarCasted>, Var>(m, "VarCasted")
         .def_property("enum_type", &VarCasted::enum_type, &VarCasted::set_enum_type);
+
+    auto iter = py::class_<IterVar, ::shared_ptr<IterVar>, Var>(m, "IterVar");
 }
 
 void init_enum_type(py::module &m) {

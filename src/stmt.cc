@@ -28,6 +28,14 @@ Generator *Stmt::generator_parent() const {
         }
     }
     if (!p || p->ir_node_kind() != IRNodeKind::GeneratorKind) {
+        // special case for nested for loop
+        if (type() == StatementType::Block && parent_ &&
+            parent_->ir_node_kind() == IRNodeKind::StmtKind &&
+            reinterpret_cast<Stmt *>(parent_)->type() == StatementType::For) {
+            // take the best shot
+            auto for_ = reinterpret_cast<ForStmt *>(parent_);
+            return for_->get_iter_var()->generator();
+        }
         throw StmtException("Internal Error: cannot find parent for stmt",
                             {const_cast<Stmt *>(this)});
     }
@@ -227,6 +235,9 @@ void ForStmt::set_parent(IRNode *node) {
     auto gen = stmt->generator_parent();
     iter_->set_generator(gen);
     Stmt::set_parent(node);
+    for (auto &st : (*loop_body_)) {
+        st->set_parent(this);
+    }
 }
 
 IRNode *ForStmt::get_child(uint64_t index) { return index < 1 ? loop_body_.get() : nullptr; }
@@ -262,6 +273,13 @@ void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
     }
     stmt->set_parent(this);
     stmts_.emplace_back(stmt);
+}
+
+void StmtBlock::set_parent(IRNode *parent) {
+    Stmt::set_parent(parent);
+    for (auto &stmt : stmts_) {
+        stmt->set_parent(this);
+    }
 }
 
 void StmtBlock::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {

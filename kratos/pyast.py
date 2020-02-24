@@ -87,9 +87,46 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
             if node.id == self.target.id:
                 if isinstance(self.value, int):
                     return ast.Constant(value=self.value, lineno=node.lineno)
-                else:
+                elif isinstance(self.value, str):
                     return ast.Str(s=self.value, lineno=node.lineno)
+                else:
+                    return self.value
             return node
+
+    class HasVar(ast.NodeVisitor):
+        def __init__(self, target):
+            self.has_target = False
+            self.target = target
+
+        def visit_Name(self, node):
+            if node.id == self.target:
+                self.has_target = True
+
+    class LoopIndexVisitor(ast.NodeVisitor):
+        def __init__(self, target, local_env, global_env):
+            self.target = target
+            self.legal = True
+            self.local_env = local_env
+            self.global_env = global_env
+
+        def visit_Subscript(self, node: ast.Index):
+            if not self.legal:
+                return
+            s = node.slice
+            has_var = StaticElaborationNodeVisitor.HasVar(self.target.id)
+            has_var.visit(s)
+            if has_var.has_target:
+                if not isinstance(s, ast.Index):
+                    self.legal = False
+                    return
+                # make sure that the value is a kratos var
+                value_src = astor.to_source(node.value)
+                try:
+                    value = eval(value_src, self.local_env, self.global_env)
+                    if not isinstance(value, _kratos.Var):
+                        self.legal = False
+                except AttributeError:
+                    return
 
     def __init__(self, generator, fn_src, local, global_, filename, func_ln):
         super().__init__()
@@ -104,6 +141,15 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         self.scope_ln = func_ln
 
         self.key_pair = []
+
+    def __loop_self_var(self, target, nodes):
+        valid = True
+        for node in nodes:
+            if valid:
+                visitor = StaticElaborationNodeVisitor.LoopIndexVisitor(target, self.local, self.global_)
+                visitor.visit(node)
+                valid = visitor.legal
+        return valid
 
     def visit_For(self, node: ast.For):
         # making sure that we don't have for/else case
@@ -132,25 +178,66 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
             print_src(self.fn_src, node.iter.lineno)
             raise SyntaxError("Unable to parse loop "
                               "target " + astor.to_source(target))
-        new_node = []
-        for value in iter_:
-            loop_body = copy.deepcopy(node.body)
-            for n in loop_body:
-                # need to replace all the reference to
-                visitor = StaticElaborationNodeVisitor.NameVisitor(target, value)
-                n = visitor.visit(n)
-                self.key_pair.append((target.id, value))
-                n = self.visit(n)
-                self.key_pair.pop(len(self.key_pair) - 1)
 
+        # if not in debug mode and we are allowed to do so
+        if not self.generator.debug and isinstance(iter_obj, range) and \
+                self.__loop_self_var(target, node.body):
+            # return it as a function call
+            _vars = iter_obj.start, iter_obj.stop, iter_obj.step, node.lineno
+            _vars = [ast.Num(n=n) for n in _vars]
+            keywords = []
+            if self.generator.debug:
+                keywords = [ast.keyword(arg="f_ln",
+                                        value=ast.Constant(value=node.lineno))]
+            # we redirect the var to one of the scope vars. the index is based
+            # on the line number
+            index = ast.Subscript(
+                slice=ast.Index(value=ast.Num(n=node.lineno)),
+                value=ast.Attribute(
+                    value=ast.Name(id="scope", ctx=ast.Load()),
+                    attr="iter_var", ctx=ast.Load()))
+            for_node = ast.Call(func=ast.Attribute(value=ast.Name(id="scope",
+                                                                  ctx=ast.Load()),
+                                                   attr="for_",
+                                                   ctx=ast.Load()),
+                                args=[ast.Str(s=target.id)] + _vars,
+                                keywords=keywords,
+                                ctx=ast.Load())
+            body_visitor = StaticElaborationNodeVisitor.NameVisitor(target, index)
+            body = []
+            for i in range(len(node.body)):
+                n = self.visit(body_visitor.visit(node.body[i]))
                 if isinstance(n, list):
-                    for n_ in n:
-                        new_node.append(n_)
-                        self.target_node[n_] = (target.id, value)
+                    for nn in n:
+                        body.append(nn)
                 else:
-                    new_node.append(n)
-                    self.target_node[n] = (target.id, value)
-        return new_node
+                    body.append(n)
+            body_node = ast.Call(func=ast.Attribute(attr="loop", value=for_node,
+                                                    cts=ast.Load()),
+                                 args=body, keywords=[])
+            # create an entry for the target
+            self.local[str(target.id)] = 0
+            return self.visit(ast.Expr(body_node))
+        else:
+            new_node = []
+            for value in iter_:
+                loop_body = copy.deepcopy(node.body)
+                for n in loop_body:
+                    # need to replace all the reference to
+                    visitor = StaticElaborationNodeVisitor.NameVisitor(target, value)
+                    n = visitor.visit(n)
+                    self.key_pair.append((target.id, value))
+                    n = self.visit(n)
+                    self.key_pair.pop(len(self.key_pair) - 1)
+
+                    if isinstance(n, list):
+                        for n_ in n:
+                            new_node.append(n_)
+                            self.target_node[n_] = (target.id, value)
+                    else:
+                        new_node.append(n)
+                        self.target_node[n] = (target.id, value)
+            return new_node
 
     def __change_if_predicate(self, node):
         if isinstance(node, ast.UnaryOp):
@@ -383,18 +470,6 @@ class GenVarLocalVisitor(ast.NodeTransformer):
         return node
 
 
-def has_pragma(src_code, ast_node, pragma_name):
-    line_num = ast_node.lineno
-    lines = src_code.split("\n")
-    if len(lines) < line_num:
-        line: str = lines[line_num]
-        line = line.strip()
-        tokens = line.split(" ")
-        return len(tokens) == 3 and tokens[0] == "#" \
-            and tokens[1] == "kratos:" and tokens[2] == pragma_name
-    return False
-
-
 def add_scope_context(stmt, _locals):
     for key, value in _locals.items():
         if isinstance(value, (int, float, str, bool)):
@@ -416,6 +491,8 @@ class Scope:
         self.add_local = add_local
 
         self._level = 0
+
+        self.iter_var = {}
 
     def if_(self, target, *args, f_ln=None, **kargs):
         add_local = self.add_local
@@ -457,6 +534,40 @@ class Scope:
 
         if_stmt = IfStatement(self)
         return if_stmt
+
+    def for_(self, var_name, start, end, step, index, f_ln=None, **kargs):
+        add_local = self.add_local
+        self.iter_var[index] = None
+        generator = self.generator
+
+        class ForStatement:
+            def __init__(self, scope):
+                self.__scope = scope
+                self.__for = _kratos.ForStmt(var_name, start, end, step)
+                self.__for.get_iter_var().set_generator(generator.internal_generator)
+                if f_ln is not None:
+                    fn_ln = (scope.filename, f_ln + scope.ln - 1)
+                    self.__for.add_fn_ln(fn_ln, True)
+                    self.__for.get_loop_body().add_fn_ln(fn_ln, True)
+                    # this is additional info passed in
+                    if add_local:
+                        add_scope_context(self.__for, kargs)
+                # redirect the variable to env
+                self.__scope.iter_var[index] = self.__for.get_iter_var()
+
+            def loop(self, *args):
+                for stmt in args:
+                    if hasattr(stmt, "stmt"):
+                        self.__for.add_stmt(stmt.stmt())
+                    else:
+                        self.__for.add_stmt(stmt)
+                return self
+
+            def stmt(self):
+                return self.__for
+
+        for_stmt = ForStatement(self)
+        return for_stmt
 
     def assign(self, a, b, f_ln=None, **kargs):
         assert isinstance(a, _kratos.Var)

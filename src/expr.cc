@@ -1391,8 +1391,9 @@ IterVar::IterVar(kratos::Generator *m, const std::string &name, int64_t min_valu
 }
 
 bool IterVar::safe_to_resize(uint32_t target_size, bool is_signed) {
+    // notice it's exclusive for max
     return Const::is_legal(min_value_, target_size, is_signed) == Const::ConstantLegal::Legal &&
-           Const::is_legal(max_value_, target_size, is_signed) == Const::ConstantLegal::Legal;
+           Const::is_legal(max_value_ - 1, target_size, is_signed) == Const::ConstantLegal::Legal;
 }
 
 std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,

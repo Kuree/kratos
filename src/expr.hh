@@ -130,7 +130,7 @@ public:
     std::shared_ptr<AssignStmt> assign(Var &var, AssignmentType type);
     void unassign(const std::shared_ptr<AssignStmt> &stmt);
 
-    Generator *generator() const { return generator_; }
+    virtual Generator *generator() const { return generator_; }
     void set_generator(Generator *gen) { generator_ = gen; }
 
     IRNode *parent() override;
@@ -251,6 +251,8 @@ public:
 struct VarCasted : public Var, public EnumType {
 public:
     VarCasted(Var *parent, VarCastType cast_type);
+
+    Generator *generator() const override { return parent_var_->generator(); }
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void set_parent(Var *parent) { parent_var_ = parent; }

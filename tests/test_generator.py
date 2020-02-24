@@ -155,26 +155,44 @@ def test_external_module():
     assert c.get_hash(mod.internal_generator) != 0
 
 
-def test_for_loop(check_gold):
-    class Module(Generator):
-        def __init__(self, num_var: int):
-            super().__init__("mod", True)
-            self.num_var = num_var
-
+class ForLoopModule(Generator):
+    def __init__(self, num_var: int, debug: bool, loop_input: bool):
+        super().__init__("mod", debug)
+        self.num_var = num_var
+        self.loop_input = loop_input
+        if self.loop_input:
             self.inputs = []
             for i in range(num_var):
                 self.inputs.append(self.port(f"in{i}", 1, PortDirection.In))
-            self.output = self.port("out", num_var, PortDirection.Out)
+            self.out = self.output("out", num_var)
+        else:
+            self.out = self.output("out", num_var, size=num_var)
 
-            self.add_always(self.code_block)
+        self.add_always(self.code_block)
 
-        @always_comb
-        def code_block(self):
-            for i in range(self.num_var):
-                self.output[i] = self.inputs[i]
+    @always_comb
+    def code_block(self):
+        for i in range(self.num_var):
+            if self.loop_input:
+                self.out[i] = self.inputs[i]
+            else:
+                self.out[i] = i
 
-    mod = Module(4)
+
+def test_for_loop_debug(check_gold):
+    mod = ForLoopModule(4, True, True)
     check_gold(mod, "test_for_loop")
+
+
+def test_for_loop_no_debug_unroll(check_gold):
+    # because self.inputs is not a kratos variable, it should unroll
+    mod = ForLoopModule(4, False, True)
+    check_gold(mod, "test_for_loop")
+
+
+def test_for_loop_no_unroll(check_gold):
+    mod = ForLoopModule(4, False, False)
+    check_gold(mod, "test_for_loop_no_unroll")
 
 
 def test_switch(check_gold):
@@ -1547,7 +1565,8 @@ def test_nested_loop():
 
     mod.add_always(code)
     src = verilog(mod)["mod"]
-    assert "a[7] = 1'h1;" in src
+    assert "a[i] = 1'(i);" in src
+    assert "a[(i * 32'h4) + j] = 1'h1;" in src
 
 
 def test_turn_off_optimization():
@@ -1664,5 +1683,4 @@ def test_add_only():
 
 
 if __name__ == "__main__":
-    test_add_only()
-
+    test_nested_loop()

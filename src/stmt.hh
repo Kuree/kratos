@@ -32,7 +32,7 @@ class ScopedStmtBlock;
 class Stmt : public std::enable_shared_from_this<Stmt>, public IRNode {
 public:
     explicit Stmt(StatementType type) : IRNode(IRNodeKind::StmtKind), type_(type) {}
-    StatementType type() { return type_; }
+    StatementType type() const { return type_; }
     template <typename T>
     std::shared_ptr<T> as() {
         return std::static_pointer_cast<T>(shared_from_this());
@@ -220,6 +220,7 @@ public:
     void add_stmt(Stmt &stmt) { add_stmt(stmt.shared_from_this()); }
     void remove_stmt(const std::shared_ptr<Stmt> &stmt) override;
     void inline clear() { stmts_.clear(); }
+    void set_parent(IRNode *parent) override;
 
     uint64_t child_count() override { return stmts_.size(); }
     IRNode *get_child(uint64_t index) override {

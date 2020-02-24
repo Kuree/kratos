@@ -23,7 +23,8 @@ void init_stmt(py::module &m) {
              [](Stmt &stmt, const std::string &name, const std::string &value, bool is_var) {
                  stmt.add_scope_variable(name, value, is_var, false);
              })
-        .def_property_readonly("scope_context", [](Stmt &stmt) { return stmt.scope_context(); });
+        .def_property_readonly("scope_context", [](Stmt &stmt) { return stmt.scope_context(); })
+        .def("set_parent", &Stmt::set_parent);
 
     def_trace<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
     def_attributes<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
@@ -142,7 +143,7 @@ void init_stmt(py::module &m) {
         .def("set_is_pure", &DPIFunctionStmtBlock::set_is_pure)
         .def("set_is_context", &DPIFunctionStmtBlock::set_is_context);
 
-    py::class_<InitialStmtBlock, std::shared_ptr<InitialStmtBlock>, StmtBlock>(m,
+    py::class_<InitialStmtBlock, std::shared_ptr<InitialStmtBlock>, StmtBlock>(m,  // NOLINT
                                                                                "InitialStmtBlock");
 
     py::class_<CommentStmt, std::shared_ptr<CommentStmt>, Stmt>(m, "CommentStmt")
@@ -159,4 +160,10 @@ void init_stmt(py::module &m) {
     py::class_<RawStringStmt, std::shared_ptr<RawStringStmt>, Stmt>(m, "RawStringStmt")
         .def(py::init<const std::string &>())
         .def(py::init<const std::vector<std::string> &>());
+
+    py::class_<ForStmt, std::shared_ptr<ForStmt>, Stmt>(m, "ForStmt")
+        .def(py::init<const std::string &, int64_t, int64_t, int64_t>())
+        .def("get_iter_var", &ForStmt::get_iter_var)
+        .def("add_stmt", &ForStmt::add_stmt)
+        .def("get_loop_body", &ForStmt::get_loop_body);
 }
