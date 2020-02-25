@@ -67,5 +67,6 @@ void init_enum(py::module &m) {
         .value("Unsigned", VarCastType::Unsigned)
         .value("AsyncReset", VarCastType::AsyncReset)
         .value("Clock", VarCastType::Clock)
-        .value("Enum", VarCastType::Enum);
+        .value("Enum", VarCastType::Enum)
+        .value("Resize", VarCastType::Resize);
 }

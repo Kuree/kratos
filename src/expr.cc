@@ -46,7 +46,7 @@ bool is_unary_op(ExprOp op) {
 }
 
 uint32_t Var::width() const {
-    uint32_t w = param_? param()->value(): var_width_;
+    uint32_t w = param_ ? param()->value() : var_width_;
     for (auto const &i : size_) w *= i;
     return w;
 }
@@ -729,8 +729,10 @@ void VarCasted::set_target_width(uint32_t width) {
     if (parent_var_->size().size() > 1 && parent_var_->size().front() != 1) {
         throw UserException("Width casting for array not supported");
     }
-    target_width_ = width;
-    var_width_ = width;
+    if (cast_type_ == VarCastType::Resize) {
+        target_width_ = width;
+        var_width_ = width;
+    }
 }
 
 void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }

@@ -4,7 +4,8 @@ from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
 
 from .passes import Attribute, verilog, clear_context
 from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or, \
-    concat, ext, mux, ternary, signed, const, comment, unsigned, create_stub
+    concat, ext, mux, ternary, signed, const, comment, unsigned, create_stub, \
+    resize
 
 from .ports import PortBundle
 from .tb import TestBench, assert_, delay
@@ -48,7 +49,8 @@ __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
 
 # utils
 __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",
-            "concat", "ext", "comment", "signed", "unsigned", "create_stub"]
+            "concat", "ext", "comment", "signed", "unsigned", "create_stub",
+            "resize"]
 
 # type aliasing
 __all__ += ["BlockEdgeType", "posedge", "negedge", "mux", "ternary"]

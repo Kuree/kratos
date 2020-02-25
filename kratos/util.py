@@ -105,6 +105,7 @@ class VarCastType(enum.Enum):
     Clock = _kratos.VarCastType.Clock
     AsyncReset = _kratos.VarCastType.AsyncReset
     Enum = _kratos.VarCastType.Enum
+    Resize = _kratos.VarCastType.Resize
 
 
 def cast(var, cast_type, **kargs):
@@ -117,6 +118,10 @@ def cast(var, cast_type, **kargs):
 
 def signed(var):
     return cast(var, VarCastType.Signed)
+
+
+def resize(var, target_width):
+    return cast(var, VarCastType.Resize, target_width=target_width)
 
 
 def unsigned(var):

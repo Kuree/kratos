@@ -477,7 +477,8 @@ void init_expr(py::module &m) {
     auto enum_port = py::class_<EnumPort, ::shared_ptr<EnumPort>, Port>(m, "EnumPort");
 
     py::class_<VarCasted, ::shared_ptr<VarCasted>, Var>(m, "VarCasted")
-        .def_property("enum_type", &VarCasted::enum_type, &VarCasted::set_enum_type);
+        .def_property("enum_type", &VarCasted::enum_type, &VarCasted::set_enum_type)
+        .def_property("target_width", &VarCasted::width, &VarCasted::set_target_width);
 
     auto iter = py::class_<IterVar, ::shared_ptr<IterVar>, Var>(m, "IterVar");
 }

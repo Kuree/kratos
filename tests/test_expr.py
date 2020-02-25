@@ -171,6 +171,15 @@ def test_single_concat():
     assert id(r) == id(a)
 
 
+def test_resize():
+    from kratos import resize
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+    b = resize(a, 16)
+    assert b.width == 16
+    assert str(b) == "16'(a)"
+
+
 if __name__ == "__main__":
-    test_single_concat()
+    test_resize()
 
