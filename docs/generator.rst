@@ -152,14 +152,17 @@ function definition
 Arrays
 ------
 
-2D Array is supported in kratos. You can create an array though the ``var()``
-function call and set the ``size`` to the array size that's greater than
-``1``:
+ND Array is supported in kratos. You can create an array though the
+``Generator.var()``
+function call and set the ``size`` to the array size in a similar way as
+``numpy`` array. For instance, if ``a.size = (3, 4, 5)``, then ``a[0]`` will
+have size ``(4, 5)`` and ``a[0][0]`` will have size ``5``.
 
 .. code-block:: Python
 
-      def var(self, name: str, width: int,
-             is_signed: bool = False, size: int = 1, packed: bool = False)
+      def var(self, name: str, width: Union[int, _kratos.Param, _kratos.Enum],
+            is_signed: bool = False, size: Union[int, Union[List, Tuple]] = 1,
+            packed: bool = False, explicit_array: bool = False)
 
 .. note::
 
@@ -332,6 +335,15 @@ Allowed python control flows that will be statically evaluated:
 2. ``if``
 3. class function calls that returns a single statement
 
+.. note::
+
+  In some cases, kratos will convert your ``for`` loop into standard
+  SystemVerilog ``for`` loop to improve readability. This conversion
+  only happens when all the following conditions match at the same time:
+
+  1. The current generator is not in debug mode
+  2. All the variables that the iterator indexed into are kratos variable
+
 Keywords like ``while`` may or may not work depends on how it is nested
 side other statements.
 
@@ -401,13 +413,14 @@ concise way: this is just an example of how to add code blocks.
 
             self.add_always(self.comb_code_block)
 
-        @always((posedge, "clk"), (posedge, "rst"))
+        @always_ff((posedge, "clk"), (posedge, "rst"))
         def seq_code_block(self):
             if self._rst:
                 self._val = 0
             else:
                 self._val = self._in
 
+        @always_comb
         def comb_code_block(self):
             self._out = self._val
 
@@ -461,13 +474,14 @@ variables created before:
           _rst = self.reset("rst", 1)
           _val = self.var("val", width)
 
-          @always((posedge, "clk"), (posedge, "rst"))
+          @always_ff((posedge, "clk"), (posedge, "rst"))
           def seq_code_block():
               if _rst:
                   _val = 0
               else:
                   _val = _in
 
+          @always_comb
           def comb_code_block():
               _out = _val
 
@@ -475,7 +489,8 @@ variables created before:
           self.add_always(seq_code_block)
           self.add_always(comb_code_block)
 
-Here is another example on `for` static evaluation
+Here is another example on `for` static evaluation when the debug
+mode is ``True``:
 
 .. code-block:: Python
 
@@ -488,6 +503,7 @@ Here is another example on `for` static evaluation
 
             self.add_always(self.code)
 
+        @always_comb
         def code(self):
             if self.in_ == 1:
                 for i in range(self.num_loop):
@@ -527,6 +543,29 @@ Here is the generated verilog
   end
   endmodule   // PassThrough
 
+Here is the SystemVerilog when the debug mode is off:
+
+.. code-block:: SystemVerilog
+
+    module PassThrough (
+      input logic in,
+      output logic [3:0] out
+    );
+
+    always_comb begin
+      if (in == 1'h1) begin
+        for (int unsigned i = 0; i < 4; i += 1) begin
+            out[2'(i)] = 1'h1;
+          end
+      end
+      else begin
+        for (int unsigned i = 0; i < 4; i += 1) begin
+            out[2'(i)] = 1'h0;
+          end
+      end
+    end
+    endmodule   // PassThrough
+
 
 Procedural code generation
 ==========================
@@ -544,6 +583,7 @@ of statements you can construct:
 - ``SwitchStmt``
 - ``IfStmt``
 - ``AssignStmt``
+- ``ForStmt``
 
 
 .. note::

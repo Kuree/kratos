@@ -117,6 +117,8 @@ readable and your life easier:
   the assertion fails. This can only be used with ``kratos-runtime``.
 - ``remove_assertion``: remove assertion statement and transform the logic
   design when necessary to keep the IR succinct.
+- ``check_flip_flop_always_ff``: make sure that ``always_ff`` is
+  synthesizable for Design Compiler. See ELAB-302 in user guide.
 
 
 Write your own Pass
