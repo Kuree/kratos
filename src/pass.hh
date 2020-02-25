@@ -55,6 +55,8 @@ void check_multiple_driver(Generator *top);
 
 void check_combinational_loop(Generator *top);
 
+void check_flip_flop_always_ff(Generator *top);
+
 void remove_empty_block(Generator *top);
 
 void change_property_into_stmt(Generator *top);

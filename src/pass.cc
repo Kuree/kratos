@@ -273,7 +273,6 @@ bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& 
                         low = ptr->var_low();
                         high = ptr->var_high();
                     }
-
                 }
                 for (uint32_t i = low; i <= high; i++) {
                     bits.emplace(i);
@@ -757,7 +756,7 @@ private:
             const auto& sinks_ = port->sinks();
             // we are only interested in parent level port connection
             std::unordered_set<std::shared_ptr<AssignStmt>> sinks;
-            for (auto const &stmt: sinks_) {
+            for (auto const& stmt : sinks_) {
                 if (stmt->generator_parent() == port->generator()->parent_generator())
                     sinks.emplace(stmt);
             }
@@ -2647,6 +2646,49 @@ void check_combinational_loop(Generator* top) {
     visitor.visit_root(top);
 }
 
+class CheckFlipFlopAlwaysFFVisitor : public IRVisitor {
+public:
+    void visit(Generator* gen) override {
+        uint64_t stmt_count = gen->stmts_count();
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = gen->get_stmt(i);
+            if (stmt->type() == StatementType::Block) {
+                auto block = stmt->as<StmtBlock>();
+                if (block->block_type() == StatementBlockType::Sequential) {
+                    check_always_ff(block->as<SequentialStmtBlock>().get());
+                }
+            }
+        }
+    }
+
+private:
+    void static check_always_ff(SequentialStmtBlock* stmt) {
+        // first pass to determine if there is any if statement in top level
+        bool has_if = false;
+        uint64_t i = 0;
+        uint64_t stmt_count = stmt->size();
+        while ((!has_if) && (i < stmt_count)) {
+            auto s = stmt->get_stmt(i);
+            if (s->type() == StatementType::If) has_if = true;
+            i++;
+        }
+        if (has_if && stmt->size() > 1) {
+            // DC cannot infer as a D-flip-flop
+            // error message copied from DC
+            throw StmtException(
+                "The statements in this 'always' block are outside the "
+                "scope of the synthesis policy. Only an ’if’ statement "
+                "is allowed at the top level in this ’always’ block. (ELAB-302)",
+                {stmt});
+        }
+    }
+};
+
+void check_flip_flop_always_ff(Generator* top) {
+    CheckFlipFlopAlwaysFFVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
 void sort_stmts(Generator* top) {
     SortStmtVisitor visitor;
     visitor.visit_generator_root_p(top);
@@ -2742,11 +2784,11 @@ void remove_empty_block(Generator* top) {
     visitor.visit_root(top);
 }
 
-class GeneratorPropertyVisitor: public IRVisitor {
+class GeneratorPropertyVisitor : public IRVisitor {
 public:
-    void visit(Generator *generator) override {
-        auto const &properties = generator->properties();
-        for (auto const &iter: properties) {
+    void visit(Generator* generator) override {
+        auto const& properties = generator->properties();
+        for (auto const& iter : properties) {
             auto stmt = std::make_shared<AssertPropertyStmt>(iter.second);
             generator->add_stmt(stmt);
             stmt->set_parent(generator);
@@ -2754,7 +2796,7 @@ public:
     }
 };
 
-void change_property_into_stmt(Generator *top) {
+void change_property_into_stmt(Generator* top) {
     GeneratorPropertyVisitor visitor;
     visitor.visit_generator_root_p(top);
 }
@@ -2896,6 +2938,8 @@ void PassManager::register_builtin_passes() {
     register_pass("check_multiple_driver", &check_multiple_driver);
 
     register_pass("check_combinational_loop", &check_combinational_loop);
+
+    register_pass("check_flip_flop_always_ff", &check_flip_flop_always_ff);
 
     register_pass("convert_continuous_stmt", &convert_continuous_stmt);
 

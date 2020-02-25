@@ -62,9 +62,13 @@ def test_modport_io(check_gold):
                 else:
                     self.bus.r_en = 0
                     self.bus.w_en = 0
+
+            @always_ff((posedge, self.bus.clk))
+            def update():
                 self.counter = self.counter + 1
 
             self.add_always(logic)
+            self.add_always(update)
 
     class Slave(Generator):
         def __init__(self):

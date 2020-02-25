@@ -29,6 +29,9 @@ always_ff @(posedge bus.clk) begin
     bus.r_en <= 1'h0;
     bus.w_en <= 1'h0;
   end
+end
+
+always_ff @(posedge bus.clk) begin
   counter <= counter + 8'h1;
 end
 endmodule   // Master

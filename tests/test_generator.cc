@@ -2,6 +2,7 @@
 #include "../src/debug.hh"
 #include "../src/except.hh"
 #include "../src/expr.hh"
+#include "../src/formal.hh"
 #include "../src/fsm.hh"
 #include "../src/generator.hh"
 #include "../src/interface.hh"
@@ -9,7 +10,6 @@
 #include "../src/port.hh"
 #include "../src/stmt.hh"
 #include "../src/util.hh"
-#include "../src/formal.hh"
 #include "gtest/gtest.h"
 
 using namespace kratos;
@@ -1125,7 +1125,7 @@ TEST(interface, mod_port) {  // NOLINT
     EXPECT_TRUE(str.find("Config.R bus\n") != std::string::npos);
 }
 
-TEST(interface, extract_interface_definition) { // NOLINT
+TEST(interface, extract_interface_definition) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("mod");
     auto config_0 = std::make_shared<InterfaceDefinition>("Config");
@@ -1143,7 +1143,6 @@ TEST(interface, extract_interface_definition) { // NOLINT
 
     create_interface_instantiation(&mod1);
     EXPECT_THROW(extract_interface_info(&mod1), UserException);
-
 
     auto &mod2 = c.generator("mod");
     auto &v2 = mod2.var("v", 1);
@@ -1172,7 +1171,6 @@ TEST(interface, extract_interface_definition) { // NOLINT
 
     EXPECT_THROW(mod3.interface(config_1, "bus1", false), UserException);
 }
-
 
 TEST(pass, multiple_driver) {  // NOLINT
     Context c;
@@ -1253,7 +1251,7 @@ TEST(stmt, raw_string_codegen) {  // NOLINT
     EXPECT_TRUE(mod_str.find("\ntest\n") != std::string::npos);
 }
 
-TEST(pass, extract_register_var_names) {    // NOLINT
+TEST(pass, extract_register_var_names) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &a = mod.var("a", 1);
@@ -1304,7 +1302,7 @@ TEST(pass, test_merge_wire_assignment_block) {  // NOLINT
     EXPECT_EQ(comb->size(), 1);
 }
 
-TEST(formal, test_remove_async) {   // NOLINT
+TEST(formal, test_remove_async) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &rst = mod.port(PortDirection::In, "rst", 1, PortType::AsyncReset);
@@ -1323,5 +1321,18 @@ TEST(formal, test_remove_async) {   // NOLINT
     EXPECT_TRUE(seq1->get_conditions().empty());
     EXPECT_TRUE(seq2->get_conditions().empty());
     EXPECT_TRUE(seq3->get_conditions().empty());
+}
 
+TEST(pass, check_d_flip_flop) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    auto seq = mod.sequential();
+    seq->add_stmt(a.assign(constant(1, 1)));
+    auto if_ = std::make_shared<IfStmt>(a);
+    seq->add_stmt(if_);
+    if_->add_then_stmt(b.assign(constant(1, 1)));
+
+    EXPECT_THROW(check_flip_flop_always_ff(&mod), StmtException);
 }

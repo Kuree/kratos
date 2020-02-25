@@ -33,6 +33,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             insert_debug_info: bool = False,
             insert_verilator_info: bool = False,
             insert_break_on_edge: bool = False,
+            check_flip_flop_always_ff: bool = True,
             debug_db_filename: str = "",
             use_parallel: bool = True,
             track_generated_definition: bool = False,
@@ -79,6 +80,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("merge_wire_assignments")
     if check_multiple_driver:
         pass_manager.add_pass("check_multiple_driver")
+    if check_flip_flop_always_ff:
+        pass_manager.add_pass("check_flip_flop_always_ff")
     # insert debug break points if needed
     if insert_debug_info:
         pass_manager.add_pass("propagate_scope_variable")

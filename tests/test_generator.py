@@ -1582,11 +1582,12 @@ def test_turn_off_optimization():
             def code():
                 if a == 0:
                     b = 0
+                # NOTE: this is not synthesizable verilog!
                 if a == 1:
                     c = 1
 
             self.add_always(code, merge_if_block=merge)
-    src = verilog(Mod(False))["mod"]
+    src = verilog(Mod(False), check_flip_flop_always_ff=False)["mod"]
     assert "  if (a == 2'h1) begin" in src
     assert "else if" not in src
     src = verilog(Mod(True))["mod"]
