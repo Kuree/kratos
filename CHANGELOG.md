@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.26] - 2020-02-24
+### Added
+- Allow top name to be changed when converting generator to magma circuit
+- Add ability to output `BTOR2` via `yosys`. Notice that some of the semantics needs sv2v's conversion.
+- Add support for `for` loops that can be converted into SystemVerilog `for` loops.
+  This is only enabled when the generator is not in debug mode.
+- Add `resize` function and resize as a new variable cast
+- Add a pass to check top-level `if` statement in `always_comb` to make sure
+  variables are inferred as D flip-flops in DC (#145.
+- Add struct extract pass for `VarPacked`.
+  
+### Changed
+- Refactor C++ core interfaces: `generator()` and `const` usage in simulator.
+  This should not affect Python front end
+- All Travis tests are moved to Github Actions.
+- Refactor `debug` to `debug_fn_ln` flag in `verilog` function.
+- Speed up CI builds by turning on debug mode (#144).
+
+### Fixed
+- Use generated name when storing generator variables
+- Fix a bug where the top module is not in debug mode but child is during debug info dump
+
 ## [0.0.25] - 2020-02-02
 ### Added
 - add bulking wiring when adding a child instance in python wrapper
