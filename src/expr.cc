@@ -446,7 +446,7 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         // we need to compute the clog2 here
         required_width = clog2(parent->size().front());
     }
-    if (required_width != sliced_var_->width()) {
+    if (required_width < sliced_var_->width()) {
         // may need to demote the variable if it's a var cast
         bool has_error = true;
         if (IterVar::has_iter_var(sliced_var_)) {
@@ -457,6 +457,7 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         }
         if (has_error || required_width != sliced_var_->width()) {
             // error message copied from verilator
+            IterVar::safe_to_resize(sliced_var_, required_width, false);
             throw VarException(
                 ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
                          parent->size().front() - 1, required_width, sliced_var_->width()),
@@ -1480,7 +1481,10 @@ bool IterVar::safe_to_resize(const Var *var, uint32_t target_size, bool is_signe
     // We did some hacks that, assuming the min and max value is at the boundary
     // maybe use a SMT solver?
     std::queue<const IterVar *> queue;
-    for (auto const &v : iters) queue.emplace(v);
+    for (auto const &v : iters) {
+        sim.set_i(v, v->max_value() - 1, false);
+        queue.emplace(v);
+    }
 
     auto result = safe_to_resize_(sim, var, target_size, is_signed, queue);
 

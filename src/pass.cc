@@ -2487,9 +2487,7 @@ private:
             if (left->type() == VarType::Slice) {
                 auto slice = reinterpret_cast<VarSlice*>(left);
                 if (slice->sliced_by_var()) {
-                    auto var_slice = slice->as<VarVarSlice>();
-                    if (IterVar::has_iter_var(var_slice->sliced_var()->get_var_root_parent()))
-                        return;
+                    return;
                 }
                 left = const_cast<Var*>(slice->get_var_root_parent());
             }

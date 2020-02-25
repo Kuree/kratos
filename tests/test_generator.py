@@ -1584,8 +1584,14 @@ def test_nested_loop():
 
     mod.add_always(code)
     src = verilog(mod)["mod"]
-    assert "a[i] = 1'(i);" in src
-    assert "a[(i * 32'h4) + j] = 1'h1;" in src
+    assert "a[3'(i)] = 1'(i);" in src
+    assert "a[(3'(i) * 3'h4) + 3'(j)] = 1'h1;" in src
+    # with debug on
+    mod = Generator("mod", True)
+    a = mod.var("a", 8)
+    mod.add_always(code)
+    src = verilog(mod)["mod"]
+    assert "a[7] = 1'h1;" in src
 
 
 def test_turn_off_optimization():
