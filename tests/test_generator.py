@@ -195,6 +195,25 @@ def test_for_loop_no_unroll(check_gold):
     check_gold(mod, "test_for_loop_no_unroll")
 
 
+def test_for_bit_index():
+    class Mod(Generator):
+        def __init__(self, num_loop):
+            super().__init__("mod")
+            self.out_ = self.output("out", num_loop)
+            self.num_loop = num_loop
+
+            self.add_always(self.code)
+
+        @always_comb
+        def code(self):
+            for i in range(self.num_loop):
+                self.out_[i] = 1
+
+    mod = Mod(4)
+    src = verilog(mod)["mod"]
+    assert "out[2'(i)] = 1'h1;" in src
+
+
 def test_switch(check_gold):
     class Switch(Generator):
         def __init__(self):

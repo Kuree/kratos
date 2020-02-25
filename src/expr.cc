@@ -424,6 +424,7 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
     // there is an issue about the var_high and var_low; the problem will only show up during
     // the connectivity check
     // TODO: fix this
+    uint32_t required_width;
     if (parent->size().size() == 1 && parent->size().front() == 1 && !parent->explicit_array()) {
         // slice through the 1D array
         // so the width will be 1
@@ -431,6 +432,7 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         size_ = {1};
         var_high_ = 0;
         var_low_ = 0;
+        required_width = clog2(parent->width());
     } else {
         var_width_ = parent->var_width();
         is_packed_ = parent->is_packed();
@@ -442,23 +444,23 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         var_high_ = var_width_ - 1;
         var_low_ = 0;
         // we need to compute the clog2 here
-        uint32_t required_width = clog2(parent->size().front());
-        if (required_width != sliced_var_->width()) {
-            // may need to demote the variable if it's a var cast
-            bool has_error = true;
-            if (IterVar::has_iter_var(sliced_var_)) {
-                if (IterVar::safe_to_resize(sliced_var_, required_width, false)) {
-                    IterVar::fix_width(sliced_var_, required_width);
-                    has_error = false;
-                }
+        required_width = clog2(parent->size().front());
+    }
+    if (required_width != sliced_var_->width()) {
+        // may need to demote the variable if it's a var cast
+        bool has_error = true;
+        if (IterVar::has_iter_var(sliced_var_)) {
+            if (IterVar::safe_to_resize(sliced_var_, required_width, false)) {
+                IterVar::fix_width(sliced_var_, required_width);
+                has_error = false;
             }
-            if (has_error || required_width != sliced_var_->width()) {
-                // error message copied from verilator
-                throw VarException(
-                    ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
-                             parent->size().front() - 1, required_width, sliced_var_->width()),
-                    {parent, slice});
-            }
+        }
+        if (has_error || required_width != sliced_var_->width()) {
+            // error message copied from verilator
+            throw VarException(
+                ::format("Bit extraction of array[{0}:0] requires {1} bit index, not {2} bits.",
+                         parent->size().front() - 1, required_width, sliced_var_->width()),
+                {parent, slice});
         }
     }
 }
