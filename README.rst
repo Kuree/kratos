@@ -112,14 +112,14 @@ Here is the generated verilog
 Fanout module
 ~~~~~~~~~~~~~
 
-This is an example to showcase the kratos’ static elaboration ability in
-``always`` block. In practice we would not write it this way.
+This is another example to showcase the kratos’ ability to produce high-quality
+SystemVerilog. In practice we would not write it this way.
 
 .. code:: python
 
    class PassThrough(Generator):
        def __init__(self, num_loop):
-           super().__init__("PassThrough", True)
+           super().__init__("PassThrough")
            self.in_ = self.input("in", 1)
            self.out_ = self.output("out", num_loop)
            self.num_loop = num_loop
@@ -135,30 +135,30 @@ This is an example to showcase the kratos’ static elaboration ability in
                for i in range(self.num_loop):
                    self.out_[i] = 0
 
-Here is generated verilog
+Here is generated SystemVerilog. Notice that the iteration variable ``i``
+has been properly checked and resized to avoid index out of range.
 
-.. code:: verilog
+.. code:: SystemVerilog
 
-   module PassThrough (
-     input  in,
-     output reg [3:0] out
-   );
+  module PassThrough (
+    input logic in,
+    output logic [3:0] out
+  );
 
-   always_comb begin
-     if (in == 1'h1) begin
-       out[0:0] = 1'h1;
-       out[1:1] = 1'h1;
-       out[2:2] = 1'h1;
-       out[3:3] = 1'h1;
-     end
-     else begin
-       out[0:0] = 1'h0;
-       out[1:1] = 1'h0;
-       out[2:2] = 1'h0;
-       out[3:3] = 1'h0;
-     end
-   end
-   endmodule   // PassThrough
+  always_comb begin
+    if (in) begin
+      for (int unsigned i = 0; i < 4; i += 1) begin
+          out[2'(i)] = 1'h1;
+        end
+    end
+    else begin
+      for (int unsigned i = 0; i < 4; i += 1) begin
+          out[2'(i)] = 1'h0;
+        end
+    end
+  end
+  endmodule   // PassThrough
+
 
 How to debug
 ------------
@@ -223,56 +223,6 @@ trace of debug info on ``assign out = in;``
    }
 
 These ``pass.cc`` is the pass that removed the pass through module.
-
-If we modified the source code a little bit that change the wire
-assignment into a combination block, such as
-
-.. code:: python
-
-   class Top(Generator):
-       def __init__(self):
-           super().__init__("top", True)
-
-           self.input("in", 1)
-           self.output("out", 1)
-
-           pass_through = PassThroughMod()
-           self.add_child("pass", pass_through)
-           self.wire(self["pass"].ports["in"], self.ports["in"])
-
-           self.add_code(self.code_block)
-
-       @always_comb
-       def code_block(self):
-           self.ports.out = self["pass"].ports.out
-
-We can see the generated verilog will be a little bit verbose:
-
-.. code:: verilog
-
-   module top (
-     input logic  in,
-     output logic  out
-   );
-
-   logic   top$in_0;
-   assign top$in_0 = in;
-   always_comb begin
-     out = top$in_0;
-   end
-   endmodule   // top
-
-And the debug info shows all the information as well:
-
-.. code:: python
-
-   {
-     1: [('/home/keyi/workspace/kratos/tests/test_generator.py', 554)],
-     2: [('/home/keyi/workspace/kratos/tests/test_generator.py', 556)],
-     3: [('/home/keyi/workspace/kratos/tests/test_generator.py', 557)],
-     7: [('/home/keyi/workspace/kratos/tests/test_generator.py', 561), ('/home/keyi/workspace/kratos/src/expr.cc', 455)],
-     8: [('/home/keyi/workspace/kratos/tests/test_generator.py', 563)],
-     9: [('/home/keyi/workspace/kratos/tests/test_generator.py', 566), ('/home/keyi/workspace/kratos/src/expr.cc', 485)]}
 
 Use an IDE Debugger
 -------------------
