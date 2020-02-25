@@ -65,49 +65,37 @@ specify the sensitivity of the ``always_ff`` block when defining
            self._out = self.output("out", width)
            self._clk = self.clock("clk")
            self._rst = self.reset("rst")
-           self._val = self.var("val", width)
 
            # add combination and sequential blocks
            self.add_code(self.seq_code_block)
 
-           self.add_code(self.comb_code_block)
-
        @always_ff((posedge, "clk"), (posedge, "rst"))
        def seq_code_block(self):
            if self._rst:
-               self._val = 0
+               self._out = 0
            else:
-               self._val = self._in
+               self._out = self._in
 
-       @always_comb
-       def comb_code_block(self):
-           self._out = self._val
+Here is the generated SystemVerilog
 
-Here is the generated verilog
-
-.. code:: verilog
+.. code:: SystemVerilog
 
    module register (
-     input  clk,
-     input [15:0] in,
-     output reg [15:0] out,
-     input  rst
+     input logic clk,
+     input logic [15:0] in,
+     output logic [15:0] out,
+     input logic rst
    );
 
-   logic  [15:0] val;
 
-   always @(posedge clk, posedge rst) begin
+   always_ff @(posedge clk, posedge rst) begin
      if (rst) begin
-       val <= 16'h0;
+       out <= 16'h0;
      end
-     else begin
-       val <= in;
-     end
-   end
-   always_comb begin
-     out = val;
+     else out <= in;
    end
    endmodule   // register
+
 
 Fanout module
 ~~~~~~~~~~~~~
@@ -167,62 +155,6 @@ Because Python is quite slow, By default the debug option is off. You
 can turn on debugging for individual modules. Here is an example on how
 to turn on debug (see ``tests/test_generator.py`` for more details).
 
-.. code:: python
-
-   class PassThroughMod(Generator):
-       def __init__(self):
-           super().__init__("mod1", True)
-           self.in_ = self.input("in", 1)
-           self.out_ = self.output("out", 1)
-           self.wire(self.out_, self.in_)
-
-   # ... some other code
-   class Top(Generator):
-       def __init__(self):
-           super().__init__("top", True)
-
-           self.input("in", 1)
-           self.output("out", 1)
-
-           pass_through = PassThroughMod()
-           self.add_child("pass", pass_through)
-           self.wire(self["pass"].ports["in"], self.ports["in"])
-
-           self.wire(self.ports.out, self["pass"].ports.out)
-
-   mod = Top()
-   mod_src, debug_info = verilog(mod, debug=True)
-
-You can see the generated verilog:
-
-.. code:: verilog
-
-   module top (
-     input logic  in,
-     output logic  out
-   );
-
-   assign out = in;
-   endmodule   // top
-
-The ``pass`` sub-module disappeared due to the compiler optimization.
-However, if we print out the debug information, we can see the full
-trace of debug info on ``assign out = in;``
-
-.. code:: python
-
-   {
-     1: [('/home/keyi/workspace/kratos/tests/test_generator.py', 532)],
-     2: [('/home/keyi/workspace/kratos/tests/test_generator.py', 534)],
-     3: [('/home/keyi/workspace/kratos/tests/test_generator.py', 535)],
-     6: [('/home/keyi/workspace/kratos/tests/test_generator.py', 539),
-         ('/home/keyi/workspace/kratos/src/expr.cc', 455),
-         ('/home/keyi/workspace/kratos/tests/test_generator.py', 541),
-         ('/home/keyi/workspace/kratos/src/expr.cc', 485),
-         ('/home/keyi/workspace/kratos/src/pass.cc', 653)]
-   }
-
-These ``pass.cc`` is the pass that removed the pass through module.
 
 Use an IDE Debugger
 -------------------

@@ -23,6 +23,7 @@ jobs:
       env:
         BUILD_WHEEL: true
         OS: linux
+        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         source ./scripts/ci.sh
     - name: Build and deploy other wheels
