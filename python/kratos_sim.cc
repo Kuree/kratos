@@ -14,9 +14,10 @@ void init_simulator(py::module &m) {
         .def("set", py::overload_cast<Var *, std::optional<uint64_t>, bool>(&Simulator::set))
         .def("set", py::overload_cast<Var *, const std::optional<std::vector<uint64_t>> &, bool>(
                         &Simulator::set))
-        .def("set", py::overload_cast<Var *, std::optional<int64_t>, bool>(&Simulator::set_i))
-        .def("set", py::overload_cast<Var *, const std::optional<std::vector<int64_t>> &, bool>(
-                        &Simulator::set_i))
+        .def("set", py::overload_cast<const Var *, std::optional<int64_t>, bool>(&Simulator::set_i))
+        .def("set",
+             py::overload_cast<const Var *, const std::optional<std::vector<int64_t>> &, bool>(
+                 &Simulator::set_i))
         .def("set", [](Simulator &sim, Var *var, std::optional<uint64_t> v) { sim.set(var, v); })
         .def("set", [](Simulator &sim, Var *var,
                        const std::optional<std::vector<uint64_t>> &v) { sim.set(var, v); })

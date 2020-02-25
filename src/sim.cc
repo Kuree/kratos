@@ -35,28 +35,28 @@ public:
             }
         }
     }
-    using DepSet = std::pair<std::unordered_set<Var *>,
-                             std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>>>;
+    using DepSet = std::pair<std::unordered_set<const Var *>,
+                             std::unordered_map<const Var *, std::unordered_map<uint32_t, Var *>>>;
 
     static DepSet get_dep(Var *var) {
-        std::unordered_set<Var *> deps;
-        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> linked_deps;
+        std::unordered_set<const Var *> deps;
+        std::unordered_map<const Var *, std::unordered_map<uint32_t, Var *>> linked_deps;
         get_var_deps(var, deps, linked_deps);
         return {deps, linked_deps};
     }
 
-    const std::unordered_map<Var *, std::unordered_set<Stmt *>> &dependency() const {
+    const std::unordered_map<const Var *, std::unordered_set<Stmt *>> &dependency() const {
         return dependency_;
     }
 
-    const std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> &linked_dependency()
+    const std::unordered_map<const Var *, std::unordered_map<uint32_t, Var *>> &linked_dependency()
         const {
         return linked_dependency_;
     }
 
 private:
-    std::unordered_map<Var *, std::unordered_set<Stmt *>> dependency_;
-    std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> linked_dependency_;
+    std::unordered_map<const Var *, std::unordered_set<Stmt *>> dependency_;
+    std::unordered_map<const Var *, std::unordered_map<uint32_t, Var *>> linked_dependency_;
 
     void visit_block(CombinationalStmtBlock *block) {
         CombinationBlockVisitor visitor;
@@ -91,8 +91,8 @@ private:
     }
 
     void static get_var_deps(
-        Var *var, std::unordered_set<Var *> &dep,
-        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> &linked_dep) {
+        Var *var, std::unordered_set<const Var *> &dep,
+        std::unordered_map<const Var *, std::unordered_map<uint32_t, Var *>> &linked_dep) {
         switch (var->type()) {
             case VarType::Base:
             case VarType::PortIO: {
@@ -122,10 +122,10 @@ private:
 
     static void compute_linked_dep(
         VarSlice *slice,
-        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> &linked_dep) {
+        std::unordered_map<const Var *, std::unordered_map<uint32_t, Var *>> &linked_dep) {
         auto var_high = slice->var_high();
         auto var_low = slice->var_low();
-        auto root = const_cast<Var *>(slice->get_var_root_parent());
+        auto root = slice->get_var_root_parent();
         for (uint32_t i = var_low; i <= var_high; i++) {
             linked_dep[root].emplace(i, slice);
         }
@@ -135,7 +135,7 @@ private:
             auto p = var_slice->sliced_var();
             var_high = p->var_high();
             var_low = p->var_low();
-            root = const_cast<Var *>(p->get_var_root_parent());
+            root = p->get_var_root_parent();
             for (uint32_t i = var_low; i <= var_high; i++) {
                 linked_dep[root].emplace(i, slice);
             }
@@ -170,14 +170,14 @@ private:
             }
         }
 
-        std::unordered_set<Var *> &vars() { return vars_; }
-        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> &linked_vars() {
+        std::unordered_set<const Var *> &vars() { return vars_; }
+        std::unordered_map<const Var *, std::unordered_map<uint32_t, Var *>> &linked_vars() {
             return linked_vars_;
         }
 
     private:
-        std::unordered_set<Var *> vars_;
-        std::unordered_map<Var *, std::unordered_map<uint32_t, Var *>> linked_vars_;
+        std::unordered_set<const Var *> vars_;
+        std::unordered_map<const Var *, std::unordered_map<uint32_t, Var *>> linked_vars_;
     };
 };
 
@@ -213,7 +213,7 @@ std::optional<uint64_t> Simulator::get_value_(const kratos::Var *var) const {
             return std::nullopt;
         }
     } else if (var->type() == VarType::Slice) {
-        auto root = const_cast<Var *>(var->get_var_root_parent());
+        auto root = var->get_var_root_parent();
         std::vector<uint64_t> values;
         if (root->type() == VarType::ConstValue || root->type() == VarType::Parameter) {
             auto value = get_value_(var);
@@ -243,14 +243,14 @@ std::optional<uint64_t> Simulator::get_value_(const kratos::Var *var) const {
         auto value = values[base];
         return (value >> low) & (~(0xFFFFFFFFFFFFFFFF << (high + 1)));
     } else {
-        if (values_.find(const_cast<Var*>(var)) == values_.end())
+        if (values_.find(var) == values_.end())
             return std::nullopt;
         else
-            return values_.at(const_cast<Var*>(var));
+            return values_.at(var);
     }
 }
 
-void Simulator::set_value_(kratos::Var *var, std::optional<uint64_t> op_value) {
+void Simulator::set_value_(const kratos::Var *var, std::optional<uint64_t> op_value) {
     if (!op_value) return;
     auto value = *op_value;
     if (var->size().size() != 1 || var->size().front() != 1) {
@@ -260,7 +260,7 @@ void Simulator::set_value_(kratos::Var *var, std::optional<uint64_t> op_value) {
     if (var->type() == VarType::Parameter || var->type() == VarType::ConstValue) {
         throw UserException(::format("Cannot set value for constant {0}", var->handle_name()));
     } else if (var->type() == VarType::Slice) {
-        auto root = const_cast<Var *>(var->get_var_root_parent());
+        auto root = var->get_var_root_parent();
         std::vector<uint64_t *> values;
         if (root->type() == VarType::ConstValue || root->type() == VarType::Parameter) {
             throw UserException(::format("Cannot set value for constant {0}", var->handle_name()));
@@ -341,7 +341,7 @@ std::optional<std::vector<uint64_t>> Simulator::get_complex_value_(const kratos:
             return std::nullopt;
     }
     if (var->type() == VarType::Slice) {
-        auto root = const_cast<Var *>(var->get_var_root_parent());
+        auto root = var->get_var_root_parent();
         auto index = get_slice_index(var);
         if (index.empty()) return std::nullopt;
         auto const [var_high, var_low] = compute_var_high_low(root, index);
@@ -355,13 +355,12 @@ std::optional<std::vector<uint64_t>> Simulator::get_complex_value_(const kratos:
         auto high = var_high / root->var_width();
         return std::vector<uint64_t>(values.begin() + low, values.end() + high + 1);
     } else {
-        // TODO: refactor the code to remove the const_cast
-        if (complex_values_.find(const_cast<Var*>(var)) == complex_values_.end()) return std::nullopt;
-        return complex_values_.at(const_cast<Var*>(var));
+        if (complex_values_.find(var) == complex_values_.end()) return std::nullopt;
+        return complex_values_.at(var);
     }
 }
 
-void Simulator::set_complex_value_(kratos::Var *var,
+void Simulator::set_complex_value_(const kratos::Var *var,
                                    const std::optional<std::vector<uint64_t>> &op_value) {
     if (!op_value) return;
     auto value = *op_value;
@@ -372,11 +371,10 @@ void Simulator::set_complex_value_(kratos::Var *var,
     }
     std::vector<uint64_t *> values;
     uint64_t base = 1;
-    Var *fill_var;
+    const Var *fill_var;
     uint32_t low, high;
     if (var->type() == VarType::Slice) {
-        auto slice = var->as<VarSlice>();
-        auto root = const_cast<Var *>(var->get_var_root_parent());
+        auto root = var->get_var_root_parent();
         fill_var = root;
         auto index = get_slice_index(var);
         if (index.empty()) throw InternalException("Empty slice");
@@ -485,7 +483,7 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(const Var 
     return result;
 }
 
-void Simulator::trigger_event(kratos::Var *var, const std::unordered_set<uint32_t> &bits_mask) {
+void Simulator::trigger_event(const kratos::Var *var, const std::unordered_set<uint32_t> &bits_mask) {
     if (bits_mask.empty()) return;
 
     if (dependency_.find(var) != dependency_.end()) {
@@ -495,7 +493,7 @@ void Simulator::trigger_event(kratos::Var *var, const std::unordered_set<uint32_
         }
     }
 
-    auto root = const_cast<Var *>(var->get_var_root_parent());
+    auto root = var->get_var_root_parent();
     if (linked_dependency_.find(root) != linked_dependency_.end()) {
         auto const &vars = linked_dependency_.at(root);
         std::unordered_set<Var *> vs;
@@ -542,7 +540,7 @@ void Simulator::set(kratos::Var *var, std::optional<uint64_t> value, bool eval_)
     if (eval_) eval();
 }
 
-void Simulator::set_i(kratos::Var *var, std::optional<int64_t> value, bool eval_) {
+void Simulator::set_i(const kratos::Var *var, std::optional<int64_t> value, bool eval_) {
     if (value) {
         auto v = *value;
         auto u_v = *(reinterpret_cast<uint64_t *>(&v));
@@ -558,7 +556,7 @@ void Simulator::set(kratos::Var *var, const std::optional<std::vector<uint64_t>>
     if (eval_) eval();
 }
 
-void Simulator::set_i(kratos::Var *var, const std::optional<std::vector<int64_t>> &value,
+void Simulator::set_i(const kratos::Var *var, const std::optional<std::vector<int64_t>> &value,
                       bool eval_) {
     if (value) {
         auto vs = *value;
@@ -574,7 +572,7 @@ void Simulator::set_i(kratos::Var *var, const std::optional<std::vector<int64_t>
     }
 }
 
-void Simulator::process_stmt(kratos::Stmt *stmt, Var *var) {
+void Simulator::process_stmt(kratos::Stmt *stmt, const Var *var) {
     switch (stmt->type()) {
         case StatementType::Assign: {
             auto assign = reinterpret_cast<AssignStmt *>(stmt);
@@ -607,7 +605,7 @@ void Simulator::process_stmt(kratos::Stmt *stmt, Var *var) {
     }
 }
 
-void Simulator::process_stmt(kratos::AssignStmt *stmt, Var *) {
+void Simulator::process_stmt(kratos::AssignStmt *stmt, const Var *) {
     auto right = stmt->right();
     auto val = eval_expr(right);
     if (val) {
@@ -618,19 +616,19 @@ void Simulator::process_stmt(kratos::AssignStmt *stmt, Var *) {
     }
 }
 
-void Simulator::process_stmt(kratos::StmtBlock *block, Var *var) {
+void Simulator::process_stmt(kratos::StmtBlock *block, const Var *var) {
     for (auto &stmt : *block) {
         process_stmt(stmt.get(), var);
     }
 }
 
-void Simulator::process_stmt(kratos::CombinationalStmtBlock *block, Var *var) {
+void Simulator::process_stmt(kratos::CombinationalStmtBlock *block, const Var *var) {
     scope_.emplace(block);
     process_stmt(reinterpret_cast<StmtBlock *>(block), var);
     scope_.erase(block);
 }
 
-void Simulator::process_stmt(kratos::IfStmt *if_, Var *var) {
+void Simulator::process_stmt(kratos::IfStmt *if_, const Var *var) {
     auto target = if_->predicate();
     auto val = get_value_(target.get());
     if (val && (*val)) {
@@ -642,7 +640,7 @@ void Simulator::process_stmt(kratos::IfStmt *if_, Var *var) {
     }
 }
 
-void Simulator::process_stmt(kratos::SwitchStmt *switch_, Var *var) {
+void Simulator::process_stmt(kratos::SwitchStmt *switch_, const Var *var) {
     auto target = switch_->target().get();
     auto val = get_value_(target);
     auto const &body = switch_->body();
@@ -674,7 +672,7 @@ void Simulator::process_stmt(kratos::SwitchStmt *switch_, Var *var) {
     }
 }
 
-void Simulator::process_stmt(kratos::SequentialStmtBlock *block, Var *var_) {
+void Simulator::process_stmt(kratos::SequentialStmtBlock *block, const Var *var_) {
     // only trigger it if it's actually high/low
     auto const &conditions = block->get_conditions();
     bool trigger = false;

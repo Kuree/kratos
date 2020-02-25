@@ -174,7 +174,7 @@ bool is_valid_verilog(const std::map<std::string, std::string> &src) {
 }
 
 std::pair<uint32_t, uint32_t> compute_var_high_low(
-    Var *root, const std::vector<std::pair<uint32_t, uint32_t>> &index) {
+    const Var *root, const std::vector<std::pair<uint32_t, uint32_t>> &index) {
     // outer to inner
     // flatten the index
     auto const &var_sizes = root->size();
