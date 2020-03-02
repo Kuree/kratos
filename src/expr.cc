@@ -1496,7 +1496,7 @@ bool IterVar::has_iter_var(const Var *var) {
     if (var->type() == VarType::Iter) return true;
     if (var->type() == VarType::Slice) {
         auto slice = reinterpret_cast<const VarSlice *>(var);
-        return has_iter_var(slice);
+        return has_iter_var(slice->get_var_root_parent());
     } else if (var->type() == VarType::Expression) {
         auto expr = reinterpret_cast<const Expr *>(var);
         return has_iter_var(expr->left) || has_iter_var(expr->right);
