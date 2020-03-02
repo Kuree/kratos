@@ -193,9 +193,8 @@ def to_magma(kratos_inst, flatten_array=False, top_name=None, **kargs):  # pragm
     circ_name = kratos_inst.name
     internal_gen = kratos_inst.internal_generator
     ports = internal_gen.get_port_names()
-    io = []
+    io = {}
     for port_name in ports:
-        io.append(port_name)
         port = kratos_inst.ports[port_name]
         width = port.width
         size = port.size
@@ -217,9 +216,13 @@ def to_magma(kratos_inst, flatten_array=False, top_name=None, **kargs):  # pragm
             if len(size) > 1 or size[0] > 1:
                 for idx, array_width in enumerate(reversed(size)):
                     type_value = m.Array[array_width, type_value]
-        io.append(dir_(type_value))
+        io[port_name] = (dir_(type_value))
+    magma_io = m.IO(**io)
 
-    defn = m.DefineCircuit(circ_name, *io, kratos=kratos_inst)
+    class _Definition(m.Circuit):
+        name = circ_name
+        io = magma_io
+        kratos = kratos_inst
     os.makedirs(".magma", exist_ok=True)
     filename = f".magma/{circ_name}-kratos.sv"
     # multiple definition inside the kratos instance is taken care of by
@@ -227,6 +230,6 @@ def to_magma(kratos_inst, flatten_array=False, top_name=None, **kargs):  # pragm
     verilog(kratos_inst, filename=filename, track_generated_definition=True,
             **kargs)
     with open(filename, 'r') as f:
-        defn.verilogFile = f.read()
-    m.EndCircuit()
-    return defn
+        _Definition.verilogFile = f.read()
+
+    return _Definition
