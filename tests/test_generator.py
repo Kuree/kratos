@@ -1708,6 +1708,44 @@ def test_add_only():
     assert child not in parent
 
 
+def test_always_parameter():
+    mod = Generator("mod")
+    a = mod.output("a", 3)
+
+    @always_comb
+    def code(i):
+        a[i] = i
+
+    @always_comb
+    def code_self(self, i):
+        a[i] = 0
+
+    try:
+        mod.add_always(code)
+        assert False
+    except AssertionError:
+        pass
+
+    try:
+        mod.add_always(code, j=1)
+        assert False
+    except AssertionError:
+        pass
+
+    try:
+        mod.add_always(code_self)
+        assert False
+    except AssertionError:
+        pass
+
+    mod.add_always(code, i=0)
+    mod.add_always(code, i=1)
+    mod.add_always(code_self, i=2)
+    src = verilog(mod)["mod"]
+    assert "a[0] = 1'h0;" in src
+    assert "a[1] = 1'h1;" in src
+    assert "a[2] = 1'h0;" in src
+
+
 if __name__ == "__main__":
-    from conftest import check_gold_fn
-    test_param(check_gold_fn)
+    test_always_parameter()

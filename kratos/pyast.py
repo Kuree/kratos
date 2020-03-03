@@ -748,15 +748,39 @@ class CodeBlockType(enum.Enum):
 class AlwaysWrapper:
     def __init__(self, fn):
         self.fn = fn
+        assert callable(fn)
+        args = extract_arg_name_order_from_fn(fn)
+        self.args = set()
+        for name in args.values():
+            if name != "self":
+                self.args.add(name)
 
     def __call__(self, *args, **kwargs):
         raise SyntaxError("always block cannot be called normally. "
                           "Please do self.add_block()")
 
 
-def transform_stmt_block(generator, fn, fn_ln=None):
+def filter_fn_args(fn_args):
+    args = []
+    for arg in fn_args:
+        assert isinstance(arg, ast.arg), astor.to_source(arg) + \
+                                         " is not an argument"
+        if arg.arg == "self":
+            args.append(arg)
+    return args
+
+
+def transform_stmt_block(generator, fn, fn_ln=None, kargs=None):
+    if kargs is None:
+        kargs = dict()
+    env_kargs = dict()
+
     if callable(fn) or isinstance(fn, AlwaysWrapper):
         if isinstance(fn, AlwaysWrapper):
+            assert len(kargs) >= len(fn.args), "missing arguments in function"
+            for name in fn.args:
+                assert name in kargs, name + " not found in function args"
+                env_kargs[name] = kargs[name]
             fn = fn.fn
         else:
             import warnings
@@ -788,12 +812,9 @@ def transform_stmt_block(generator, fn, fn_ln=None):
     # remove the decorator
     fn_body.decorator_list = []
     # check the function args. it should only has one self now
-    func_args = fn_body.args.args
-    assert len(func_args) <= 1, \
-        "statement block {0} has ".format(fn_name) + \
-        "to be defined as def {0}(self) or {0}()".format(fn_name)
+    func_args = filter_fn_args(fn_body.args.args)
     insert_self = len(func_args) == 1
-
+    fn_body.args.args = func_args
     _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
                                                fn_name,
                                                insert_self, filename, ln)
@@ -805,6 +826,10 @@ def transform_stmt_block(generator, fn, fn_ln=None):
     # notice that this ln is an offset
     scope = Scope(generator, filename, ln, store_local)
     _locals.update({"_self": generator, "_scope": scope})
+    # use user specified args
+    _locals.update(env_kargs)
+    for name in env_kargs:
+        kargs.pop(name)
     _globals.update(_locals)
     exec(code_obj, _globals)
     stmts = scope.statements()

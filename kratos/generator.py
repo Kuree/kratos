@@ -534,7 +534,7 @@ class Generator(metaclass=GeneratorMeta):
             self.__cached_initialization.append((self.add_code, [fn, comment]))
             return
         block_type, raw_sensitives, stmts = transform_stmt_block(self, fn,
-                                                                 fn_ln)
+                                                                 fn_ln, kargs)
         if sensitivity:
             # override the block type and sensivitives
             block_type = CodeBlockType.Sequential
