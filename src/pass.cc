@@ -592,7 +592,7 @@ void generate_verilog(Generator* top, const std::string& output_dir,
                 for (auto const& [f_name, f_ln] : lines) {
                     entries.emplace_back(::format("[\"{0}\", {1}]", f_name, f_ln));
                 }
-                json << join(entries.begin(), entries.end(), ", ") << "]";
+                json << string::join(entries.begin(), entries.end(), ", ") << "]";
                 if (count != info.size())
                     json << "," << std::endl;
                 else
@@ -1605,7 +1605,7 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
             if (width > 1) str.emplace_back(::format("[{0}:0]", width - 1));
             if (is_signed) str.emplace_back("signed");
             str.emplace_back(attribute_name);
-            auto entry_str = join(str.begin(), str.end(), " ");
+            auto entry_str = string::join(str.begin(), str.end(), " ");
             entry.append(entry_str + ";\n");
         }
         entry.append(::format("}} {0};\n", name));
@@ -1731,13 +1731,13 @@ std::map<std::string, std::string> extract_dpi_function(Generator* top, bool int
                     port->port_direction() == PortDirection::In ? "input" : "output", type_str};
                 if (port->is_signed()) strs.emplace_back("signed");
                 strs.emplace_back(port_name);
-                port_str.emplace_back(join(strs.begin(), strs.end(), " "));
+                port_str.emplace_back(string::join(strs.begin(), strs.end(), " "));
             } else {
                 port_str.emplace_back(
                     SystemVerilogCodeGen::get_port_str(ports.at(port_name).get()));
             }
         }
-        stream << join(port_str.begin(), port_str.end(), ", ");
+        stream << string::join(port_str.begin(), port_str.end(), ", ");
         stream << ");";
 
         result.emplace(func_name, stream.str());

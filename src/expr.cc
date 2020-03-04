@@ -838,7 +838,7 @@ std::string VarConcat::to_string() const {
     for (const auto &ptr : vars_) {
         var_names.emplace_back(ptr->to_string());
     }
-    auto content = join(var_names.begin(), var_names.end(), ", ");
+    auto content = string::join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
 }
 
@@ -847,7 +847,7 @@ std::string VarConcat::handle_name(bool ignore_top) const {
     for (const auto &ptr : vars_) {
         var_names.emplace_back(ptr->handle_name(ignore_top));
     }
-    auto content = join(var_names.begin(), var_names.end(), ", ");
+    auto content = string::join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
 }
 
@@ -856,7 +856,7 @@ std::string VarConcat::handle_name(kratos::Generator *scope) const {
     for (const auto &ptr : vars_) {
         var_names.emplace_back(ptr->handle_name(scope));
     }
-    auto content = join(var_names.begin(), var_names.end(), ", ");
+    auto content = string::join(var_names.begin(), var_names.end(), ", ");
     return ::format("{{{0}}}", content);
 }
 
@@ -1621,7 +1621,7 @@ std::string FunctionCallVar::to_string() const {
             return indexing.at(lhs) < indexing.at(rhs);
         });
     }
-    result.append(join(names.begin(), names.end(), ", "));
+    result.append(string::join(names.begin(), names.end(), ", "));
     result.append(")");
     return result;
 }

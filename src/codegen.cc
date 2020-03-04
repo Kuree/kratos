@@ -132,7 +132,7 @@ std::string Stream::get_var_decl(kratos::Var* var) {
         str.emplace_back(var->name);
     }
 
-    auto var_str = join(str.begin(), str.end(), " ");
+    auto var_str = string::join(str.begin(), str.end(), " ");
     return var_str;
 }
 
@@ -396,7 +396,8 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
         std::string edge = (type == BlockEdgeType::Posedge) ? "posedge" : "negedge";
         sensitive_list.emplace_back(::format("{0} {1}", edge, var->to_string()));
     }
-    std::string sensitive_list_str = join(sensitive_list.begin(), sensitive_list.end(), ", ");
+    std::string sensitive_list_str =
+        string::join(sensitive_list.begin(), sensitive_list.end(), ", ");
     stream_ << stream_.endl() << "always_ff @(" << sensitive_list_str << ") begin"
             << block_label(stmt) << stream_.endl();
     indent_++;
@@ -806,7 +807,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         for (auto const& w : port->size()) str.append(get_width_str(w));
         strs.emplace_back(str);
     }
-    return join(strs.begin(), strs.end(), " ");
+    return string::join(strs.begin(), strs.end(), " ");
 }
 
 std::unordered_map<StmtBlock*, std::string> SystemVerilogCodeGen::index_named_block() {

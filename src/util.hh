@@ -22,16 +22,6 @@ void set_num_cpus(int num_cpu);
 
 std::string ExprOpStr(ExprOp op);
 
-template <typename Iter>
-std::string static join(Iter begin, Iter end, const std::string &sep) {
-    std::stringstream stream;
-    for (auto it = begin; it != end; it++) {
-        if (it != begin) stream << sep;
-        stream << *it;
-    }
-    return stream.str();
-}
-
 // may need to look at this https://stackoverflow.com/q/28828957
 std::string var_type_to_string(VarType type);
 
@@ -92,6 +82,15 @@ char separator();
 }  // namespace fs
 
 namespace string {
+template <typename Iter>
+std::string static join(Iter begin, Iter end, const std::string &sep) {
+    std::stringstream stream;
+    for (auto it = begin; it != end; it++) {
+        if (it != begin) stream << sep;
+        stream << *it;
+    }
+    return stream.str();
+}
 void trim(std::string &str);
 std::vector<std::string> get_tokens(const std::string &line, const std::string &delimiter);
 }  // namespace string

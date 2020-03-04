@@ -982,7 +982,7 @@ std::string Generator::handle_name(bool ignore_top) const {
             values.emplace(values.begin(), parent->instance_name);
             parent = parent->parent_generator_;
         }
-        result = join(values.begin() + 1, values.end(), ".");
+        result = string::join(values.begin() + 1, values.end(), ".");
     } else {
         while (parent != nullptr) {
             result = ::format("{0}.{1}", parent->instance_name, result);
