@@ -116,7 +116,7 @@ SystemVerilog. In practice we would not write it this way.
 
        @always_comb
        def code(self):
-           if self.in_ == self.const(1, 1):
+           if self.in_:
                for i in range(self.num_loop):
                    self.out_[i] = 1
            else:
@@ -152,8 +152,8 @@ How to debug
 ------------
 
 Because Python is quite slow, By default the debug option is off. You
-can turn on debugging for individual modules. Here is an example on how
-to turn on debug (see ``tests/test_generator.py`` for more details).
+can turn on debugging for individual modules. See
+``tests/test_generator.py`` for more details).
 
 
 Use an IDE Debugger
