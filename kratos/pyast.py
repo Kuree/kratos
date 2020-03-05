@@ -290,6 +290,10 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         except _kratos.exception.InvalidConversionException:
             has_var = True
             predicate_value = None
+        except NameError as error:
+            predicate_value = None
+            if "'scope'" in error.args[0]:
+                has_var = True
 
         # if's a kratos var, we continue
         if not has_var and not isinstance(predicate_value, _kratos.Var):

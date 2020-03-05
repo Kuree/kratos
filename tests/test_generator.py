@@ -1760,6 +1760,19 @@ def test_bit_loop_slicing():
     src = verilog(mod)["mod"]
     assert "a = 1'h0" in src
 
+    mod = Generator("mod")
+    a = mod.var("a", 4)
+    clk = mod.clock("clk")
+
+    @always_ff((posedge, clk))
+    def code():
+        for i in range(3):
+            if a[i]:
+                a[i] = 1
+    mod.add_always(code)
+    src = verilog(mod)["mod"]
+    assert "a[2'(i)] <= 1'h1;" in src
+
 
 if __name__ == "__main__":
     test_bit_loop_slicing()
