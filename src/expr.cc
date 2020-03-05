@@ -495,7 +495,7 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
     if (is_relational_op(op) || is_reduction_op(op))
         var_width_ = 1;
     else
-        var_width_ = left->width();
+        var_width_ = left->var_width();
 
     if (right != nullptr)
         is_signed_ = left->is_signed() & right->is_signed();
@@ -503,6 +503,14 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
         is_signed_ = left->is_signed();
     type_ = VarType::Expression;
     set_parent();
+
+    // both of them has to be packed array
+    auto const &left_size = left->size();
+    if (right != nullptr && left->is_packed() != right->is_packed() && (left_size.size() > 1 || left_size.front() > 1))
+        throw VarException(::format("left is packed ({0}) but right is ({1})", left->is_packed(),
+                                    right->is_packed()),
+                           {left, right});
+    is_packed_ = left->is_packed();
 }
 
 Expr::Expr(Var *left, Var *right)

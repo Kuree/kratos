@@ -369,3 +369,12 @@ TEST(var, iter_demote) {    // NOLINT
     EXPECT_NO_THROW(a.assign(iter1));
     EXPECT_THROW(a.assign(iter2), VarException);
 }
+
+TEST(expr, packed) {    // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 5, 5);
+    a.set_is_packed(true);
+    auto &b = mod.var("b", 5, 5);
+    EXPECT_THROW(a + b, VarException);
+}
