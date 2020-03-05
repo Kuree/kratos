@@ -1747,5 +1747,19 @@ def test_always_parameter():
     assert "a[2] = 1'h0;" in src
 
 
+def test_bit_loop_slicing():
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+
+    @always_comb
+    def code():
+        for i in range(1):
+            a[i] = i
+
+    mod.add_always(code)
+    src = verilog(mod)["mod"]
+    assert "a = 1'h0" in src
+
+
 if __name__ == "__main__":
-    test_always_parameter()
+    test_bit_loop_slicing()

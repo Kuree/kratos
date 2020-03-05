@@ -125,6 +125,10 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                     value = eval(value_src, self.local_env, self.global_env)
                     if not isinstance(value, _kratos.Var):
                         self.legal = False
+                    else:
+                        # make sure we can index them
+                        if value.width == 1:
+                            self.legal = False
                 except AttributeError:
                     return
 
