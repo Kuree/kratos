@@ -378,6 +378,11 @@ void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
         }
         case StatementBlockType::Initial: {
             stmt_code(reinterpret_cast<InitialStmtBlock*>(stmt));
+            break;
+        }
+        case StatementBlockType::Latch: {
+            stmt_code(reinterpret_cast<LatchStmtBlock*>(stmt));
+            break;
         }
     }
 }
@@ -410,7 +415,7 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
     stream_ << indent() << "end" << block_label(stmt) << stream_.endl();
 }
 
-void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
+void SystemVerilogCodeGen::block_code(const std::string& syntax_name, kratos::StmtBlock* stmt) {
     // comment
     if (!stmt->comment.empty()) {
         stream_ << indent() << "// " << strip_newline(stmt->comment) << stream_.endl();
@@ -418,7 +423,7 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
     }
-    stream_ << "always_comb begin" << block_label(stmt) << stream_.endl();
+    stream_ << syntax_name << " begin" << block_label(stmt) << stream_.endl();
     indent_++;
 
     for (uint64_t i = 0; i < stmt->size(); i++) {
@@ -427,6 +432,10 @@ void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
 
     indent_--;
     stream_ << indent() << "end" << block_label(stmt) << stream_.endl();
+}
+
+void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
+    block_code("always_comb", stmt);
 }
 
 void SystemVerilogCodeGen::stmt_code(kratos::InitialStmtBlock* stmt) {
@@ -771,6 +780,10 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
     indent_++;
     dispatch_node(stmt->get_loop_body().get());
     indent_--;
+}
+
+void SystemVerilogCodeGen::stmt_code(LatchStmtBlock* stmt) {
+    block_code("always_ff", stmt);
 }
 
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {

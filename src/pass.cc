@@ -741,7 +741,7 @@ private:
                 v.set_is_packed(port->is_packed());
                 v.set_explicit_array(port->explicit_array());
             }
-            Var *var = parent->get_var(new_name).get();
+            Var* var = parent->get_var(new_name).get();
             // be careful about the port type. if it's special type, it needs properly casted
             if (port->port_type() == PortType::Clock) {
                 var = var->cast(VarCastType::Clock).get();
@@ -2326,8 +2326,9 @@ public:
         std::vector<std::shared_ptr<Stmt>> module_inst_assignments;
         std::vector<std::shared_ptr<Stmt>> combinational_assignments;
         std::vector<std::shared_ptr<Stmt>> sequential_assignments;
-        auto lists = {&var_assignments, &module_inst_assignments, &combinational_assignments,
-                      &sequential_assignments};
+        std::vector<std::shared_ptr<Stmt>> latch_assignments;
+        auto lists = {&var_assignments, &module_inst_assignments, &latch_assignments,
+                      &combinational_assignments, &sequential_assignments};
         for (auto assign : lists) assign->reserve(stmts.size());
 
         for (auto const& stmt : stmts) {
@@ -2339,6 +2340,8 @@ public:
                     combinational_assignments.emplace_back(stmt);
                 } else if (block->block_type() == StatementBlockType::Sequential) {
                     sequential_assignments.emplace_back(stmt);
+                } else if (block->block_type() == StatementBlockType::Latch) {
+                    latch_assignments.emplace_back(stmt);
                 } else {
                     throw StmtException("Unrecognized statement block in top level", {stmt.get()});
                 }
@@ -2564,7 +2567,8 @@ private:
                                 auto st = dynamic_cast<Stmt*>(stmt_parent);
                                 if (st && st->type() == StatementType::Block) {
                                     auto block = dynamic_cast<StmtBlock*>(st);
-                                    if (block->block_type() == StatementBlockType::Combinational) {
+                                    if (block->block_type() == StatementBlockType::Combinational ||
+                                        block->block_type() == StatementBlockType::Latch) {
                                         has_multiple_driver = false;
                                     }
                                 }

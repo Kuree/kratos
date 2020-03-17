@@ -41,6 +41,7 @@ class StmtBlock;
 class ScopedStmtBlock;
 class CombinationalStmtBlock;
 class SequentialStmtBlock;
+class LatchStmtBlock;
 class FunctionStmtBlock;
 class DPIFunctionStmtBlock;
 class InitialStmtBlock;

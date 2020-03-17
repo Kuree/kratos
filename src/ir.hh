@@ -93,6 +93,7 @@ public:
     virtual inline void visit(ForStmt *) {}
     virtual inline void visit(CombinationalStmtBlock *) {}
     virtual inline void visit(SequentialStmtBlock *) {}
+    virtual inline void visit(LatchStmtBlock *) {}
     virtual inline void visit(FunctionStmtBlock *) {}
     virtual inline void visit(InitialStmtBlock *) {}
     virtual inline void visit(FunctionCallStmt *) {}

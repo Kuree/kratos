@@ -23,7 +23,7 @@ enum class StatementType {
 };
 
 enum class AssignmentType : int { Blocking, NonBlocking, Undefined };
-enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial };
+enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial, Latch };
 enum class BlockEdgeType { Posedge, Negedge };
 
 class StmtBlock;
@@ -74,8 +74,7 @@ protected:
 class AssignStmt : public Stmt {
 public:
     AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right);
-    AssignStmt(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right,
-               AssignmentType type);
+    AssignStmt(const std::shared_ptr<Var> &left, std::shared_ptr<Var> right, AssignmentType type);
 
     AssignmentType assign_type() const { return assign_type_; }
     void set_assign_type(AssignmentType assign_type) { assign_type_ = assign_type; }
@@ -189,7 +188,7 @@ private:
     std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> body_;
 };
 
-class ForStmt: public Stmt {
+class ForStmt : public Stmt {
 public:
     ForStmt(const std::string &iter_var_name, int64_t start, int64_t end, int64_t step);
 
@@ -289,6 +288,10 @@ public:
 
 private:
     std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
+};
+
+class LatchStmtBlock : public StmtBlock {
+    LatchStmtBlock() : StmtBlock(StatementBlockType::Latch) {}
 };
 
 class FunctionStmtBlock : public StmtBlock {

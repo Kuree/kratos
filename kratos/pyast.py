@@ -751,6 +751,7 @@ class CodeBlockType(enum.Enum):
     Sequential = enum.auto()
     Combinational = enum.auto()
     Initial = enum.auto()
+    Latch = enum.auto()
 
 
 class AlwaysWrapper:
@@ -939,6 +940,8 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
             return CodeBlockType.Combinational, []
         elif call_name == "initial":
             return CodeBlockType.Initial, []
+        elif call_name == "always_latch":
+            return CodeBlockType.Latch, []
         else:
             assert call_name == "always_ff", "Unrecognized function " \
                                              "decorator {0}".format(call_name)

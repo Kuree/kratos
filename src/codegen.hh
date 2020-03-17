@@ -127,6 +127,8 @@ protected:
 
     void stmt_code(ForStmt* stmt);
 
+    void stmt_code(LatchStmtBlock *stmt);
+
     void enum_code_(Enum* enum_);
     static void enum_code_(Stream& stream_, Enum* enum_, bool debug);
     void generate_enums(kratos::Generator* generator);
@@ -141,6 +143,9 @@ protected:
     // code gen port interface
     void generate_port_interface(InstantiationStmt* stmt);
     void generate_interface(Generator* generator);
+
+    // shared code gen blocks
+    void block_code(const std::string& syntax_name, StmtBlock* stmt);
 };
 
 std::string create_stub(Generator* top);

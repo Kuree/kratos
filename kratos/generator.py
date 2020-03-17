@@ -48,6 +48,7 @@ class StatementBlockType(enum.Enum):
     Combinational = _kratos.StatementBlockType.Combinational
     Sequential = _kratos.StatementBlockType.Sequential
     Initial = _kratos.StatementBlockType.Initial
+    Latch = _kratos.StatementBlockType.Latch
 
 
 class CodeBlock:
@@ -124,6 +125,13 @@ class InitialCodeBlock(CodeBlock):
     def __init__(self, generator,
                  debug_frame_depth: int = 4):
         super().__init__(generator, StatementBlockType.Initial,
+                         debug_frame_depth)
+
+
+class LatchCodeBlock(CodeBlock):
+    def __init__(self, generator,
+                 debug_frame_depth: int = 4):
+        super().__init__(generator, StatementBlockType.Latch,
                          debug_frame_depth)
 
 
@@ -551,6 +559,12 @@ class Generator(metaclass=GeneratorMeta):
             for stmt in stmts:
                 init.add_stmt(stmt, False)
             node = init
+        elif block_type == CodeBlockType.Latch:
+            # it's a latch block
+            latch = LatchCodeBlock(self)
+            for stmt in stmts:
+                latch.add_stmt(stmt, False)
+            node = latch
         else:
             sensitivity_list = []
             for edge, var_name in raw_sensitives:
@@ -946,6 +960,10 @@ def always_ff(*sensitivity):
         assert isinstance(var, (str, _kratos.Var))
 
     return AlwaysWrapper
+
+
+def always_latch(fn):
+    return AlwaysWrapper(fn)
 
 
 def always_comb(fn):
