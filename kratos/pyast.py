@@ -826,7 +826,8 @@ def transform_stmt_block(generator, fn, fn_ln=None, kargs=None):
     fn_body.args.args = func_args
     _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
                                                fn_name,
-                                               insert_self, filename, ln)
+                                               insert_self, filename, ln,
+                                               pre_locals=env_kargs)
 
     src = astor.to_source(func_tree, pretty_source=__pretty_source)
     src = inject_import_code(src)
