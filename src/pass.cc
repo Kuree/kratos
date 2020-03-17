@@ -741,7 +741,13 @@ private:
                 v.set_is_packed(port->is_packed());
                 v.set_explicit_array(port->explicit_array());
             }
-            auto var = parent->get_var(new_name);
+            Var *var = parent->get_var(new_name).get();
+            // be careful about the port type. if it's special type, it needs properly casted
+            if (port->port_type() == PortType::Clock) {
+                var = var->cast(VarCastType::Clock).get();
+            } else if (port->port_type() == PortType::AsyncReset) {
+                var = var->cast(VarCastType::AsyncReset).get();
+            }
             if (parent->debug) {
                 // need to copy over the changes over
                 var->fn_name_ln = std::vector<std::pair<std::string, uint32_t>>(
@@ -749,7 +755,7 @@ private:
                 var->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
             }
             // replace all the sources
-            Var::move_src_to(port, var.get(), parent, true);
+            Var::move_src_to(port, var, parent, true);
         } else if (port_direction == PortDirection::Out) {
             // same logic as the port dir in
             // if we're connected to a base variable, we are good

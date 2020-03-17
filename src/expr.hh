@@ -192,6 +192,7 @@ public:
 
     // for slice
     virtual const Var *get_var_root_parent() const { return this; }
+    virtual Var* get_var_root_parent() { return this; }
 
     // before and after strings. they're used for downstream tools. kratos doesn't care about the
     // value. it's user's responsibility to make it legal syntax
@@ -256,7 +257,10 @@ public:
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void set_parent(Var *parent) { parent_var_ = parent; }
 
-    const Var *get_var_root_parent() const override { return parent_var_; }
+    const Var *get_var_root_parent() const override { return parent_var_->get_var_root_parent(); }
+    Var* get_var_root_parent() override { return parent_var_->get_var_root_parent(); }
+
+    Var * &parent_var() { return parent_var_; }
 
     std::string to_string() const override;
 
@@ -333,6 +337,8 @@ public:
     std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const override;
 
     const Var *get_var_root_parent() const override;
+    Var* get_var_root_parent() override;
+
     virtual bool sliced_by_var() const { return false; }
 
 protected:

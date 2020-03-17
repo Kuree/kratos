@@ -1774,5 +1774,20 @@ def test_bit_loop_slicing():
     assert "a[2'(i)] <= 1'h1;" in src
 
 
+def test_port_cast_child():
+    import kratos
+    parent = Generator("mod")
+    a = parent.var("a", 1)
+    b = parent.var("b", 1)
+    c = kratos.util.clock(a & b)
+
+    child = Generator("child")
+    parent.add_child("child", child)
+    p = child.clock("clk")
+    parent.wire(c, p)
+
+    verilog(parent)
+
+
 if __name__ == "__main__":
-    test_bit_loop_slicing()
+    test_port_cast_child()
