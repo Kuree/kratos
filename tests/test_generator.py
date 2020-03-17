@@ -1786,7 +1786,9 @@ def test_port_cast_child():
     p = child.clock("clk")
     parent.wire(c, p)
 
-    verilog(parent)
+    src = verilog(parent)["mod"]
+    assert ".clk(child_clk)" in src
+    assert "assign child_clk = a & b;" in src
 
 
 if __name__ == "__main__":

@@ -1196,7 +1196,8 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
 }
 
 void Var::move_linked_to(kratos::Var *new_var) {
-    new_var = new_var->get_var_root_parent();
+    if (this == new_var->get_var_root_parent())
+        return;
     // this one doesn't do much checking
     // user code code should check instead
     if (new_var->width() != width()) {
@@ -1232,8 +1233,8 @@ void Var::move_linked_to(kratos::Var *new_var) {
 
     // casted
     for (auto &var : casted_) {
-        var->set_parent(new_var);
-        new_var->casted_.emplace(var);
+        var->set_parent(new_var->get_var_root_parent());
+        new_var->get_var_root_parent()->casted_.emplace(var);
     }
     casted_.clear();
 }
