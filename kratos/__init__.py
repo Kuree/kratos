@@ -1,6 +1,6 @@
 from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
     initial, CombinationalCodeBlock, SequentialCodeBlock, \
-    set_global_debug, enum, always_comb, always_ff
+    set_global_debug, enum, always_comb, always_ff, always_latch
 
 from .passes import Attribute, verilog, clear_context
 from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or, \
@@ -39,7 +39,7 @@ __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType",
            "verilog", "const", "is_valid_verilog", "VarException",
            "StmtException", "IRVisitor", "FSM", "FSMState", "initial",
            "Sequence", "TestBench", "assert_", "delay", "enable_runtime_debug",
-           "enum", "clear_context", "always_comb", "always_ff"]
+           "enum", "clear_context", "always_comb", "always_ff", "always_latch"]
 
 __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",

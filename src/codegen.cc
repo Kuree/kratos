@@ -783,7 +783,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(LatchStmtBlock* stmt) {
-    block_code("always_ff", stmt);
+    block_code("always_latch", stmt);
 }
 
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {

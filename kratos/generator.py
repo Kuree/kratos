@@ -60,6 +60,8 @@ class CodeBlock:
             self._block = generator.internal_generator.combinational()
         elif block_type == StatementBlockType.Initial:
             self._block = generator.internal_generator.initial()
+        elif block_type == StatementBlockType.Latch:
+            self._block = generator.internal_generator.latch()
         else:
             self._block = generator.internal_generator.sequential()
 

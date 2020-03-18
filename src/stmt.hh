@@ -291,6 +291,7 @@ private:
 };
 
 class LatchStmtBlock : public StmtBlock {
+public:
     LatchStmtBlock() : StmtBlock(StatementBlockType::Latch) {}
 };
 

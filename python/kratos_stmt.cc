@@ -110,6 +110,9 @@ void init_stmt(py::module &m) {
         m, "CombinationalStmtBlock")
         .def(py::init<>());
 
+    py::class_<LatchStmtBlock, ::shared_ptr<LatchStmtBlock>, StmtBlock>(m, "LatchStmtBlock")
+        .def(py::init<>());
+
     py::class_<ScopedStmtBlock, ::shared_ptr<ScopedStmtBlock>, StmtBlock>(m, "ScopedStmtBlock")
         .def(py::init<>());
 

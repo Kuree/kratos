@@ -124,6 +124,7 @@ public:
     std::shared_ptr<SequentialStmtBlock> sequential();
     std::shared_ptr<CombinationalStmtBlock> combinational();
     std::shared_ptr<InitialStmtBlock> initial();
+    std::shared_ptr<LatchStmtBlock> latch();
 
     // child generator. needed for generator merge
     void add_child_generator(const std::string &instance_name,

@@ -1791,5 +1791,20 @@ def test_port_cast_child():
     assert "assign child_clk = a & b;" in src
 
 
+def test_always_latch(check_gold):
+    from kratos import always_latch
+    mod = Generator("mod")
+    a = mod.input("a", 1)
+    b = mod.output("b", 1)
+
+    @always_latch
+    def code():
+        if a:
+            b = 1
+
+    mod.add_always(code)
+    check_gold(mod, gold_name="test_always_latch", reorder_stmts=True)
+
+
 if __name__ == "__main__":
     test_port_cast_child()
