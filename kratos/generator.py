@@ -705,7 +705,7 @@ class Generator(metaclass=GeneratorMeta):
             return
         if instance_name in self.__child_generator:
             raise Exception(
-                "{0} already exists in {1}".format(self.instance_name,
+                "{0} already exists in {1}".format(instance_name,
                                                    self.instance_name))
         assert isinstance(generator,
                           Generator), "generator is not a Generator instance"
