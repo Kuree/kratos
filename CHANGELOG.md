@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.27] - 2020-03-21
+### Added
+- `always_latch` code generation and Python front-end
+- Parametrized always blocks as function arguments (as kwargs)
+- Allow slicing being used in the if condition in pyast
+
+### Changed
+- Update `to_magma` logic due to upstream changes in magma IO
+- Refactor string join namespace
+
+### Fixed
+- Keep packed attribute when creating new expressions
+- Fix a loop construction bug where a bit signal cannot be sliced
+- Fix var casted as ports
+- Fix move link with self loop
+- Fix error message in add child generator
+
 ## [0.0.26] - 2020-02-24
 ### Added
 - Allow top name to be changed when converting generator to magma circuit
@@ -16,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add a pass to check top-level `if` statement in `always_comb` to make sure
   variables are inferred as D flip-flops in DC (#145.
 - Add struct extract pass for `VarPacked`.
-  
+
 ### Changed
 - Refactor C++ core interfaces: `generator()` and `const` usage in simulator.
   This should not affect Python front end
