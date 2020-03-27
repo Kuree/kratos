@@ -2050,6 +2050,105 @@ void insert_pipeline_stages(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
+class InsertClockIRVisitor: public IRVisitor {
+public:
+    explicit InsertClockIRVisitor(Generator *top) {
+        // find out the top clock enable signal
+        auto ports = top->get_ports(PortType::ClockEnable);
+        // LCOV_EXCL_START
+        if (ports.empty()) {
+            throw UserException(::format("Top module {0} does not have clock enable type", top->name));
+        } else if (ports.size() > 1) {
+            throw UserException("Current the pass only support one clock enable signal in top");
+        }
+        // LCOV_EXCL_STOP
+        clk_en_name_ = ports[0];
+        clk_en_ = top->get_port(clk_en_name_).get();
+    }
+
+    void visit(Generator *gen) override {
+        Port * clk_en;
+        if (!gen->has_port(clk_en_name_)) {
+            clk_en = &gen->port(*clk_en_);
+        } else {
+            clk_en = gen->get_port(clk_en_name_).get();
+        }
+        // wire to the top
+        auto parent = gen->parent_generator();
+        if (parent) {
+            auto parent_port = parent->get_port(clk_en_name_);
+            assert(parent_port);
+            parent->wire(*clk_en, *parent_port);
+        }
+    }
+
+    void visit(SequentialStmtBlock *block) override {
+        auto num_stmts = block->size();
+        auto generator = block->generator_parent();
+        auto clk_en = generator->get_port(clk_en_name_);
+        if (num_stmts > 0) {
+            // we need to be careful about async reset logic
+            auto first_stmt = block->get_stmt(0);
+            if (num_stmts == 1 && first_stmt->type() == StatementType::If) {
+                // async reset?
+                auto if_ = first_stmt->as<IfStmt>();
+                auto cond = if_->predicate();
+                if (has_reset(cond.get())) {
+                    auto new_if = create_if_stmt(if_->else_body().get(), *clk_en);
+                    if_->add_else_stmt(new_if);
+                    return;
+                }
+            }
+            // put everything into one block
+            auto if_ = create_if_stmt(block, *clk_en);
+            block->add_stmt(if_);
+        }
+    }
+
+private:
+    std::string clk_en_name_;
+    Port *clk_en_;
+
+    bool static has_reset(Var *var) {
+        if (var->type() == VarType::Expression) {
+            auto expr = reinterpret_cast<Expr*>(var);
+            auto l = has_reset(expr->left);
+            if (expr->right) {
+                auto r = has_reset(expr->right);
+                return l && r;
+            }
+            return l;
+        }
+        if (var->type() == VarType::PortIO) {
+            auto p = reinterpret_cast<Port*>(var);
+            return p->port_type() == PortType::AsyncReset || p->port_type() == PortType::Reset;
+        } else if (var->type() == VarType::BaseCasted) {
+            auto casted = reinterpret_cast<VarCasted*>(var);
+            return casted->cast_type() == VarCastType::AsyncReset;
+        }
+        return false;
+    }
+
+    static std::shared_ptr<IfStmt> create_if_stmt(StmtBlock *block, Port &clk_en) {
+        auto if_ = std::make_shared<IfStmt>(clk_en);
+        std::vector<std::shared_ptr<Stmt>> stmts;
+        for (auto const &stmt: *block) {
+            stmts.emplace_back(stmt);
+        }
+        block->clear();
+        for (auto &stmt: stmts) {
+            if_->add_then_stmt(stmt);
+        }
+        return if_;
+    }
+};
+
+
+void auto_insert_clock_enable(Generator *top) {
+    InsertClockIRVisitor visitor(top);
+    visitor.visit_root(top);
+}
+
 class PortBundleVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
@@ -2968,6 +3067,8 @@ void PassManager::register_builtin_passes() {
     register_pass("create_interface_instantiation", &create_interface_instantiation);
 
     register_pass("insert_pipeline_stages", &insert_pipeline_stages);
+
+    register_pass("auto_insert_clock_enable", &auto_insert_clock_enable);
 }
 
 }  // namespace kratos

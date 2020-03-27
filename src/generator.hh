@@ -159,6 +159,7 @@ public:
 
     IRNode *parent() override { return parent_generator_; }
     const Generator *parent_generator() const { return parent_generator_; }
+    Generator *parent_generator() { return parent_generator_; }
 
     bool is_stub() const { return is_stub_; }
     void set_is_stub(bool value) { is_stub_ = value; }

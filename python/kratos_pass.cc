@@ -62,6 +62,7 @@ void init_pass(py::module &m) {
         .def("find_driver_signal", &find_driver_signal)
         .def("extract_register_names", &extract_register_names)
         .def("extract_var_names", &extract_var_names)
+        .def("auto_insert_clock_enable", &auto_insert_clock_enable)
         .def("change_property_into_stmt", &change_property_into_stmt);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(

@@ -443,6 +443,14 @@ class Generator(metaclass=GeneratorMeta):
             p.add_fn_ln(get_fn_ln())
         return p
 
+    def clock_enable(self, name, is_input=True):
+        direction = PortDirection.In if is_input else PortDirection.Out
+        p = self.__generator.port(direction.value, name, 1, 1,
+                                  PortType.ClockEnable.value, False)
+        if self.debug:
+            p.add_fn_ln(get_fn_ln())
+        return p
+
     def reset(self, name, is_input=True, is_async=True, active_high=None):
         direction = PortDirection.In if is_input else PortDirection.Out
         reset = PortType.AsyncReset if is_async else PortType.Reset
