@@ -1336,3 +1336,43 @@ TEST(pass, check_d_flip_flop) {  // NOLINT
 
     EXPECT_THROW(check_flip_flop_always_ff(&mod), StmtException);
 }
+
+TEST(pass, insert_clk_en) { // NOLINT
+    Context c;
+    auto &parent = c.generator("parent");
+    auto &clk = parent.port(PortDirection::In, "clk", 1, PortType::Clock);
+    auto &rst = parent.port(PortDirection::In, "rst", 1, PortType::AsyncReset);
+    auto &a = parent.port(PortDirection::Out, "a", 1);
+
+    auto seq = parent.sequential();
+    seq->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+    seq->add_condition({BlockEdgeType::Posedge, rst.shared_from_this()});
+    auto if_ = std::make_shared<IfStmt>(rst);
+    if_->add_then_stmt(a.assign(constant(1, 1)));
+    if_->add_else_stmt(a.assign(constant(0, 1)));
+    seq->add_stmt(if_);
+
+    // add child generator
+    auto &child = c.generator("child");
+    auto &clk_child = child.port(PortDirection::In, "clk", 1, PortType::Clock);
+    auto child_seq = child.sequential();
+    child_seq->add_condition({BlockEdgeType::Posedge, clk_child.shared_from_this()});
+    child_seq->add_stmt(child.var("a", 1).assign(constant(1, 1)));
+    child_seq->add_stmt(child.var("b", 1).assign(constant(1, 1)));
+
+    parent.add_child_generator("child", child.shared_from_this());
+    parent.wire(clk_child, clk);
+
+    // add clock enable
+    parent.port(PortDirection::In, "clk_en", 1, PortType::ClockEnable);
+    auto_insert_clock_enable(&parent);
+    fix_assignment_type(&parent);
+    create_module_instantiation(&parent);
+    auto src = generate_verilog(&parent);
+    EXPECT_TRUE(src.find("parent") != src.end());
+    EXPECT_TRUE(src.find("child") != src.end());
+    auto parent_src = src.at("parent");
+    auto child_src = src.at("child");
+    EXPECT_TRUE(parent_src.find("else if (clk_en)") != std::string::npos);
+    EXPECT_TRUE(child_src.find("if (clk_en)") != std::string::npos);
+}

@@ -217,7 +217,8 @@ void init_generator(py::module &m) {
         .def("handle_name", [](const Generator &generator) { return generator.handle_name(); })
         .def("handle_name", [](const Generator &generator,
                                bool ignore_top) { return generator.handle_name(ignore_top); })
-        .def("parent_generator", &Generator::parent_generator)
+        .def("parent_generator",
+             [](const Generator &generator) { return generator.parent_generator(); })
         .def_readwrite("verilog_fn", &Generator::verilog_fn);
 
     generator
