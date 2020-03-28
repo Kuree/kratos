@@ -43,7 +43,7 @@ std::shared_ptr<AssignStmt> Port::assign__(const std::shared_ptr<Var>& var,
     // notice that we have the following rules
     // var <- port. this is considered as a lower cast, hence it's allowed
     // port <- var. this is considered as an upper cast, which needs explicit casting
-    if (var->type() != VarType::PortIO) {
+    if (var->type() != VarType::PortIO && var->type() != VarType::ConstValue) {
         bool allowed = port_type() == PortType::Data;
         if (var->type() == VarType::BaseCasted) {
             auto casted = var->as<VarCasted>();

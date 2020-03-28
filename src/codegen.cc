@@ -345,7 +345,8 @@ void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
     if (stmt->left()->type() == VarType::PortIO) {
         auto port = stmt->left()->as<Port>();
         if (port->port_direction() == PortDirection::In &&
-            stmt->left()->generator() == generator_) {
+            stmt->left()->generator() == generator_ &&
+            stmt->right()->type() != VarType::ConstValue) {
             throw StmtException("Cannot drive a module's input from itself",
                                 {stmt, stmt->left(), stmt->right()});
         }
@@ -782,9 +783,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
     indent_--;
 }
 
-void SystemVerilogCodeGen::stmt_code(LatchStmtBlock* stmt) {
-    block_code("always_latch", stmt);
-}
+void SystemVerilogCodeGen::stmt_code(LatchStmtBlock* stmt) { block_code("always_latch", stmt); }
 
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     std::vector<std::string> strs;
