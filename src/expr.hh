@@ -140,8 +140,8 @@ public:
     virtual const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const {
         return sources_;
     };
-    virtual void clear_sinks() { sinks_.clear(); }
-    virtual void clear_sources() { sources_.clear(); }
+    virtual void clear_sinks(bool remove_parent = false);
+    virtual void clear_sources(bool remove_parent = false);
     virtual void remove_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.erase(stmt); }
     std::vector<std::shared_ptr<VarSlice>> &get_slices() { return slices_; }
 
@@ -192,7 +192,7 @@ public:
 
     // for slice
     virtual const Var *get_var_root_parent() const { return this; }
-    virtual Var* get_var_root_parent() { return this; }
+    virtual Var *get_var_root_parent() { return this; }
 
     // before and after strings. they're used for downstream tools. kratos doesn't care about the
     // value. it's user's responsibility to make it legal syntax
@@ -258,9 +258,9 @@ public:
     void set_parent(Var *parent) { parent_var_ = parent; }
 
     const Var *get_var_root_parent() const override { return parent_var_->get_var_root_parent(); }
-    Var* get_var_root_parent() override { return parent_var_->get_var_root_parent(); }
+    Var *get_var_root_parent() override { return parent_var_->get_var_root_parent(); }
 
-    Var * &parent_var() { return parent_var_; }
+    Var *&parent_var() { return parent_var_; }
 
     std::string to_string() const override;
 
@@ -279,8 +279,12 @@ public:
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
         return parent_var_->sources();
     };
-    void clear_sinks() override { parent_var_->clear_sources(); }
-    void clear_sources() override { parent_var_->clear_sinks(); }
+    void clear_sinks(bool remove_parent = false) override {
+        parent_var_->clear_sources(remove_parent);
+    }
+    void clear_sources(bool remove_parent = false) override {
+        parent_var_->clear_sinks(remove_parent);
+    }
     void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
         parent_var_->remove_source(stmt);
     }
@@ -337,7 +341,7 @@ public:
     std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const override;
 
     const Var *get_var_root_parent() const override;
-    Var* get_var_root_parent() override;
+    Var *get_var_root_parent() override;
 
     virtual bool sliced_by_var() const { return false; }
 

@@ -1239,6 +1239,26 @@ void Var::move_linked_to(kratos::Var *new_var) {
     casted_.clear();
 }
 
+void Var::clear_sources(bool remove_parent) {
+    if (remove_parent) {
+        for (auto &stmt: sources_) {
+            stmt->remove_from_parent();
+        }
+    }
+
+    sources_.clear();
+}
+
+void Var::clear_sinks(bool remove_parent) {
+    if (remove_parent) {
+        for (auto &stmt: sinks_) {
+            stmt->remove_from_parent();
+        }
+    }
+
+    sinks_.clear();
+}
+
 void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     left->add_sink(stmt);
     if (right) right->add_sink(stmt);

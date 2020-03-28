@@ -187,8 +187,8 @@ public:
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
         return var_->sources();
     };
-    void clear_sinks() override { var_->clear_sources(); }
-    void clear_sources() override { var_->clear_sinks(); }
+    void clear_sinks(bool remove_parent=false) override { var_->clear_sources(remove_parent); }
+    void clear_sources(bool remove_parent=false) override { var_->clear_sinks(remove_parent); }
     void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
         var_->remove_source(stmt);
     }

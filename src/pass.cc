@@ -2081,6 +2081,7 @@ public:
             auto const& sources = clk_en->sources();
             if (!sources.empty()) {
                 if ((*(sources.begin()))->right()->type() == VarType::ConstValue) {
+                    auto stmt = *(sources.begin());
                     clk_en->clear_sources();
                 } else {
                     // no need to wire
