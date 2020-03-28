@@ -266,7 +266,10 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
             return node
         left = node.left
         left_src = astor.to_source(left)
-        left_val = eval(left_src, self.local)
+        try:
+            left_val = eval(left_src, self.local)
+        except NameError:
+            return node
         if isinstance(left_val, _kratos.Var):
             # change it into a function all
             return ast.Call(func=ast.Attribute(value=left,

@@ -2082,7 +2082,7 @@ public:
             if (!sources.empty()) {
                 if ((*(sources.begin()))->right()->type() == VarType::ConstValue) {
                     auto stmt = *(sources.begin());
-                    clk_en->clear_sources();
+                    clk_en->clear_sources(true);
                 } else {
                     // no need to wire
                     return;
@@ -2107,15 +2107,17 @@ public:
                 // async reset?
                 auto if_ = first_stmt->as<IfStmt>();
                 auto cond = if_->predicate();
-                if (has_reset(cond.get()) && !has_clk_en_stmt(if_->else_body().get(), *clk_en)) {
-                    auto new_if = create_if_stmt(if_->else_body().get(), *clk_en);
-                    if_->add_else_stmt(new_if);
+                if (has_reset(cond.get())) {
+                    if (!has_clk_en_stmt(if_->else_body().get())) {
+                        auto new_if = create_if_stmt(if_->else_body().get(), *clk_en);
+                        if_->add_else_stmt(new_if);
+                    }
                     return;
                 }
             }
             // put everything into one block
             // if not clk enabled already
-            if (!has_clk_en_stmt(block, *clk_en)) {
+            if (!has_clk_en_stmt(block)) {
                 auto if_ = create_if_stmt(block, *clk_en);
                 block->add_stmt(if_);
             }
@@ -2160,19 +2162,22 @@ private:
         return if_;
     }
 
-    static bool has_clk_en_stmt(StmtBlock* block, Port& clk_en) {
+     bool has_clk_en_stmt(StmtBlock* block) const {
         if (!block->empty()) {
             auto stmt = block->get_stmt(0);
             if (stmt->type() == StatementType::If) {
                 auto if_ = stmt->as<IfStmt>();
                 auto cond = if_->predicate();
-                if (cond.get() == &clk_en) {
-                    return true;
-                } else if (cond->type() == VarType::PortIO) {
+                if (cond->type() == VarType::PortIO) {
                     auto p = cond->as<Port>();
                     if (p->port_type() == PortType::ClockEnable) {
                         return true;
                     }
+                } else if (cond->type() == VarType::BaseCasted) {
+                    auto casted = cond->as<VarCasted>();
+                    return casted->cast_type() == VarCastType::ClockEnable;
+                } else if (cond->name == clk_en_name_) {
+                    return true;
                 }
             }
         }
@@ -2416,6 +2421,13 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
             return check_stmt_condition(then.get(), cond, check_unreachable, full_branch) ||
                    check_stmt_condition(else_.get(), cond, check_unreachable, full_branch);
         }
+    } else if (stmt->type() == StatementType::For) {
+        auto stmt_ = dynamic_cast<ForStmt*>(stmt);
+        if (!stmt_)
+            throw InternalException("Statement is not if but is marked as StatementType::For");
+        auto body = stmt_->get_loop_body();
+        return check_stmt_condition(body.get(), cond, check_unreachable, full_branch);
+
     }
     return false;
 }

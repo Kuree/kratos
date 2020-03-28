@@ -52,6 +52,8 @@ std::shared_ptr<AssignStmt> Port::assign__(const std::shared_ptr<Var>& var,
                 allowed = true;  // NOLINT
             else if (cast_type == VarCastType::Clock && port_type() == PortType::Clock)
                 allowed = true;  // NOLINT
+            else if (cast_type == VarCastType::ClockEnable && port_type() == PortType::ClockEnable)
+                allowed = true; // NOLINT
         }
         if (!allowed) {
             throw StmtException(::format("Typing error. Cannot assign variable ({0}) to port ({1})",

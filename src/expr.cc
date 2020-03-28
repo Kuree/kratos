@@ -494,11 +494,22 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
       op(op),
       left(left),
       right(right) {
-    if (right != nullptr && left->width() != right->width())
-        throw VarException(
-            ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
-                     left->to_string(), left->width(), right->to_string(), right->width()),
-            {left, right});
+    if (right != nullptr && left->width() != right->width()) {
+        // see if we can resize
+        if (IterVar::safe_to_resize(left, right->width(), right->is_signed())) {
+            IterVar::fix_width(left, right->width());
+            this->left = left;
+        } else if (IterVar::safe_to_resize(right, left->width(), left->is_signed())) {
+            IterVar::fix_width(right, left->width());
+            this->right = right;
+        }
+        if (left->width() != right->width())
+            throw VarException(
+                ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
+                         left->to_string(), left->width(), right->to_string(), right->width()),
+                {left, right});
+    }
+
     // if it's a predicate/relational op, the width is one
     if (is_relational_op(op) || is_reduction_op(op))
         var_width_ = 1;
@@ -1196,8 +1207,7 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
 }
 
 void Var::move_linked_to(kratos::Var *new_var) {
-    if (this == new_var->get_var_root_parent())
-        return;
+    if (this == new_var->get_var_root_parent()) return;
     // this one doesn't do much checking
     // user code code should check instead
     if (new_var->width() != width()) {
@@ -1239,9 +1249,9 @@ void Var::move_linked_to(kratos::Var *new_var) {
     casted_.clear();
 }
 
-void Var::clear_sources(bool remove_parent) {
+void Var::clear_sources(bool remove_parent) { // NOLINT
     if (remove_parent) {
-        for (auto &stmt: sources_) {
+        for (auto &stmt : sources_) {
             stmt->remove_from_parent();
         }
     }
@@ -1249,9 +1259,9 @@ void Var::clear_sources(bool remove_parent) {
     sources_.clear();
 }
 
-void Var::clear_sinks(bool remove_parent) {
+void Var::clear_sinks(bool remove_parent) { // NOLINT
     if (remove_parent) {
-        for (auto &stmt: sinks_) {
+        for (auto &stmt : sinks_) {
             stmt->remove_from_parent();
         }
     }
@@ -1538,7 +1548,7 @@ bool IterVar::safe_to_resize(const Var *var, uint32_t target_size, bool is_signe
     std::vector<const IterVar *> iters;
     extract_iter_var(var, iters);
     // brute-force to compute every possible combinations using simulator
-    Simulator sim(nullptr);
+    static Simulator sim(nullptr);
     // We did some hacks that, assuming the min and max value is at the boundary
     // maybe use a SMT solver?
     std::queue<const IterVar *> queue;

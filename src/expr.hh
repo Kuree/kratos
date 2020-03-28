@@ -61,7 +61,7 @@ bool is_unary_op(ExprOp op);
 
 enum class VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted, Iter };
 
-enum class VarCastType { Signed, Unsigned, Clock, AsyncReset, Enum, Resize };
+enum class VarCastType { Signed, Unsigned, Clock, AsyncReset, ClockEnable, Enum, Resize };
 
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:

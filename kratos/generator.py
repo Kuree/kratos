@@ -443,7 +443,7 @@ class Generator(metaclass=GeneratorMeta):
             p.add_fn_ln(get_fn_ln())
         return p
 
-    def clock_enable(self, name, is_input=True):
+    def clock_en(self, name, is_input=True):
         direction = PortDirection.In if is_input else PortDirection.Out
         p = self.__generator.port(direction.value, name, 1, 1,
                                   PortType.ClockEnable.value, False)
