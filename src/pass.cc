@@ -2050,39 +2050,52 @@ void insert_pipeline_stages(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
-class InsertClockIRVisitor: public IRVisitor {
+class InsertClockIRVisitor : public IRVisitor {
 public:
-    explicit InsertClockIRVisitor(Generator *top) {
+    explicit InsertClockIRVisitor(Generator* top): top_(top) {
         // find out the top clock enable signal
         auto ports = top->get_ports(PortType::ClockEnable);
         // LCOV_EXCL_START
         if (ports.empty()) {
-            throw UserException(::format("Top module {0} does not have clock enable type", top->name));
+            clk_en_ = nullptr;
         } else if (ports.size() > 1) {
             throw UserException("Current the pass only support one clock enable signal in top");
+        } else {
+            // LCOV_EXCL_STOP
+            clk_en_name_ = ports[0];
+            clk_en_ = top->get_port(clk_en_name_).get();
         }
-        // LCOV_EXCL_STOP
-        clk_en_name_ = ports[0];
-        clk_en_ = top->get_port(clk_en_name_).get();
     }
 
-    void visit(Generator *gen) override {
-        Port * clk_en;
+    void visit(Generator* gen) override {
+        if (!clk_en_) return;
+        auto parent = gen->parent_generator();
+        if (!parent || gen == top_) return;
+
+        Port* clk_en;
         if (!gen->has_port(clk_en_name_)) {
             clk_en = &gen->port(*clk_en_);
         } else {
             clk_en = gen->get_port(clk_en_name_).get();
+            // notice that if it's being wired to a constant, we need to disconnect it
+            auto const& sources = clk_en->sources();
+            if (!sources.empty()) {
+                if ((*(sources.begin()))->right()->type() == VarType::ConstValue) {
+                    clk_en->clear_sources();
+                } else {
+                    // no need to wire
+                    return;
+                }
+            }
         }
         // wire to the top
-        auto parent = gen->parent_generator();
-        if (parent) {
-            auto parent_port = parent->get_port(clk_en_name_);
-            assert(parent_port);
-            parent->wire(*clk_en, *parent_port);
-        }
+        auto parent_port = parent->get_port(clk_en_name_);
+        assert(parent_port);
+        parent->wire(*clk_en, *parent_port);
     }
 
-    void visit(SequentialStmtBlock *block) override {
+    void visit(SequentialStmtBlock* block) override {
+        if (!clk_en_) return;
         auto num_stmts = block->size();
         auto generator = block->generator_parent();
         auto clk_en = generator->get_port(clk_en_name_);
@@ -2093,23 +2106,27 @@ public:
                 // async reset?
                 auto if_ = first_stmt->as<IfStmt>();
                 auto cond = if_->predicate();
-                if (has_reset(cond.get())) {
+                if (has_reset(cond.get()) && !has_clk_en_stmt(if_->else_body().get(), *clk_en)) {
                     auto new_if = create_if_stmt(if_->else_body().get(), *clk_en);
                     if_->add_else_stmt(new_if);
                     return;
                 }
             }
             // put everything into one block
-            auto if_ = create_if_stmt(block, *clk_en);
-            block->add_stmt(if_);
+            // if not clk enabled already
+            if (!has_clk_en_stmt(block, *clk_en)) {
+                auto if_ = create_if_stmt(block, *clk_en);
+                block->add_stmt(if_);
+            }
         }
     }
 
 private:
     std::string clk_en_name_;
-    Port *clk_en_;
+    Port* clk_en_;
+    Generator *top_;
 
-    bool static has_reset(Var *var) {
+    bool static has_reset(Var* var) {
         if (var->type() == VarType::Expression) {
             auto expr = reinterpret_cast<Expr*>(var);
             auto l = has_reset(expr->left);
@@ -2129,22 +2146,40 @@ private:
         return false;
     }
 
-    static std::shared_ptr<IfStmt> create_if_stmt(StmtBlock *block, Port &clk_en) {
+    static std::shared_ptr<IfStmt> create_if_stmt(StmtBlock* block, Port& clk_en) {
         auto if_ = std::make_shared<IfStmt>(clk_en);
         std::vector<std::shared_ptr<Stmt>> stmts;
-        for (auto const &stmt: *block) {
+        for (auto const& stmt : *block) {
             stmts.emplace_back(stmt);
         }
         block->clear();
-        for (auto &stmt: stmts) {
+        for (auto& stmt : stmts) {
             if_->add_then_stmt(stmt);
         }
         return if_;
     }
+
+    static bool has_clk_en_stmt(StmtBlock* block, Port& clk_en) {
+        if (!block->empty()) {
+            auto stmt = block->get_stmt(0);
+            if (stmt->type() == StatementType::If) {
+                auto if_ = stmt->as<IfStmt>();
+                auto cond = if_->predicate();
+                if (cond.get() == &clk_en) {
+                    return true;
+                } else if (cond->type() == VarType::PortIO) {
+                    auto p = cond->as<Port>();
+                    if (p->port_type() == PortType::ClockEnable) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 };
 
-
-void auto_insert_clock_enable(Generator *top) {
+void auto_insert_clock_enable(Generator* top) {
     InsertClockIRVisitor visitor(top);
     visitor.visit_root(top);
 }

@@ -1337,7 +1337,7 @@ TEST(pass, check_d_flip_flop) {  // NOLINT
     EXPECT_THROW(check_flip_flop_always_ff(&mod), StmtException);
 }
 
-TEST(pass, insert_clk_en) { // NOLINT
+TEST(pass, insert_clk_en) {  // NOLINT
     Context c;
     auto &parent = c.generator("parent");
     auto &clk = parent.port(PortDirection::In, "clk", 1, PortType::Clock);
@@ -1360,19 +1360,50 @@ TEST(pass, insert_clk_en) { // NOLINT
     child_seq->add_stmt(child.var("a", 1).assign(constant(1, 1)));
     child_seq->add_stmt(child.var("b", 1).assign(constant(1, 1)));
 
+    // another child generator
+    auto &child2 = c.generator("child2");
+    auto &clk_child2 = child2.port(PortDirection::In, "clk", 1, PortType::Clock);
+    auto &clk_en_child2 = child2.port(PortDirection::In, "clk_en", 1, PortType::ClockEnable);
+    // always const
+    child2.wire(clk_en_child2, constant(1, 1));
+    auto child_seq2 = child2.sequential();
+    child_seq2->add_condition({BlockEdgeType::Posedge, clk_child2.shared_from_this()});
+    auto if_child2 = std::make_shared<IfStmt>(clk_en_child2);
+    if_child2->add_then_stmt(child2.var("a", 1).assign(constant(1, 1)));
+    child_seq2->add_stmt(if_child2);
+
+    auto &child3 = c.generator("child3");
+    auto &clk_child3 = child3.port(PortDirection::In, "clk", 1, PortType::Clock);
+    auto &clk_en_child3 = child3.port(PortDirection::In, "clk_en", 1, PortType::ClockEnable);
+    auto child_seq3 = child3.sequential();
+    child_seq2->add_condition({BlockEdgeType::Posedge, clk_child3.shared_from_this()});
+    auto if_child3 = std::make_shared<IfStmt>(clk_en_child3);
+    if_child3->add_then_stmt(child3.var("a", 1).assign(constant(1, 1)));
+    child_seq3->add_stmt(if_child3);
+
     parent.add_child_generator("child", child.shared_from_this());
+    parent.add_child_generator("child2", child2.shared_from_this());
+    parent.add_child_generator("child3", child3.shared_from_this());
     parent.wire(clk_child, clk);
+    parent.wire(clk_child2, clk);
+    parent.wire(clk_child3, clk);
 
     // add clock enable
-    parent.port(PortDirection::In, "clk_en", 1, PortType::ClockEnable);
+    auto &parent_clk_en = parent.port(PortDirection::In, "clk_en", 1, PortType::ClockEnable);
+    // wire it to child3
+    parent.wire(clk_en_child3, parent_clk_en);
     auto_insert_clock_enable(&parent);
     fix_assignment_type(&parent);
     create_module_instantiation(&parent);
     auto src = generate_verilog(&parent);
     EXPECT_TRUE(src.find("parent") != src.end());
     EXPECT_TRUE(src.find("child") != src.end());
+    EXPECT_TRUE(src.find("child2") != src.end());
+    EXPECT_TRUE(src.find("child3") != src.end());
     auto parent_src = src.at("parent");
     auto child_src = src.at("child");
+    auto child_src2 = src.at("child2");
     EXPECT_TRUE(parent_src.find("else if (clk_en)") != std::string::npos);
     EXPECT_TRUE(child_src.find("if (clk_en)") != std::string::npos);
+    EXPECT_TRUE(child_src2.find("if (clk_en)") != std::string::npos);
 }
