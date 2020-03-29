@@ -107,8 +107,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
             self.target = target
             self.legal = True
             self.scope = scope
-            self.local_env = local_env.copy()
-            self.local_env["scale"] = scope
+            self.local_env = local_env
             self.global_env = global_env
 
         def visit_Subscript(self, node: ast.Index):
@@ -141,6 +140,9 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         self.local = local.copy()
         self.global_ = global_.copy()
         self.local["self"] = self.generator
+        if "scope" in local and (not isinstance(local["scope"], Scope)):
+            raise SyntaxError("scope is a reserved keyword and shall not be used in a kratos program")
+        self.local["scope"] = scope
         self.target_node = {}
         self.scope = scope
 
@@ -196,8 +198,15 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 keywords = [ast.keyword(arg="f_ln", value=ast.Constant(value=node.lineno))]
             # we redirect the var to one of the scope vars. the index is based
             # on the line number
+            index_num = node.lineno
+            # create the for statement in the scope
+            for_stmt = _kratos.ForStmt(target.id, iter_obj.start, iter_obj.stop, iter_obj.step)
+            self.scope.for_stmt[index_num] = for_stmt
+            # set the for iter var
+            # redirect the variable to env
+            self.scope.iter_var[index_num] = for_stmt.get_iter_var()
             index = ast.Subscript(
-                slice=ast.Index(value=ast.Num(n=node.lineno)),
+                slice=ast.Index(value=ast.Num(n=index_num)),
                 value=ast.Attribute(
                     value=ast.Name(id="scope", ctx=ast.Load()),
                     attr="iter_var", ctx=ast.Load()))
@@ -262,10 +271,8 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
             return node
         left = node.left
         left_src = astor.to_source(left)
-        try:
-            left_val = eval(left_src, self.local)
-        except NameError:
-            return node
+        left_val = eval(left_src, self.local)
+
         if isinstance(left_val, _kratos.Var):
             # change it into a function all
             return ast.Call(func=ast.Attribute(value=left,
@@ -289,16 +296,12 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         except _kratos.exception.InvalidConversionException:
             has_var = True
             predicate_value = None
-        except NameError as error:
-            predicate_value = None
-            if "'scope'" in error.args[0]:
-                has_var = True
 
         # if's a kratos var, we continue
         if not has_var and not isinstance(predicate_value, _kratos.Var):
             if not isinstance(predicate_value, bool):
                 print_src(self.fn_src, predicate.lineno)
-                raise Exception("Cannot statically evaluate if predicate")
+                raise SyntaxError("Cannot statically evaluate if predicate")
             if predicate_value:
                 for i, n in enumerate(node.body):
                     if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src, self.scope,
@@ -492,6 +495,7 @@ class Scope:
         self._level = 0
 
         self.iter_var = {}
+        self.for_stmt = {}
 
     def if_(self, target, *args, f_ln=None, **kargs):
         add_local = self.add_local
@@ -536,13 +540,12 @@ class Scope:
 
     def for_(self, var_name, start, end, step, index, f_ln=None, **kargs):
         add_local = self.add_local
-        self.iter_var[index] = None
         generator = self.generator
 
         class ForStatement:
             def __init__(self, scope):
                 self.__scope = scope
-                self.__for = _kratos.ForStmt(var_name, start, end, step)
+                self.__for = self.__scope.for_stmt[index]
                 self.__for.get_iter_var().set_generator(generator.internal_generator)
                 if f_ln is not None:
                     fn_ln = (scope.filename, f_ln + scope.ln - 1)
@@ -551,8 +554,6 @@ class Scope:
                     # this is additional info passed in
                     if add_local:
                         add_scope_context(self.__for, kargs)
-                # redirect the variable to env
-                self.__scope.iter_var[index] = self.__for.get_iter_var()
 
             def loop(self, *args):
                 for stmt in args:

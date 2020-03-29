@@ -1806,5 +1806,20 @@ def test_always_latch(check_gold):
     check_gold(mod, gold_name="test_always_latch", reorder_stmts=True)
 
 
+def test_scope_keyword():
+    mod = Generator("mod")
+    scope = mod.var("a", 1)
+
+    @always_comb
+    def code():
+        pass
+
+    try:
+        mod.add_always(code)
+        assert False
+    except SyntaxError:
+        pass
+
+
 if __name__ == "__main__":
-    test_port_cast_child()
+    test_scope_keyword()
