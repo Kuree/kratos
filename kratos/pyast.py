@@ -103,10 +103,12 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 self.has_target = True
 
     class LoopIndexVisitor(ast.NodeVisitor):
-        def __init__(self, target, local_env, global_env):
+        def __init__(self, target, scope, local_env, global_env):
             self.target = target
             self.legal = True
-            self.local_env = local_env
+            self.scope = scope
+            self.local_env = local_env.copy()
+            self.local_env["scale"] = scope
             self.global_env = global_env
 
         def visit_Subscript(self, node: ast.Index):
@@ -132,7 +134,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 except AttributeError:
                     return
 
-    def __init__(self, generator, fn_src, local, global_, filename, func_ln):
+    def __init__(self, generator, fn_src, scope, local, global_, filename, func_ln):
         super().__init__()
         self.generator = generator
         self.fn_src = fn_src
@@ -140,6 +142,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         self.global_ = global_.copy()
         self.local["self"] = self.generator
         self.target_node = {}
+        self.scope = scope
 
         self.filename = filename
         self.scope_ln = func_ln
@@ -150,7 +153,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         valid = True
         for node in nodes:
             if valid:
-                visitor = StaticElaborationNodeVisitor.LoopIndexVisitor(target, self.local, self.global_)
+                visitor = StaticElaborationNodeVisitor.LoopIndexVisitor(target, self.scope, self.local, self.global_)
                 visitor.visit(node)
                 valid = visitor.legal
         return valid
@@ -184,15 +187,13 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                               "target " + astor.to_source(target))
 
         # if not in debug mode and we are allowed to do so
-        if not self.generator.debug and isinstance(iter_obj, range) and \
-                self.__loop_self_var(target, node.body):
+        if not self.generator.debug and isinstance(iter_obj, range) and self.__loop_self_var(target, node.body):
             # return it as a function call
             _vars = iter_obj.start, iter_obj.stop, iter_obj.step, node.lineno
             _vars = [ast.Num(n=n) for n in _vars]
             keywords = []
             if self.generator.debug:
-                keywords = [ast.keyword(arg="f_ln",
-                                        value=ast.Constant(value=node.lineno))]
+                keywords = [ast.keyword(arg="f_ln", value=ast.Constant(value=node.lineno))]
             # we redirect the var to one of the scope vars. the index is based
             # on the line number
             index = ast.Subscript(
@@ -200,10 +201,8 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 value=ast.Attribute(
                     value=ast.Name(id="scope", ctx=ast.Load()),
                     attr="iter_var", ctx=ast.Load()))
-            for_node = ast.Call(func=ast.Attribute(value=ast.Name(id="scope",
-                                                                  ctx=ast.Load()),
-                                                   attr="for_",
-                                                   ctx=ast.Load()),
+            for_node = ast.Call(func=ast.Attribute(value=ast.Name(id="scope", ctx=ast.Load()),
+                                                   attr="for_", ctx=ast.Load()),
                                 args=[ast.Str(s=target.id)] + _vars,
                                 keywords=keywords,
                                 ctx=ast.Load())
@@ -216,8 +215,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                         body.append(nn)
                 else:
                     body.append(n)
-            body_node = ast.Call(func=ast.Attribute(attr="loop", value=for_node,
-                                                    cts=ast.Load()),
+            body_node = ast.Call(func=ast.Attribute(attr="loop", value=for_node, cts=ast.Load()),
                                  args=body, keywords=[])
             # create an entry for the target
             self.local[str(target.id)] = 0
@@ -253,9 +251,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 target_src = astor.to_source(target)
                 target_eval = eval(target_src, self.local)
                 if isinstance(target_eval, _kratos.Var):
-                    return ast.Call(func=ast.Attribute(value=target,
-                                                       attr="r_not",
-                                                       cts=ast.Load()),
+                    return ast.Call(func=ast.Attribute(value=target, attr="r_not", cts=ast.Load()),
                                     args=[], keywords=[], ctx=ast.Load())
             else:
                 return node
@@ -305,16 +301,14 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 raise Exception("Cannot statically evaluate if predicate")
             if predicate_value:
                 for i, n in enumerate(node.body):
-                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src,
-                                                          self.local, self.global_, self.filename,
-                                                          self.scope_ln)
+                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src, self.scope,
+                                                          self.local, self.global_, self.filename, self.scope_ln)
                     node.body[i] = if_exp.visit(n)
                 return node.body
             else:
                 for i, n in enumerate(node.orelse):
-                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src,
-                                                          self.local, self.global_, self.filename,
-                                                          self.scope_ln)
+                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src, self.scope,
+                                                          self.local, self.global_, self.filename, self.scope_ln)
                     node.orelse[i] = if_exp.visit(n)
                 return node.orelse
         else:
@@ -431,12 +425,8 @@ class ExceptionNodeVisitor(ast.NodeTransformer):
         args = [ast.Constant(0)]
         if self.debug:
             args.append(ast.Constant(value=node.lineno))
-        return ast.Call(func=ast.Attribute(
-            value=ast.Name(id="scope", ctx=ast.Load()),
-            attr="assert_",
-            cts=ast.Load()),
-            args=args,
-            keywords=[])
+        return ast.Call(func=ast.Attribute(value=ast.Name(id="scope", ctx=ast.Load()),
+                                           attr="assert_", cts=ast.Load()), args=args, keywords=[])
 
 
 class ReturnNodeVisitor(ast.NodeTransformer):
@@ -469,9 +459,7 @@ class GenVarLocalVisitor(ast.NodeTransformer):
         if isinstance(node.func, ast.Attribute):
             attr = node.func
             insert_keywords = False
-            if attr.attr == "assign" and \
-                    isinstance(attr.value, ast.Name) \
-                    and attr.value.id == self.scope_name:
+            if attr.attr == "assign" and isinstance(attr.value, ast.Name) and attr.value.id == self.scope_name:
                 insert_keywords = True
             if insert_keywords:
                 keyword = ast.keyword(arg=self.key,
@@ -648,28 +636,20 @@ def transform_block_comment(fn_body):
             comment = node.value.s
             comment = comment.replace("\"", "").replace("'", "")
             node.value.s = comment
-            fn_body.body[i] = ast.Expr(
-                value=ast.Call(func=ast.Name(id="comment"),
-                               args=[node.value],
-                               cts=ast.Load(),
-                               keywords=[])
-            )
+            fn_body.body[i] = ast.Expr(value=ast.Call(func=ast.Name(id="comment"), args=[node.value],
+                                                      cts=ast.Load(), keywords=[]))
 
 
 def add_stmt_to_scope(fn_body):
     for i in range(len(fn_body.body)):
         node = fn_body.body[i]
         fn_body.body[i] = ast.Expr(
-            value=ast.Call(func=ast.Attribute(
-                value=ast.Name(id="scope",
-                               ctx=ast.Load()),
-                attr="add_stmt",
-                cts=ast.Load()),
-                args=[node],
-                keywords=[]))
+            value=ast.Call(func=ast.Attribute(value=ast.Name(id="scope", ctx=ast.Load()),
+                                              attr="add_stmt", cts=ast.Load()),
+                           args=[node], keywords=[]))
 
 
-def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
+def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_self,
                            filename, func_ln,
                            transform_return=False, pre_locals=None):
     # pre-compute the frames
@@ -710,7 +690,7 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
     ast.fix_missing_locations(fn_body)
 
     # static eval for loop and if statement
-    static_visitor = StaticElaborationNodeVisitor(generator, fn_src, _locals,
+    static_visitor = StaticElaborationNodeVisitor(generator, fn_src, scope, _locals,
                                                   _globals, filename, func_ln)
     fn_body = static_visitor.visit(fn_body)
 
@@ -736,10 +716,7 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, insert_self,
         args = []
     args.append(ast.Name(id="_scope", ctx=ast.Load()))
     call_node = ast.Call(func=ast.Name(id=fn_name, ctx=ast.Load()),
-                         args=args,
-                         keywords=[],
-                         ctx=ast.Load
-                         )
+                         args=args, keywords=[], ctx=ast.Load)
     func_tree.body.append(ast.Expr(value=call_node))
     return _locals, _globals
 
@@ -775,8 +752,7 @@ class AlwaysWrapper:
 def filter_fn_args(fn_args):
     args = []
     for arg in fn_args:
-        assert isinstance(arg, ast.arg), astor.to_source(arg) + \
-                                         " is not an argument"
+        assert isinstance(arg, ast.arg), astor.to_source(arg) + " is not an argument"
         if arg.arg == "self":
             args.append(arg)
     return args
@@ -819,16 +795,18 @@ def transform_stmt_block(generator, fn, fn_ln=None, kargs=None):
     ln = get_ln(fn) if fn_ln is None else fn_ln[1]
 
     # extract the sensitivity list from the decorator
-    blk_type, sensitivity = extract_sensitivity_from_dec(fn_body.decorator_list,
-                                                         fn_name)
+    blk_type, sensitivity = extract_sensitivity_from_dec(fn_body.decorator_list, fn_name)
     # remove the decorator
     fn_body.decorator_list = []
     # check the function args. it should only has one self now
     func_args = filter_fn_args(fn_body.args.args)
     insert_self = len(func_args) == 1
     fn_body.args.args = func_args
+    # creating the scope here
+    scope = Scope(generator, filename, ln, store_local)
+
     _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
-                                               fn_name,
+                                               fn_name, scope,
                                                insert_self, filename, ln,
                                                pre_locals=env_kargs)
 
@@ -837,7 +815,6 @@ def transform_stmt_block(generator, fn, fn_ln=None, kargs=None):
     code_obj = compile(src, "<ast>", "exec")
 
     # notice that this ln is an offset
-    scope = Scope(generator, filename, ln, store_local)
     _locals.update({"_self": generator, "_scope": scope})
     # use user specified args
     _locals.update(env_kargs)
@@ -877,7 +854,7 @@ def transform_function_block(generator, fn, arg_types):
     var_code_obj = compile(var_src, "<ast>", "exec")
     exec(var_code_obj, pre_locals)
     _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
-                                               fn_name, insert_self,
+                                               fn_name, scope, insert_self,
                                                filename, ln,
                                                transform_return=True,
                                                pre_locals=pre_locals)
@@ -898,15 +875,11 @@ def declare_var_definition(var_def, arg_order):
     for idx, name in arg_order.items():
         width, is_signed = var_def[idx]
         body.append(ast.Assign(targets=[ast.Name(id=name)],
-                               value=ast.Call(func=ast.Attribute(
-                                   value=ast.Name(id="_scope",
-                                                  ctx=ast.Load()),
-                                   attr="input",
-                                   cts=ast.Load()),
-                                   args=[ast.Str(s=name),
-                                         ast.Constant(value=width),
-                                         ast.NameConstant(value=is_signed)],
-                                   keywords=[])))
+                               value=ast.Call(func=ast.Attribute(value=ast.Name(id="_scope", ctx=ast.Load()),
+                                                                 attr="input", cts=ast.Load()),
+                                              args=[ast.Str(s=name), ast.Constant(value=width),
+                                                    ast.NameConstant(value=is_signed)],
+                                              keywords=[])))
     return body
 
 
@@ -930,15 +903,12 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
     if len(deco_list) == 0:
         return CodeBlockType.Combinational, []
     else:
-        assert len(deco_list) == 1, \
-            "{0} is not called with multiple decorators blocks".format(fn_name)
+        assert len(deco_list) == 1,  "{0} is not called with multiple decorators blocks".format(fn_name)
         call_obj = deco_list[0]
         if isinstance(call_obj, ast.Call):
             call_name = call_obj.func.id
         else:
-            assert isinstance(call_obj, ast.Name), "Unrecognized " \
-                                                   "function " \
-                                                   "decorator {0}".format(call_obj)
+            assert isinstance(call_obj, ast.Name), "Unrecognized  function decorator {0}".format(call_obj)
             call_name = call_obj.id
         if call_name == "always_comb":
             return CodeBlockType.Combinational, []
@@ -947,8 +917,7 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
         elif call_name == "always_latch":
             return CodeBlockType.Latch, []
         else:
-            assert call_name == "always_ff", "Unrecognized function " \
-                                             "decorator {0}".format(call_name)
+            assert call_name == "always_ff", "Unrecognized function decorator {0}".format(call_name)
         blk_type = CodeBlockType.Sequential
         raw_sensitivity = call_obj.args
         result = []
@@ -966,14 +935,12 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
                 name = signal_name_node.id
                 assert name in local, "{0} not found".format(name)
                 n = eval(name, local)
-                assert isinstance(n, _kratos.Var), \
-                    "{0} is not a variable".format(name)
+                assert isinstance(n, _kratos.Var), "{0} is not a variable".format(name)
                 signal_name = str(n)
             elif isinstance(signal_name_node, ast.Attribute):
                 # need to eval the actual name
                 n = eval(astor.to_source(signal_name_node), local)
-                assert isinstance(n, _kratos.Var), \
-                    "{0} is not a variable".format(signal_name_node)
+                assert isinstance(n, _kratos.Var), "{0} is not a variable".format(signal_name_node)
                 signal_name = str(n)
             else:
                 signal_name = signal_name_node.s
