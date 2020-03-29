@@ -40,6 +40,15 @@ void init_generator(py::module &m) {
                 return v;
             },
             py::return_value_policy::reference)
+        .def(
+            "var",
+            [](Generator &gen, const std::string &name, const std::shared_ptr<Param> &width,
+               const std::vector<uint32_t> &size, bool is_signed) -> Var & {
+                auto &v = gen.var(name, width->value(), size, is_signed);
+                v.set_width_param(width);
+                return v;
+            },
+            py::return_value_policy::reference)
         .def("port",
              py::overload_cast<PortDirection, const std::string &, uint32_t>(&Generator::port),
              py::return_value_policy::reference)
@@ -55,6 +64,16 @@ void init_generator(py::module &m) {
             "port",
             [](Generator &gen, PortDirection dir, const std::string &name,
                const std::shared_ptr<Param> &width, uint32_t size, PortType t,
+               bool is_signed) -> Port & {
+                auto &p = gen.port(dir, name, width->value(), size, t, is_signed);
+                p.set_width_param(width);
+                return p;
+            },
+            py::return_value_policy::reference)
+        .def(
+            "port",
+            [](Generator &gen, PortDirection dir, const std::string &name,
+               const std::shared_ptr<Param> &width, const std::vector<uint32_t> &size, PortType t,
                bool is_signed) -> Port & {
                 auto &p = gen.port(dir, name, width->value(), size, t, is_signed);
                 p.set_width_param(width);
