@@ -1009,22 +1009,23 @@ public:
         // notice this just catch some simple mistakes
         // thus is designed to be zero false negative
         if (predicate->type() == VarType::PortIO) {
-            auto port = predicate->as<Port>();
+            auto port_s = predicate->as<Port>();
+            auto port = port_s.get();
             if (port->port_type() == PortType::AsyncReset) {
-                if (reset_map_.find(port.get()) == reset_map_.end()) {
+                if (reset_map_.find(port) == reset_map_.end()) {
                     // it's used as a sync reset
                     throw VarException(
                         ::format("{0} is used has a synchronous reset", port->to_string()),
-                        {port.get(), stmt});
+                        {port, stmt});
                 }
-                bool reset_high = reset_map_.at(port.get());
+                bool reset_high = reset_map_.at(port);
                 if (!reset_high)
-                    throw VarException("Active low signal used as active high", {port.get(), stmt});
+                    throw VarException("Active low signal used as active high", {port, stmt});
             } else if (port->port_type() == PortType::Reset) {
-                if (reset_map_.find(port.get()) != reset_map_.end()) {
+                if (reset_map_.find(port) != reset_map_.end()) {
                     throw VarException(::format("{0} is synchronous reset but used as async reset",
                                                 port->to_string()),
-                                       {port.get(), stmt, reset_stmt_.at(port.get())});
+                                       {port, stmt, get_reset_stmt(port)});
                 }
             }
         } else if (predicate->type() == VarType::Expression) {
@@ -1050,7 +1051,7 @@ public:
                             throw VarException(
                                 ::format("{0} is synchronous reset but used as async reset",
                                          port->to_string()),
-                                {port.get(), stmt, reset_stmt_.at(port.get())});
+                                {port.get(), stmt, get_reset_stmt(port.get())});
                         }
                     }
                 }
@@ -1062,7 +1063,8 @@ public:
         auto const& sensitivity = stmt->get_conditions();
         for (auto const& [t, v] : sensitivity) {
             if (v->type() == VarType::PortIO) {
-                auto port = v->as<Port>();
+                auto port_s = v->as<Port>();
+                auto port = port_s.get();
                 if (port->port_type() == PortType::AsyncReset) {
                     auto reset_high = t == BlockEdgeType::Posedge;
                     // check if we have reset edge set
@@ -1072,26 +1074,26 @@ public:
                                 ::format("{0} is declared reset {1} but is used as reset {2}",
                                          port->to_string(), reset_high ? "high" : "low",
                                          reset_high ? "high" : "low"),
-                                {port.get(), stmt});
+                                {port, stmt});
                         }
                     }
-                    if (reset_map_.find(port.get()) != reset_map_.end()) {
+                    if (reset_map_.find(port) != reset_map_.end()) {
                         // check consistency
-                        if (reset_map_.at(port.get()) != reset_high) {
+                        if (reset_map_.at(port) != reset_high) {
                             throw VarException(
                                 ::format("Inconsistent active low/high usage for {0}",
                                          port->to_string()),
-                                {port.get(), stmt, reset_stmt_.at(port.get())});
+                                {port, stmt, get_reset_stmt(port)});
                         }
                     } else {
-                        reset_map_.emplace(std::make_pair(port.get(), reset_high));
-                        reset_map_.emplace(std::make_pair(port.get(), stmt));
+                        reset_map_.emplace(std::make_pair(port, reset_high));
+                        reset_map_.emplace(std::make_pair(port, stmt));
                     }
                 } else if (port->port_type() == PortType::Reset) {
                     throw VarException(
                         ::format("{0} is used as async reset but is declared synchronous",
                                  port->to_string()),
-                        {port.get(), stmt});
+                        {port, stmt});
                 }
             }
         }
@@ -1100,6 +1102,12 @@ public:
 private:
     std::unordered_map<Port*, bool> reset_map_;
     std::unordered_map<Port*, Stmt*> reset_stmt_;
+
+    Stmt* get_reset_stmt(Port *port) const {
+        if (reset_stmt_.find(port) != reset_stmt_.end())
+            return reset_stmt_.at(port);
+        return nullptr;
+    }
 };
 
 void check_active_high(Generator* top) {
@@ -2052,7 +2060,7 @@ void insert_pipeline_stages(Generator* top) {
 
 class InsertClockIRVisitor : public IRVisitor {
 public:
-    explicit InsertClockIRVisitor(Generator* top): top_(top) {
+    explicit InsertClockIRVisitor(Generator* top) : top_(top) {
         // find out the top clock enable signal
         auto ports = top->get_ports(PortType::ClockEnable);
         // LCOV_EXCL_START
@@ -2127,7 +2135,7 @@ public:
 private:
     std::string clk_en_name_;
     Port* clk_en_;
-    Generator *top_;
+    Generator* top_;
 
     bool static has_reset(Var* var) {
         if (var->type() == VarType::Expression) {
@@ -2162,7 +2170,7 @@ private:
         return if_;
     }
 
-     bool has_clk_en_stmt(StmtBlock* block) const {
+    bool has_clk_en_stmt(StmtBlock* block) const {
         if (!block->empty()) {
             auto stmt = block->get_stmt(0);
             if (stmt->type() == StatementType::If) {
@@ -2427,7 +2435,6 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
             throw InternalException("Statement is not if but is marked as StatementType::For");
         auto body = stmt_->get_loop_body();
         return check_stmt_condition(body.get(), cond, check_unreachable, full_branch);
-
     }
     return false;
 }
