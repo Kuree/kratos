@@ -8,6 +8,11 @@ from _kratos import get_frame_local
 import copy
 import os
 import enum
+import sys
+
+
+def has_format_string():
+    return sys.version_info[1] >= 7
 
 
 def __pretty_source(source):
@@ -97,10 +102,15 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         def __init__(self, target):
             self.has_target = False
             self.target = target
+            self.legal = True
 
         def visit_Name(self, node):
-            if node.id == self.target:
+            if node.id == self.target and self.legal:
                 self.has_target = True
+
+        def visit_JoinedStr(self, _):
+            self.legal = False
+            self.has_target = False
 
     class LoopIndexVisitor(ast.NodeVisitor):
         def __init__(self, target, scope, local_env, global_env):
@@ -132,6 +142,10 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                             self.legal = False
                 except AttributeError:
                     return
+            elif not has_var.legal:
+                self.legal = False
+                return
+            self.generic_visit(node)
 
     def __init__(self, generator, fn_src, scope, local, global_, filename, func_ln):
         super().__init__()
@@ -271,7 +285,10 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
             return node
         left = node.left
         left_src = astor.to_source(left)
-        left_val = eval(left_src, self.local)
+        try:
+            left_val = eval(left_src, self.local)
+        except _kratos.exception.VarException:
+            left_val = None
 
         if isinstance(left_val, _kratos.Var):
             # change it into a function all
@@ -293,7 +310,8 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         has_var = False
         try:
             predicate_value = eval(predicate_src, self.global_, self.local)
-        except _kratos.exception.InvalidConversionException:
+        except (_kratos.exception.InvalidConversionException, _kratos.exception.UserException,
+                _kratos.exception.VarException) as _:
             has_var = True
             predicate_value = None
 

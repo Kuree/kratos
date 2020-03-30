@@ -8,6 +8,7 @@ import tempfile
 import shutil
 import pytest
 import platform
+import kratos
 
 no_verilator = shutil.which("verilator") is None
 is_windows = platform.system() == "Windows"
@@ -1775,7 +1776,6 @@ def test_bit_loop_slicing():
 
 
 def test_port_cast_child():
-    import kratos
     parent = Generator("mod")
     a = parent.var("a", 1)
     b = parent.var("b", 1)
@@ -1821,5 +1821,23 @@ def test_scope_keyword():
         pass
 
 
+@pytest.mark.skipif(not kratos.pyast.has_format_string(), reason="format string not supported in Python")
+def test_loop_format_str():
+    mod = Generator("mod")
+    for i in range(2):
+        mod.add_child(f"a_{i}", Generator("child"))
+        mod[f"a_{i}"].input("a", 1)
+
+    @always_comb
+    def code():
+        for i in range(2):
+            mod[f"a_{i}"].ports["a"] = 1
+
+    mod.add_always(code)
+    src = verilog(mod)["mod"]
+    for j in range(2):
+        assert f"child a_{j}" in src
+
+
 if __name__ == "__main__":
-    test_scope_keyword()
+    test_loop_format_str()
