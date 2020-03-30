@@ -149,7 +149,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 return
             self.generic_visit(node)
 
-    def __init__(self, generator, fn_src, scope, local, global_, filename, func_ln):
+    def __init__(self, generator, fn_src, scope, unroll_for, local, global_, filename, func_ln):
         super().__init__()
         self.generator = generator
         self.fn_src = fn_src
@@ -161,6 +161,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         self.local["scope"] = scope
         self.target_node = {}
         self.scope = scope
+        self.unroll_for = unroll_for
 
         self.filename = filename
         self.scope_ln = func_ln
@@ -205,7 +206,8 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                               "target " + astor.to_source(target))
 
         # if not in debug mode and we are allowed to do so
-        if not self.generator.debug and isinstance(iter_obj, range) and self.__loop_self_var(target, node.body):
+        if not self.generator.debug and not self.unroll_for and isinstance(iter_obj, range) and \
+                self.__loop_self_var(target, node.body):
             # return it as a function call
             _vars = iter_obj.start, iter_obj.stop, iter_obj.step, node.lineno
             _vars = [ast.Num(n=n) for n in _vars]
@@ -324,13 +326,13 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 raise SyntaxError("Cannot statically evaluate if predicate")
             if predicate_value:
                 for i, n in enumerate(node.body):
-                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src, self.scope,
+                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src, self.scope, self.unroll_for,
                                                           self.local, self.global_, self.filename, self.scope_ln)
                     node.body[i] = if_exp.visit(n)
                 return node.body
             else:
                 for i, n in enumerate(node.orelse):
-                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src, self.scope,
+                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src, self.scope, self.unroll_for,
                                                           self.local, self.global_, self.filename, self.scope_ln)
                     node.orelse[i] = if_exp.visit(n)
                 return node.orelse
@@ -672,7 +674,7 @@ def add_stmt_to_scope(fn_body):
 
 def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_self,
                            filename, func_ln,
-                           transform_return=False, pre_locals=None):
+                           transform_return=False, pre_locals=None, unroll_for=False):
     # pre-compute the frames
     # we have 3 frames back
     f = inspect.currentframe().f_back.f_back.f_back
@@ -711,7 +713,7 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_
     ast.fix_missing_locations(fn_body)
 
     # static eval for loop and if statement
-    static_visitor = StaticElaborationNodeVisitor(generator, fn_src, scope, _locals,
+    static_visitor = StaticElaborationNodeVisitor(generator, fn_src, scope, unroll_for, _locals,
                                                   _globals, filename, func_ln)
     fn_body = static_visitor.visit(fn_body)
 
@@ -779,7 +781,7 @@ def filter_fn_args(fn_args):
     return args
 
 
-def transform_stmt_block(generator, fn, fn_ln=None, kargs=None):
+def transform_stmt_block(generator, fn, unroll_for=False, fn_ln=None, kargs=None):
     if kargs is None:
         kargs = dict()
     env_kargs = dict()
@@ -829,6 +831,7 @@ def transform_stmt_block(generator, fn, fn_ln=None, kargs=None):
     _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
                                                fn_name, scope,
                                                insert_self, filename, ln,
+                                               unroll_for=unroll_for,
                                                pre_locals=env_kargs)
 
     src = astor.to_source(func_tree, pretty_source=__pretty_source)

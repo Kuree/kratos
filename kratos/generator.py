@@ -546,12 +546,12 @@ class Generator(metaclass=GeneratorMeta):
         return self.__generator
 
     def add_always(self, fn, comment="", label="", sensitivity=None,
-                   fn_ln=None, **kargs):
+                   fn_ln=None, unroll_for=False, **kargs):
         if self.is_cloned:
             # TODO: fix this with kargs
             self.__cached_initialization.append((self.add_code, [fn, comment]))
             return
-        block_type, raw_sensitives, stmts = transform_stmt_block(self, fn,
+        block_type, raw_sensitives, stmts = transform_stmt_block(self, fn, unroll_for,
                                                                  fn_ln, kargs)
         if sensitivity:
             # override the block type and sensivitives
