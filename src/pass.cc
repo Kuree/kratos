@@ -918,6 +918,10 @@ private:
     static void check_var_parent(Generator* generator, Var* dst_var, Var* var, Stmt* stmt) {
         auto gen = var->generator();
         if (gen == Const::const_gen()) return;
+        if (var->type() == VarType::ConstValue && var->generator() != generator) {
+            var->set_generator(gen);
+            return;
+        }
         if (generator != gen) {
             // if it's an input port, the parent context is different
             if (dst_var->type() == VarType::Slice) {
