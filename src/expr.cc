@@ -438,7 +438,8 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         // so the width will be 1
         var_width_ = 1;
         size_ = {1};
-        var_high_ = 0;
+        // potentially cover all the bits
+        var_high_ = parent->width() - 1;
         var_low_ = 0;
         required_width = clog2(parent->width());
     } else {
@@ -449,8 +450,8 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
             size_ = std::vector<uint32_t>(parent->size().begin() + 1, parent->size().end());
         else
             size_ = {1};
-        var_high_ = var_width_ - 1;
-        var_low_ = 0;
+        var_high_ = parent->var_high();
+        var_low_ = parent->var_low();
         // we need to compute the clog2 here
         required_width = clog2(parent->size().front());
     }

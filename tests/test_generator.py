@@ -1840,4 +1840,5 @@ def test_loop_format_str():
 
 
 if __name__ == "__main__":
-    test_loop_format_str()
+    from conftest import check_gold_fn
+    test_fsm_mealy(check_gold_fn)

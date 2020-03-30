@@ -2686,9 +2686,24 @@ private:
         return !diff.empty();
     }
 
+    static bool has_for_loop(Stmt* stmt) {
+        if (stmt->type() == StatementType::For) {
+            return true;
+        } else {
+            auto p = stmt->parent();
+            if (p && p->ir_node_kind() == IRNodeKind::StmtKind) {
+                return has_for_loop(reinterpret_cast<Stmt*>(p));
+            }
+        }
+        return false;
+    }
+
     static void check_var(Var* var) {
         std::unordered_map<uint32_t, std::pair<IRNode*, Stmt*>> parents;
         for (auto const& stmt : var->sources()) {
+            // TODO: FIX THIS
+            //  This is a hack to bypass the check if there is a for loop
+            if (has_for_loop(stmt.get())) continue;
             auto v = stmt->left();
             if (v->get_var_root_parent() != var) continue;
             uint32_t var_low = v->var_low();

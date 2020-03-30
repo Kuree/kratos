@@ -117,7 +117,9 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
             self.target = target
             self.legal = True
             self.scope = scope
-            self.local_env = local_env
+            self.local_env = local_env.copy()
+            # just put 0 there
+            self.local_env[target.id] = 0
             self.global_env = global_env
 
         def visit_Subscript(self, node: ast.Index):
@@ -140,7 +142,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                         # make sure we can index them
                         if value.width == 1:
                             self.legal = False
-                except AttributeError:
+                except (AttributeError, NameError):
                     return
             elif not has_var.legal:
                 self.legal = False
