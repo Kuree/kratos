@@ -272,8 +272,9 @@ IRNode *ForStmt::get_child(uint64_t index) { return index < 1 ? loop_body_.get()
 void ForStmt::add_stmt(const std::shared_ptr<Stmt> &stmt) { loop_body_->add_stmt(stmt); }
 
 std::shared_ptr<Stmt> ForStmt::clone() const {
-    auto stmt = std::make_shared<ForStmt>(iter_->name, start_, end_, iter_->is_signed());
+    auto stmt = std::make_shared<ForStmt>(iter_->name, start_, end_, step_);
     stmt->loop_body_ = loop_body_->clone()->as<ScopedStmtBlock>();
+    stmt->loop_body_->set_parent(stmt.get());
     return stmt;
 }
 
@@ -413,6 +414,12 @@ ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switc
                                              const std::vector<std::shared_ptr<Stmt>> &stmts) {
     for (auto &stmt : stmts) add_switch_case(switch_case, stmt);
     return *body_.at(switch_case);
+}
+
+ScopedStmtBlock &SwitchStmt::add_switch_case(Const &switch_case,
+                                             const std::shared_ptr<Stmt> &stmt) {
+    auto c = switch_case.as<Const>();
+    return add_switch_case(c, stmt);
 }
 
 void SwitchStmt::remove_switch_case(const std::shared_ptr<kratos::Const> &switch_case) {
@@ -661,9 +668,7 @@ FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &fun
 FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionCallVar> &var)
     : Stmt(StatementType::FunctionalCall), func_(var->func()->as<FunctionStmtBlock>()), var_(var) {}
 
-std::shared_ptr<Stmt> FunctionCallStmt::clone() const {
-    throw UserException("Not implemented");
-}
+std::shared_ptr<Stmt> FunctionCallStmt::clone() const { throw UserException("Not implemented"); }
 
 void InstantiationStmt::process_port(kratos::Port *port, Generator *parent,
                                      const std::string &target_name) {

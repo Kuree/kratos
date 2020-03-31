@@ -163,6 +163,8 @@ public:
     ScopedStmtBlock &add_switch_case(const std::shared_ptr<Const> &switch_case,
                                      const std::vector<std::shared_ptr<Stmt>> &stmts);
 
+    ScopedStmtBlock &add_switch_case(Const &switch_case, const std::shared_ptr<Stmt> &stmt);
+
     void remove_switch_case(const std::shared_ptr<Const> &switch_case);
     void remove_switch_case(const std::shared_ptr<Const> &switch_case,
                             const std::shared_ptr<Stmt> &stmt);
