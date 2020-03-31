@@ -1407,3 +1407,107 @@ TEST(pass, insert_clk_en) {  // NOLINT
     EXPECT_TRUE(child_src.find("if (clk_en)") != std::string::npos);
     EXPECT_TRUE(child_src2.find("if (clk_en)") != std::string::npos);
 }
+
+TEST(pass, insert_sync_reset) {  // NOLINT
+    Context c;
+    auto &parent = c.generator("parent");
+    auto &clk = parent.port(PortDirection::In, "clk", 1, PortType::Clock);
+    auto &rst = parent.port(PortDirection::In, "rst", 1, PortType::AsyncReset);
+    auto &clk_en = parent.port(PortDirection::In, "clk_en", 1, PortType::ClockEnable);
+    auto &a = parent.port(PortDirection::Out, "a", 1);
+    auto &b = parent.var("b", 1);
+    auto &c_ = parent.var("c", 1);
+
+    // this is the one with reset logic
+    {
+        auto seq_parent = parent.sequential();
+        seq_parent->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+        auto if_seq_parent = std::make_shared<IfStmt>(rst);
+        if_seq_parent->add_then_stmt(b.assign(constant(0, 1)));
+        if_seq_parent->add_else_stmt(c_.assign(a));
+        seq_parent->add_stmt(if_seq_parent);
+    }
+
+    // this is the one with both reset and clock enable
+    {
+        auto seq_parent = parent.sequential();
+        seq_parent->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+        auto if_seq_parent = std::make_shared<IfStmt>(rst);
+        if_seq_parent->add_then_stmt(b.assign(constant(0, 1)));
+        auto if_clk_en = std::make_shared<IfStmt>(clk_en);
+        if_clk_en->add_then_stmt(c_.assign(a));
+        if_seq_parent->add_else_stmt(if_clk_en);
+        seq_parent->add_stmt(if_seq_parent);
+    }
+
+    // test child wiring
+    auto &child = c.generator("child");
+    parent.add_child_generator("child", child.shared_from_this());
+    auto &clk_child = child.port(PortDirection::In, "clk", 1, PortType::Clock);
+    auto &rst_child = child.port(PortDirection::In, "rst", 1, PortType::AsyncReset);
+    parent.wire(clk_child, clk);
+    parent.wire(rst_child, rst);
+    {
+        auto &a_child = child.var("a", 1);
+        auto &b_child = child.var("b", 1);
+        auto &c_child = child.var("c", 1);
+        auto seq_child = child.sequential();
+        seq_child->add_condition({BlockEdgeType::Posedge, clk_child.shared_from_this()});
+        // same thing as the parent
+        auto if_seq_child = std::make_shared<IfStmt>(rst_child);
+        if_seq_child->add_then_stmt(b_child.assign(constant(0, 1)));
+        if_seq_child->add_else_stmt(c_child.assign(a_child));
+        seq_child->add_stmt(if_seq_child);
+    }
+
+    // this child already has it's own flush logic
+    auto &child2 = c.generator("child2");
+    parent.add_child_generator("child2", child2);
+    auto &clk_child2 = child2.port(PortDirection::In, "clk", 1, PortType::Clock);
+    auto &rst_child2 = child2.port(PortDirection::In, "rst", 1, PortType::AsyncReset);
+    parent.wire(clk_child2, clk);
+    parent.wire(rst_child2, rst);
+    {
+        auto &a_child = child2.var("a", 1);
+        auto &b_child = child2.var("b", 1);
+        auto &c_child = child2.var("c", 1);
+        auto &flush = child2.port(PortDirection::In, "flush", 1, PortType::Reset);
+        parent.wire(flush, constant(1, 1));
+        auto seq_child = child2.sequential();
+        seq_child->add_condition({BlockEdgeType::Posedge, clk_child2.shared_from_this()});
+        // same thing as the parent
+        auto if_seq_child = std::make_shared<IfStmt>(rst_child2);
+        if_seq_child->add_then_stmt(b_child.assign(constant(0, 1)));
+        auto if__ = std::make_shared<IfStmt>(flush);
+        if__->add_then_stmt(c_child.assign(constant(1, 1)));
+        if__->add_else_stmt(c_child.assign(a_child));
+        if_seq_child->add_else_stmt(if__);
+        seq_child->add_stmt(if_seq_child);
+    }
+
+    // add attribute
+    auto attr = std::make_shared<Attribute>();
+    attr->value_str = "sync-reset=flush;over_clk_en=false";
+    parent.add_attribute(attr);
+    auto_insert_sync_reset(&parent);
+    fix_assignment_type(&parent);
+    create_module_instantiation(&parent);
+
+    auto src = generate_verilog(&parent);
+    EXPECT_TRUE(src.find("parent") != src.end());
+    EXPECT_TRUE(src.find("child") != src.end());
+    EXPECT_TRUE(src.find("child2") != src.end());
+    auto src_parent = src.at("parent");
+    EXPECT_TRUE(src_parent.find("else if (flush) begin\n"
+                                "    b <= 1'h0;\n"
+                                "  end") != std::string::npos);
+    EXPECT_TRUE(src_parent.find("child2 child2 (\n"
+                                "  .clk(clk),\n"
+                                "  .flush(flush),") != std::string::npos);
+    auto src_child = src.at("child");
+    EXPECT_TRUE(src_child.find("else if (flush) begin\n"
+                               "    b <= 1'h0;") != std::string::npos);
+    auto src_child2 = src.at("child2");
+    EXPECT_TRUE(src_child2.find("else if (flush) begin\n"
+                                "    c <= 1'h1;") != std::string::npos);
+}

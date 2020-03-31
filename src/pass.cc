@@ -2226,7 +2226,7 @@ public:
                     {
                         auto token_values = string::get_tokens(first_token, "=");
                         if (token_values.size() == 2) {
-                            auto var_name = tokens[1];
+                            auto var_name = token_values[1];
                             if (is_valid_variable_name(var_name)) {
                                 run_pass_ = true;
                                 reset_name_ = var_name;
@@ -2249,25 +2249,43 @@ public:
 
     void visit(Generator* generator) override {
         if (!run_pass_) return;
-        if (generator->has_port(sync_reset_name)) {
-            auto p = generator->get_port(sync_reset_name);
-            if (p->port_type() != PortType::Reset) {
-                p->set_port_type(PortType::Reset);
+        Port* port;
+        if (generator->has_port(reset_name_)) {
+            port = generator->get_port(reset_name_).get();
+            if (port->port_type() != PortType::Reset) {
+                port->set_port_type(PortType::Reset);
             }
-            return;
-        }
-        // create a synchronous reset port
-        auto& port = generator->port(PortDirection::In, reset_name_, 1, PortType::Reset);
-        // look through each sequential block
-        auto stmts_count = generator->stmts_count();
-        for (uint64_t i = 0; i < stmts_count; i++) {
-            auto stmt = generator->get_stmt(i);
-            if (stmt->type() == StatementType::Block) {
-                auto blk = stmt->as<StmtBlock>();
-                if (blk->block_type() == StatementBlockType::Sequential) {
-                    auto seq = blk->as<SequentialStmtBlock>();
-                    inject_reset_logic(seq.get(), &port);
+        } else {
+            // create a synchronous reset port
+            port = &generator->port(PortDirection::In, reset_name_, 1, PortType::Reset);
+            // look through each sequential block
+            auto stmts_count = generator->stmts_count();
+            for (uint64_t i = 0; i < stmts_count; i++) {
+                auto stmt = generator->get_stmt(i);
+                if (stmt->type() == StatementType::Block) {
+                    auto blk = stmt->as<StmtBlock>();
+                    if (blk->block_type() == StatementBlockType::Sequential) {
+                        auto seq = blk->as<SequentialStmtBlock>();
+                        inject_reset_logic(seq.get(), port);
+                    }
                 }
+            }
+        }
+
+        // wire the children. we do in this order since this pass is run in parallel from bottom
+        // up
+        for (auto const &child: generator->get_child_generators()) {
+            if (child->has_port(reset_name_)) {
+                auto child_port = child->get_port(reset_name_);
+                auto sources = child_port->sources();
+                if (sources.size() > 1) continue;
+                if (sources.size() == 1) {
+                    auto right = (*sources.begin())->right();
+                    if (right->type() == VarType::ConstValue) {
+                        child_port->clear_sources(true);
+                    }
+                }
+                generator->wire(*child_port, *port);
             }
         }
     }
@@ -2305,12 +2323,12 @@ private:
                 auto target = if__->predicate();
                 if (has_port_type(target.get(), PortType::ClockEnable) && !over_clk_en_) {
                     // insert inside the clock enable body
-                    auto body = if__->else_body()->clone()->as<ScopedStmtBlock>();
+                    auto body = if__->then_body()->clone()->as<ScopedStmtBlock>();
                     // need to duplicate the logic in reset
                     auto sync_reset = create_if_stmt_wrapper(reset_stmt, *port, true);
                     sync_reset->set_else(body);
-                    if__->else_body()->clear();
-                    if__->add_else_stmt(sync_reset);
+                    if__->then_body()->clear();
+                    if__->add_then_stmt(sync_reset);
                     return;
                 }
             }

@@ -306,6 +306,10 @@ void Generator::add_child_generator(const std::string &instance_name_,
     }
 }
 
+void Generator::add_child_generator(const std::string &instance_name_, Generator &child) {
+    add_child_generator(instance_name_, child.shared_from_this());
+}
+
 void Generator::add_child_generator(const std::string &instance_name_,
                                     const std::shared_ptr<Generator> &child,
                                     const std::pair<std::string, uint32_t> &debug_info) {

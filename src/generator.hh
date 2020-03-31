@@ -129,6 +129,7 @@ public:
     // child generator. needed for generator merge
     void add_child_generator(const std::string &instance_name,
                              const std::shared_ptr<Generator> &child);
+    void add_child_generator(const std::string &instance_name, Generator &child);
     void add_child_generator(const std::string &instance_name,
                              const std::shared_ptr<Generator> &child,
                              const std::pair<std::string, uint32_t> &debug_info);
