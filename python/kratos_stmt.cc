@@ -24,7 +24,8 @@ void init_stmt(py::module &m) {
                  stmt.add_scope_variable(name, value, is_var, false);
              })
         .def_property_readonly("scope_context", [](Stmt &stmt) { return stmt.scope_context(); })
-        .def("set_parent", &Stmt::set_parent);
+        .def("set_parent", &Stmt::set_parent)
+        .def("clone", &Stmt::clone);
 
     def_trace<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);
     def_attributes<py::class_<Stmt, ::shared_ptr<Stmt>>, Stmt>(stmt_);

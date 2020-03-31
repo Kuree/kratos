@@ -61,6 +61,10 @@ void Stmt::remove_from_parent() {
     }
 }
 
+std::shared_ptr<Stmt> Stmt::clone() const {
+    return std::const_pointer_cast<Stmt>(shared_from_this());
+}
+
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
     : AssignStmt(left, right, AssignmentType::Undefined) {}
 
@@ -82,7 +86,8 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, std::shared_ptr<Var> ri
         bool has_error = true;
         if (right->type() == VarType::ConstValue) {
             auto const_ = right->as<Const>();
-            if (Const::is_legal(const_->value(), left->width(), left->is_signed()) == Const::ConstantLegal::Legal) {
+            if (Const::is_legal(const_->value(), left->width(), left->is_signed()) ==
+                Const::ConstantLegal::Legal) {
                 has_error = false;
                 const_->set_width(left->width());
             }
@@ -146,6 +151,10 @@ void AssignStmt::set_parent(kratos::IRNode *parent) {
         right_->add_sink(as<AssignStmt>());
         left_->add_source(as<AssignStmt>());
     }
+}
+std::shared_ptr<Stmt> AssignStmt::clone() const {
+    return std::make_shared<AssignStmt>(left_->shared_from_this(), right_->shared_from_this(),
+                                        assign_type_);
 }
 
 IfStmt::IfStmt(std::shared_ptr<Var> predicate)
@@ -220,6 +229,19 @@ void IfStmt::add_scope_variable(const std::string &name, const std::string &valu
     else_body_->add_scope_variable(name, value, is_var, override);
 }
 
+std::shared_ptr<Stmt> IfStmt::clone() const {
+    auto if_ = std::make_shared<IfStmt>(predicate_);
+    auto then_clone = then_body_->clone();
+    auto else_clone = else_body_->clone();
+
+    if_->then_body_ = then_clone->as<ScopedStmtBlock>();
+    if_->then_body()->set_parent(if_.get());
+    if_->else_body_ = else_clone->as<ScopedStmtBlock>();
+    if_->else_body_->set_parent(if_.get());
+
+    return if_;
+}
+
 ForStmt::ForStmt(const std::string &iter_var_name, int64_t start, int64_t end, int64_t step)
     : Stmt(StatementType::For), start_(start), end_(end), step_(step) {
     // making a loop variable
@@ -248,6 +270,12 @@ void ForStmt::set_parent(IRNode *node) {
 IRNode *ForStmt::get_child(uint64_t index) { return index < 1 ? loop_body_.get() : nullptr; }
 
 void ForStmt::add_stmt(const std::shared_ptr<Stmt> &stmt) { loop_body_->add_stmt(stmt); }
+
+std::shared_ptr<Stmt> ForStmt::clone() const {
+    auto stmt = std::make_shared<ForStmt>(iter_->name, start_, end_, iter_->is_signed());
+    stmt->loop_body_ = loop_body_->clone()->as<ScopedStmtBlock>();
+    return stmt;
+}
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 
@@ -307,6 +335,20 @@ void StmtBlock::add_scope_variable(const std::string &name, const std::string &v
     }
 }
 
+void StmtBlock::clone_block(kratos::StmtBlock *block) const {
+    block->stmts_.clear();
+    block->stmts_.reserve(stmts_.size());
+    for (auto const &stmt : stmts_) {
+        block->add_stmt(stmt->clone());
+    }
+}
+
+std::shared_ptr<Stmt> ScopedStmtBlock::clone() const {
+    auto stmt = std::make_shared<ScopedStmtBlock>();
+    clone_block(stmt.get());
+    return stmt;
+}
+
 void SequentialStmtBlock::add_condition(
     const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition) {
     // notice that the condition variable cannot be used as a condition
@@ -340,10 +382,9 @@ SwitchStmt::SwitchStmt(Var &target)
     stmt->set_parent(this);
 }
 
-
 void SwitchStmt::set_parent(IRNode *parent) {
     Stmt::set_parent(parent);
-    for (auto &iter: body_) {
+    for (auto &iter : body_) {
         iter.second->set_parent(this);
     }
 }
@@ -417,6 +458,37 @@ void SwitchStmt::add_scope_variable(const std::string &name, const std::string &
     for (auto &iter : body_) {
         iter.second->add_scope_variable(name, value, is_var, override);
     }
+}
+
+std::shared_ptr<Stmt> SwitchStmt::clone() const {
+    auto switch_ = std::make_shared<SwitchStmt>(target_);
+    // clone the cases
+    for (auto const &[cond, stmt] : body_) {
+        auto cloned_stmt = stmt->clone()->as<ScopedStmtBlock>();
+        cloned_stmt->set_parent(switch_.get());
+        switch_->body_.emplace(cond, cloned_stmt);
+    }
+
+    return switch_;
+}
+
+std::shared_ptr<Stmt> CombinationalStmtBlock::clone() const {
+    auto stmt = std::make_shared<CombinationalStmtBlock>();
+    clone_block(stmt.get());
+    return stmt;
+}
+
+std::shared_ptr<Stmt> SequentialStmtBlock::clone() const {
+    auto stmt = std::make_shared<SequentialStmtBlock>();
+    stmt->conditions_ = std::vector(conditions_);
+    clone_block(stmt.get());
+    return stmt;
+}
+
+std::shared_ptr<Stmt> LatchStmtBlock::clone() const {
+    auto stmt = std::make_shared<LatchStmtBlock>();
+    clone_block(stmt.get());
+    return stmt;
 }
 
 std::unordered_set<std::shared_ptr<AssignStmt>> filter_assignments_with_target(
@@ -589,6 +661,10 @@ FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &fun
 FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionCallVar> &var)
     : Stmt(StatementType::FunctionalCall), func_(var->func()->as<FunctionStmtBlock>()), var_(var) {}
 
+std::shared_ptr<Stmt> FunctionCallStmt::clone() const {
+    throw UserException("Not implemented");
+}
+
 void InstantiationStmt::process_port(kratos::Port *port, Generator *parent,
                                      const std::string &target_name) {
     auto const port_direction = port->port_direction();
@@ -676,6 +752,12 @@ CommentStmt::CommentStmt(std::string comment, uint32_t line_width) : Stmt(Statem
         comment.erase(pos, 1);
     }
     comments_ = line_wrap(comment, line_width);
+}
+
+std::shared_ptr<Stmt> CommentStmt::clone() const {
+    auto stmt = std::make_shared<CommentStmt>();
+    stmt->comments_ = std::vector(comments_);
+    return stmt;
 }
 
 RawStringStmt::RawStringStmt(const std::string &stmt) : Stmt(StatementType::RawString) {

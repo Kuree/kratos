@@ -63,6 +63,8 @@ public:
     virtual void remove_from_parent();
     virtual void remove_stmt(const std::shared_ptr<Stmt> &) {}
 
+    virtual std::shared_ptr<Stmt> clone() const;
+
 protected:
     StatementType type_;
     IRNode *parent_ = nullptr;
@@ -100,6 +102,8 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
     uint64_t child_count() override { return 2; }
     IRNode *get_child(uint64_t index) override;
+
+    std::shared_ptr<Stmt> clone() const override;
 
 private:
     Var *left_ = nullptr;
@@ -139,6 +143,8 @@ public:
     // Debug
     void add_scope_variable(const std::string &name, const std::string &value, bool is_var,
                             bool override) override;
+
+    std::shared_ptr<Stmt> clone() const override;
 
 private:
     std::shared_ptr<Var> predicate_;
@@ -182,6 +188,8 @@ public:
     void add_scope_variable(const std::string &name, const std::string &value, bool is_var,
                             bool override) override;
 
+    std::shared_ptr<Stmt> clone() const override;
+
 private:
     std::shared_ptr<Var> target_;
     // default case will be indexed as nullptr
@@ -207,6 +215,8 @@ public:
     int64_t start() const { return start_; }
     int64_t end() const { return end_; }
     int64_t step() const { return step_; }
+
+    std::shared_ptr<Stmt> clone() const override;
 
 private:
     std::shared_ptr<IterVar> iter_;
@@ -249,6 +259,8 @@ protected:
     explicit StmtBlock(StatementBlockType type);
     std::vector<std::shared_ptr<Stmt>> stmts_;
 
+    void clone_block(StmtBlock *block) const;
+
 private:
     StatementBlockType block_type_;
 };
@@ -257,6 +269,8 @@ class ScopedStmtBlock : public StmtBlock {
 public:
     ScopedStmtBlock() : StmtBlock(StatementBlockType::Scope) {}
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+    std::shared_ptr<Stmt> clone() const override;
 };
 
 class CombinationalStmtBlock : public StmtBlock {
@@ -265,6 +279,8 @@ public:
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
+    std::shared_ptr<Stmt> clone() const override;
 };
 
 class SequentialStmtBlock : public StmtBlock {
@@ -286,6 +302,8 @@ public:
     uint64_t child_count() override { return stmts_.size() + conditions_.size(); }
     IRNode *get_child(uint64_t index) override;
 
+    std::shared_ptr<Stmt> clone() const override;
+
 private:
     std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
 };
@@ -293,6 +311,8 @@ private:
 class LatchStmtBlock : public StmtBlock {
 public:
     LatchStmtBlock() : StmtBlock(StatementBlockType::Latch) {}
+
+    std::shared_ptr<Stmt> clone() const override;
 };
 
 class FunctionStmtBlock : public StmtBlock {
@@ -384,6 +404,8 @@ public:
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
+    std::shared_ptr<Stmt> clone() const override;
+
 private:
     std::shared_ptr<FunctionStmtBlock> func_;
     std::shared_ptr<FunctionCallVar> var_;
@@ -443,8 +465,11 @@ class CommentStmt : public Stmt {
 public:
     explicit CommentStmt(const std::string &comment) : CommentStmt(comment, default_width) {}
     CommentStmt(std::string comment, uint32_t line_width);
+    CommentStmt(): Stmt(StatementType::Comment) {}
 
     const std::vector<std::string> &comments() { return comments_; }
+
+    std::shared_ptr<Stmt> clone() const override;
 
 private:
     std::vector<std::string> comments_;
@@ -457,6 +482,8 @@ public:
     explicit RawStringStmt(const std::vector<std::string> &stmt);
 
     const std::vector<std::string> &stmts() const { return stmts_; }
+
+    std::shared_ptr<Stmt> clone() const override { return std::make_shared<RawStringStmt>(stmts_); }
 
 private:
     std::vector<std::string> stmts_;
