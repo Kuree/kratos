@@ -2092,9 +2092,10 @@ static std::shared_ptr<IfStmt> create_if_stmt_wrapper(StmtBlock* block, Port& po
     auto if_ = std::make_shared<IfStmt>(port);
     std::vector<std::shared_ptr<Stmt>> stmts;
     for (auto const& stmt : *block) {
-        stmts.emplace_back(stmt);
+        stmts.emplace_back(clone? stmt->clone(): stmt);
     }
-    block->clear();
+    if (!clone)
+        block->clear();
     for (auto& stmt : stmts) {
         if_->add_then_stmt(stmt);
     }
@@ -2277,11 +2278,6 @@ private:
     std::string reset_name_;
     const std::string sync_reset_name = "sync-reset";
 
-    static void __insert_reset_logic(StmtBlock* block, Port* port) {
-        auto if_ = create_if_stmt_wrapper(block, *port);
-        block->add_stmt(if_);
-    }
-
     void inject_reset_logic(SequentialStmtBlock* block, Port* port) {
         // only inject when there is a async reset logic
         auto stmts_count = block->size();
@@ -2295,25 +2291,35 @@ private:
         if (!has_port_type(cond.get(), PortType::AsyncReset) ||
             has_port_type(cond.get(), PortType::Reset))
             return;
+        auto reset_stmt = if_->then_body().get();
         // okay we have reset now. now we need to detect if it has clock enable
         // logic or not
         // we need to detect the clock enable logic and make sure that the ordering is what
         // specified in the
-        auto then_body = if_->then_body();
+        auto else_body = if_->else_body();
         // detect if clock enable have been in place
-        if (then_body->size() == 1) {
-            auto then_stmt = then_body->get_stmt(0);
+        if (else_body->size() == 1) {
+            auto then_stmt = else_body->get_stmt(0);
             if (then_stmt->type() == StatementType::If) {
                 auto if__ = then_stmt->as<IfStmt>();
                 auto target = if__->predicate();
                 if (has_port_type(target.get(), PortType::ClockEnable) && !over_clk_en_) {
                     // insert inside the clock enable body
-                    auto body = if__->else_body();
+                    auto body = if__->else_body()->clone()->as<ScopedStmtBlock>();
                     // need to duplicate the logic in reset
+                    auto sync_reset = create_if_stmt_wrapper(reset_stmt, *port, true);
+                    sync_reset->set_else(body);
+                    if__->else_body()->clear();
+                    if__->add_else_stmt(sync_reset);
                     return;
                 }
             }
         }
+        auto sync_reset = create_if_stmt_wrapper(reset_stmt, *port, true);
+        auto body = else_body->clone()->as<ScopedStmtBlock>();
+        sync_reset->set_else(body);
+        else_body->clear();
+        else_body->add_stmt(sync_reset);
     }
 };
 
