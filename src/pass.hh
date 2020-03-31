@@ -104,6 +104,8 @@ void insert_pipeline_stages(Generator* top);
 
 void auto_insert_clock_enable(Generator *top);
 
+void auto_insert_sync_reset(Generator *top);
+
 void change_port_bundle_struct(Generator* top);
 
 void realize_fsm(Generator* top);

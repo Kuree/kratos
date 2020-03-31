@@ -15,6 +15,7 @@
 #include "graph.hh"
 #include "interface.hh"
 #include "port.hh"
+#include "syntax.hh"
 #include "tb.hh"
 #include "util.hh"
 
@@ -1107,9 +1108,8 @@ private:
     std::unordered_map<Port*, bool> reset_map_;
     std::unordered_map<Port*, Stmt*> reset_stmt_;
 
-    Stmt* get_reset_stmt(Port *port) const {
-        if (reset_stmt_.find(port) != reset_stmt_.end())
-            return reset_stmt_.at(port);
+    Stmt* get_reset_stmt(Port* port) const {
+        if (reset_stmt_.find(port) != reset_stmt_.end()) return reset_stmt_.at(port);
         return nullptr;
     }
 };
@@ -2062,6 +2062,45 @@ void insert_pipeline_stages(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
+bool static has_port_type(Var* var, PortType type) {
+    if (var->type() == VarType::Expression) {
+        auto expr = reinterpret_cast<Expr*>(var);
+        auto l = has_port_type(expr->left, type);
+        if (expr->right) {
+            auto r = has_port_type(expr->right, type);
+            return l && r;
+        }
+        return l;
+    }
+    if (var->type() == VarType::PortIO) {
+        auto p = reinterpret_cast<Port*>(var);
+        return p->port_type() == type;
+    } else if (var->type() == VarType::BaseCasted) {
+        auto casted = reinterpret_cast<VarCasted*>(var);
+        if (type == PortType::AsyncReset)
+            return casted->cast_type() == VarCastType::AsyncReset;
+        else if (type == PortType::ClockEnable)
+            return casted->cast_type() == VarCastType::ClockEnable;
+        else if (type == PortType::Clock)
+            return casted->cast_type() == VarCastType::Clock;
+    }
+    return false;
+}
+
+static std::shared_ptr<IfStmt> create_if_stmt_wrapper(StmtBlock* block, Port& port,
+                                                      bool clone = false) {
+    auto if_ = std::make_shared<IfStmt>(port);
+    std::vector<std::shared_ptr<Stmt>> stmts;
+    for (auto const& stmt : *block) {
+        stmts.emplace_back(stmt);
+    }
+    block->clear();
+    for (auto& stmt : stmts) {
+        if_->add_then_stmt(stmt);
+    }
+    return if_;
+}
+
 class InsertClockIRVisitor : public IRVisitor {
 public:
     explicit InsertClockIRVisitor(Generator* top) : top_(top) {
@@ -2087,6 +2126,8 @@ public:
         Port* clk_en;
         if (!gen->has_port(clk_en_name_)) {
             clk_en = &gen->port(*clk_en_);
+            if (clk_en->port_type() != PortType::ClockEnable)
+                clk_en->set_port_type(PortType::ClockEnable);
         } else {
             clk_en = gen->get_port(clk_en_name_).get();
             // notice that if it's being wired to a constant, we need to disconnect it
@@ -2119,9 +2160,10 @@ public:
                 // async reset?
                 auto if_ = first_stmt->as<IfStmt>();
                 auto cond = if_->predicate();
-                if (has_reset(cond.get())) {
+                if (has_port_type(cond.get(), PortType::AsyncReset) ||
+                    has_port_type(cond.get(), PortType::Reset)) {
                     if (!has_clk_en_stmt(if_->else_body().get())) {
-                        auto new_if = create_if_stmt(if_->else_body().get(), *clk_en);
+                        auto new_if = create_if_stmt_wrapper(if_->else_body().get(), *clk_en);
                         if_->add_else_stmt(new_if);
                     }
                     return;
@@ -2130,7 +2172,7 @@ public:
             // put everything into one block
             // if not clk enabled already
             if (!has_clk_en_stmt(block)) {
-                auto if_ = create_if_stmt(block, *clk_en);
+                auto if_ = create_if_stmt_wrapper(block, *clk_en);
                 block->add_stmt(if_);
             }
         }
@@ -2140,39 +2182,6 @@ private:
     std::string clk_en_name_;
     Port* clk_en_;
     Generator* top_;
-
-    bool static has_reset(Var* var) {
-        if (var->type() == VarType::Expression) {
-            auto expr = reinterpret_cast<Expr*>(var);
-            auto l = has_reset(expr->left);
-            if (expr->right) {
-                auto r = has_reset(expr->right);
-                return l && r;
-            }
-            return l;
-        }
-        if (var->type() == VarType::PortIO) {
-            auto p = reinterpret_cast<Port*>(var);
-            return p->port_type() == PortType::AsyncReset || p->port_type() == PortType::Reset;
-        } else if (var->type() == VarType::BaseCasted) {
-            auto casted = reinterpret_cast<VarCasted*>(var);
-            return casted->cast_type() == VarCastType::AsyncReset;
-        }
-        return false;
-    }
-
-    static std::shared_ptr<IfStmt> create_if_stmt(StmtBlock* block, Port& clk_en) {
-        auto if_ = std::make_shared<IfStmt>(clk_en);
-        std::vector<std::shared_ptr<Stmt>> stmts;
-        for (auto const& stmt : *block) {
-            stmts.emplace_back(stmt);
-        }
-        block->clear();
-        for (auto& stmt : stmts) {
-            if_->add_then_stmt(stmt);
-        }
-        return if_;
-    }
 
     bool has_clk_en_stmt(StmtBlock* block) const {
         if (!block->empty()) {
@@ -2200,6 +2209,117 @@ private:
 void auto_insert_clock_enable(Generator* top) {
     InsertClockIRVisitor visitor(top);
     visitor.visit_root(top);
+}
+
+class InsertSyncReset : public IRVisitor {
+public:
+    explicit InsertSyncReset(Generator* gen) {
+        auto const& attributes = gen->get_attributes();
+        for (auto const& attr : attributes) {
+            auto const& value = attr->value_str;
+            if (value.size() > sync_reset_name.size()) {
+                if (value.substr(0, sync_reset_name.size()) == sync_reset_name) {
+                    // get reset_name
+                    auto tokens = string::get_tokens(value, ";");
+                    auto first_token = tokens[0];
+                    {
+                        auto token_values = string::get_tokens(first_token, "=");
+                        if (token_values.size() == 2) {
+                            auto var_name = tokens[1];
+                            if (is_valid_variable_name(var_name)) {
+                                run_pass_ = true;
+                                reset_name_ = var_name;
+                            }
+                        }
+                    }
+                    if (tokens.size() == 2) {
+                        auto param_value = tokens[1];
+                        auto token_values = string::get_tokens(param_value, "=");
+                        if (token_values.size() == 2 && token_values[0] == "over_clk_en") {
+                            if (token_values[1] == "true" || token_values[1] == "1") {
+                                over_clk_en_ = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void visit(Generator* generator) override {
+        if (!run_pass_) return;
+        if (generator->has_port(sync_reset_name)) {
+            auto p = generator->get_port(sync_reset_name);
+            if (p->port_type() != PortType::Reset) {
+                p->set_port_type(PortType::Reset);
+            }
+            return;
+        }
+        // create a synchronous reset port
+        auto& port = generator->port(PortDirection::In, reset_name_, 1, PortType::Reset);
+        // look through each sequential block
+        auto stmts_count = generator->stmts_count();
+        for (uint64_t i = 0; i < stmts_count; i++) {
+            auto stmt = generator->get_stmt(i);
+            if (stmt->type() == StatementType::Block) {
+                auto blk = stmt->as<StmtBlock>();
+                if (blk->block_type() == StatementBlockType::Sequential) {
+                    auto seq = blk->as<SequentialStmtBlock>();
+                    inject_reset_logic(seq.get(), &port);
+                }
+            }
+        }
+    }
+
+private:
+    bool run_pass_ = false;
+    bool over_clk_en_ = false;
+    std::string reset_name_;
+    const std::string sync_reset_name = "sync-reset";
+
+    static void __insert_reset_logic(StmtBlock* block, Port* port) {
+        auto if_ = create_if_stmt_wrapper(block, *port);
+        block->add_stmt(if_);
+    }
+
+    void inject_reset_logic(SequentialStmtBlock* block, Port* port) {
+        // only inject when there is a async reset logic
+        auto stmts_count = block->size();
+        if (stmts_count != 1) return;
+        auto stmt = block->get_stmt(0);
+        if (stmt->type() != StatementType::If) return;
+        auto if_ = stmt->as<IfStmt>();
+        auto const& cond = if_->predicate();
+        // if it doesn't have async reset logic, or it already has sync reset logic
+        // quit
+        if (!has_port_type(cond.get(), PortType::AsyncReset) ||
+            has_port_type(cond.get(), PortType::Reset))
+            return;
+        // okay we have reset now. now we need to detect if it has clock enable
+        // logic or not
+        // we need to detect the clock enable logic and make sure that the ordering is what
+        // specified in the
+        auto then_body = if_->then_body();
+        // detect if clock enable have been in place
+        if (then_body->size() == 1) {
+            auto then_stmt = then_body->get_stmt(0);
+            if (then_stmt->type() == StatementType::If) {
+                auto if__ = then_stmt->as<IfStmt>();
+                auto target = if__->predicate();
+                if (has_port_type(target.get(), PortType::ClockEnable) && !over_clk_en_) {
+                    // insert inside the clock enable body
+                    auto body = if__->else_body();
+                    // need to duplicate the logic in reset
+                    return;
+                }
+            }
+        }
+    }
+};
+
+void auto_insert_sync_reset(Generator* top) {
+    InsertSyncReset visitor(top);
+    visitor.visit_generator_root_p(top);
 }
 
 class PortBundleVisitor : public IRVisitor {
