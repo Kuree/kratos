@@ -541,6 +541,9 @@ class Generator(metaclass=GeneratorMeta):
     def add_attribute(self, attr):
         self.__generator.add_attribute(attr)
 
+    def find_attribute(self, func):
+        return self.__generator.find_attribute(func)
+
     @property
     def internal_generator(self):
         return self.__generator

@@ -19,8 +19,16 @@ void def_attributes(T &class_) {
     class_.def("add_attribute", &K::add_attribute)
         .def("get_attributes", &K::get_attributes, py::return_value_policy::reference)
         .def("has_attribute", &K::has_attribute)
-        .def_property_readonly("attributes", &K::get_attributes,
-                               py::return_value_policy::reference);
+        .def_property_readonly("attributes", &K::get_attributes, py::return_value_policy::reference)
+        .def("find_attribute",
+             [](K &node, const std::function<bool(std::shared_ptr<kratos::Attribute>)> &func) {
+                 auto const &attributes = node.get_attributes();
+                 std::vector<std::shared_ptr<kratos::Attribute>> result;
+                 for (auto const &attr : attributes) {
+                     if (func(attr)) result.emplace_back(attr);
+                 }
+                 return result;
+             });
 }
 
 template <typename T>

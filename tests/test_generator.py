@@ -1839,6 +1839,20 @@ def test_loop_format_str():
         assert f"child a_{j}" in src
 
 
+def test_attribute_lookup():
+    mod = Generator("mod")
+
+    class NewAttr(Attribute):
+        def __init__(self):
+            super().__init__()
+            self.value = "42"
+
+    attr = NewAttr()
+    mod.add_attribute(attr)
+    result = mod.find_attribute(lambda a: isinstance(a, NewAttr))
+    assert len(result) == 1
+    assert result[0] == attr
+
+
 if __name__ == "__main__":
-    from conftest import check_gold_fn
-    test_fsm_mealy(check_gold_fn)
+    test_attribute_lookup()
