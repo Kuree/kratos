@@ -64,6 +64,7 @@ public:
     virtual void remove_stmt(const std::shared_ptr<Stmt> &) {}
 
     virtual std::shared_ptr<Stmt> clone() const;
+    virtual void clear() {};
 
 protected:
     StatementType type_;
@@ -71,6 +72,8 @@ protected:
     int stmt_id_ = -1;
 
     std::map<std::string, std::pair<bool, std::string>> scope_context_;
+
+    void copy_meta(const std::shared_ptr<Stmt>& stmt) const;
 };
 
 class AssignStmt : public Stmt {
@@ -104,6 +107,7 @@ public:
     IRNode *get_child(uint64_t index) override;
 
     std::shared_ptr<Stmt> clone() const override;
+    void clear() override;
 
 private:
     Var *left_ = nullptr;
@@ -120,7 +124,7 @@ public:
     explicit IfStmt(Var &var) : IfStmt(var.shared_from_this()) {}
 
     std::shared_ptr<Var> predicate() const { return predicate_; }
-    void set_predicate(const std::shared_ptr<Var> &var) { predicate_ = var; }
+    void set_predicate(const std::shared_ptr<Var> &var);
     const std::shared_ptr<ScopedStmtBlock> &then_body() const { return then_body_; }
     const std::shared_ptr<ScopedStmtBlock> &else_body() const { return else_body_; }
     void add_then_stmt(const std::shared_ptr<Stmt> &stmt);
@@ -130,8 +134,8 @@ public:
     void remove_then_stmt(const std::shared_ptr<Stmt> &stmt);
     void remove_else_stmt(const std::shared_ptr<Stmt> &stmt);
     void remove_stmt(const std::shared_ptr<Stmt> &stmt) override;
-    void set_then(const std::shared_ptr<ScopedStmtBlock> &stmt) { then_body_ = stmt; }
-    void set_else(const std::shared_ptr<ScopedStmtBlock> &stmt) { else_body_ = stmt; }
+    void set_then(const std::shared_ptr<ScopedStmtBlock> &stmt);
+    void set_else(const std::shared_ptr<ScopedStmtBlock> &stmt);
 
     void set_parent(IRNode *node) override;
 
@@ -145,9 +149,11 @@ public:
                             bool override) override;
 
     std::shared_ptr<Stmt> clone() const override;
+    void clear() override;
 
 private:
     std::shared_ptr<Var> predicate_;
+    std::shared_ptr<AssignStmt> predicate_stmt_;
     std::shared_ptr<ScopedStmtBlock> then_body_;
     std::shared_ptr<ScopedStmtBlock> else_body_;
 };
@@ -191,9 +197,11 @@ public:
                             bool override) override;
 
     std::shared_ptr<Stmt> clone() const override;
+    void clear() override;
 
 private:
     std::shared_ptr<Var> target_;
+    std::shared_ptr<AssignStmt> target_stmt_;
     // default case will be indexed as nullptr
     std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> body_;
 };
@@ -219,6 +227,7 @@ public:
     int64_t step() const { return step_; }
 
     std::shared_ptr<Stmt> clone() const override;
+    void clear() override;
 
 private:
     std::shared_ptr<IterVar> iter_;
@@ -234,7 +243,7 @@ public:
     void add_stmt(const std::shared_ptr<Stmt> &stmt);
     void add_stmt(Stmt &stmt) { add_stmt(stmt.shared_from_this()); }
     void remove_stmt(const std::shared_ptr<Stmt> &stmt) override;
-    void inline clear() { stmts_.clear(); }
+    void clear() override;
     void set_parent(IRNode *parent) override;
 
     uint64_t child_count() override { return stmts_.size(); }
@@ -485,7 +494,7 @@ public:
 
     const std::vector<std::string> &stmts() const { return stmts_; }
 
-    std::shared_ptr<Stmt> clone() const override { return std::make_shared<RawStringStmt>(stmts_); }
+    std::shared_ptr<Stmt> clone() const override;
 
 private:
     std::vector<std::string> stmts_;

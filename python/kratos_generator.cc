@@ -192,6 +192,11 @@ void init_generator(py::module &m) {
         .def("__contains__",
              py::overload_cast<const std::shared_ptr<Generator> &>(&Generator::has_child_generator))
         .def("add_attribute", &Generator::add_attribute)
+        .def("add_attribute", [](Generator &generator, const std::string &value) {
+            auto attr = std::make_shared<Attribute>();
+            attr->value_str = value;
+            generator.add_attribute(attr);
+        })
         .def("replace", py::overload_cast<const std::string &, const std::shared_ptr<Generator> &>(
                             &Generator::replace))
         .def("replace",

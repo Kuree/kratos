@@ -1353,6 +1353,7 @@ public:
         std::vector<std::pair<std::shared_ptr<Var>, std::shared_ptr<AssignStmt>>>& queue) {
         if (var->sinks().size() == 1) {
             auto const& stmt = *(var->sinks().begin());
+            if (!stmt->parent()) return;
             if (stmt->parent()->ir_node_kind() == IRNodeKind::GeneratorKind) {
                 auto sink_var = stmt->left();
                 if (sink_var->parent() != var->parent() || sink_var->is_interface()) {
@@ -2092,11 +2093,11 @@ static std::shared_ptr<IfStmt> create_if_stmt_wrapper(StmtBlock* block, Port& po
     auto if_ = std::make_shared<IfStmt>(port);
     std::vector<std::shared_ptr<Stmt>> stmts;
     for (auto const& stmt : *block) {
-        stmts.emplace_back(clone? stmt->clone(): stmt);
+        stmts.emplace_back(clone ? stmt->clone() : stmt);
     }
-    if (!clone)
-        block->clear();
+    if (!clone) block->clear();
     for (auto& stmt : stmts) {
+        if (!clone) stmt->remove_from_parent();
         if_->add_then_stmt(stmt);
     }
     return if_;
@@ -2164,7 +2165,8 @@ public:
                 if (has_port_type(cond.get(), PortType::AsyncReset) ||
                     has_port_type(cond.get(), PortType::Reset)) {
                     if (!has_clk_en_stmt(if_->else_body().get())) {
-                        auto new_if = create_if_stmt_wrapper(if_->else_body().get(), *clk_en);
+                        auto new_if = create_if_stmt_wrapper(if_->else_body().get(), *clk_en, true);
+                        if_->else_body()->clear();
                         if_->add_else_stmt(new_if);
                     }
                     return;
@@ -2173,7 +2175,8 @@ public:
             // put everything into one block
             // if not clk enabled already
             if (!has_clk_en_stmt(block)) {
-                auto if_ = create_if_stmt_wrapper(block, *clk_en);
+                auto if_ = create_if_stmt_wrapper(block, *clk_en, true);
+                block->clear();
                 block->add_stmt(if_);
             }
         }
@@ -2274,7 +2277,7 @@ public:
 
         // wire the children. we do in this order since this pass is run in parallel from bottom
         // up
-        for (auto const &child: generator->get_child_generators()) {
+        for (auto const& child : generator->get_child_generators()) {
             if (child->has_port(reset_name_)) {
                 auto child_port = child->get_port(reset_name_);
                 auto sources = child_port->sources();
@@ -3287,6 +3290,8 @@ void PassManager::register_builtin_passes() {
     register_pass("insert_pipeline_stages", &insert_pipeline_stages);
 
     register_pass("auto_insert_clock_enable", &auto_insert_clock_enable);
+
+    register_pass("auto_insert_sync_reset", &auto_insert_sync_reset);
 }
 
 }  // namespace kratos

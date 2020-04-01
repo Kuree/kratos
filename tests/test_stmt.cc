@@ -126,7 +126,7 @@ TEST(stmt, for_loop) {  // NOLINT
     EXPECT_TRUE(result.find("a[3'(i)] = 4'(i);") != std::string::npos);
 }
 
-TEST(stmt, clone) { // NOLINT
+TEST(stmt, clone_clear) { // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &a = mod.var("a", 1);
@@ -134,6 +134,13 @@ TEST(stmt, clone) { // NOLINT
     auto &c_ = mod.var("c", 1);
     auto &d = mod.var("d", 1);
     auto &e = mod.var("e", 16);
+    auto vars = {&a, &b, &c_, &d, &e};
+    auto clear_vars = [&vars]() {
+      for (auto v: vars)  {
+          v->clear_sinks(true);
+          v->clear_sources(true);
+      }
+    };
 
     // assign
     auto stmt_assign = a.assign(b);
@@ -141,6 +148,7 @@ TEST(stmt, clone) { // NOLINT
     EXPECT_EQ(stmt_assign_clone->left(), &a);
     EXPECT_EQ(stmt_assign_clone->right(), &b);
     EXPECT_NE(stmt_assign, stmt_assign_clone);
+    clear_vars();
 
     // if
     auto if_ = std::make_shared<IfStmt>(c_);
@@ -153,6 +161,11 @@ TEST(stmt, clone) { // NOLINT
     EXPECT_NE(if_cloned->else_body()->get_stmt(0), if_->else_body()->get_stmt(0));
     EXPECT_EQ(if_cloned->then_body()->parent(), if_cloned.get());
     EXPECT_EQ(if_cloned->then_body()->get_stmt(0)->parent(), if_cloned->then_body().get());
+    EXPECT_EQ(c_.sinks().size(), 2);
+    if_->clear();
+    EXPECT_EQ(a.sources().size(), 1);
+    EXPECT_EQ(c_.sinks().size(), 1);
+    clear_vars();
 
     // case
     auto case_ = std::make_shared<SwitchStmt>(b);
@@ -174,6 +187,13 @@ TEST(stmt, clone) { // NOLINT
         EXPECT_EQ(assign->right(), assign_cloned->right());
         EXPECT_EQ(assign_cloned->parent(), stmts_cloned.get());
     }
+    EXPECT_EQ(b.sinks().size(), 2);
+    EXPECT_EQ(d.sinks().size(), 2);
+    EXPECT_EQ(a.sources().size(), 2);
+    case_->clear();
+    EXPECT_EQ(b.sinks().size(), 1);
+    EXPECT_EQ(a.sources().size(), 1);
+    clear_vars();
 
     // for
     auto for_ = std::make_shared<ForStmt>("i", 0, 42, 1);
@@ -190,6 +210,10 @@ TEST(stmt, clone) { // NOLINT
     EXPECT_EQ(for_assign->left(), for_clone_assign->left());
     EXPECT_EQ(for_clone_assign->parent(), for_clone_body.get());
     EXPECT_EQ(for_clone_body->parent(), for_cloned.get());
+    EXPECT_EQ(e.sources().size(), 2);
+    for_->clear();
+    EXPECT_EQ(e.sources().size(), 1);
+    clear_vars();
 
     // combinational
     auto comb = mod.combinational();
@@ -198,6 +222,10 @@ TEST(stmt, clone) { // NOLINT
     EXPECT_EQ(comb_cloned->size(), comb->size());
     auto assign = comb_cloned->get_stmt(0)->as<AssignStmt>();
     EXPECT_EQ(assign->parent(), comb_cloned.get());
+    EXPECT_EQ(a.sources().size(), 2);
+    comb->clear();
+    EXPECT_EQ(a.sources().size(), 1);
+    clear_vars();
 
     // sequential
     auto seq = mod.sequential();

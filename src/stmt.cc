@@ -49,7 +49,7 @@ void Stmt::add_scope_variable(const std::string &name, const std::string &value,
 }
 
 void Stmt::remove_from_parent() {
-    if (!parent_) throw StmtException("Cannot remove stmt whose parent is null", {this});
+    if (!parent_) return;
     if (parent_->ir_node_kind() == IRNodeKind::GeneratorKind) {
         auto gen = reinterpret_cast<Generator *>(parent_);
         gen->remove_stmt(shared_from_this());
@@ -63,6 +63,11 @@ void Stmt::remove_from_parent() {
 
 std::shared_ptr<Stmt> Stmt::clone() const {
     return std::const_pointer_cast<Stmt>(shared_from_this());
+}
+
+void Stmt::copy_meta(const std::shared_ptr<Stmt>& stmt) const {
+    stmt->verilog_ln = verilog_ln;
+    stmt->comment = comment;
 }
 
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
@@ -149,12 +154,21 @@ void AssignStmt::set_parent(kratos::IRNode *parent) {
     if (!has_parent) {
         // if it has parent, it means we've already added the source and sink
         right_->add_sink(as<AssignStmt>());
-        left_->add_source(as<AssignStmt>());
+        if (parent) left_->add_source(as<AssignStmt>());
     }
 }
 std::shared_ptr<Stmt> AssignStmt::clone() const {
-    return std::make_shared<AssignStmt>(left_->shared_from_this(), right_->shared_from_this(),
-                                        assign_type_);
+    auto stmt = std::make_shared<AssignStmt>(left_->shared_from_this(), right_->shared_from_this(),
+                                             assign_type_);
+    copy_meta(stmt);
+    return stmt;
+}
+
+void AssignStmt::clear() {
+    // remove it from source and sinks
+    left_->remove_source(shared_from_this()->as<AssignStmt>());
+    right_->remove_sink(shared_from_this()->as<AssignStmt>());
+    parent_ = nullptr;
 }
 
 IfStmt::IfStmt(std::shared_ptr<Var> predicate)
@@ -166,8 +180,16 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
     else_body_->set_parent(this);
 
     // just to add the sinks
-    auto stmt = predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
-    stmt->set_parent(this);
+    predicate_stmt_ = predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
+    predicate_stmt_->set_parent(nullptr);
+}
+
+void IfStmt::set_predicate(const std::shared_ptr<Var> &var) {
+    predicate_stmt_->clear();
+    assert(var->ir_node_kind() == IRNodeKind::VarKind);
+    predicate_ = var;
+    predicate_stmt_ = predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
+    predicate_stmt_->set_parent(nullptr);
 }
 
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
@@ -205,10 +227,25 @@ void IfStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
     }
 }
 
+void IfStmt::set_then(const std::shared_ptr<ScopedStmtBlock> &stmt) {
+    then_body_->clear();
+    for (auto &s: *stmt) {
+        then_body_->add_stmt(s);
+    }
+}
+
+void IfStmt::set_else(const std::shared_ptr<ScopedStmtBlock> &stmt) {
+    else_body_->clear();
+    for (auto &s: *stmt) {
+        else_body_->add_stmt(s);
+    }
+}
+
 void IfStmt::set_parent(IRNode *node) {
     Stmt::set_parent(node);
     then_body_->set_parent(this);
     else_body_->set_parent(this);
+    predicate_stmt_->set_parent(nullptr);
 }
 
 IRNode *IfStmt::get_child(uint64_t index) {
@@ -235,11 +272,19 @@ std::shared_ptr<Stmt> IfStmt::clone() const {
     auto else_clone = else_body_->clone();
 
     if_->then_body_ = then_clone->as<ScopedStmtBlock>();
-    if_->then_body()->set_parent(if_.get());
+    if_->then_body_->set_parent(if_.get());
     if_->else_body_ = else_clone->as<ScopedStmtBlock>();
     if_->else_body_->set_parent(if_.get());
 
+    copy_meta(if_);
+
     return if_;
+}
+
+void IfStmt::clear() {
+    predicate_stmt_->clear();
+    then_body_->clear();
+    else_body_->clear();
 }
 
 ForStmt::ForStmt(const std::string &iter_var_name, int64_t start, int64_t end, int64_t step)
@@ -275,7 +320,14 @@ std::shared_ptr<Stmt> ForStmt::clone() const {
     auto stmt = std::make_shared<ForStmt>(iter_->name, start_, end_, step_);
     stmt->loop_body_ = loop_body_->clone()->as<ScopedStmtBlock>();
     stmt->loop_body_->set_parent(stmt.get());
+    // share the iter expression
+    stmt->iter_ = iter_;
+    copy_meta(stmt);
     return stmt;
+}
+
+void ForStmt::clear() {
+    loop_body_->clear();
 }
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
@@ -307,6 +359,13 @@ void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
     }
     stmt->set_parent(this);
     stmts_.emplace_back(stmt);
+}
+
+void StmtBlock::clear() {
+    for (auto &stmt: stmts_) {
+        stmt->clear();
+    }
+    stmts_.clear();
 }
 
 void StmtBlock::set_parent(IRNode *parent) {
@@ -342,6 +401,7 @@ void StmtBlock::clone_block(kratos::StmtBlock *block) const {
     for (auto const &stmt : stmts_) {
         block->add_stmt(stmt->clone());
     }
+    copy_meta(block->shared_from_this());
 }
 
 std::shared_ptr<Stmt> ScopedStmtBlock::clone() const {
@@ -379,8 +439,8 @@ SwitchStmt::SwitchStmt(Var &target)
                             {this, &target});
 
     // just to add the sinks
-    auto stmt = target.generator()->get_auxiliary_var(target.width())->assign(target);
-    stmt->set_parent(this);
+    target_stmt_ = target.generator()->get_auxiliary_var(target.width())->assign(target);
+    target_stmt_->set_parent(nullptr);
 }
 
 void SwitchStmt::set_parent(IRNode *parent) {
@@ -476,7 +536,15 @@ std::shared_ptr<Stmt> SwitchStmt::clone() const {
         switch_->body_.emplace(cond, cloned_stmt);
     }
 
+    copy_meta(switch_);
     return switch_;
+}
+
+void SwitchStmt::clear() {
+    target_stmt_->clear();
+    for (auto const &iter: body_) {
+        iter.second->clear();
+    }
 }
 
 std::shared_ptr<Stmt> CombinationalStmtBlock::clone() const {
@@ -762,6 +830,7 @@ CommentStmt::CommentStmt(std::string comment, uint32_t line_width) : Stmt(Statem
 std::shared_ptr<Stmt> CommentStmt::clone() const {
     auto stmt = std::make_shared<CommentStmt>();
     stmt->comments_ = std::vector(comments_);
+    copy_meta(stmt);
     return stmt;
 }
 
@@ -785,6 +854,12 @@ RawStringStmt::RawStringStmt(const std::vector<std::string> &stmt)
             }
         }
     }
+}
+
+std::shared_ptr<Stmt> RawStringStmt::clone() const {
+    auto stmt = std::make_shared<RawStringStmt>(stmts_);
+    copy_meta(stmt);
+    return stmt;
 }
 
 }  // namespace kratos

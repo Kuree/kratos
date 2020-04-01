@@ -485,6 +485,16 @@ void VarVarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
     sliced_var_->add_sink(stmt);
 }
 
+void VarVarSlice::remove_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    VarSlice::remove_sink(stmt);
+    sliced_var_->remove_sink(stmt);
+}
+
+void VarVarSlice::remove_source(const std::shared_ptr<AssignStmt> &stmt) {
+    VarSlice::remove_source(stmt);
+    sliced_var_->remove_source(stmt);
+}
+
 std::string VarVarSlice::to_string() const {
     return ::format("{0}[{1}]", parent_var->to_string(), sliced_var_->to_string());
 }
@@ -495,6 +505,7 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
       op(op),
       left(left),
       right(right) {
+    assert(left->ir_node_kind() == IRNodeKind::VarKind);
     if (right != nullptr && left->width() != right->width()) {
         // see if we can resize
         if (IterVar::safe_to_resize(left, right->width(), right->is_signed())) {
@@ -1263,7 +1274,8 @@ void Var::clear_sources(bool remove_parent) { // NOLINT
 void Var::clear_sinks(bool remove_parent) { // NOLINT
     if (remove_parent) {
         for (auto &stmt : sinks_) {
-            stmt->remove_from_parent();
+            if (stmt->parent())
+                stmt->remove_from_parent();
         }
     }
 
@@ -1283,6 +1295,16 @@ void VarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
 void VarSlice::add_source(const std::shared_ptr<AssignStmt> &stmt) {
     Var *parent = parent_var;
     parent->add_source(stmt);
+}
+
+void VarSlice::remove_source(const std::shared_ptr<AssignStmt> &stmt) {
+    Var *parent = parent_var;
+    parent->remove_source(stmt);
+}
+
+void VarSlice::remove_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    Var *parent = parent_var;
+    parent->remove_source(stmt);
 }
 
 ConditionalExpr::ConditionalExpr(const std::shared_ptr<Var> &condition,

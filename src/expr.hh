@@ -324,6 +324,8 @@ public:
     // we tie it to the parent
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_source(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
     void set_parent(Var *parent) { parent_var = parent; }
 
@@ -361,6 +363,8 @@ public:
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_source(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
     std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override {
         return var->operator[](sliced_var_->shared_from_this()).shared_from_this();
