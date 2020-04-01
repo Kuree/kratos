@@ -29,8 +29,7 @@ jobs:
     - name: Install Python packages
       shell: bash -l {0}
       run: |
-          pip install scikit-build
-          pip install cmake wheel pytest
+          pip install wheel pytest
     - name: Build and run wheel
       shell: bash -l {0}
       env:
