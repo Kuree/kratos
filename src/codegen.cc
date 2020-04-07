@@ -774,10 +774,12 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
     if (generator_->debug) stmt->verilog_ln = stream_.line_no();
     auto iter = stmt->get_iter_var();
     stream_ << indent() << "for (int " << (iter->is_signed() ? " " : "unsigned ")
-            << iter->to_string() << " = " << stmt->start() << "; " << iter->to_string()
-            << (stmt->end() > stmt->start() ? " < " : " > ") << stmt->end() << "; "
-            << iter->to_string() << (stmt->step() > 0 ? " += " : " -= ") << std::abs(stmt->step())
-            << ") ";
+            << iter->to_string() << " = ";
+    stream_ << ::format("{0}", stmt->start()) << "; " << iter->to_string()
+            << (stmt->end() > stmt->start() ? " < " : " > ") ;
+    stream_ << ::format("{0}", stmt->end()) << "; "
+            << iter->to_string() << (stmt->step() > 0 ? " += " : " -= ");
+    stream_ << ::format("{0}", std::abs(stmt->step())) << ") ";
     indent_++;
     dispatch_node(stmt->get_loop_body().get());
     indent_--;
