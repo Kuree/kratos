@@ -2122,6 +2122,7 @@ public:
 
     void visit(Generator* gen) override {
         if (!clk_en_) return;
+        if (gen->external() || gen->is_stub()) return;
         auto parent = gen->parent_generator();
         if (!parent || gen == top_) return;
 
@@ -2251,6 +2252,7 @@ public:
     }
 
     void visit(Generator* generator) override {
+        if (generator->external() || generator->is_stub()) return;
         if (!run_pass_) return;
         Port* port;
         if (generator->has_port(reset_name_)) {
