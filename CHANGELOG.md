@@ -5,6 +5,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.28] - 2020-04-14
+### Added
+- A pass to automatically insert clock gating logic into the design
+- A pass to automatically insert synchronous reset based on async reset logic
+- Add helper function in Python to construct clock enable ports and type conversion
+- Add port and var parametrized by array size as a Verilog Parameter
+- Add statement clone logic
+- Move scope eval to each ast transformer (#148)
+- Add a switch to force loop unroll in python add_always
+- Add find_attribute to simplify the attribute search
+
+### Changed
+- Refactor clear source and clear sinks so that the statements will be removed from parent
+
+### Fixed
+- Fix enum const generator assignment parent generated from FSM
+- Fix a bug where the for loop may not be generated correctly
 
 ## [0.0.27] - 2020-03-21
 ### Added
