@@ -173,6 +173,17 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(kratos::Generator* generator, std::st
 
     // index the named blocks
     label_index_ = index_named_block();
+
+    // check if we need to inline src attribute with yosys
+    check_yosys_src();
+}
+
+void SystemVerilogCodeGen::check_yosys_src() {
+    for (auto const &attr : generator_->get_attributes()) {
+        if (attr->value_str == "yosys_src") {
+            yosys_src_ = true;
+        }
+    }
 }
 
 void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output module definition
@@ -271,6 +282,7 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
     for (auto const& var_name : vars) {
         auto const& var = generator->get_var(var_name);
         if (var->type() == VarType::Base && !var->is_interface()) {
+            if (yosys_src_) output_yosys_src(var.get());
             stream_ << var;
         }
     }
@@ -312,6 +324,10 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
                                      ast_type_to_string(node->ir_node_kind())),
                             {node});
     auto *stmt_ptr = reinterpret_cast<Stmt*>(node);
+
+    // yosys src
+    if (yosys_src_) output_yosys_src(node);
+
     if (stmt_ptr->type() == StatementType::Assign) {
         stmt_code(reinterpret_cast<AssignStmt*>(node));
     } else if (stmt_ptr->type() == StatementType::Block) {
@@ -965,6 +981,13 @@ void SystemVerilogCodeGen::enum_code_(kratos::Stream& stream_, kratos::Enum* enu
         stream_ << stream_.endl();
     }
     stream_ << "} " << enum_->name << ";" << stream_.endl();
+}
+
+void SystemVerilogCodeGen::output_yosys_src(IRNode *node) {
+    if (!node->fn_name_ln.empty()) {
+        auto const &[fn, ln] = node->fn_name_ln[0];
+        stream_ << indent() << "(* src = \"" << fn << ":" << ln << "\" *)" << stream_.endl();
+    }
 }
 
 std::string create_stub(Generator* top) {

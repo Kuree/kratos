@@ -1511,3 +1511,29 @@ TEST(pass, insert_sync_reset) {  // NOLINT
     EXPECT_TRUE(src_child2.find("else if (flush) begin\n"
                                 "    c <= 1'h1;") != std::string::npos);
 }
+
+TEST(codegen, yosys_src) {  // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+
+    auto attr = std::make_shared<Attribute>();
+    attr->value_str = "yosys_src";
+    mod.add_attribute(attr);
+
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    auto stmt = a.assign(b);
+    mod.add_stmt(stmt);
+
+    std::string const filename = "test.cc";
+    std::vector<IRNode*> nodes = {&a, &b, stmt.get()};
+    for (uint32_t i = 0; i < 3; i++) {
+        nodes[i]->fn_name_ln.emplace_back(std::make_pair(filename, i + 1));
+    }
+
+    fix_assignment_type(&mod);
+    auto src = generate_verilog(&mod);
+    auto mod_src = src.at("mod");
+    EXPECT_NE(mod_src.find("(* src = \"test.cc:1\" *)"), std::string::npos);
+    EXPECT_NE(mod_src.find("(* src = \"test.cc:3\" *)"), std::string::npos);
+}

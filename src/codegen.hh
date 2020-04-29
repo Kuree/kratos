@@ -82,6 +82,9 @@ private:
     std::string package_name_;
     std::string header_include_name_;
 
+    // for yosys generate src
+    bool yosys_src_ = false;
+
 protected:
     Stream stream_;
     void generate_ports(Generator* generator);
@@ -146,6 +149,10 @@ protected:
 
     // shared code gen blocks
     void block_code(const std::string& syntax_name, StmtBlock* stmt);
+
+private:
+    void check_yosys_src();
+    void output_yosys_src(IRNode *node);
 };
 
 std::string create_stub(Generator* top);
