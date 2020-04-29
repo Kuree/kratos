@@ -28,7 +28,7 @@ public:
 
 private:
     void insert_statements(StmtBlock *block) {
-        auto parent = block->generator_parent();
+        auto *parent = block->generator_parent();
         if (!parent->debug)
             // we only insert statements to the ones that has debug turned on
             return;
@@ -76,16 +76,16 @@ private:
 
     static StmtBlock *get_root_block(Stmt *stmt) {
         if (stmt->type() == StatementType::Block) {
-            auto block = reinterpret_cast<StmtBlock *>(stmt);
+            auto *block = reinterpret_cast<StmtBlock *>(stmt);
             if (block->block_type() != StatementBlockType::Scope) {
                 return block;
             }
         }
-        auto parent = stmt->parent();
+        auto *parent = stmt->parent();
         if (parent->ir_node_kind() != IRNodeKind::StmtKind) {
             throw InternalException("Non block statement's parent has to be a block statement");
         }
-        auto parent_stmt = reinterpret_cast<Stmt *>(parent);
+        auto *parent_stmt = reinterpret_cast<Stmt *>(parent);
         return get_root_block(parent_stmt);
     }
 
@@ -147,7 +147,6 @@ private:
         }
     }
 
-private:
     std::map<Stmt *, uint32_t> map_;
 };
 
@@ -182,7 +181,7 @@ public:
         if (map_.find(var) != map_.end()) return;
         auto const &sources = var->sources();
         for (auto const &stmt : sources) {
-            auto right = stmt->right();
+            auto *right = stmt->right();
             get_source_var(right, map_[var]);
         }
     }
@@ -289,7 +288,7 @@ void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {
             if (fn_ext == ext) {
                 // this is the one we need
                 stmt_mapping_.emplace(stmt, std::make_pair(fn, ln));
-                auto gen = stmt->generator_parent();
+                auto *gen = stmt->generator_parent();
                 generator_break_points_[gen].emplace(id);
                 break;
             }
@@ -375,7 +374,7 @@ public:
             auto const stmt = generator->get_stmt(i);
             if (stmt->type() == StatementType::ModuleInstantiation) {
                 auto mod = stmt->as<ModuleInstantiationStmt>();
-                auto target = mod->target();
+                const auto *target = mod->target();
                 auto target_handle_name = target->handle_name();
                 auto mapping = mod->port_mapping();
                 for (auto [target_port, parent_var] : mapping) {
@@ -396,7 +395,7 @@ public:
                     if (parent_var->type() != VarType::PortIO) {
                         continue;
                     }
-                    auto gen = parent_var->generator();
+                    auto *gen = parent_var->generator();
                     auto gen_handle = gen->handle_name();
                     // the direction is var -> var
                     lock_.lock();
@@ -497,7 +496,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     int variable_count = 0;
     std::unordered_set<Var *> var_id_set;
     // function to create variable and flatten the hierarchy
-    auto create_variable = [&](Var *var_, const int handle_id_, std::string name_,
+    auto create_variable = [&](Var *var_, const int handle_id_, const std::string& name_,
                                const std::string &value_, bool is_context_,
                                uint32_t breakpoint_id_ = 0) {
         Variable v;
@@ -539,7 +538,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             } else if (var_->is_struct()) {
                 // it's an packed array
                 if (var_->type() == VarType::PortIO) {
-                    auto p = reinterpret_cast<PortPackedStruct *>(var_);
+                    auto *p = reinterpret_cast<PortPackedStruct *>(var_);
                     auto const &def = p->packed_struct();
                     for (auto const &iter : def.attributes) {
                         auto const &attr_name = std::get<0>(iter);
@@ -551,7 +550,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                         add_context();
                     }
                 } else if (var_->type() == VarType::Base) {
-                    auto p = reinterpret_cast<VarPackedStruct *>(var_);
+                    auto *p = reinterpret_cast<VarPackedStruct *>(var_);
                     auto const &def = p->packed_struct();
                     for (auto const &iter : def.attributes) {
                         auto const &attr_name = std::get<0>(iter);
@@ -657,7 +656,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
 
         for (auto const &[key, entry] : values) {
             auto const &[is_var, value] = entry;
-            auto gen_var = is_var ? gen->get_var(value).get() : nullptr;
+            auto *gen_var = is_var ? gen->get_var(value).get() : nullptr;
             create_variable(gen_var, instance_id, key, value, true, id);
         }
     }
@@ -714,9 +713,9 @@ class AssertVisitor : public IRVisitor {
 public:
     void visit(AssertBase *base) override {
         if (base->assert_type() == AssertType::AssertValue) {
-            auto stmt = reinterpret_cast<AssertValueStmt *>(base);
+            auto *stmt = reinterpret_cast<AssertValueStmt *>(base);
             // create a function call
-            auto gen = base->generator_parent();
+            auto *gen = base->generator_parent();
             if (!gen->has_function(exception_func_name)) {
                 auto func = gen->dpi_function(exception_func_name);
                 func->input(break_point_instance_id_arg, var_size_, false);
@@ -772,7 +771,7 @@ public:
         auto stmt_count = block->child_count();
         std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
         for (uint64_t i = 0; i < stmt_count; i++) {
-            auto stmt = reinterpret_cast<Stmt *>(block->get_child(i));
+            auto *stmt = reinterpret_cast<Stmt *>(block->get_child(i));
             if (stmt->type() == StatementType::Assert)
                 stmts_to_remove.emplace_back(stmt->shared_from_this());
         }

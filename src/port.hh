@@ -40,7 +40,7 @@ public:
     void set_active_high(bool value);
 
 protected:
-    std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+    std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
                                          AssignmentType type) override;
 
 private:
@@ -62,7 +62,7 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 protected:
-    std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+    std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
                                          AssignmentType type) override;
 
 private:

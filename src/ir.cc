@@ -1,7 +1,8 @@
 #include "ir.hh"
+
+#include "cxxpool.h"
 #include "generator.hh"
 #include "graph.hh"
-#include "cxxpool.h"
 #include "util.hh"
 
 namespace kratos {
@@ -9,15 +10,14 @@ namespace kratos {
 uint64_t IRNode::index_of(kratos::IRNode *node) {
     uint64_t index;
     for (index = 0; index < child_count(); index++) {
-        auto n = get_child(index);
-        if (n == node)
-            break;
+        auto *n = get_child(index);
+        if (n == node) break;
     }
     return index;
 }
 
 bool IRNode::has_attribute(const std::string &value_str) const {
-    for (auto const &attr: attributes_) {
+    for (auto const &attr : attributes_) {
         if (attr->value_str == value_str) return true;
     }
     return false;
@@ -28,11 +28,11 @@ void IRVisitor::visit_root(IRNode *root) {
     root->accept(this);
     uint64_t child_count = root->child_count();
     level++;
-    std::vector<IRNode*> visits(child_count);
+    std::vector<IRNode *> visits(child_count);
     for (uint64_t i = 0; i < child_count; i++) {
         visits[i] = root->get_child(i);
     }
-    for (auto &child: visits) {
+    for (auto &child : visits) {
         if (visited_.find(child) == visited_.end()) {
             visited_.emplace(child);
             visit_root(child);
@@ -60,11 +60,11 @@ void IRVisitor::visit_generator_root_p(kratos::Generator *generator) {
         auto current_level = levels[i];
         std::vector<std::future<void>> tasks;
         tasks.reserve(current_level.size());
-        for (auto mod: current_level) {
-            auto t = pool.push([=](Generator* g) { g->accept_generator(this);}, mod);
+        for (auto *mod : current_level) {
+            auto t = pool.push([=](Generator *g) { g->accept_generator(this); }, mod);
             tasks.emplace_back(std::move(t));
         }
-        for (auto &t: tasks) {
+        for (auto &t : tasks) {
             t.get();
         }
     }
@@ -75,7 +75,7 @@ void IRVisitor::visit_content(Generator *generator) {
     level++;
     uint64_t stmts_count = generator->stmts_count();
     for (uint64_t i = 0; i < stmts_count; i++) {
-        auto child = generator->get_child(i);
+        auto *child = generator->get_child(i);
         if (visited_.find(child) == visited_.end()) {
             visited_.emplace(child);
             visit_root(child);
@@ -85,7 +85,7 @@ void IRVisitor::visit_content(Generator *generator) {
     auto var_names = generator->get_all_var_names();
     for (auto const &name : var_names) {
         auto var = generator->get_var(name);
-        auto ptr = var.get();
+        auto *ptr = var.get();
         if (visited_.find(ptr) == visited_.end()) {
             visited_.emplace(ptr);
             visit(var.get());
@@ -94,8 +94,8 @@ void IRVisitor::visit_content(Generator *generator) {
     // visit the functions
     // TODO: refactor this
     auto functions = generator->functions();
-    for (auto const &iter: functions) {
-        auto ptr = iter.second.get();
+    for (auto const &iter : functions) {
+        auto *ptr = iter.second.get();
         if (visited_.find(ptr) == visited_.end()) {
             visited_.emplace(ptr);
             visit_root(ptr);
@@ -104,4 +104,4 @@ void IRVisitor::visit_content(Generator *generator) {
 
     level--;
 }
-}
+}  // namespace kratos

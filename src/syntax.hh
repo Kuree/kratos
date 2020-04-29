@@ -2,6 +2,7 @@
 #define KRATOS_SV_SYNTAX_HH
 
 #include <unordered_set>
+#include <string>
 
 namespace kratos {
 

@@ -76,7 +76,7 @@ void Context::change_generator_name(Generator *generator, const std::string &new
     generator->name = new_name;
     modules_[new_name].emplace(shared_ptr);
     // change the cloned names as well
-    for (auto &g : generator->get_clones()) {
+    for (const auto &g : generator->get_clones()) {
         g->name = new_name;
     }
 }

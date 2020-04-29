@@ -82,8 +82,8 @@ void fix_assignment_type(Generator* top) {
 class VerifyAssignmentVisitor : public IRVisitor {
 public:
     void visit(AssignStmt* stmt) override {
-        const auto left = stmt->left();
-        auto right = stmt->right();
+        auto *const left = stmt->left();
+        auto *right = stmt->right();
         // if the right hand side is a const and it's safe to do so, we will let it happen
         if (left->width() != right->width()) {
             if (right->type() == VarType::ConstValue) {
@@ -157,9 +157,9 @@ private:
 
     void static inline check_expr(Var* var, Stmt* stmt) {
         if (var->type() == VarType::Expression) {
-            auto expr = reinterpret_cast<Expr*>(var);
-            auto left = expr->left;
-            auto right = expr->right;
+            auto *expr = reinterpret_cast<Expr*>(var);
+            auto *left = expr->left;
+            auto *right = expr->right;
             auto width = var->width();
             bool is_relational = is_relational_op(expr->op);
             bool is_reduction = is_reduction_op(expr->op);
@@ -227,7 +227,7 @@ class UnusedTopBlockVisitor : public IRVisitor {
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = generator->get_stmt(i);
             if (stmt->type() == StatementType::Block) {
-                auto block = dynamic_cast<StmtBlock*>(stmt.get());
+                auto *block = dynamic_cast<StmtBlock*>(stmt.get());
                 if (block->empty()) blocks_to_remove.emplace(stmt);
             }
         }
@@ -252,11 +252,11 @@ bool connected(const std::shared_ptr<Port>& port, std::unordered_set<uint32_t>& 
     if (!port->sources().empty()) {
         // it has been assigned. need to compute all the slices
         auto sources = port->sources();
-        for (auto& stmt : sources) {
-            auto src = stmt->left();
+        for (const auto & stmt : sources) {
+            auto *src = stmt->left();
             if (src->type() == VarType::Slice) {
                 auto ptr = src->as<VarSlice>();
-                auto ptr_parent = ptr->get_var_root_parent();
+                auto *ptr_parent = ptr->get_var_root_parent();
                 uint32_t high, low;
                 if (ptr_parent != port.get()) {
                     // it got be a sliced by var
@@ -482,7 +482,7 @@ void create_module_instantiation(Generator* top) {
 class InterfaceInstantiationVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
-        auto& interfaces = generator->interfaces();
+        const auto & interfaces = generator->interfaces();
         for (auto const& [name, interface] : interfaces) {
             if (interface->has_instantiated()) continue;
             if (interface->is_port()) continue;
@@ -523,7 +523,7 @@ std::map<std::string, std::string> generate_verilog(Generator* top) {
     // this can be parallelized
     unique_visitor.visit_generator_root_p(top);
     auto const& generator_map = unique_visitor.generator_map();
-    for (auto& [module_name, module_gen] : generator_map) {
+    for (const auto & [module_name, module_gen] : generator_map) {
         SystemVerilogCodeGen codegen(module_gen);
         result.emplace(module_name, codegen.str());
     }
@@ -643,8 +643,8 @@ void uniquify_generators(Generator* top) {
             continue;
         std::unordered_map<uint64_t, Generator*> name_map;
         std::unordered_set<std::string> new_names;
-        for (auto& instance : module_instances) {
-            auto ptr = instance.get();
+        for (const auto & instance : module_instances) {
+            auto *ptr = instance.get();
             if (context->has_hash(ptr)) {
                 uint64_t hash = context->get_hash(ptr);
                 if (name_map.find(hash) == name_map.end()) {
@@ -689,7 +689,7 @@ public:
             process_port(generator, port.get(), port_name);
         }
         // for internal interface ports
-        auto& interfaces = generator->interfaces();
+        const auto & interfaces = generator->interfaces();
         for (auto const& iter : interfaces) {
             auto const& interface = iter.second;
             auto const& ports = interface->ports();
@@ -727,12 +727,12 @@ private:
                 }
             }
             // create a new variable
-            auto ast_parent = generator->parent();
+            auto *ast_parent = generator->parent();
             if (!ast_parent)
                 throw GeneratorException(
                     ::format("{0}'s parent is empty but it's not a top module", generator->name),
                     {generator});
-            auto parent = reinterpret_cast<Generator*>(ast_parent);
+            auto *parent = reinterpret_cast<Generator*>(ast_parent);
             auto new_name = parent->get_unique_variable_name(generator->instance_name, port_name);
             if (port->is_struct()) {
                 auto packed = port->as<PortPackedStruct>();
@@ -773,7 +773,7 @@ private:
             // special case where if the sink is parent's port, this is fine
             if (sinks.size() == 1) {
                 auto stmt = *(sinks.begin());
-                auto src = stmt->left();
+                auto *src = stmt->left();
                 bool correct_src_type_;
                 if (!src->is_interface()) {
                     // as long as it is not an expression, it is fine
@@ -789,12 +789,12 @@ private:
                 }
             }
             // create a new variable
-            auto ast_parent = generator->parent();
+            auto *ast_parent = generator->parent();
             if (!ast_parent)
                 throw GeneratorException(
                     ::format("{0}'s parent is empty but it's not a top module", generator->name),
                     {generator});
-            auto parent = reinterpret_cast<Generator*>(ast_parent);
+            auto *parent = reinterpret_cast<Generator*>(ast_parent);
             auto new_name = parent->get_unique_variable_name(generator->instance_name, port_name);
             if (port->is_struct()) {
                 auto packed = port->as<PortPackedStruct>();
@@ -905,10 +905,10 @@ private:
     static bool has_non_port(Generator* context, Var* var) {
         if (!var) return false;
         if (var->type() == VarType::Expression) {
-            auto expr = dynamic_cast<Expr*>(var);
+            auto *expr = dynamic_cast<Expr*>(var);
             return has_non_port(context, expr->left) || has_non_port(context, expr->right);
         } else if (var->type() == VarType::Slice) {
-            auto slice = dynamic_cast<VarSlice*>(var);
+            auto *slice = dynamic_cast<VarSlice*>(var);
             return has_non_port(context, slice->parent_var);
         } else {
             return var->generator() != context && var->type() != VarType::PortIO &&
@@ -917,7 +917,7 @@ private:
     }
 
     static void check_var_parent(Generator* generator, Var* dst_var, Var* var, Stmt* stmt) {
-        auto gen = var->generator();
+        auto *gen = var->generator();
         if (gen == Const::const_gen()) return;
         if (var->type() == VarType::ConstValue && var->generator() != generator) {
             var->set_generator(gen);
@@ -926,13 +926,13 @@ private:
         if (generator != gen) {
             // if it's an input port, the parent context is different
             if (dst_var->type() == VarType::Slice) {
-                auto slice = dynamic_cast<VarSlice*>(dst_var);
+                auto *slice = dynamic_cast<VarSlice*>(dst_var);
                 dst_var = const_cast<Var*>(slice->get_var_root_parent());
             }
             if (dst_var->type() == VarType::PortIO) {
-                auto port = dynamic_cast<Port*>(dst_var);
+                auto *port = dynamic_cast<Port*>(dst_var);
                 if (port->port_direction() == PortDirection::In) {
-                    auto context_g = dst_var->generator()->parent();
+                    auto *context_g = dst_var->generator()->parent();
                     if (gen != context_g && gen->parent() != context_g &&
                         gen->parent() != context_g) {
                         throw VarException(
@@ -971,7 +971,7 @@ public:
     }
 
     void visit(FunctionCallVar* var) override {
-        auto const def = var->func();
+        auto *const def = var->func();
         if (def->is_dpi()) {
             nodes_.emplace_back(var);
         }
@@ -1015,7 +1015,7 @@ public:
         // thus is designed to be zero false negative
         if (predicate->type() == VarType::PortIO) {
             auto port_s = predicate->as<Port>();
-            auto port = port_s.get();
+            auto *port = port_s.get();
             if (port->port_type() == PortType::AsyncReset) {
                 if (reset_map_.find(port) == reset_map_.end()) {
                     // it's used as a sync reset
@@ -1069,7 +1069,7 @@ public:
         for (auto const& [t, v] : sensitivity) {
             if (v->type() == VarType::PortIO) {
                 auto port_s = v->as<Port>();
-                auto port = port_s.get();
+                auto *port = port_s.get();
                 if (port->port_type() == PortType::AsyncReset) {
                     auto reset_high = t == BlockEdgeType::Posedge;
                     // check if we have reset edge set
@@ -1128,7 +1128,7 @@ public:
 private:
     void static transform_block(StmtBlock* stmts) {
         for (uint64_t i = 0; i < stmts->child_count(); i++) {
-            auto stmt = reinterpret_cast<Stmt*>(stmts->get_child(i));
+            auto *stmt = reinterpret_cast<Stmt*>(stmts->get_child(i));
             Var* target = nullptr;
             std::vector<std::shared_ptr<IfStmt>> if_stmts;
             if (has_target_if(stmt, target, if_stmts) && target) {
@@ -1182,7 +1182,7 @@ private:
         std::shared_ptr<IfStmt> stmt, const std::vector<std::shared_ptr<IfStmt>>& if_stmts) {
         auto expr = stmt->predicate()->as<Expr>();
         // we assume that this is a valid case (see has_target_if)
-        auto target = expr->left;
+        auto *target = expr->left;
         std::shared_ptr<SwitchStmt> switch_ =
             std::make_shared<SwitchStmt>(target->shared_from_this());
         if (target->generator()->debug) {
@@ -1251,7 +1251,7 @@ private:
                         mapping.emplace(const_value, stmt.get());
                     } else {
                         // merge the current one into the one we already have
-                        auto if_ = mapping.at(const_value);
+                        auto *if_ = mapping.at(const_value);
                         auto const& then = stmt->then_body();
                         for (auto const& st : *then) {
                             if_->add_then_stmt(st);
@@ -1292,7 +1292,7 @@ private:
                     if (expr->op == ExprOp::Eq && expr->right &&
                         expr->right->type() == VarType::ConstValue) {
                         // this is what we want
-                        auto target_var = expr->left;
+                        auto *target_var = expr->left;
                         result[target_var].emplace_back(
                             std::make_pair(if_, expr->right->as<Const>()));
                     }
@@ -1355,7 +1355,7 @@ public:
             auto const& stmt = *(var->sinks().begin());
             if (!stmt->parent()) return;
             if (stmt->parent()->ir_node_kind() == IRNodeKind::GeneratorKind) {
-                auto sink_var = stmt->left();
+                auto *sink_var = stmt->left();
                 if (sink_var->parent() != var->parent() || sink_var->is_interface()) {
                     // not the same parent
                     return;
@@ -1403,7 +1403,7 @@ public:
                     // move the src to whatever it's connected to
                     // basically compress the module into a variable
                     // we will let the later downstream passes to remove the extra wiring
-                    auto next_port = (*(port->sinks().begin()))->left();
+                    auto *next_port = (*(port->sinks().begin()))->left();
                     auto var_name =
                         generator->get_unique_variable_name(child->instance_name, port->name);
                     auto& new_var = generator->var(var_name, port->var_width(), port->size(),
@@ -1427,7 +1427,7 @@ public:
 private:
     bool is_pass_through(Generator* generator) {
         if (generator->is_cloned()) {
-            auto ref_gen = generator->def_instance();
+            auto *ref_gen = generator->def_instance();
             if (!ref_gen) {
                 throw GeneratorException(::format("{0} is cloned but doesn't have def instance",
                                                   generator->instance_name),
@@ -1455,7 +1455,7 @@ private:
                 if (sources.size() != 1) return false;
                 // maybe some add stuff
                 auto stmt = *(sources.begin());
-                auto src = stmt->right();
+                auto *src = stmt->right();
                 if (src->type() != VarType::PortIO) return false;
             }
         }
@@ -1645,14 +1645,14 @@ public:
             // new one
             dpi_funcs_.emplace(func_name, dynamic_cast<DPIFunctionStmtBlock*>(stmt));
         } else {
-            auto ref_stmt = dpi_funcs_.at(func_name);
+            auto *ref_stmt = dpi_funcs_.at(func_name);
             auto const& ref_ports = ref_stmt->ports();
             auto const& ports = stmt->ports();
             if (ref_ports.size() != ports.size())
                 throw StmtException("DPI function " + func_name + " has different interface",
                                     {stmt, ref_stmt});
             // check the return width
-            auto dpi_stmt = dynamic_cast<DPIFunctionStmtBlock*>(stmt);
+            auto *dpi_stmt = dynamic_cast<DPIFunctionStmtBlock*>(stmt);
             if (dpi_stmt->return_width() != ref_stmt->return_width()) {
                 if (ref_ports.size() != ports.size())
                     throw StmtException("DPI function " + func_name + " has different interface",
@@ -1858,7 +1858,7 @@ private:
 
         // merge the assignments
         for (auto const& [vars, stmts] : slice_vars) {
-            auto& [left, right] = vars;
+            const auto & [left, right] = vars;
 
             // NOTE:
             // we assume that at this stage we've passed the connectivity check
@@ -1899,7 +1899,7 @@ private:
         // mixed assignment check
         auto new_stmt = left->assign(right->shared_from_this(), stmts[0]->assign_type());
         block->add_stmt(new_stmt);
-        auto generator = get_parent(block);
+        auto *generator = get_parent(block);
         if (generator->debug) {
             // merge all the statements
             for (auto const& stmt : stmts) {
@@ -1914,7 +1914,7 @@ private:
         Generator* result = nullptr;
         IRNode* node = block;
         for (uint32_t i = 0; i < 10000u; i++) {
-            auto p = node->parent();
+            auto *p = node->parent();
             if (p->ir_node_kind() == IRNodeKind::GeneratorKind) {
                 result = dynamic_cast<Generator*>(p);
                 break;
@@ -2065,7 +2065,7 @@ void insert_pipeline_stages(Generator* top) {
 
 bool static has_port_type(Var* var, PortType type) {
     if (var->type() == VarType::Expression) {
-        auto expr = reinterpret_cast<Expr*>(var);
+        auto *expr = reinterpret_cast<Expr*>(var);
         auto l = has_port_type(expr->left, type);
         if (expr->right) {
             auto r = has_port_type(expr->right, type);
@@ -2074,10 +2074,10 @@ bool static has_port_type(Var* var, PortType type) {
         return l;
     }
     if (var->type() == VarType::PortIO) {
-        auto p = reinterpret_cast<Port*>(var);
+        auto *p = reinterpret_cast<Port*>(var);
         return p->port_type() == type;
     } else if (var->type() == VarType::BaseCasted) {
-        auto casted = reinterpret_cast<VarCasted*>(var);
+        auto *casted = reinterpret_cast<VarCasted*>(var);
         if (type == PortType::AsyncReset)
             return casted->cast_type() == VarCastType::AsyncReset;
         else if (type == PortType::ClockEnable)
@@ -2123,7 +2123,7 @@ public:
     void visit(Generator* gen) override {
         if (!clk_en_) return;
         if (gen->external() || gen->is_stub()) return;
-        auto parent = gen->parent_generator();
+        auto *parent = gen->parent_generator();
         if (!parent || gen == top_) return;
 
         Port* clk_en;
@@ -2154,7 +2154,7 @@ public:
     void visit(SequentialStmtBlock* block) override {
         if (!clk_en_) return;
         auto num_stmts = block->size();
-        auto generator = block->generator_parent();
+        auto *generator = block->generator_parent();
         auto clk_en = generator->get_port(clk_en_name_);
         if (num_stmts > 0) {
             // we need to be careful about async reset logic
@@ -2301,7 +2301,7 @@ private:
     std::string reset_name_;
     const std::string sync_reset_name = "sync-reset";
 
-    void inject_reset_logic(SequentialStmtBlock* block, Port* port) {
+    void inject_reset_logic(SequentialStmtBlock* block, Port* port) const {
         // only inject when there is a async reset logic
         auto stmts_count = block->size();
         if (stmts_count != 1) return;
@@ -2314,7 +2314,7 @@ private:
         if (!has_port_type(cond.get(), PortType::AsyncReset) ||
             has_port_type(cond.get(), PortType::Reset))
             return;
-        auto reset_stmt = if_->then_body().get();
+        auto *reset_stmt = if_->then_body().get();
         // okay we have reset now. now we need to detect if it has clock enable
         // logic or not
         // we need to detect the clock enable logic and make sure that the ordering is what
@@ -2324,16 +2324,16 @@ private:
         if (else_body->size() == 1) {
             auto then_stmt = else_body->get_stmt(0);
             if (then_stmt->type() == StatementType::If) {
-                auto if__ = then_stmt->as<IfStmt>();
-                auto target = if__->predicate();
+                auto if_then = then_stmt->as<IfStmt>();
+                auto target = if_then->predicate();
                 if (has_port_type(target.get(), PortType::ClockEnable) && !over_clk_en_) {
                     // insert inside the clock enable body
-                    auto body = if__->then_body()->clone()->as<ScopedStmtBlock>();
+                    auto body = if_then->then_body()->clone()->as<ScopedStmtBlock>();
                     // need to duplicate the logic in reset
                     auto sync_reset = create_if_stmt_wrapper(reset_stmt, *port, true);
                     sync_reset->set_else(body);
-                    if__->then_body()->clear();
-                    if__->add_then_stmt(sync_reset);
+                    if_then->then_body()->clear();
+                    if_then->add_then_stmt(sync_reset);
                     return;
                 }
             }
@@ -2356,7 +2356,7 @@ public:
     void visit(Generator* generator) override {
         auto const& mappings = generator->port_bundle_mapping();
         for (auto const& [entry_name, ref] : mappings) {
-            auto& mapping = ref->name_mappings();
+            const auto & mapping = ref->name_mappings();
             PortDirection dir = PortDirection::InOut;
             bool initialized = false;
             bool same_direction = true;
@@ -2452,7 +2452,7 @@ void merge_bundle_mapping(
         }
         PackedStruct struct_(bundle_name, def);
         for (auto const& [entry_name, generator] : generators) {
-            auto p = dynamic_cast<Generator*>(generator->parent());
+            auto *p = dynamic_cast<Generator*>(generator->parent());
             // move sources around the ports
             auto ref = generator->get_bundle_ref(entry_name);
             auto const& m = ref->name_mappings();
@@ -2516,12 +2516,12 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
         // it has to be the last block
         uint64_t index;
         bool found = false;
-        auto block = dynamic_cast<StmtBlock*>(stmt);
+        auto *block = dynamic_cast<StmtBlock*>(stmt);
         if (!block)
             throw InternalException("Statement is not block but is marked as StatementType::Block");
         auto child_count = block->child_count();
         for (index = 0; index < child_count; index++) {
-            auto s = dynamic_cast<Stmt*>(block->get_child(index));
+            auto *s = dynamic_cast<Stmt*>(block->get_child(index));
             if (check_stmt_condition(s, cond, check_unreachable, full_branch)) {
                 found = true;
                 break;
@@ -2538,7 +2538,7 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
         }
         return found;
     } else if (stmt->type() == StatementType::Switch) {
-        auto stmt_ = dynamic_cast<SwitchStmt*>(stmt);
+        auto *stmt_ = dynamic_cast<SwitchStmt*>(stmt);
         if (!stmt_)
             throw InternalException(
                 "Statement is not switch but is marked as StatementType::Switch");
@@ -2546,7 +2546,7 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
         if (cases.empty()) return false;
         uint32_t found_case = 0;
         for (auto const& iter : cases) {
-            auto scope_stmt = iter.second.get();
+            auto *scope_stmt = iter.second.get();
             if (check_stmt_condition(scope_stmt, cond, check_unreachable, full_branch))
                 found_case++;
             else if (full_branch)
@@ -2557,9 +2557,9 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
         // the only exception is that if the target is an enum and we've covered all it's enum case
         uint32_t targeted_cases;
         if (stmt_->target()->is_enum()) {
-            auto enum_var = dynamic_cast<EnumType*>(stmt_->target().get());
+            auto *enum_var = dynamic_cast<EnumType*>(stmt_->target().get());
             if (!enum_var) throw InternalException("Unable to resolve enum type");
-            auto enum_def = enum_var->enum_type();
+            auto *enum_def = enum_var->enum_type();
             targeted_cases = enum_def->values.size();
         } else {
             targeted_cases = 1u << stmt_->target()->width();
@@ -2570,7 +2570,7 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
             return found_case > 0;
         }
     } else if (stmt->type() == StatementType::If) {
-        auto stmt_ = dynamic_cast<IfStmt*>(stmt);
+        auto *stmt_ = dynamic_cast<IfStmt*>(stmt);
         if (!stmt_)
             throw InternalException("Statement is not if but is marked as StatementType::If");
         auto const& then = stmt_->then_body();
@@ -2583,7 +2583,7 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
                    check_stmt_condition(else_.get(), cond, check_unreachable, full_branch);
         }
     } else if (stmt->type() == StatementType::For) {
-        auto stmt_ = dynamic_cast<ForStmt*>(stmt);
+        auto *stmt_ = dynamic_cast<ForStmt*>(stmt);
         if (!stmt_)
             throw InternalException("Statement is not if but is marked as StatementType::For");
         auto body = stmt_->get_loop_body();
@@ -2636,7 +2636,7 @@ public:
         std::vector<std::shared_ptr<Stmt>> latch_assignments;
         auto lists = {&var_assignments, &module_inst_assignments, &latch_assignments,
                       &combinational_assignments, &sequential_assignments};
-        for (auto assign : lists) assign->reserve(stmts.size());
+        for (auto *assign : lists) assign->reserve(stmts.size());
 
         for (auto const& stmt : stmts) {
             if (stmt->type() == StatementType::Assign) {
@@ -2664,7 +2664,7 @@ public:
         if (size != stmts.size()) throw InternalException("Unable to sort all the statements");
         std::vector<std::shared_ptr<Stmt>> result;
         result.reserve(stmts.size());
-        for (auto assign : lists) result.insert(result.end(), assign->begin(), assign->end());
+        for (auto *assign : lists) result.insert(result.end(), assign->begin(), assign->end());
         if (result.size() != stmts.size())
             throw InternalException("Unable to sort all the statements");
         top->set_stmts(result);
@@ -2710,15 +2710,15 @@ private:
                                  bool full_branch) {
         auto check = [=](Stmt* s) -> bool {
             if (s->type() == StatementType::Assign) {
-                auto assign = reinterpret_cast<AssignStmt*>(s);
-                auto left = assign->left();
+                auto *assign = reinterpret_cast<AssignStmt*>(s);
+                auto *left = assign->left();
                 if (left->type() == VarType::Slice) {
-                    auto slice = reinterpret_cast<VarSlice*>(left);
+                    auto *slice = reinterpret_cast<VarSlice*>(left);
                     left = const_cast<Var*>(slice->get_var_root_parent());
                 }
                 return left == var;
             } else if (s->type() == StatementType::Block) {
-                auto block = reinterpret_cast<StmtBlock*>(s);
+                auto *block = reinterpret_cast<StmtBlock*>(s);
                 if (block->block_type() == StatementBlockType::Function) {
                     // function call to set the variable
                     return check_stmt_block(block, var, full_branch);
@@ -2737,7 +2737,7 @@ private:
     void static check_combinational(CombinationalStmtBlock* stmt) {
         AssignedVarVisitor visitor;
         visitor.visit_root(stmt);
-        auto& vars = visitor.assigned_vars();
+        const auto & vars = visitor.assigned_vars();
         for (auto const& iter : vars) {
             check_stmt_block(stmt, iter.first, iter.second, true);
         }
@@ -2747,9 +2747,9 @@ private:
         auto const& conditions = stmt->get_conditions();
         // we care about non-clock
         for (auto const& iter : conditions) {
-            auto var = iter.second.get();
+            auto *var = iter.second.get();
             if (var->type() == VarType::PortIO) {
-                auto port = reinterpret_cast<Port*>(var);
+                auto *port = reinterpret_cast<Port*>(var);
                 if (port->port_type() == PortType::Clock) continue;
             }
             // check every if statement that's targeted by that variable
@@ -2782,13 +2782,13 @@ private:
 
         bool static has_var(Var* var, Var* target) {
             if (var->type() == VarType::Expression) {
-                auto expr = var->as<Expr>().get();
+                auto *expr = var->as<Expr>().get();
                 bool left = has_var(expr->left, target);
                 bool right = expr->right ? has_var(expr->right, target) : false;
                 return left || right;
             } else {
                 if (var->type() == VarType::Slice) {
-                    auto slice = reinterpret_cast<VarSlice*>(var);
+                    auto *slice = reinterpret_cast<VarSlice*>(var);
                     var = const_cast<Var*>(slice->get_var_root_parent());
                 }
                 return var == target;
@@ -2799,9 +2799,9 @@ private:
     class AssignedVarVisitor : public IRVisitor {
     public:
         void visit(AssignStmt* stmt) override {
-            auto left = stmt->left();
+            auto *left = stmt->left();
             if (left->type() == VarType::Slice) {
-                auto slice = reinterpret_cast<VarSlice*>(left);
+                auto *slice = reinterpret_cast<VarSlice*>(left);
                 if (slice->sliced_by_var()) {
                     return;
                 }
@@ -2850,7 +2850,7 @@ private:
         if (stmt->type() == StatementType::For) {
             return true;
         } else {
-            auto p = stmt->parent();
+            auto *p = stmt->parent();
             if (p && p->ir_node_kind() == IRNodeKind::StmtKind) {
                 return has_for_loop(reinterpret_cast<Stmt*>(p));
             }
@@ -2864,14 +2864,14 @@ private:
             // TODO: FIX THIS
             //  This is a hack to bypass the check if there is a for loop
             if (has_for_loop(stmt.get())) continue;
-            auto v = stmt->left();
+            auto *v = stmt->left();
             if (v->get_var_root_parent() != var) continue;
             uint32_t var_low = v->var_low();
             uint32_t var_high = v->var_high();
             for (uint32_t i = var_low; i <= var_high; i++) {
                 if (parents.find(i) != parents.end()) {
-                    auto parent = stmt->parent();
-                    auto stmt_parent = non_gen_root_parent(stmt.get());
+                    auto *parent = stmt->parent();
+                    auto *stmt_parent = non_gen_root_parent(stmt.get());
                     auto const& [ref_parent, ref_stmt_parent] = parents.at(i);
                     // the purpose of the following statement is to make sure that there is no
                     // other assignment that's assigning the same var slice in the same scope
@@ -2886,9 +2886,9 @@ private:
                         if (parent == ref_parent) {
                             has_multiple_driver = true;
                             if (stmt_parent->ir_node_kind() == IRNodeKind::StmtKind) {
-                                auto st = dynamic_cast<Stmt*>(stmt_parent);
+                                auto *st = dynamic_cast<Stmt*>(stmt_parent);
                                 if (st && st->type() == StatementType::Block) {
-                                    auto block = dynamic_cast<StmtBlock*>(st);
+                                    auto *block = dynamic_cast<StmtBlock*>(st);
                                     if (block->block_type() == StatementBlockType::Combinational ||
                                         block->block_type() == StatementBlockType::Latch) {
                                         has_multiple_driver = false;
@@ -2897,9 +2897,9 @@ private:
                             }
                         } else {
                             if (stmt_parent->ir_node_kind() == IRNodeKind::StmtKind) {
-                                auto st = dynamic_cast<Stmt*>(stmt_parent);
+                                auto *st = dynamic_cast<Stmt*>(stmt_parent);
                                 if (st && st->type() == StatementType::Block) {
-                                    auto block = dynamic_cast<StmtBlock*>(st);
+                                    auto *block = dynamic_cast<StmtBlock*>(st);
                                     if (block->block_type() == StatementBlockType::Sequential) {
                                         // TODO: this algorithm is not perfect as it only
                                         //  accounts for standalone assignments
@@ -2964,7 +2964,7 @@ private:
         if (!var) return false;
         if (var == target) return true;
         if (var->type() == VarType::Expression) {
-            auto expr = reinterpret_cast<Expr*>(var);
+            auto *expr = reinterpret_cast<Expr*>(var);
             return has_var(expr->left, target) || has_var(expr->right, target);
         }
         return false;
@@ -3085,7 +3085,7 @@ private:
     std::shared_ptr<SwitchStmt> process(std::shared_ptr<SwitchStmt> stmt) {
         std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> new_body;
         auto const& body = stmt->body();
-        for (auto& [cond, block] : body) {
+        for (const auto & [cond, block] : body) {
             auto r = process(block);
             if (r) {
                 new_body.emplace(cond, r->as<ScopedStmtBlock>());

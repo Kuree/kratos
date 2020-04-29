@@ -33,7 +33,7 @@ Generator *Stmt::generator_parent() const {
             parent_->ir_node_kind() == IRNodeKind::StmtKind &&
             reinterpret_cast<Stmt *>(parent_)->type() == StatementType::For) {
             // take the best shot
-            auto for_ = reinterpret_cast<ForStmt *>(parent_);
+            auto *for_ = reinterpret_cast<ForStmt *>(parent_);
             return for_->get_iter_var()->generator();
         }
         return nullptr;
@@ -51,10 +51,10 @@ void Stmt::add_scope_variable(const std::string &name, const std::string &value,
 void Stmt::remove_from_parent() {
     if (!parent_) return;
     if (parent_->ir_node_kind() == IRNodeKind::GeneratorKind) {
-        auto gen = reinterpret_cast<Generator *>(parent_);
+        auto *gen = reinterpret_cast<Generator *>(parent_);
         gen->remove_stmt(shared_from_this());
     } else if (parent_->ir_node_kind() == IRNodeKind::StmtKind) {
-        auto stmt = reinterpret_cast<Stmt *>(parent_);
+        auto *stmt = reinterpret_cast<Stmt *>(parent_);
         stmt->remove_stmt(shared_from_this());
     } else {
         throw StmtException("Statement parent is null", {this});
@@ -100,9 +100,9 @@ AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, std::shared_ptr<Var> ri
             // need to resize it
             if (IterVar::safe_to_resize(right.get(), left->width(), left->is_signed())) {
                 // fix the width
-                auto right__ = right.get();
-                IterVar::fix_width(right__, left->width());
-                right = right__->shared_from_this();
+                auto *right_ptr = right.get();
+                IterVar::fix_width(right_ptr, left->width());
+                right = right_ptr->shared_from_this();
                 has_error = false;
             }
         }
@@ -301,8 +301,8 @@ ForStmt::ForStmt(const std::string &iter_var_name, int64_t start, int64_t end, i
 void ForStmt::set_parent(IRNode *node) {
     if (node->ir_node_kind() != IRNodeKind::StmtKind)
         throw UserException("For loop can only be added to statement body");
-    auto stmt = reinterpret_cast<Stmt *>(node);
-    auto gen = stmt->generator_parent();
+    auto *stmt = reinterpret_cast<Stmt *>(node);
+    auto *gen = stmt->generator_parent();
     if (gen) {
         iter_->set_generator(gen);
     }
@@ -472,7 +472,7 @@ ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switc
 
 ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                                              const std::vector<std::shared_ptr<Stmt>> &stmts) {
-    for (auto &stmt : stmts) add_switch_case(switch_case, stmt);
+    for (const auto &stmt : stmts) add_switch_case(switch_case, stmt);
     return *body_.at(switch_case);
 }
 
@@ -720,7 +720,7 @@ FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &fun
             throw VarException(::format("{0} is not connected", port_name), {func_port.get()});
         }
         // check the port types
-        auto &arg_port = args.at(port_name);
+        const auto &arg_port = args.at(port_name);
         if (func_port->width() != arg_port->width())
             throw VarException(::format("{0}'s width doesn't match", port_name),
                                {func_port.get(), arg_port.get()});
@@ -728,7 +728,7 @@ FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &fun
             throw VarException(::format("{0}'s sign doesn't match", port_name),
                                {func_port.get(), arg_port.get()});
     }
-    auto generator = func->generator();
+    auto *generator = func->generator();
     auto &p = generator->call(func->function_name(), args, false);
     var_ = p.as<FunctionCallVar>();
 }
@@ -803,7 +803,7 @@ ModuleInstantiationStmt::ModuleInstantiationStmt(Generator *target, Generator *p
     auto const &port_names = target->get_port_names();
     for (auto const &port_name : port_names) {
         auto const &port_shared = target->get_port(port_name);
-        auto port = port_shared.get();
+        auto *port = port_shared.get();
         process_port(port, parent, target->name);
     }
     target->has_instantiated() = true;

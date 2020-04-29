@@ -38,7 +38,7 @@ Port::Port(kratos::Generator* module, kratos::PortDirection direction, const std
     }
 }
 
-std::shared_ptr<AssignStmt> Port::assign__(const std::shared_ptr<Var>& var,
+std::shared_ptr<AssignStmt> Port::assign_(const std::shared_ptr<Var>& var,
                                          enum kratos::AssignmentType type) {
     // notice that we have the following rules
     // var <- port. this is considered as a lower cast, hence it's allowed
@@ -61,7 +61,7 @@ std::shared_ptr<AssignStmt> Port::assign__(const std::shared_ptr<Var>& var,
                                 {this, var.get()});
         }
     }
-    return Var::assign__(var, type);
+    return Var::assign_(var, type);
 }
 
 void Port::set_port_type(PortType type) { type_ = type; }
@@ -79,7 +79,7 @@ EnumPort::EnumPort(kratos::Generator* m, kratos::PortDirection direction, const 
     : Port(m, direction, name, enum_type->width(), 1, PortType::Data, false),
       enum_type_(enum_type.get()) {}
 
-std::shared_ptr<AssignStmt> EnumPort::assign__(const std::shared_ptr<Var>& var,
+std::shared_ptr<AssignStmt> EnumPort::assign_(const std::shared_ptr<Var>& var,
                                                AssignmentType type) {
     // TODO: refactor this
     if (!var->is_enum())
@@ -89,7 +89,7 @@ std::shared_ptr<AssignStmt> EnumPort::assign__(const std::shared_ptr<Var>& var,
         if (p->enum_def()->name != enum_type_->name)
             throw VarException("Cannot assign different enum type", {this, var.get()});
     } else {
-        auto p = dynamic_cast<EnumType*>(var.get());
+        auto *p = dynamic_cast<EnumType*>(var.get());
         if (!p) throw InternalException("Unable to obtain enum definition");
         if (!p->enum_type())
             throw VarException(::format("Cannot obtain enum information from var ({0}). "
@@ -100,7 +100,7 @@ std::shared_ptr<AssignStmt> EnumPort::assign__(const std::shared_ptr<Var>& var,
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }
     }
-    return Port::assign__(var, type);
+    return Port::assign_(var, type);
 }
 
 PortPackedStruct::PortPackedStruct(Generator* module, PortDirection direction,
@@ -127,7 +127,7 @@ PackedSlice& PortPackedStruct::operator[](const std::string& member_name) {
 
 std::set<std::string> PortPackedStruct::member_names() const {
     std::set<std::string> result;
-    for (auto& def : struct_.attributes) {
+    for (const auto & def : struct_.attributes) {
         result.emplace(std::get<0>(def));
     }
     return result;

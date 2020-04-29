@@ -79,7 +79,7 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
 }
 
 Stream& Stream::operator<<(const std::pair<Port*, std::string>& port) {
-    auto& [p, end] = port;
+    const auto & [p, end] = port;
     if (!p->comment.empty())
         (*this) << codegen_->indent() << "// " << strip_newline(p->comment) << endl();
     if (generator_->debug) {
@@ -99,7 +99,7 @@ std::string Stream::get_var_decl(kratos::Var* var) {
         auto v = var->as<VarPackedStruct>();
         type = v->packed_struct().struct_name;
     } else if (var->is_enum()) {
-        auto v = dynamic_cast<EnumType*>(var);
+        auto *v = dynamic_cast<EnumType*>(var);
         if (!v) throw InternalException("Unable to resolve var to enum type");
         type = v->enum_type()->name;
     } else {
@@ -219,7 +219,7 @@ std::string SystemVerilogCodeGen::get_width_str(uint32_t width) {
 void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     indent_++;
     // sort the names
-    auto& port_names_set = generator->get_port_names();
+    const auto & port_names_set = generator->get_port_names();
     std::vector<std::string> port_names(port_names_set.begin(), port_names_set.end());
     std::sort(port_names.begin(), port_names.end());
     std::unordered_set<std::string> interface_name;
@@ -239,7 +239,7 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
             ports.emplace_back(port.get());
         } else {
             auto port_interface = port->as<InterfacePort>();
-            auto ref = port_interface->interface();
+            const auto *ref = port_interface->interface();
             auto const& ref_name = ref->name();
             // only print out interface def once
             if (interface_name.find(ref_name) == interface_name.end()) {
@@ -260,7 +260,7 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     }
     for (auto const& port : ports) {
         count++;
-        auto end = count == size ? "" : ",";
+        const auto *end = count == size ? "" : ",";
         stream_ << std::make_pair(port, end);
     }
     indent_--;
@@ -277,7 +277,7 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
 }
 
 void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
-    auto& params = generator->get_params();
+    const auto & params = generator->get_params();
     if (!params.empty()) {
         stream_ << "#(parameter ";
         uint32_t count = 0;
@@ -311,7 +311,7 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         throw StmtException(::format("Cannot codegen non-statement node. Got {0}",
                                      ast_type_to_string(node->ir_node_kind())),
                             {node});
-    auto stmt_ptr = reinterpret_cast<Stmt*>(node);
+    auto *stmt_ptr = reinterpret_cast<Stmt*>(node);
     if (stmt_ptr->type() == StatementType::Assign) {
         stmt_code(reinterpret_cast<AssignStmt*>(node));
     } else if (stmt_ptr->type() == StatementType::Block) {
@@ -501,7 +501,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
         });
     }
     for (auto const& port_name : port_names) {
-        auto port = ports.at(port_name).get();
+        auto *port = ports.at(port_name).get();
         if (generator_->debug) port->verilog_ln = stream_.line_no();
         stream_ << indent() << get_port_str(port);
         if (++count != ports.size())
@@ -522,7 +522,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
 
 void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
     if (stmt->assert_type() == AssertType::AssertValue) {
-        auto st = reinterpret_cast<AssertValueStmt*>(stmt);
+        auto *st = reinterpret_cast<AssertValueStmt*>(stmt);
         stream_ << indent() << "assert (" << st->value()->handle_name(stmt->generator_parent())
                 << ")";
         if (st->else_()) {
@@ -543,18 +543,18 @@ void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
-    auto property = stmt->property();
+    auto *property = stmt->property();
     stream_ << indent() << "property " << property->property_name() << ";" << stream_.endl();
     increase_indent();
     auto edge = property->edge();
-    auto seq = property->sequence();
+    auto *seq = property->sequence();
     // automatically determine the clock, only if it's safe to do so (only one clock in the
     // design
     if (!edge.first && seq->next()) {
         std::vector<Var*> clk_vars;
         // try to determine the clock
         // it's concurrent property, we have to have a clock
-        auto generator = stmt->generator_parent();
+        auto *generator = stmt->generator_parent();
         {
             auto clk_ports = generator->get_ports(PortType::Clock);
             if (clk_ports.size() == 1) {
@@ -576,7 +576,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
                     auto clk = gen->get_port(clk_name);
                     auto source = clk->sources();
                     for (auto const& assign : source) {
-                        auto src_var = assign->right();
+                        auto *src_var = assign->right();
                         if (src_var->generator() == generator) {
                             if (src_var->type() == VarType::BaseCasted) {
                                 // only casted to clock
@@ -665,7 +665,7 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
     }
     stmt->verilog_ln = stream_.line_no();
     stream_ << indent() << stmt->target()->name;
-    auto& params = stmt->target()->get_params();
+    const auto & params = stmt->target()->get_params();
     auto debug_info = stmt->port_debug();
     if (!params.empty()) {
         std::vector<std::string> param_names;
@@ -682,9 +682,9 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
             auto const& param = params.at(name);
             auto value = param->value_str();
             if (param->parent_param()) {
-                auto p = param->parent_param();
+                const auto *p = param->parent_param();
                 // checking on parameter parent
-                auto p_gen = p->generator();
+                auto *p_gen = p->generator();
                 if (p_gen != stmt->generator_parent()) {
                     throw VarException(
                         ::format("{0}.{1} is not declared in generator {2}", p_gen->name, p->name,
@@ -731,7 +731,7 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
     if (body.find(nullptr) != body.end()) conds.emplace_back(nullptr);
 
     for (auto& cond : conds) {
-        auto& stmt_blk = body.at(cond);
+        const auto & stmt_blk = body.at(cond);
         stream_ << indent() << (cond ? cond->to_string() : "default") << ": ";
         if (stmt_blk->empty() && cond) {
             throw VarException(
@@ -795,11 +795,11 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     if (!port->is_struct() && !port->is_enum()) {
         strs.emplace_back("logic");
     } else if (port->is_enum()) {
-        auto enum_def = dynamic_cast<EnumPort*>(port);
+        auto *enum_def = dynamic_cast<EnumPort*>(port);
         if (!enum_def) throw InternalException("Unable to convert port to enum_def");
         strs.emplace_back(enum_def->enum_type()->name);
     } else {
-        auto ptr = reinterpret_cast<PortPackedStruct*>(port);
+        auto *ptr = reinterpret_cast<PortPackedStruct*>(port);
         strs.emplace_back(ptr->packed_struct().struct_name);
     }
     if (port->is_signed()) strs.emplace_back("signed");
@@ -892,7 +892,7 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
                 // internal has to be an interface
                 auto internal_interface = internal->as<InterfacePort>();
                 if (!internal_interface) throw InternalException("Unable to cast port");
-                auto internal_def = internal_interface->interface();
+                const auto *internal_def = internal_interface->interface();
                 internal_name = internal_def->name();
                 if (internal_def->definition()->is_modport()) {
                     // it's a mod port
@@ -947,7 +947,7 @@ void SystemVerilogCodeGen::enum_code_(kratos::Stream& stream_, kratos::Enum* enu
     std::string logic_str = enum_->width() == 1 ? "" : ::format("[{0}:0]", enum_->width() - 1);
     stream_ << "typedef enum logic" << logic_str << " {" << stream_.endl();
     uint32_t count = 0;
-    auto const indent = "  ";
+    const auto *const indent = "  ";
     // sort it by the values
     std::vector<std::string> names;
     names.reserve(enum_->values.size());
@@ -1054,7 +1054,7 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
     std::map<std::string, std::string> result;
     const std::string indent = "  ";
     for (auto const& [interface_name, def] : defs) {
-        auto i_ref = def.second;
+        const auto *i_ref = def.second;
         auto const& i_def = i_ref->definition();
         if (i_def->is_modport())
             // don't generate mod port definition
@@ -1066,7 +1066,7 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
             auto port_names = i_def->ports();
             uint32_t i = 0;
             for (auto const& port_name : port_names) {
-                auto p = &i_ref->port(port_name);
+                auto *p = &i_ref->port(port_name);
                 stream << indent << SystemVerilogCodeGen::get_port_str(p);
                 if (i++ == port_names.size() - 1)
                     stream << std::endl;
@@ -1080,7 +1080,7 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
         // output vars
         auto const& vars = i_def->vars();
         for (auto const& var_name : vars) {
-            auto v = &i_ref->var(var_name);
+            auto *v = &i_ref->var(var_name);
             stream << indent << Stream::get_var_decl(v) << ";" << std::endl;
         }
 
@@ -1131,7 +1131,7 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
             for (auto const& slice : slices) {
                 std::string name = port_name;
                 for (auto const& s : slice) name = ::format("{0}_{1}", name, s);
-                auto slice_port = &(*p)[slice[0]];
+                auto *slice_port = &(*p)[slice[0]];
                 for (uint64_t i = 1; i < slice.size(); i++) slice_port = &(*slice_port)[slice[i]];
                 if (slice_port->size().size() != 1 || slice_port->size()[0] != 1)
                     throw InternalException("Unable to slice ports when flattening");
@@ -1208,7 +1208,7 @@ void fix_verilog_ln(Generator* generator, uint32_t offset) {
     StatementGraph graph(generator);
     auto stmts = graph.nodes();
     for (auto const& iter : stmts) {
-        auto stmt = iter.first;
+        auto *stmt = iter.first;
         stmt->verilog_ln += offset;
     }
 }

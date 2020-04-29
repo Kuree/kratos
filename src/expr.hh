@@ -140,8 +140,8 @@ public:
     virtual const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const {
         return sources_;
     };
-    virtual void clear_sinks(bool remove_parent = false);
-    virtual void clear_sources(bool remove_parent = false);
+    virtual void clear_sinks(bool remove_parent);
+    virtual void clear_sources(bool remove_parent);
     virtual void remove_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.erase(stmt); }
     std::vector<std::shared_ptr<VarSlice>> &get_slices() { return slices_; }
 
@@ -235,7 +235,7 @@ protected:
     Generator *generator_;
 
     // assign function
-    virtual std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+    virtual std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
                                                  AssignmentType type);
 
 private:
@@ -279,10 +279,10 @@ public:
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
         return parent_var_->sources();
     };
-    void clear_sinks(bool remove_parent = false) override {
+    void clear_sinks(bool remove_parent) override {
         parent_var_->clear_sources(remove_parent);
     }
-    void clear_sources(bool remove_parent = false) override {
+    void clear_sources(bool remove_parent) override {
         parent_var_->clear_sinks(remove_parent);
     }
     void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
@@ -299,7 +299,7 @@ public:
     void set_target_width(uint32_t width);
 
 protected:
-    std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+    std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
                                          AssignmentType type) override;
 
 private:
@@ -614,7 +614,7 @@ public:
     std::map<std::string, std::shared_ptr<EnumConst>> values;
     std::string name;
 
-    uint32_t inline width() { return width_; }
+    uint32_t inline width() const { return width_; }
 
     std::shared_ptr<EnumConst> get_enum(const std::string &name);
     void add_debug_info(const std::string &enum_name,
@@ -643,7 +643,7 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
 protected:
-    std::shared_ptr<AssignStmt> assign__(const std::shared_ptr<Var> &var,
+    std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
                                          AssignmentType type) override;
 
 private:

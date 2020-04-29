@@ -341,7 +341,7 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
                 auto srcs = std::unordered_set<std::shared_ptr<AssignStmt>>(port->sources().begin(),
                                                                             port->sources().end());
                 for (auto const &stmt : srcs) {
-                    auto sink = stmt->right();
+                    auto *sink = stmt->right();
                     sink->unassign(stmt);
                     remove_stmt_from_parent(stmt);
                 }
@@ -583,20 +583,20 @@ void inline check_direction(const Port *port1, Port *port2, bool same_direction 
 }
 
 std::pair<bool, bool> correct_port_direction(Port *port1, Port *port2, Generator *top) {
-    auto parent1 = port1->generator();
-    auto parent2 = port2->generator();
+    auto *parent1 = port1->generator();
+    auto *parent2 = port2->generator();
     std::shared_ptr<AssignStmt> stmt;
     if (parent1 == parent2 && parent1 == top) {
         // it's the same module
         // by default same direction is fault, however, for modport ones, it is the same direction
         bool interface_port_wire = false;
         if (port1->is_interface() && !port2->is_interface()) {
-            auto port_i = reinterpret_cast<InterfacePort *>(port1);
-            auto it = port_i->interface();
+            auto *port_i = reinterpret_cast<InterfacePort *>(port1);
+            auto *it = port_i->interface();
             interface_port_wire = !it->is_port();
         } else if (port2->is_interface() && !port1->is_interface()) {
-            auto port_i = reinterpret_cast<InterfacePort *>(port2);
-            auto it = port_i->interface();
+            auto *port_i = reinterpret_cast<InterfacePort *>(port2);
+            auto *it = port_i->interface();
             interface_port_wire = !it->is_port();
         }
         check_direction(port1, port2, interface_port_wire);
@@ -642,12 +642,12 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
     if (!var1 || !var2) throw UserException("Variable cannot be null (None)");
     Var *root1 = var1.get();
     while (root1->type() == VarType::Slice) {
-        auto var = dynamic_cast<VarSlice *>(root1);
+        auto *var = dynamic_cast<VarSlice *>(root1);
         root1 = var->parent_var;
     }
     Var *root2 = var2.get();
     while (root2->type() == VarType::Slice) {
-        auto var = dynamic_cast<VarSlice *>(root2);
+        auto *var = dynamic_cast<VarSlice *>(root2);
         root2 = var->parent_var;
     }
     if (root1->type() != VarType::PortIO && root2->type() != VarType::PortIO) {
@@ -655,12 +655,12 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
         return {true, true};
     } else if (root1->type() == VarType::PortIO && root2->type() != VarType::PortIO) {
         // var1 is port and var2 is not
-        auto port1 = dynamic_cast<Port *>(root1);
+        auto *port1 = dynamic_cast<Port *>(root1);
         if (port1->generator() == this) {
             bool flip_dir = false;
             if (port1->is_interface()) {
-                auto port_i = reinterpret_cast<InterfacePort *>(port1);
-                auto ref = port_i->interface();
+                auto *port_i = reinterpret_cast<InterfacePort *>(port1);
+                auto *ref = port_i->interface();
                 flip_dir = !(ref->is_port() && root2->generator() == this);
             }
             return {!flip_dir ? port1->port_direction() == PortDirection::Out
@@ -677,12 +677,12 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
         }
     } else if (root2->type() == VarType::PortIO && root1->type() != VarType::PortIO) {
         // var2 is port and var1 is not
-        auto port2 = dynamic_cast<Port *>(root2);
+        auto *port2 = dynamic_cast<Port *>(root2);
         if (port2->generator() == this) {
             bool flip_dir = false;
             if (port2->is_interface()) {
-                auto port_i = reinterpret_cast<InterfacePort *>(port2);
-                auto ref = port_i->interface();
+                auto *port_i = reinterpret_cast<InterfacePort *>(port2);
+                auto *ref = port_i->interface();
                 flip_dir = !(ref->is_port() && root1->generator() == this);
             }
             return {!flip_dir ? port2->port_direction() == PortDirection::In
@@ -699,8 +699,8 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
         }
     } else {
         // both are ports
-        auto port1 = dynamic_cast<Port *>(root1);
-        auto port2 = dynamic_cast<Port *>(root2);
+        auto *port1 = dynamic_cast<Port *>(root1);
+        auto *port2 = dynamic_cast<Port *>(root2);
         return correct_port_direction(port1, port2, this);
     }
 }
@@ -708,8 +708,8 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
 void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
                                const std::shared_ptr<InterfaceRef> &inst2) {
     // the orientation is determined by the generator reference from the interface instance
-    auto gen1 = inst1->gen();
-    auto gen2 = inst2->gen();
+    auto *gen1 = inst1->gen();
+    auto *gen2 = inst2->gen();
     InterfaceRef *parent = nullptr;
     InterfaceRef *child = nullptr;
     if (gen1->has_child_generator(gen2->shared_from_this())) {
@@ -984,7 +984,7 @@ std::string Generator::handle_name() const { return handle_name(false); }
 std::string Generator::handle_name(bool ignore_top) const {
     // this is used to identify the generator from the top level
     std::string result = instance_name;
-    auto parent = parent_generator_;
+    auto *parent = parent_generator_;
     if (ignore_top) {
         std::vector<std::string> values;
         values.emplace_back(instance_name);

@@ -205,7 +205,7 @@ VarSlice &Var::operator[](const std::shared_ptr<Var> &var) {
 }
 
 VarConcat &Var::concat(Var &var) {
-    auto ptr = &var;
+    auto *ptr = &var;
     // notice that we effectively created an implicit sink->sink by creating a concat
     // however, it's not an assignment, that's why we need to use concat_vars to hold the
     // vars
@@ -287,8 +287,8 @@ VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 
 uint32_t num_size_decrease(Var *var) {
     if (var->type() == VarType::Slice) {
-        auto slice = reinterpret_cast<VarSlice *>(var);
-        auto parent = slice->parent_var;
+        auto *slice = reinterpret_cast<VarSlice *>(var);
+        auto *parent = slice->parent_var;
         auto diff = parent->size().size() - slice->size().size();
         if (parent->type() == VarType::Slice) {
             return diff + num_size_decrease(reinterpret_cast<VarSlice *>(parent));
@@ -375,7 +375,7 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
         }
     } else {
         // it's a slice
-        auto slice = dynamic_cast<VarSlice *>(parent);
+        auto *slice = dynamic_cast<VarSlice *>(parent);
         if (parent->size().size() == 1 && parent->size().front() == 1 && !dropped_dim_size1) {
             var_low_ = low + slice->var_low();
             var_high_ = (high + 1) + slice->var_low() - 1;
@@ -576,8 +576,8 @@ void Expr::set_parent() {
     if (!right) {
         generator_ = left->generator();
     } else {
-        auto left_gen = left->generator();
-        auto right_gen = right->generator();
+        auto *left_gen = left->generator();
+        auto *right_gen = right->generator();
         if (left_gen == Const::const_gen()) {
             generator_ = right_gen;
         } else if (right_gen == Const::const_gen()) {
@@ -639,10 +639,10 @@ std::shared_ptr<AssignStmt> Var::assign(Var &var) {
 }
 
 std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var, AssignmentType type) {
-    return assign__(var, type);
+    return assign_(var, type);
 }
 
-std::shared_ptr<AssignStmt> Var::assign__(const std::shared_ptr<Var> &var, AssignmentType type) {
+std::shared_ptr<AssignStmt> Var::assign_(const std::shared_ptr<Var> &var, AssignmentType type) {
     // if it's a constant or expression, it can't be assigned to
     if (type_ == VarType::ConstValue)
         throw VarException(::format("Cannot assign {0} to a const {1}", var->to_string(), name),
@@ -742,7 +742,7 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     }
 }
 
-std::shared_ptr<AssignStmt> VarCasted::assign__(const std::shared_ptr<Var> &, AssignmentType) {
+std::shared_ptr<AssignStmt> VarCasted::assign_(const std::shared_ptr<Var> &, AssignmentType) {
     throw VarException(::format("{0} is not allowed to be a sink", to_string()), {this});
 }
 
@@ -1174,7 +1174,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
         }
     }
     // now clear the sources
-    var->clear_sources();
+    var->clear_sources(false);
 
     if (keep_connection) {
         // create an assignment and add it to the parent
@@ -1206,7 +1206,7 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
         }
     }
     // now clear the sinks
-    var->clear_sinks();
+    var->clear_sinks(false);
 
     if (keep_connection) {
         // create an assignment and add it to the parent
@@ -1620,7 +1620,7 @@ void IterVar::fix_width(Var *&var, uint32_t target_width) {
     }
 }
 
-std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
+std::shared_ptr<AssignStmt> EnumVar::assign_(const std::shared_ptr<Var> &var,
                                               kratos::AssignmentType type) {
     if (!var->is_enum())
         throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
@@ -1640,7 +1640,7 @@ std::shared_ptr<AssignStmt> EnumVar::assign__(const std::shared_ptr<Var> &var,
             throw VarException("Cannot assign different enum type", {this, var.get()});
         }
     }
-    return Var::assign__(var, type);
+    return Var::assign_(var, type);
 }
 
 FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStmtBlock> &func_def,

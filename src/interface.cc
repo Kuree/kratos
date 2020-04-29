@@ -174,7 +174,7 @@ std::string InterfaceRef::base_name() const {
 
 std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& name) {
     if (mod_ports_.find(name) != mod_ports_.end()) return mod_ports_.at(name);
-    auto definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
+    auto *definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
     if (definition_->is_modport() || !definition) {
         throw UserException("Cannot create modport from a modport interface");
     }
@@ -206,7 +206,7 @@ std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& n
 }
 
 bool InterfaceRef::has_modport(const std::string& name) {
-    auto definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
+    auto *definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
     if (definition_->is_modport() || !definition) {
         return false;
     }

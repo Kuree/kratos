@@ -1,5 +1,5 @@
 ---
-Checks:          "clang-diagnostic-*,clang-analyzer-*,bugprone-*,clang-*,misc-*,\
+Checks:          "clang-diagnostic-*,clang-analyzer-*,bugprone-*,clang-*, \
 modernize-*, \
 -modernize-use-trailing-return-type, \
 readability-*, \
@@ -11,6 +11,19 @@ readability-*, \
 -readability-magic-numbers, \
 -readability-inconsistent-declaration-parameter-name, \
 -readability-isolate-declaration, \
+-misc-definitions-in-headers, \
+-misc-misplaced-const , \
+-misc-new-delete-overloads, \
+-misc-no-recursion, \
+-misc-non-copyable-objects, \
+-misc-redundant-expression, \
+-misc-static-assert, \
+-misc-throw-by-value-catch-by-reference, \
+-misc-unconventional-assign-operator, \
+-misc-uniqueptr-reset-release, \
+-misc-unused-alias-decls, \
+-misc-unused-parameters, \
+-misc-unused-using-decls, \
 "
 WarningsAsErrors: '*'
 HeaderFilterRegex: ''

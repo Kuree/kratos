@@ -64,7 +64,7 @@ std::vector<FSMState*> FSM::get_all_child_states(bool include_extra_state) const
         queue.emplace(iter.second.get());
     }
     while (!queue.empty()) {
-        auto state = queue.front();
+        auto *const state = queue.front();
         queue.pop();
         if (visited.find(state) != visited.end()) continue;
         visited.emplace(state);
@@ -72,8 +72,8 @@ std::vector<FSMState*> FSM::get_all_child_states(bool include_extra_state) const
         if (!state) continue;
         auto next_states = state->transitions();
         for (auto const& iter : next_states) {
-            auto const next_state = iter.second;
-            auto fsm = next_state->parent();
+            auto *next_state = iter.second;
+            auto const *fsm = next_state->parent();
             while (fsm && fsm != this) {
                 fsm = fsm->parent_fsm();
             }
@@ -124,11 +124,11 @@ void FSM::realize() {
     if (generator_->debug) {
         std::unordered_set<const FSM*> visited;
         for (auto const& state : states) {
-            auto fsm = state->parent();
+            const auto *fsm = state->parent();
             if (visited.find(fsm) != visited.end()) continue;
             auto fn_ln = fsm->fn_name_ln_;
             for (auto const& [name, info] : fn_ln) {
-                auto s = fsm->get_state(name).get();
+                auto *s = fsm->get_state(name).get();
                 if (state_name_mapping.find(state) == state_name_mapping.end()) {
                     throw UserException(::format(
                         "Unable to find state name {0} from FSM {1}. Is it a disconnected state?",
@@ -228,7 +228,7 @@ std::shared_ptr<FunctionStmtBlock> FSM::get_func_def() {
     }
     auto ports = func->ports();
     for (auto const& [var_name, port] : ports) {
-        auto var = name_mapping.at(var_name);
+        auto *var = name_mapping.at(var_name);
         func->add_stmt(var->assign(port, AssignmentType::Blocking));
     }
     return func;
@@ -268,7 +268,7 @@ void FSM::generate_state_transition(
             has_slide_through = true;
         }
         for (auto const& cond : vars) {
-            auto next_fsm_state = transitions.at(cond);
+            auto *next_fsm_state = transitions.at(cond);
             if (!cond) {
                 // direct transition
                 auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
@@ -405,7 +405,7 @@ void FSM::generate_output(Enum& enum_def, EnumVar& current_state,
         std::sort(vars.begin(), vars.end(),
                   [](auto& lhs, auto& rhs) { return lhs->name < rhs->name; });
         for (auto const& output_var : vars) {
-            auto value = output_values.at(output_var);
+            auto *value = output_values.at(output_var);
             if (value && value != output_var) {
                 // value can be a nullptr
                 // users may use the same variable to indicate not changed
@@ -534,7 +534,7 @@ std::string FSM::dot_graph() {
             return lhs->to_string() < rhs->to_string();
         });
         for (auto const& cond : conds) {
-            auto next_state = transitions.at(cond);
+            auto *next_state = transitions.at(cond);
             if (cond) {
                 stream << indent
                        << ::format("{0}    ->  {1} [ label = \"{2}\" ];", state_name,
@@ -576,7 +576,7 @@ std::string FSM::output_table() {
     for (auto const& [state_name, state] : states_) {
         stream << state_name;
         for (auto const& output : outputs) {
-            auto value = state->output_values().at(output);
+            auto *value = state->output_values().at(output);
             stream << "," << value->to_string();
         }
         stream << ::endl;
@@ -597,7 +597,7 @@ std::vector<FSM*> FSM::get_all_child_fsm() const {
     std::unordered_set<const FSM*> visited;
     queue.emplace(const_cast<FSM*>(this));
     while (!queue.empty()) {
-        auto fsm = queue.front();
+        auto *fsm = queue.front();
         queue.pop();
         result.emplace_back(fsm);
         if (visited.find(fsm) != visited.end())
@@ -631,8 +631,8 @@ std::map<FSMState*, color::Color> get_state_color(const std::vector<FSMState*>& 
     }
 
     // second pass the assign colors
-    for (auto& state : states) {
-        auto fsm = state->parent();
+    for (const auto & state : states) {
+        const auto *fsm = state->parent();
         result.emplace(state, state_color.at(fsm));
     }
 
@@ -646,10 +646,10 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shar
         throw UserException(
             ::format("Next state for {0}.{1} cannot be null", parent_->fsm_name(), name_));
     // making sure that it's part of the same fsm state
-    auto parent = parent_;
-    auto state_ptr = next_state.get();
+    auto *parent = parent_;
+    auto *state_ptr = next_state.get();
     while (parent->parent_fsm()) parent = parent->parent_fsm();
-    auto fsm = next_state->parent_;
+    auto *fsm = next_state->parent_;
     while (fsm && fsm != parent) {
         fsm = fsm->parent_fsm();
     }
@@ -666,7 +666,7 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shar
             // we have a slide through
             throw UserException("Unconditional transition has been assign to " + name_);
         }
-        auto ptr = cond.get();
+        auto *ptr = cond.get();
         if (cond->width() != 1) throw VarException("Condition has to be a boolean value", {ptr});
 
         if (transitions_.find(ptr) != transitions_.end()) {
@@ -685,8 +685,8 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shar
 
 void FSMState::output(const std::shared_ptr<Var>& output_var,
                       const std::shared_ptr<Var>& value_var) {
-    auto output = output_var.get();
-    auto value = value_var.get();
+    auto *output = output_var.get();
+    auto *value = value_var.get();
     if (output_values_.find(output) != output_values_.end()) {
         throw VarException(::format("{0} already has specified output"),
                            {output_values_.at(output)});
@@ -731,8 +731,8 @@ void FSMState::check_outputs() {
 
 std::string FSMState::handle_name() const {
     auto str = name_;
-    auto current = parent_;
-    auto p = parent_->parent_fsm();
+    auto *current = parent_;
+    auto *p = parent_->parent_fsm();
     while (p) {
         str = ::format("{0}_{1}", current->fsm_name(), str);
         current = p;
