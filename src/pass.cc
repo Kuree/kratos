@@ -1127,8 +1127,9 @@ public:
 
 private:
     void static transform_block(StmtBlock* stmts) {
-        for (uint64_t i = 0; i < stmts->child_count(); i++) {
-            auto *stmt = reinterpret_cast<Stmt*>(stmts->get_child(i));
+        auto const stmt_count = stmts->size();
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto *stmt = stmts->get_stmt(i).get();
             Var* target = nullptr;
             std::vector<std::shared_ptr<IfStmt>> if_stmts;
             if (has_target_if(stmt, target, if_stmts) && target) {
@@ -2519,20 +2520,20 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
         auto *block = dynamic_cast<StmtBlock*>(stmt);
         if (!block)
             throw InternalException("Statement is not block but is marked as StatementType::Block");
-        auto child_count = block->child_count();
-        for (index = 0; index < child_count; index++) {
-            auto *s = dynamic_cast<Stmt*>(block->get_child(index));
+        auto stmt_count = block->size();
+        for (index = 0; index < stmt_count; index++) {
+            auto *s = block->get_stmt(index).get();
             if (check_stmt_condition(s, cond, check_unreachable, full_branch)) {
                 found = true;
                 break;
             }
         }
         if (found && check_unreachable) {
-            if (index != block->child_count() - 1) {
+            if (index != block->size() - 1) {
                 // we have unreachable state
                 std::vector<Stmt*> stmts;
-                for (uint64_t i = index + 1; i < block->child_count(); i++)
-                    stmts.emplace_back(dynamic_cast<Stmt*>(block->get_child(i)));
+                for (uint64_t i = index + 1; i < block->size(); i++)
+                    stmts.emplace_back(block->get_stmt(i).get());
                 throw StmtException("Unreachable code block", stmts.begin(), stmts.end());
             }
         }
@@ -2607,9 +2608,9 @@ public:
                 [](Stmt* stmt) -> bool { return stmt->type() == StatementType::Return; }, true);
             if (!has_return) {
                 std::vector<Stmt*> stmts;
-                stmts.reserve(func->child_count());
-                for (uint64_t i = 0; i < func->child_count(); i++) {
-                    stmts.emplace_back(dynamic_cast<Stmt*>(func->get_child(i)));
+                stmts.reserve(func->size());
+                for (uint64_t i = 0; i < func->size(); i++) {
+                    stmts.emplace_back(func->get_stmt(i).get());
                 }
                 throw StmtException(
                     ::format("{0} does not have return statement in all control flows",
@@ -3062,7 +3063,7 @@ private:
     }
 
     std::shared_ptr<StmtBlock> process(std::shared_ptr<StmtBlock> stmt) {
-        auto stmt_count = stmt->child_count();
+        auto stmt_count = stmt->size();
         std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto st = stmt->get_stmt(i);
