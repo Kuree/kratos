@@ -1,11 +1,12 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "../src/expr.hh"
-#include "../src/stmt.hh"
-#include "../src/port.hh"
-#include "../src/pass.hh"
 
+#include "../src/expr.hh"
+#include "../src/pass.hh"
+#include "../src/port.hh"
+#include "../src/stmt.hh"
+#include "../src/tb.hh"
 
 namespace py = pybind11;
 
@@ -71,4 +72,10 @@ void init_enum(py::module &m) {
         .value("Clock", VarCastType::Clock)
         .value("Enum", VarCastType::Enum)
         .value("Resize", VarCastType::Resize);
+
+    py::enum_<PropertyAction>(m, "PropertyAction")
+        .value("None", PropertyAction::None)
+        .value("Cover", PropertyAction::Cover)
+        .value("Assume", PropertyAction::Assume)
+        .value("Assert", PropertyAction::Assert);
 }

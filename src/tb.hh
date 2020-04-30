@@ -40,6 +40,13 @@ private:
     [[nodiscard]] std::string wait_to_str() const;
 };
 
+enum class PropertyAction: int {
+    None = 0,
+    Cover = 1u << 1u,
+    Assume = 1u << 2u,
+    Assert = 1u << 3u
+};
+
 class Property {
 public:
     Property(std::string property_name, std::shared_ptr<Sequence> sequence);
@@ -49,10 +56,15 @@ public:
     void edge(BlockEdgeType type, const std::shared_ptr<Var> &var);
     [[nodiscard]] std::pair<Var *, BlockEdgeType> edge() const { return edge_; }
 
+    void set_action(PropertyAction action) { action_ = action; }
+    [[nodiscard]] PropertyAction action() const { return action_; }
+
 private:
     std::string property_name_;
     std::shared_ptr<Sequence> sequence_ = nullptr;
     std::pair<Var *, BlockEdgeType> edge_ = {nullptr, BlockEdgeType::Posedge};
+
+    PropertyAction action_ = PropertyAction::None;
 };
 
 class AssertValueStmt : public AssertBase {

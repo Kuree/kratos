@@ -1643,7 +1643,8 @@ def test_generator_property(check_gold):
     # if a == 1, then it imply b == 0, and the next cycle, b == 1
     seq.imply(b == 0).wait(1).imply(b == 1)
     # add this sequence to the generator
-    mod.property("rule1", seq)
+    p = mod.property("rule1", seq)
+    p.action = kratos.PropertyAction.Assert
 
     check_gold(mod, gold_name="test_generator_property")
 

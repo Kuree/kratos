@@ -1,6 +1,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
 #include "../src/tb.hh"
 
 namespace py = pybind11;
@@ -56,5 +57,6 @@ void init_tb(py::module &m) {
         .def("sequence", &Property::sequence)
         .def("edge",
              py::overload_cast<BlockEdgeType, const std::shared_ptr<Var> &>(&Property::edge))
-        .def("edge", [](const Property &property) { return property.edge(); });
+        .def("edge", [](const Property &property) { return property.edge(); })
+        .def_property("action", &Property::action, &Property::set_action);
 }

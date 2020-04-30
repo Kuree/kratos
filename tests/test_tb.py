@@ -46,6 +46,8 @@ def test_tb_delay(check_gold):
 
 def test_tb_sequence(check_gold):
     from kratos.util import clock
+    from kratos import PropertyAction
+
     dut, tb = tb_dut_setup()
     # add a clock and wire them together
     tb.wire(dut.clock("clk"), clock(tb.var("clk", 1)))
@@ -53,7 +55,8 @@ def test_tb_sequence(check_gold):
     seq = Sequence(tb.vars["in"] == 1)
     seq.imply(tb.vars.out == 1).wait(1).imply(tb.vars.out == 0)
 
-    tb.property("test_out", seq)
+    p = tb.property("test_out", seq)
+    p.action = PropertyAction.Assert
 
     src = tb.codegen()
     check_gold(src, "test_tb_sequence")

@@ -5,9 +5,26 @@ from _kratos import get_fn_ln
 
 
 def assert_(expr):
-    stmt = _kratos.AssertValueStmt(expr)
+    if isinstance(expr, _kratos.Var):
+        stmt = _kratos.AssertValueStmt(expr)
+    else:
+        assert isinstance(expr, _kratos.Property)
+        expr.action = _kratos.PropertyAction.Assert
+        stmt = _kratos.AssertPropertyStmt(expr)
     if expr.generator.debug:
         stmt.add_fn_ln(get_fn_ln())
+    return stmt
+
+
+def assume(prop):
+    prop.action = _kratos.PropertyAction.Assume
+    stmt = _kratos.AssertPropertyStmt(prop)
+    return stmt
+
+
+def cover(prop):
+    prop.action = _kratos.PropertyAction.Cover
+    stmt = _kratos.AssertPropertyStmt(prop)
     return stmt
 
 

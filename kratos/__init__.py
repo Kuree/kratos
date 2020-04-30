@@ -8,12 +8,12 @@ from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or, \
     resize
 
 from .ports import PortBundle
-from .tb import TestBench, assert_, delay
+from .tb import TestBench, assert_, delay, assume, cover
 from .debug import enable_runtime_debug
 from .pyast import add_scope_context
 from .sim import Simulator
 
-# directly import from the underlying C++ binding
+# directly import from the underlying C++ bindingtest_generator_proper
 from _kratos.util import is_valid_verilog
 from _kratos.exception import VarException, StmtException
 from _kratos.passes import IRVisitor as IRVisitor
@@ -23,6 +23,7 @@ from _kratos import Sequence
 from _kratos import DebugDataBase
 from .stmts import IfStmt, SwitchStmt, if_, switch_, RawStringStmt
 from _kratos import Interface
+from _kratos import PropertyAction
 
 # FSMs
 from _kratos import FSM, FSMState
