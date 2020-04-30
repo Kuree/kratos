@@ -25,7 +25,6 @@ always_comb begin
     Color_Blue: if (in == 2'h1) begin
       Color_next_state = Color_Red;
     end
-    else Color_next_state = Color_Blue;
     Color_Red: if (in == 2'h1) begin
       Color_next_state = Color_Blue;
     end
@@ -35,11 +34,9 @@ always_comb begin
     else if (in == 2'h2) begin
       Color_next_state = HSV_idle;
     end
-    else Color_next_state = Color_Red;
     HSV_idle: if (in == 2'h0) begin
       Color_next_state = Color_Red;
     end
-    else Color_next_state = HSV_idle;
     default: Color_next_state = Color_current_state;
   endcase
 end

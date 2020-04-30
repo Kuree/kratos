@@ -19,18 +19,17 @@ always_ff @(posedge clk, posedge rst) begin
   else Color_current_state <= Color_next_state;
 end
 always_comb begin
+  Color_next_state = Color_current_state;
   unique case (Color_current_state)
     Blue: if (in == 2'h1) begin
       Color_next_state = Red;
     end
-    else Color_next_state = Blue;
     Red: if (in == 2'h1) begin
       Color_next_state = Blue;
     end
     else if (in == 2'h0) begin
       Color_next_state = Red;
     end
-    else Color_next_state = Red;
   endcase
 end
 always_comb begin

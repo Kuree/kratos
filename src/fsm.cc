@@ -245,6 +245,7 @@ void FSM::generate_state_transition(
     Enum& enum_def, EnumVar& current_state, EnumVar& next_state,
     const std::unordered_map<FSMState*, std::string>& state_name_mapping) {
     auto state_comb = generator_->combinational();
+
     std::shared_ptr<FunctionStmtBlock> func_def = nullptr;
     if (!moore_) func_def = get_func_def();
     auto case_state_comb = std::make_shared<SwitchStmt>(current_state.shared_from_this());
@@ -315,25 +316,6 @@ void FSM::generate_state_transition(
                 if_ = new_if;
             }
         }
-        // prevent the reg being inferred as a latch
-        // TODO: refactor this code
-        if (if_) {
-            auto stmt = get_next_state_stmt(enum_def, next_state, state, state, state_name_mapping);
-            if_->add_else_stmt(stmt);
-            // mealy machine need to add extra state transition outputs
-            std::shared_ptr<FunctionCallStmt> func_stmt = nullptr;
-            if (!moore_) {
-                get_func_call_stmt(func_def, state, func_stmt);
-                if_->add_else_stmt(func_stmt);
-            }
-            if (generator_->debug) {
-                stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
-                if (func_stmt) {
-                    add_debug_info(state, func_stmt);
-                    func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
-                }
-            }
-        }
 
         if (!has_slide_through) {
             if (!top_if)
@@ -343,10 +325,9 @@ void FSM::generate_state_transition(
         }
     }
 
-    // if it has child fsms, need to prevent latch from happening
-    if (!child_fsms_.empty()) {
-        state_comb->add_stmt(next_state.assign(current_state, AssignmentType::Blocking));
-    }
+    // prevent latch generation
+    state_comb->add_stmt(next_state.assign(current_state, AssignmentType::Blocking));
+
     // also default case
     if (case_state_comb->body().find(nullptr) == case_state_comb->body().end() &&
         !is_2_power(case_state_comb->body().size())) {
