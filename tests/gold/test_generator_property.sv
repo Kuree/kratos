@@ -19,5 +19,13 @@ property rule1;
   @(posedge clk) a == 1'h1 |-> ##1 b == 1'h0 |-> b == 1'h1;
 endproperty
 assert property (rule1);
+property rule2;
+  @(posedge clk) a == 1'h1 |-> ##1 b == 1'h0 |-> b == 1'h1;
+endproperty
+assume property (rule2);
+property rule3;
+  @(posedge clk) a == 1'h1 |-> ##1 b == 1'h0 |-> b == 1'h1;
+endproperty
+cover property (rule3);
 endmodule   // mod
 
