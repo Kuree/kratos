@@ -476,7 +476,7 @@ public:
 
 void create_module_instantiation(Generator* top) {
     ModuleInstantiationVisitor visitor;
-    visitor.visit_generator_root_p(top);
+    visitor.visit_generator_root(top);
 }
 
 class InterfaceInstantiationVisitor : public IRVisitor {
