@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.29] - 2020-05-06
+### Added
+- More SVA actions, such as `cover`
+- Add `src` attribute for yosys code generation
+
+### Changed
+- Simplified FSM code generation
+- Disable parallel module instantiation
+
+### Fixed
+- Fix stmt access in passes, which may cause memory access error
+
 ## [0.0.28] - 2020-04-14
 ### Added
 - A pass to automatically insert clock gating logic into the design
