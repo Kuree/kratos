@@ -505,12 +505,18 @@ void create_interface_instantiation(Generator* top) {
 class UniqueGeneratorVisitor : public IRVisitor {
 private:
     std::map<std::string, Generator*> generator_map_;
+    std::mutex lock_;
 
 public:
     void visit(Generator* generator) override {
-        if (generator_map_.find(generator->name) != generator_map_.end()) return;
+        lock_.lock();
+        if (generator_map_.find(generator->name) != generator_map_.end()) {
+            lock_.unlock();
+            return;
+        }
         // a unique one
         if (!generator->external()) generator_map_.emplace(generator->name, generator);
+        lock_.unlock();
     }
     const std::map<std::string, Generator*>& generator_map() const { return generator_map_; };
 };
