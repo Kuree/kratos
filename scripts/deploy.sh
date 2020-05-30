@@ -27,4 +27,6 @@ elif [[ "$OS" == "osx" ]]; then
     done
     source activate env3.6
     twine upload --skip-existing dist/*.whl
+else
+    twine upload --skip-existing wheelhouse/*.whl
 fi

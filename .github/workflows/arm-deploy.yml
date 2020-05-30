@@ -1,0 +1,42 @@
+name: Linux ARM Wheel Deploy
+
+#on:
+#  push:
+#    tags:
+#      - '*'
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+
+    - run: |
+        docker run --rm --privileged multiarch/qemu-user-static:register --reset
+      name: Setup arm docker env
+
+    - uses: docker://keyiz/python3-arm
+      name: Build and test wheel
+      with:
+        args: bash scripts/ci.sh
+
+    - uses: docker://keyiz/python3-arm
+      name: Fix wheel
+      with:
+        args: >
+          bash -c
+          "auditwheel repair dist/*.whl --plat manylinux2014_aarch64"
+
+    - uses: docker://keyiz/python3-arm
+      name: Upload wheel
+      with:
+        args: bash scripts/deploy.sh
