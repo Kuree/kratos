@@ -28,6 +28,8 @@ jobs:
       name: Build and test wheel
       with:
         args: bash scripts/ci.sh
+      env:
+        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
 
     - uses: docker://keyiz/python3-arm
       name: Fix wheel
