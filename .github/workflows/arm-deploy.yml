@@ -30,6 +30,7 @@ jobs:
         args: bash scripts/ci.sh
       env:
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        ARCH: ARM
 
     - uses: docker://keyiz/python3-arm
       name: Fix wheel

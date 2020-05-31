@@ -33,6 +33,11 @@ elif [[ "$OS" == "osx" ]]; then
     CXX=g++-8 python setup.py bdist_wheel
     pip install dist/*.whl
     pytest -v tests/
+elif [[ "$ARCH" == "ARM" ]]; then
+    python -m pip install wheel pytest twine
+    python setup.py bdist_wheel
+    python -m pip install dist/*.whl
+    python -m pytest -v tests/
 else
     python --version
     python -m pip install wheel pytest twine
