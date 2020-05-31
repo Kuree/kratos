@@ -100,7 +100,7 @@ Here is the generated SystemVerilog
 Fanout module
 ~~~~~~~~~~~~~
 
-This is another example to showcase the kratos’ ability to produce high-quality
+This is another example to showcase the kratos' ability to produce high-quality
 SystemVerilog. In practice we would not write it this way.
 
 .. code:: python
