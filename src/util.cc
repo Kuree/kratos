@@ -89,19 +89,6 @@ std::string ExprOpStr(ExprOp op) {
     }
 }
 
-std::string var_type_to_string(VarType type) {
-    if (type == VarType::Base)
-        return "Base";
-    else if (type == VarType::PortIO)
-        return "Port";
-    else if (type == VarType::Expression)
-        return "Expression";
-    else if (type == VarType::ConstValue)
-        return "Const";
-    else
-        return "Slice";
-}
-
 std::string ast_type_to_string(IRNodeKind kind) {
     if (kind == IRNodeKind::StmtKind)
         return "Statement";

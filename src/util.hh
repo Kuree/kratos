@@ -22,9 +22,6 @@ void set_num_cpus(int num_cpu);
 
 std::string ExprOpStr(ExprOp op);
 
-// may need to look at this https://stackoverflow.com/q/28828957
-std::string var_type_to_string(VarType type);
-
 std::string ast_type_to_string(IRNodeKind kind);
 
 std::string assign_type_to_str(AssignmentType type);
