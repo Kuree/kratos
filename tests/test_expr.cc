@@ -378,3 +378,33 @@ TEST(expr, packed) {    // NOLINT
     auto &b = mod.var("b", 5, 5);
     EXPECT_THROW(a + b, VarException);
 }
+
+TEST(port, connected) { // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &mod1 = context.generator("mod1");
+    auto &mod2 = context.generator("mod2");
+    mod.add_child_generator("c1", mod1);
+    mod.add_child_generator("c2", mod2);
+    auto &a1 = mod1.port(PortDirection::In, "a", 1);
+    auto &a2 = mod2.port(PortDirection::In, "a", 1);
+    auto &b1 = mod1.port(PortDirection::Out, "b", 1);
+    auto &b2 = mod2.port(PortDirection::Out, "b", 1);
+    mod1.wire(b1, a1);
+    mod2.wire(b2, a2);
+
+    // mod1.a <- mod2.b
+    // mod2.a <- mod1.b
+    mod.wire(a1, b2);
+    mod.wire(a2, b1);
+
+    auto connected_from = a1.connected_from();
+    auto connected_to = b1.connected_to();
+    EXPECT_EQ(connected_from.size(), 1);
+    EXPECT_EQ(connected_to.size(), 1);
+
+    auto from_port = *connected_from.begin();
+    EXPECT_EQ(from_port, b2.shared_from_this());
+    auto to_port = *connected_to.begin();
+    EXPECT_EQ(to_port, a2.shared_from_this());
+}

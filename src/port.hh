@@ -39,9 +39,12 @@ public:
     std::optional<bool> active_high() const { return active_high_; }
     void set_active_high(bool value);
 
+    [[nodiscard]] std::unordered_set<std::shared_ptr<Port>> connected_to() const;
+    [[nodiscard]] std::unordered_set<std::shared_ptr<Port>> connected_from() const;
+
 protected:
     std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
-                                         AssignmentType type) override;
+                                        AssignmentType type) override;
 
 private:
     PortDirection direction_;
@@ -63,7 +66,7 @@ public:
 
 protected:
     std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
-                                         AssignmentType type) override;
+                                        AssignmentType type) override;
 
 private:
     Enum *enum_type_;
@@ -187,8 +190,8 @@ public:
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
         return var_->sources();
     };
-    void clear_sinks(bool remove_parent=false) override { var_->clear_sources(remove_parent); }
-    void clear_sources(bool remove_parent=false) override { var_->clear_sinks(remove_parent); }
+    void clear_sinks(bool remove_parent = false) override { var_->clear_sources(remove_parent); }
+    void clear_sources(bool remove_parent = false) override { var_->clear_sinks(remove_parent); }
     void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
         var_->remove_source(stmt);
     }

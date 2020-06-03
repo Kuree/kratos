@@ -39,7 +39,7 @@ Port::Port(kratos::Generator* module, kratos::PortDirection direction, const std
 }
 
 std::shared_ptr<AssignStmt> Port::assign_(const std::shared_ptr<Var>& var,
-                                         enum kratos::AssignmentType type) {
+                                          enum kratos::AssignmentType type) {
     // notice that we have the following rules
     // var <- port. this is considered as a lower cast, hence it's allowed
     // port <- var. this is considered as an upper cast, which needs explicit casting
@@ -53,7 +53,7 @@ std::shared_ptr<AssignStmt> Port::assign_(const std::shared_ptr<Var>& var,
             else if (cast_type == VarCastType::Clock && port_type() == PortType::Clock)
                 allowed = true;  // NOLINT
             else if (cast_type == VarCastType::ClockEnable && port_type() == PortType::ClockEnable)
-                allowed = true; // NOLINT
+                allowed = true;  // NOLINT
         }
         if (!allowed) {
             throw StmtException(::format("Typing error. Cannot assign variable ({0}) to port ({1})",
@@ -74,13 +74,53 @@ void Port::set_active_high(bool value) {
     active_high_ = value;
 }
 
+class PortVisitor : public IRVisitor {
+public:
+    std::unordered_set<std::shared_ptr<Port>> ports;
+    void visit(Port* port) override { ports.emplace(port->as<Port>()); }
+};
+
+std::unordered_set<std::shared_ptr<Port>> Port::connected_from() const {
+    std::unordered_set<std::shared_ptr<Port>> result;
+    if (direction_ == PortDirection::Out) return result;
+    for (auto const& stmt : sources_) {
+        auto* const src = stmt->right();
+        PortVisitor v;
+        v.visit_root(src);
+        auto const& ports = v.ports;
+        for (auto const& p : ports) {
+            if (p->direction_ == PortDirection::Out && p->generator_ != generator_) {
+                result.emplace(p);
+            }
+        }
+    }
+    return result;
+}
+
+std::unordered_set<std::shared_ptr<Port>> Port::connected_to() const {
+    std::unordered_set<std::shared_ptr<Port>> result;
+    if (direction_ == PortDirection::In) return result;
+    for (auto const& stmt : sinks_) {
+        auto* const sinks = stmt->left();
+        PortVisitor v;
+        v.visit_root(sinks);
+        auto const& ports = v.ports;
+        for (auto const& p : ports) {
+            if (p->direction_ == PortDirection::In && p->generator_ != generator_) {
+                result.emplace(p);
+            }
+        }
+    }
+    return result;
+}
+
 EnumPort::EnumPort(kratos::Generator* m, kratos::PortDirection direction, const std::string& name,
                    const std::shared_ptr<Enum>& enum_type)
     : Port(m, direction, name, enum_type->width(), 1, PortType::Data, false),
       enum_type_(enum_type.get()) {}
 
 std::shared_ptr<AssignStmt> EnumPort::assign_(const std::shared_ptr<Var>& var,
-                                               AssignmentType type) {
+                                              AssignmentType type) {
     // TODO: refactor this
     if (!var->is_enum())
         throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
@@ -89,7 +129,7 @@ std::shared_ptr<AssignStmt> EnumPort::assign_(const std::shared_ptr<Var>& var,
         if (p->enum_def()->name != enum_type_->name)
             throw VarException("Cannot assign different enum type", {this, var.get()});
     } else {
-        auto *p = dynamic_cast<EnumType*>(var.get());
+        auto* p = dynamic_cast<EnumType*>(var.get());
         if (!p) throw InternalException("Unable to obtain enum definition");
         if (!p->enum_type())
             throw VarException(::format("Cannot obtain enum information from var ({0}). "
@@ -127,7 +167,7 @@ PackedSlice& PortPackedStruct::operator[](const std::string& member_name) {
 
 std::set<std::string> PortPackedStruct::member_names() const {
     std::set<std::string> result;
-    for (const auto & def : struct_.attributes) {
+    for (const auto& def : struct_.attributes) {
         result.emplace(std::get<0>(def));
     }
     return result;
@@ -208,8 +248,8 @@ std::string InterfacePort::to_string() const {
 std::string InterfacePort::base_name() const { return interface_->base_name(); }
 
 ModportPort::ModportPort(InterfaceRef* ref, kratos::Var* var, kratos::PortDirection dir)
-    : InterfacePort(ref, var->generator(), dir, var->name, var->width(), var->size(), PortType::Data,
-                    var->is_signed()),
+    : InterfacePort(ref, var->generator(), dir, var->name, var->width(), var->size(),
+                    PortType::Data, var->is_signed()),
       var_(var) {
     explicit_array_ = var->explicit_array();
 }
