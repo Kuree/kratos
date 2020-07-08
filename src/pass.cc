@@ -505,18 +505,14 @@ void create_interface_instantiation(Generator* top) {
 class UniqueGeneratorVisitor : public IRVisitor {
 private:
     std::map<std::string, Generator*> generator_map_;
-    std::mutex lock_;
 
 public:
     void visit(Generator* generator) override {
-        lock_.lock();
         if (generator_map_.find(generator->name) != generator_map_.end()) {
-            lock_.unlock();
             return;
         }
         // a unique one
         if (!generator->external()) generator_map_.emplace(generator->name, generator);
-        lock_.unlock();
     }
     const std::map<std::string, Generator*>& generator_map() const { return generator_map_; };
 };
@@ -527,7 +523,7 @@ std::map<std::string, std::string> generate_verilog(Generator* top) {
     // first get all the unique generators
     UniqueGeneratorVisitor unique_visitor;
     // this can be parallelized
-    unique_visitor.visit_generator_root_p(top);
+    unique_visitor.visit_generator_root(top);
     auto const& generator_map = unique_visitor.generator_map();
     for (const auto & [module_name, module_gen] : generator_map) {
         SystemVerilogCodeGen codegen(module_gen);
