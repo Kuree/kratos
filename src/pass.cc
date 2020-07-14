@@ -750,6 +750,8 @@ private:
                 var = var->cast(VarCastType::Clock).get();
             } else if (port->port_type() == PortType::AsyncReset) {
                 var = var->cast(VarCastType::AsyncReset).get();
+            } else if (port->port_type() == PortType::Reset) {
+                var = var->cast(VarCastType::Reset).get();
             }
             if (parent->debug) {
                 // need to copy over the changes over

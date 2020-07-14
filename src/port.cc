@@ -50,6 +50,8 @@ std::shared_ptr<AssignStmt> Port::assign_(const std::shared_ptr<Var>& var,
             auto cast_type = casted->cast_type();
             if (cast_type == VarCastType::AsyncReset && port_type() == PortType::AsyncReset)
                 allowed = true;  // NOLINT
+            if (cast_type == VarCastType::Reset && port_type() == PortType::Reset)
+                allowed = true;  // NOLINT
             else if (cast_type == VarCastType::Clock && port_type() == PortType::Clock)
                 allowed = true;  // NOLINT
             else if (cast_type == VarCastType::ClockEnable && port_type() == PortType::ClockEnable)
