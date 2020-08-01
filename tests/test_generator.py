@@ -1861,5 +1861,14 @@ def test_attribute_lookup():
     assert result[0] == attr
 
 
+def test_param_set_value_instance():
+    child = Generator("child")
+    parent = Generator("parent")
+    child.parameter("P", 32, 0)
+    parent.add_child("inst", child, P=3)
+    src = verilog(parent, optimize_passthrough=False)["parent"]
+    assert "child #(\n  .P(32'h3)) inst()" in src
+
+
 if __name__ == "__main__":
-    test_attribute_lookup()
+    test_param_set_value_instance()

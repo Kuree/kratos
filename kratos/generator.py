@@ -186,6 +186,9 @@ class ParamProxy:
     def __getattr__(self, key):
         return self[key]
 
+    def __contains__(self, item):
+        return self.__generator.internal_generator.get_param(item) is not None
+
 
 class VarProxy:
     def __init__(self, generator):
@@ -744,6 +747,10 @@ class Generator(metaclass=GeneratorMeta):
 
         # bulk wiring
         for child_port, parent_port in kargs.items():
+            # it can be parameter as well
+            if child_port in generator.params:
+                generator.params[child_port].value = parent_port
+                continue
             if isinstance(parent_port, str):
                 if parent_port in self.ports:
                     parent_port = self.ports[parent_port]
