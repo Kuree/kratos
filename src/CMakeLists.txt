@@ -10,7 +10,11 @@ target_include_directories(kratos PUBLIC ../extern/fmt/include ../extern/cxxpool
 if (WIN32 OR MINGW OR APPLE)
    target_link_libraries(kratos fmt sqlite3)
 else()
-    target_link_libraries(kratos fmt sqlite3 stdc++fs)
+    if (${INCLUDE_FILESYSTEM})
+        target_link_libraries(kratos fmt sqlite3 stdc++fs)
+    else()
+        target_link_libraries(kratos fmt sqlite3)
+    endif()
 endif()
 
 if (APPLE)
