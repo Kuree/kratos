@@ -291,7 +291,8 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
 void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
     const auto& params = generator->get_params();
     if (!params.empty()) {
-        stream_ << "#(parameter ";
+        stream_ << "#(" << stream_.endl();
+        indent_++;
         uint32_t count = 0;
         for (auto const& [name, param] : params) {
             std::string value_str;
@@ -302,10 +303,14 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
             } else {
                 value_str = param->value_str();
             }
-            stream_ << ::format("{0} = {1}", name, value_str);
-            if (++count < params.size()) stream_ << ", ";
+            stream_ << indent() << ::format("parameter {0} = {1}", name, value_str);
+            if (++count < params.size()) {
+                stream_ << ", ";
+            }
+            stream_ << indent() << stream_.endl();
         }
         stream_ << ")" << stream_.endl();
+        indent_--;
     }
 }
 
