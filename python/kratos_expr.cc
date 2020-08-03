@@ -386,7 +386,7 @@ void init_expr(py::module &m) {
 
     auto port = py::class_<Port, ::shared_ptr<Port>, Var>(m, "Port");
     port.def_property_readonly("port_direction", &Port::port_direction)
-        .def_property_readonly("port_type", &Port::port_type)
+        .def_property("port_type", &Port::port_type, &Port::set_port_type)
         .def("connected_to", &Port::connected_to)
         .def("connected_from", &Port::connected_from)
         .def_property("active_high", &Port::active_high, &Port::set_active_high);
