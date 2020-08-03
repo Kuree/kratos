@@ -1909,5 +1909,14 @@ def test_param_initial_codegen():
     assert "child2 inst()" in src
 
 
+def test_port_from_def():
+    mod1 = Generator("mod1")
+    p1 = mod1.input("p", 4)
+    mod2 = Generator("mod2")
+    p2 = mod2.port_from_def(p1)
+    assert str(p1) == str(p2)
+    assert p1.width == p2.width
+
+
 if __name__ == "__main__":
-    test_param_initial_codegen()
+    test_port_from_def()

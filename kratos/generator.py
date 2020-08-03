@@ -431,6 +431,9 @@ class Generator(metaclass=GeneratorMeta):
         p.explicit_array = explicit_array
         return p
 
+    def port_from_def(self, port: _kratos.Port):
+        return self.__generator.port(port)
+
     def input(self, name, width: Union[int, _kratos.Param, _kratos.Enum],
               port_type: PortType = PortType.Data,
               is_signed: bool = False, size: Union[int, Union[List, Tuple]] = 1,
