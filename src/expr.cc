@@ -580,7 +580,7 @@ void Expr::set_parent() {
         auto *right_gen = right->generator();
         if (left_gen == Const::const_gen()) {
             generator_ = right_gen;
-        } else if (right_gen == Const::const_gen()) {
+        } else if (right_gen == Const::const_gen() || !right_gen) {
             generator_ = left_gen;
         } else if (left_gen == right_gen) {
             generator_ = left->generator();
