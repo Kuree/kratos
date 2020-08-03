@@ -172,6 +172,9 @@ class PortProxy:
     def __contains__(self, key):
         return self.__generator.internal_generator.has_port(key)
 
+    def __iter__(self):
+        return self.__generator.internal_generator.ports_iter()
+
 
 class ParamProxy:
     def __init__(self, generator: "Generator"):
@@ -189,6 +192,9 @@ class ParamProxy:
     def __contains__(self, item):
         return self.__generator.internal_generator.get_param(item) is not None
 
+    def __iter__(self):
+        return self.__generator.internal_generator.param_iter()
+
 
 class VarProxy:
     def __init__(self, generator):
@@ -205,6 +211,9 @@ class VarProxy:
 
     def __contains__(self, key):
         return self.__generator.has_var(key)
+
+    def __iter__(self):
+        return self.__generator.vars_iter()
 
 
 class InterfaceProxy:

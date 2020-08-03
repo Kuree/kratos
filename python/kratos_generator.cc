@@ -192,11 +192,12 @@ void init_generator(py::module &m) {
         .def("__contains__",
              py::overload_cast<const std::shared_ptr<Generator> &>(&Generator::has_child_generator))
         .def("add_attribute", &Generator::add_attribute)
-        .def("add_attribute", [](Generator &generator, const std::string &value) {
-            auto attr = std::make_shared<Attribute>();
-            attr->value_str = value;
-            generator.add_attribute(attr);
-        })
+        .def("add_attribute",
+             [](Generator &generator, const std::string &value) {
+                 auto attr = std::make_shared<Attribute>();
+                 attr->value_str = value;
+                 generator.add_attribute(attr);
+             })
         .def("replace", py::overload_cast<const std::string &, const std::shared_ptr<Generator> &>(
                             &Generator::replace))
         .def("replace",
@@ -241,6 +242,18 @@ void init_generator(py::module &m) {
         .def("handle_name", [](const Generator &generator) { return generator.handle_name(); })
         .def("handle_name", [](const Generator &generator,
                                bool ignore_top) { return generator.handle_name(ignore_top); })
+        .def("ports_iter",
+             [](const Generator &generator) {
+                 return py::make_iterator(generator.get_port_names());
+             })
+        .def("vars_iter",
+             [](const Generator &generator) {
+                 return py::make_iterator(generator.vars());
+             })
+        .def("param_iter",
+             [](const Generator &generator) {
+                 return py::make_iterator(generator.get_params());
+             }, py::return_value_policy::reference)
         .def("parent_generator",
              [](const Generator &generator) { return generator.parent_generator(); })
         .def_readwrite("verilog_fn", &Generator::verilog_fn);

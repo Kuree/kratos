@@ -1870,5 +1870,28 @@ def test_param_set_value_instance():
     assert "child #(\n  .P(32'h3)) inst()" in src
 
 
+def test_ports_vars_iter():
+    mod = Generator("mod")
+    mod.input("a", 1)
+    mod.var("b", 1)
+    mod.output("c", 1)
+    mod.parameter("P1", 1)
+    mod.parameter("P2", 1)
+    ports = set()
+    for port_name in mod.ports:
+        ports.add(port_name)
+    assert len(ports) == 2
+    assert "a" in ports
+    assert "c" in ports
+    vs = set()
+    for var_name, _ in mod.vars:
+        vs.add(var_name)
+    assert len(vs) == 3
+    params = set()
+    for param_name in mod.params:
+        params.add(param_name)
+    assert len(params) == 2
+
+
 if __name__ == "__main__":
-    test_param_set_value_instance()
+    test_ports_vars_iter()
