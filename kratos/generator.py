@@ -515,10 +515,12 @@ class Generator(metaclass=GeneratorMeta):
             return self.__generator.add_bundle_port_def(bundle_name,
                                                         bundle.definition)
 
-    def parameter(self, name: str, width: int, default_value=0,
-                  is_signed: bool = False) -> _kratos.Param:
+    def parameter(self, name: str, width: int, value=0,
+                  is_signed: bool = False, initial_value=None) -> _kratos.Param:
         param = self.__generator.parameter(name, width, is_signed)
-        param.value = default_value
+        param.value = value
+        if initial_value is not None:
+            param.initial_value = initial_value
         if self.debug:
             fn, ln = get_fn_ln()
             param.add_fn_ln((fn, ln))

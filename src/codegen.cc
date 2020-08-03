@@ -294,7 +294,15 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
         stream_ << "#(parameter ";
         uint32_t count = 0;
         for (auto const& [name, param] : params) {
-            stream_ << ::format("{0} = {1}", name, param->value_str());
+            std::string value_str;
+            if (param->get_initial_value()) {
+                auto value = *param->get_initial_value();
+                auto c = Const(value, param->width(), param->is_signed());
+                value_str = c.to_string();
+            } else {
+                value_str = param->value_str();
+            }
+            stream_ << ::format("{0} = {1}", name, value_str);
             if (++count < params.size()) stream_ << ", ";
         }
         stream_ << ")" << stream_.endl();
@@ -636,7 +644,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
         action = "cover";
     else
         return;
-    stream_ << indent() <<  action << " property (" << property->property_name() << ");"
+    stream_ << indent() << action << " property (" << property->property_name() << ");"
             << stream_.endl();
 }
 
@@ -693,10 +701,20 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
     stream_ << indent() << stmt->target()->name;
     const auto& params = stmt->target()->get_params();
     auto debug_info = stmt->port_debug();
-    if (!params.empty()) {
+
+    // pre-filter the parameters if the initial value is the same as the current value
+    std::unordered_map<std::string, Param*> params_;
+    for (auto const &[name, param]: params) {
+        if (param->get_initial_value() && (*param->get_initial_value()) == param->value()) {
+            continue;
+        }
+        params_.emplace(std::make_pair(name, param.get()));
+    }
+
+    if (!params_.empty()) {
         std::vector<std::string> param_names;
-        param_names.reserve(params.size());
-        for (auto const& iter : params) {
+        param_names.reserve(params_.size());
+        for (auto const& iter : params_) {
             param_names.emplace_back(iter.first);
         }
         std::sort(param_names.begin(), param_names.end());
@@ -705,7 +723,7 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
 
         uint32_t count = 0;
         for (auto const& name : param_names) {
-            auto const& param = params.at(name);
+            auto const& param = params_.at(name);
             auto value = param->value_str();
             if (param->parent_param()) {
                 const auto* p = param->parent_param();

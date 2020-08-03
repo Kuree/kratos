@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <optional>
 
 #include "context.hh"
 #include "ir.hh"
@@ -435,6 +436,8 @@ public:
     void add_param_var(Var *var) { param_vars_.emplace(var); }
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);
+    void set_initial_value(int64_t new_value) { initial_value_ = new_value; }
+    std::optional<int64_t> get_initial_value() const { return initial_value_; }
 
     const Param *parent_param() const { return parent_param_; }
 
@@ -444,6 +447,8 @@ private:
     std::unordered_set<Var *> param_vars_;
     std::unordered_set<Param *> param_params_;
     Param *parent_param_ = nullptr;
+
+    std::optional<int64_t> initial_value_;
 };
 
 struct PackedStruct {

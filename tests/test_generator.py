@@ -1893,5 +1893,21 @@ def test_ports_vars_iter():
     assert len(params) == 2
 
 
+def test_param_initial_codegen():
+    child1 = Generator("child1")
+    child1.parameter("P", 16, initial_value=5)
+    parent1 = Generator("parent1")
+    parent1.add_child("inst", child1, P=2)
+    src = verilog(parent1, optimize_passthrough=False)["parent1"]
+    assert ".P(16'h2)) inst();" in src
+
+    child2 = Generator("child2")
+    child2.parameter("P", 16, initial_value=5)
+    parent2 = Generator("parent2")
+    parent2.add_child("inst", child2, P=5)
+    src = verilog(parent2, optimize_passthrough=False)["parent2"]
+    assert "child2 inst()" in src
+
+
 if __name__ == "__main__":
-    test_ports_vars_iter()
+    test_param_initial_codegen()

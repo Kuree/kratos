@@ -425,7 +425,8 @@ void init_expr(py::module &m) {
                 param.fn_name_ln.emplace_back(*info);
             }
         }
-    });
+    })
+    .def_property("initial_value", &Param::get_initial_value, &Param::set_initial_value);
 
     auto port_packed =
         py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Var>(m, "PortPackedStruct");
