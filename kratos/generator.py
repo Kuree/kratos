@@ -150,7 +150,6 @@ def enum(name, definition, width=None):
             else:
                 defs[n] = len(defs)
         definition = defs
-        width = clog2(len(definition))
     if width is None:
         width = clog2(max_value(definition) + 1)
     return Generator.get_context().enum(name, definition, width)
