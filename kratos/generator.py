@@ -145,7 +145,10 @@ def enum(name, definition, width=None):
     if isinstance(definition, (list, tuple)):
         defs = {}
         for n in definition:
-            defs[n] = len(defs)
+            if isinstance(n, (list, tuple)):
+                defs[n[0]] = n[1]
+            else:
+                defs[n] = len(defs)
         definition = defs
         width = clog2(len(definition))
     if width is None:

@@ -1384,9 +1384,16 @@ def test_exception(check_gold):
 def test_enum_port(check_gold):
     from kratos import enum
     mod = Generator("mod")
-    enum = enum("State", ["IDLE", "WAIT", "WORK"])
-    in_ = mod.input("in", enum)
-    out = mod.output("out", enum)
+    enum_ = enum("State", ["IDLE", "WAIT", "WORK"])
+    in_ = mod.input("in", enum_)
+    out = mod.output("out", enum_)
+    mod.wire(out, in_)
+    check_gold(mod, "test_enum_port")
+    Generator.clear_context()
+    mod = Generator("mod")
+    enum_ = enum("State", [("IDLE", 0), ("WAIT", 1), ("WORK", 2)])
+    in_ = mod.input("in", enum_)
+    out = mod.output("out", enum_)
     mod.wire(out, in_)
     check_gold(mod, "test_enum_port")
 
