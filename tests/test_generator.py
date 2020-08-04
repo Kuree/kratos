@@ -1918,5 +1918,12 @@ def test_port_from_def():
     assert p1.width == p2.width
 
 
+def test_raw_import():
+    mod = Generator("mod")
+    mod.internal_generator.add_raw_import("pkg_name")
+    src = verilog(mod, optimize_passthrough=False)["mod"]
+    assert "module mod \n  import pkg_name::*;\n(\n);\n\nendmodul" in src
+
+
 if __name__ == "__main__":
-    test_port_from_def()
+    test_raw_import()

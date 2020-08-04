@@ -197,6 +197,7 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     }
     if (generator->debug) generator->verilog_ln = stream_.line_no();
     stream_ << ::format("module {0} ", generator->name);
+    generate_module_package_import(generator);
     generate_parameters(generator);
     stream_ << indent() << "(" << stream_.endl();
     generate_ports(generator);
@@ -211,6 +212,17 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     }
 
     stream_ << ::format("endmodule   // {0}", generator->name) << stream_.endl();
+}
+
+void SystemVerilogCodeGen::generate_module_package_import(Generator *generator) {
+    auto const &raw_import = generator->raw_package_imports();
+    if (raw_import.empty()) return;
+    stream_ << stream_.endl();
+    indent_++;
+    for (auto const &pkg_name: raw_import) {
+        stream_ << indent() << "import " << pkg_name << "::*;" << stream_.endl();
+    }
+    indent_--;
 }
 
 std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {
@@ -709,8 +721,9 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
 
     // pre-filter the parameters if the initial value is the same as the current value
     std::unordered_map<std::string, Param*> params_;
-    for (auto const &[name, param]: params) {
-        if (param->get_initial_value() && (*param->get_initial_value()) == param->value()) {
+    for (auto const& [name, param] : params) {
+        if (!param->parent_param() && param->get_initial_value() &&
+            (*param->get_initial_value()) == param->value()) {
             continue;
         }
         params_.emplace(std::make_pair(name, param.get()));

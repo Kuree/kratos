@@ -143,6 +143,9 @@ protected:
     // the actual code gen part
     void output_module_def(Generator* generator);
 
+    // raw package imports
+    void generate_module_package_import(Generator* generator);
+
     // code gen port interface
     void generate_port_interface(InstantiationStmt* stmt);
     void generate_interface(Generator* generator);

@@ -235,6 +235,10 @@ public:
     const std::map<std::string, std::shared_ptr<InterfaceRef>> &interfaces() const {
         return interfaces_;
     }
+    void add_raw_import(const std::string &pkg_name) { raw_package_imports_.emplace(pkg_name); }
+    const std::unordered_set<std::string> &raw_package_imports() const {
+        return raw_package_imports_;
+    }
 
     // used for to find out which verilog file it generates to
     std::string verilog_fn;
@@ -288,6 +292,9 @@ private:
     std::map<std::string, std::shared_ptr<InterfaceRef>> interfaces_;
     // properties
     std::map<std::string, std::shared_ptr<Property>> properties_;
+
+    // raw imports. only used when interfacing foreign IPs
+    std::unordered_set<std::string> raw_package_imports_;
 };
 
 }  // namespace kratos

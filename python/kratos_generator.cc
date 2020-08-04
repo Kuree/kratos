@@ -254,6 +254,8 @@ void init_generator(py::module &m) {
              [](const Generator &generator) {
                  return py::make_iterator(generator.get_params());
              }, py::return_value_policy::reference)
+        .def("add_raw_import", &Generator::add_raw_import)
+        .def_property_readonly("raw_package_imports", &Generator::raw_package_imports)
         .def("parent_generator",
              [](const Generator &generator) { return generator.parent_generator(); })
         .def_readwrite("verilog_fn", &Generator::verilog_fn);
