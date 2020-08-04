@@ -1922,8 +1922,22 @@ def test_raw_import():
     mod = Generator("mod")
     mod.internal_generator.add_raw_import("pkg_name")
     src = verilog(mod, optimize_passthrough=False)["mod"]
-    assert "module mod \n  import pkg_name::*;\n(\n);\n\nendmodul" in src
+    assert "module mod \n  import pkg_name::*;\n(\n);\n\nendmodule" in src
+
+
+def test_generator_port_connected():
+    child = Generator("child")
+    parent = Generator("parent")
+    in1 = parent.var("a", 1)
+    in2 = child.input("a", 1)
+    out1 = parent.output("b", 1)
+    out2 = child.output("b", 1)
+    un_c = child.input("c", 1)
+    parent.add_child("inst", child, a=in1, b=out1)
+    assert in2.connected()
+    assert out2.connected()
+    assert not un_c.connected()
 
 
 if __name__ == "__main__":
-    test_raw_import()
+    test_generator_port_connected()

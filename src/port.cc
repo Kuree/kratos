@@ -99,6 +99,14 @@ std::unordered_set<std::shared_ptr<Port>> Port::connected_from() const {
     return result;
 }
 
+bool Port::connected() const {
+    if (port_direction() == PortDirection::In) {
+        return !sources().empty();
+    } else {
+        return !sinks().empty();
+    }
+}
+
 std::unordered_set<std::shared_ptr<Port>> Port::connected_to() const {
     std::unordered_set<std::shared_ptr<Port>> result;
     if (direction_ == PortDirection::In) return result;

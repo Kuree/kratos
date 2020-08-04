@@ -389,6 +389,7 @@ void init_expr(py::module &m) {
         .def_property("port_type", &Port::port_type, &Port::set_port_type)
         .def("connected_to", &Port::connected_to)
         .def("connected_from", &Port::connected_from)
+        .def("connected", &Port::connected)
         .def_property("active_high", &Port::active_high, &Port::set_active_high);
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");

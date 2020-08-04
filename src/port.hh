@@ -42,6 +42,9 @@ public:
     [[nodiscard]] std::unordered_set<std::shared_ptr<Port>> connected_to() const;
     [[nodiscard]] std::unordered_set<std::shared_ptr<Port>> connected_from() const;
 
+    [[nodiscard]]
+    bool connected() const;
+
 protected:
     std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
                                         AssignmentType type) override;
