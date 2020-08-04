@@ -1176,8 +1176,6 @@ private:
         if_stmts.emplace_back(if_);
         if (if_->else_body()->empty()) {
             return true;
-        } else if (if_->then_body()->size() > 1) {
-            return if_stmts.size() > 1;
         } else {
             return has_target_if((*if_->else_body())[0].get(), var, if_stmts);
         }
