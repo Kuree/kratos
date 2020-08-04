@@ -41,7 +41,7 @@ class SinglePortSRAM(Generator):
 
     @property
     def chip_enable(self):
-        return self.sram.__chip_enable
+        return self.sram.chip_enable
 
     @property
     def write_enable(self):
