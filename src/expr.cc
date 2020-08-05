@@ -952,6 +952,9 @@ void Param::set_value(const std::shared_ptr<Param> &param) {
     param->param_params_.emplace(this);
     parent_param_ = param.get();
     param_type_ = ParamType::Parameter;
+
+    // update the values
+    set_value(param->value());
 }
 
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {

@@ -1562,3 +1562,33 @@ TEST(codegen, param_size_single_module) { // NOLINT
     EXPECT_NE(mod_src.find("input logic [4:0] in [(P * 5'h2)-1:0]"), std::string::npos);
     EXPECT_NE(mod_src.find("input logic [5:0] in2 [2:0][P-1:0]"), std::string::npos);
 }
+
+TEST(codegen, param_size_nested_module) {   // NOLINT
+    Context c;
+    auto &child = c.generator("child");
+    auto &c_p = child.parameter("P_C", 32);
+    // c_p has to have value
+    c_p.set_value(1);
+    auto &c_in = child.port(PortDirection::In, "in", 16, 32);
+    c_in.set_size_param(0, &c_p);
+
+    auto &parent = c.generator("parent");
+    auto &p_p = parent.parameter("P", 32);
+    auto &p_in = parent.port(PortDirection::In, "in", 16, 32);
+    p_p.set_value(2);
+    p_in.set_size_param(0, &p_p);
+
+    parent.add_child_generator("inst", child);
+    c_p.set_value(p_p.as<Param>());
+    parent.add_stmt(c_in.assign(p_in));
+
+    verify_assignments(&parent);
+    verify_generator_connectivity(&parent);
+    create_module_instantiation(&parent);
+
+    auto src = generate_verilog(&parent);
+    auto mod_src = src.at("parent");
+    EXPECT_NE(mod_src.find(".P_C(P))"), std::string::npos);
+    mod_src = src.at("child");
+    EXPECT_NE(mod_src.find("input logic [15:0] in [P_C-1:0]"), std::string::npos);
+}
