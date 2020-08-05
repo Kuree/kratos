@@ -18,7 +18,7 @@ can do
                                           ("data", 16, False)])
 
 To use it in your generator, you can pass the definition into the
-helper call ``[gen].port_packed()``. You can then use the name
+normal call ``[gen].input()`` or ``[gen].output``. You can then use the name
 to directly refer the members. For instance, to use the ``config_data``
 we defined above, we can do something like below, where we create
 a module to slice the ``"data"`` from the input port.
@@ -28,8 +28,8 @@ a module to slice the ``"data"`` from the input port.
     class Mod(Generator):
         def __init__(self):
             super().__init__("mod")
-            self.port_packed("in", PortDirection.In, struct)
-            self.port("out", 16, PortDirection.Out)
+            self.input("in", struct)
+            self.output("out", 16)
             self.wire(self.ports["out"], self.ports["in"]["data"])
 
 To generate the packed struct information, you can pass in

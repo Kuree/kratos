@@ -436,20 +436,25 @@ class Generator(metaclass=GeneratorMeta):
     def port_from_def(self, port: _kratos.Port):
         return self.__generator.port(port)
 
-    def input(self, name, width: Union[int, _kratos.Param, _kratos.Enum],
+    def input(self, name, width: Union[int, _kratos.Param, _kratos.Enum,
+                                       _kratos.PackedStruct],
               port_type: PortType = PortType.Data,
               is_signed: bool = False, size: Union[int, Union[List, Tuple]] = 1,
               packed: bool = False,
               explicit_array: bool = False) -> _kratos.Port:
         if isinstance(width, _kratos.Enum):
             p = self.__generator.port(PortDirection.In.value, name, width)
+        elif isinstance(width, _kratos.PackedStruct):
+            p = self.__generator.port_packed(PortDirection.In.value, name,
+                                             width)
         else:
             p = self.__generator.port(PortDirection.In.value, name, width, size,
                                       port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
-        p.is_packed = packed
-        p.explicit_array = explicit_array
+        if not isinstance(width, _kratos.PackedStruct):
+            p.is_packed = packed
+            p.explicit_array = explicit_array
         return p
 
     def clock(self, name, is_input=True):
@@ -479,29 +484,26 @@ class Generator(metaclass=GeneratorMeta):
             p.active_high = active_high
         return p
 
-    def output(self, name, width: Union[int, _kratos.Param],
+    def output(self, name, width: Union[int, _kratos.Param, _kratos.Enum,
+                                        _kratos.PackedStruct],
                port_type: PortType = PortType.Data,
                is_signed: bool = False,
                size: Union[int, Union[List, Tuple]] = 1, packed: bool = False,
                explicit_array: bool = False) -> _kratos.Port:
         if isinstance(width, _kratos.Enum):
             p = self.__generator.port(PortDirection.Out.value, name, width)
+        elif isinstance(width, _kratos.PackedStruct):
+            p = self.__generator.port_packed(PortDirection.Out.value, name,
+                                             width)
         else:
             p = self.__generator.port(PortDirection.Out.value, name, width,
                                       size,
                                       port_type.value, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
-        p.is_packed = packed
-        p.explicit_array = explicit_array
-        return p
-
-    def port_packed(self, name: str, direction: PortDirection,
-                    struct_packed: _kratos.PortPackedStruct):
-        p = self.__generator.port_packed(direction.value, name,
-                                         struct_packed)
-        if self.debug:
-            p.add_fn_ln(get_fn_ln())
+        if not isinstance(width, _kratos.PackedStruct):
+            p.is_packed = packed
+            p.explicit_array = explicit_array
         return p
 
     def var_packed(self, name: str, struct_packed: _kratos.PortPackedStruct):

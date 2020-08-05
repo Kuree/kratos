@@ -521,8 +521,8 @@ def test_packed_struct(check_gold, check_file):
     class Mod(Generator):
         def __init__(self, debug=False):
             super().__init__("mod", debug=debug)
-            self.port_packed("in", PortDirection.In, struct)
-            self.port_packed("out", PortDirection.Out, struct)
+            self.input("in", struct)
+            self.output("out", struct)
             v = self.var_packed("v", struct)
             self.wire(self.ports["out"], self.ports["in"])
             self.wire(v, self.ports["in"])
