@@ -64,6 +64,8 @@ enum class VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, Bas
 
 enum class VarCastType { Signed, Unsigned, Clock, AsyncReset, ClockEnable, Reset, Enum, Resize };
 
+enum class ParamType { Integral, Parameter, RawType };
+
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
     Var(Generator *m, const std::string &name, uint32_t var_width, uint32_t size, bool is_signed);
@@ -425,12 +427,14 @@ inline Const &constant(int64_t value, uint32_t width, bool is_signed = false) {
 struct Param : public Const {
 public:
     Param(Generator *m, std::string name, uint32_t width, bool is_signed);
+    // raw type. only used for interacting with imported modules
+    Param(Generator *m, std::string name);
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     std::string inline to_string() const override { return parameter_name_; }
 
-    std::string inline value_str() const { return Const::to_string(); }
+    std::string value_str() const;
 
     const std::unordered_set<Var *> &param_vars() const { return param_vars_; }
     void add_param_var(Var *var) { param_vars_.emplace(var); }
@@ -440,9 +444,11 @@ public:
     std::optional<int64_t> get_initial_value() const { return initial_value_; }
 
     const Param *parent_param() const { return parent_param_; }
+    ParamType param_type() const { return param_type_; }
 
 private:
     std::string parameter_name_;
+    ParamType param_type_ = ParamType::Integral;
 
     std::unordered_set<Var *> param_vars_;
     std::unordered_set<Param *> param_params_;

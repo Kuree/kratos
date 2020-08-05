@@ -1,5 +1,5 @@
 module child #(
-  parameter P2 = 4'h2  
+  parameter P2
 )
 (
   input logic [P2-1:0] in,
@@ -10,7 +10,7 @@ assign out = in;
 endmodule   // child
 
 module parent #(
-  parameter P = 4'h2  
+  parameter P = 4'h2
 )
 (
 );

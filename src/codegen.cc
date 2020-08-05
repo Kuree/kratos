@@ -214,12 +214,12 @@ void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output 
     stream_ << ::format("endmodule   // {0}", generator->name) << stream_.endl();
 }
 
-void SystemVerilogCodeGen::generate_module_package_import(Generator *generator) {
-    auto const &raw_import = generator->raw_package_imports();
+void SystemVerilogCodeGen::generate_module_package_import(Generator* generator) {
+    auto const& raw_import = generator->raw_package_imports();
     if (raw_import.empty()) return;
     stream_ << stream_.endl();
     indent_++;
-    for (auto const &pkg_name: raw_import) {
+    for (auto const& pkg_name : raw_import) {
         stream_ << indent() << "import " << pkg_name << "::*;" << stream_.endl();
     }
     indent_--;
@@ -312,14 +312,16 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
                 auto value = *param->get_initial_value();
                 auto c = Const(value, param->width(), param->is_signed());
                 value_str = c.to_string();
-            } else {
+            } else if (param->param_type() != ParamType::Parameter) {
                 value_str = param->value_str();
             }
-            stream_ << indent() << ::format("parameter {0} = {1}", name, value_str);
+            stream_ << indent()
+                    << (value_str.empty() ? ::format("parameter {0}", name)
+                                          : ::format("parameter {0} = {1}", name, value_str));
             if (++count < params.size()) {
-                stream_ << ", ";
+                stream_ << ",";
             }
-            stream_ << indent() << stream_.endl();
+            stream_ << stream_.endl();
         }
         stream_ << ")" << stream_.endl();
         indent_--;
@@ -753,7 +755,6 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
                                  stmt->generator_parent()->name),
                         {stmt, p_gen, p});
                 }
-                value = p->to_string();
             }
             stream_ << indent()
                     << ::format(

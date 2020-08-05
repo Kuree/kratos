@@ -1,6 +1,6 @@
 module mod #(
-  parameter P = 4'h4,   
-  parameter P2 = 4'h4  
+  parameter P = 4'h4,
+  parameter P2 = 4'h4
 )
 (
   input logic [P-1:0] in,

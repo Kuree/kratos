@@ -836,6 +836,13 @@ Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
     type_ = VarType::Parameter;
 }
 
+Param::Param(Generator *m, std::string name)
+    : Const(m, 0, 1, false), parameter_name_(std::move(name)) {
+    // override the type value
+    type_ = VarType::Parameter;
+    param_type_ = ParamType::RawType;
+}
+
 void Param::set_value(int64_t new_value) {
     if (new_value <= 0 && !param_vars_.empty()) {
         throw VarException(
@@ -856,9 +863,22 @@ void Param::set_value(int64_t new_value) {
     }
 }
 
+std::string Param::value_str() const {
+    if (param_type_ == ParamType::Integral) {
+        return Const::to_string();
+    } else if (param_type_ == ParamType::Parameter) {
+        const auto* p = parent_param();
+        return p->to_string();
+    } else {
+        // raw type
+        return name;
+    }
+}
+
 void Param::set_value(const std::shared_ptr<Param> &param) {
     param->param_params_.emplace(this);
     parent_param_ = param.get();
+    param_type_ = ParamType::Parameter;
 }
 
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
