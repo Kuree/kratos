@@ -204,6 +204,12 @@ public:
     inline void set_after_var_str_(const std::string &value) { after_var_str_ = value; }
     inline const std::string &after_var_str() const { return after_var_str_; }
 
+    // assign a particular parameter to parametrize the size at given dimension
+    // will do a sanity check to make sure that the changed size won't affect already existing
+    // slices
+    void set_size_param(uint32_t index, Var *param);
+    const std::unordered_map<uint32_t, Var*> &size_param() const { return size_param_; }
+
     Var(const Var &var) = delete;
     Var() = delete;
 
@@ -212,6 +218,7 @@ public:
 protected:
     uint32_t var_width_;
     std::vector<uint32_t> size_;
+    std::unordered_map<uint32_t, Var*> size_param_;
     bool is_signed_;
 
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
@@ -437,8 +444,9 @@ public:
 
     std::string value_str() const;
 
-    const std::unordered_set<Var *> &param_vars() const { return param_vars_; }
-    void add_param_var(Var *var) { param_vars_.emplace(var); }
+    void add_param_width_var(Var *var) { param_vars_width_.emplace(var); }
+    void add_param_size_var(Var *var, uint32_t index, Var* expr);
+
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);
     void set_initial_value(int64_t new_value) { initial_value_ = new_value; }
@@ -452,7 +460,8 @@ private:
     std::string parameter_name_;
     ParamType param_type_ = ParamType::Integral;
 
-    std::unordered_set<Var *> param_vars_;
+    std::unordered_set<Var *> param_vars_width_;
+    std::set<std::tuple<Var*, uint32_t, Var*>> param_vars_size_;
     std::unordered_set<Param *> param_params_;
     Param *parent_param_ = nullptr;
 

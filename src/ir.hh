@@ -84,7 +84,7 @@ public:
     virtual inline void visit(EnumVar *) {}
     virtual inline void visit(EnumConst *) {}
     virtual inline void visit(Const *) {}
-    virtual inline void visit(Parameter *) {}
+    virtual inline void visit(Param *) {}
     virtual inline void visit(FunctionCallVar *) {}
     virtual inline void visit(AssignStmt *) {}
     virtual inline void visit(ScopedStmtBlock *) {}

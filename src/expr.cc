@@ -280,10 +280,63 @@ void Var::set_width_param(kratos::Param *param) {
     }
     var_width_ = param->value();
     param_ = param;
-    param->add_param_var(this);
+    param->add_param_width_var(this);
 }
 
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
+
+class ParamVisitor : public IRVisitor {
+public:
+    void visit(Param *param) override { params_.emplace(param); }
+    const std::unordered_set<Param *> &params() const { return params_; }
+
+private:
+    std::unordered_set<Param *> params_;
+};
+
+void Var::set_size_param(uint32_t index, Var *param) {
+    if (type_ != VarType::Base && type_ != VarType::PortIO)
+        throw UserException(::format("{0} is not a variable or port", to_string()));
+    if (index >= size_.size())
+        throw UserException(::format("{0} does not have {1} dimension", to_string(), index));
+
+    // static evaluate the expression using built-in simulator
+    Simulator sim(nullptr);
+    auto result = sim.eval_expr(param);
+    // sanity check, no coverage
+    // LCOV_EXCL_START
+    if (!result || (*result).size() != 1)
+        throw UserException(::format("Unable to static elaborate value {0}", param->to_string()));
+    auto new_dim_size_i = static_cast<int64_t>((*result)[0]);
+    if (new_dim_size_i <= 0)
+        throw UserException(::format("Unable to static elaborate value {0}", param->to_string()));
+    auto new_dim_size = static_cast<uint64_t>(new_dim_size_i);
+    // LCOV_EXCL_STOP
+    for (auto const &slice : slices_) {
+        if (!slice->sliced_by_var()) {
+            auto slice_index = slice->get_slice_index();
+            if (slice_index.size() > index) {
+                auto [high, low] = slice_index[new_dim_size];
+                if (high >= new_dim_size || low >= new_dim_size)
+                    throw VarException(
+                        ::format("Unable to parameterize dim {0} due to usage of {1}", index,
+                                 slice->to_string()),
+                        {slice.get(), this});
+            }
+        }
+    }
+    // all good. now we need to resize the index
+    size_[index] = new_dim_size;
+    size_param_[index] = param;
+
+    // get all the parameters
+    ParamVisitor visitor;
+    visitor.visit_root(param);
+    auto const &params = visitor.params();
+    for (const auto &p : params) {
+        p->add_param_size_var(this, index, param);
+    }
+}
 
 uint32_t num_size_decrease(Var *var) {
     if (var->type() == VarType::Slice) {
@@ -851,7 +904,7 @@ Param::Param(Generator *m, std::string name, Enum *enum_def)
 }
 
 void Param::set_value(int64_t new_value) {
-    if (new_value <= 0 && !param_vars_.empty()) {
+    if (new_value <= 0 && !param_vars_width_.empty()) {
         throw VarException(
             ::format(
                 "{0} is used for parametrizing variable width, thus cannot be non-positive ({1})",
@@ -861,11 +914,16 @@ void Param::set_value(int64_t new_value) {
     Const::set_value(new_value);
 
     // change the width of parametrized variables
-    for (auto &var : param_vars_) {
+    for (const auto &var : param_vars_width_) {
         var->var_width() = new_value;
     }
+    // change the size as well
+    for (const auto &[var, index, expr] : param_vars_size_) {
+        var->set_size_param(index, expr);
+    }
+
     // change the entire chain
-    for (auto &param : param_params_) {
+    for (const auto &param : param_params_) {
         param->set_value(new_value);
     }
 }
@@ -880,6 +938,10 @@ std::string Param::value_str() const {
         // raw type
         return name;
     }
+}
+
+void Param::add_param_size_var(Var *var, uint32_t index, Var *expr) {
+    param_vars_size_.emplace(std::make_tuple(var, index, expr));
 }
 
 void Param::set_value(const std::shared_ptr<Param> &param) {
