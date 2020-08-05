@@ -5,6 +5,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.30] - 2020-08-05
+### Added
+- Add helper functions to get connected ports
+- Add async reset cast
+- Add ability to specify parameter value when adding child generator
+- Add iter support in port/var/param proxy (Python)
+- Add parameter initial value
+- Allow port types to be change during runtime in Python
+- Add port creation with another port's definition in Python
+- Add uart examples
+- Add support for raw package import and raw parameter type
+- Add helper function to tell if the port is connected or not
+- Allow variable size to be parametrized by param
+- Add pow op
+
+### Changed
+- Relax if to case restrictions
+- Adjust param codegen
+- Sort port by directions as well (grouping inputs and outputs)
+
+### Fixed
+- Fix stdfs linking if filesystem not found
+- Fix complex expression with const generator
+- Fix type in sram generator (#150)
+- Fix value update in param chaining
+
 ## [0.0.29] - 2020-05-06
 ### Added
 - More SVA actions, such as `cover`
