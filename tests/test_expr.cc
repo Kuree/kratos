@@ -73,6 +73,12 @@ TEST(expr, arith) {  // NOLINT
     EXPECT_EQ(expr.to_string(), "a + a + b");
     expr = (var1 + var1) - var2;
     EXPECT_EQ(expr.to_string(), "(a + a) - b");
+
+    // test power
+    auto &exp = mod.var("exp", 6);
+    auto &base = constant(2, 2);
+    expr = base.pow(exp);
+    EXPECT_EQ(expr.to_string(), "6'h2 ** exp");
 }
 
 TEST(expr, relational) {  // NOLINT

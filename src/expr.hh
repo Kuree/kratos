@@ -35,6 +35,7 @@ enum class ExprOp : uint64_t {
     Or,
     And,
     Xor,
+    Power,
     // logical
     LAnd,
     LOr,
@@ -122,6 +123,8 @@ public:
     virtual VarConcat &concat(Var &var);
     // extend
     virtual VarExtend &extend(uint32_t width);
+    // power
+    Expr &pow(const Var &var) const;
 
     std::shared_ptr<Var> cast(VarCastType cast_type);
 

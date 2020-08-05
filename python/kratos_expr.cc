@@ -300,6 +300,19 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
              [](const Var &) {
                  throw InvalidConversionException("Cannot convert a variable to bool");
              })
+        .def(
+            "__pow__", [](const Var &left, const Var &right) -> Expr & { return left.pow(right); },
+            py::return_value_policy::reference)
+        .def("__rpow__",
+             [](const Var &left, const int64_t &right) -> Expr & {
+                 return convert_int_to_const(left, right).pow(left);
+             }, py::return_value_policy::reference)
+        .def(
+            "__pow__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+              return left.pow(convert_int_to_const(left, right));
+            },
+            py::return_value_policy::reference)
         .def("r_or", &Var::r_or, py::return_value_policy::reference)
         .def("r_xor", &Var::r_xor, py::return_value_policy::reference)
         .def("r_not", &Var::r_not, py::return_value_policy::reference)
@@ -408,26 +421,28 @@ void init_expr(py::module &m) {
     auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
 
     auto param = py::class_<Param, ::shared_ptr<Param>, Var>(m, "Param");
-    param.def_property("value", &Param::value, [](Param &param, const py::object &value) {
-        // determine the type and cast
-        try {
-            auto v = value.cast<int64_t>();
-            param.set_value(v);
-        } catch (py::cast_error &) {
-            // try with param instead
-            // if it fail, a cast error will raise here
-            auto v = value.cast<const std::shared_ptr<Param>>();
-            param.set_value(v);
-        }
-        if (param.generator()->debug) {
-            // store the line change info
-            auto info = get_fn_ln(1);
-            if (info) {
-                param.fn_name_ln.emplace_back(*info);
-            }
-        }
-    })
-    .def_property("initial_value", &Param::get_initial_value, &Param::set_initial_value);
+    param
+        .def_property("value", &Param::value,
+                      [](Param &param, const py::object &value) {
+                          // determine the type and cast
+                          try {
+                              auto v = value.cast<int64_t>();
+                              param.set_value(v);
+                          } catch (py::cast_error &) {
+                              // try with param instead
+                              // if it fail, a cast error will raise here
+                              auto v = value.cast<const std::shared_ptr<Param>>();
+                              param.set_value(v);
+                          }
+                          if (param.generator()->debug) {
+                              // store the line change info
+                              auto info = get_fn_ln(1);
+                              if (info) {
+                                  param.fn_name_ln.emplace_back(*info);
+                              }
+                          }
+                      })
+        .def_property("initial_value", &Param::get_initial_value, &Param::set_initial_value);
 
     auto port_packed =
         py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Var>(m, "PortPackedStruct");

@@ -159,6 +159,10 @@ Expr &Var::operator||(const Var &var) const {
     return generator()->expr(ExprOp::LOr, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
+Expr &Var::pow(const Var &var) const {
+    return generator()->expr(ExprOp::Power, const_cast<Var *>(this), const_cast<Var *>(&var));
+}
+
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     auto const [high, low] = slice;
     if (low > high) {
@@ -1086,8 +1090,8 @@ std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle
                                  : scope    ? expr->handle_name(scope)
                                             : expr->to_string());
 
-    auto left = expr->left;
-    auto right = expr->right;
+    auto *left = expr->left;
+    auto *right = expr->right;
 
     auto left_str = left->type() == VarType::Expression
                         ? expr_to_string(left->as<Expr>().get(), expr->op == left->as<Expr>()->op,
@@ -1636,10 +1640,14 @@ bool safe_to_resize_(Simulator &sim, const Var *var, uint32_t target_size, bool 
                      std::queue<const IterVar *> &vars) {
     // notice it's exclusive for max
     if (vars.empty()) {
-        return true;
+        const auto *p = var->get_var_root_parent();
+        if (p->type() == VarType::Base || p->type() == VarType::PortIO)
+            return var->width() <= target_size;
+        else
+            return true;
     } else {
         // pop one
-        auto t = const_cast<IterVar *>(vars.front());
+        auto *t = const_cast<IterVar *>(vars.front());
         vars.pop();
         sim.set_i(t, t->min_value(), false);
         {
@@ -1700,15 +1708,15 @@ bool IterVar::has_iter_var(const Var *var) {
 
 void IterVar::fix_width(Var *&var, uint32_t target_width) {
     if (var && var->type() == VarType::Iter) {
-        auto iter = reinterpret_cast<IterVar *>(var);
+        auto *iter = reinterpret_cast<IterVar *>(var);
         auto casted = iter->cast(VarCastType::Resize)->as<VarCasted>();
         casted->set_target_width(target_width);
         var = casted.get();
     } else if (var && var->type() == VarType::ConstValue) {
-        auto c = reinterpret_cast<Const *>(var);
+        auto *c = reinterpret_cast<Const *>(var);
         c->set_width(target_width);
     } else if (var && var->type() == VarType::Expression) {
-        auto expr = reinterpret_cast<Expr *>(var);
+        auto *expr = reinterpret_cast<Expr *>(var);
         fix_width(expr->left, target_width);
         fix_width(expr->right, target_width);
     } else {

@@ -180,6 +180,13 @@ def test_resize():
     assert str(b) == "16'(a)"
 
 
+def test_power():
+    mod = Generator("mod")
+    a = mod.var("a", 5)
+    b = 2 ** a
+    assert str(b) == "5'h2 ** a"
+
+
 if __name__ == "__main__":
-    test_resize()
+    test_power()
 

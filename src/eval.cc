@@ -1,4 +1,5 @@
 #include "eval.hh"
+#include <cmath>
 
 namespace kratos {
 
@@ -76,27 +77,30 @@ uint64_t eval_bin_op(uint64_t left_value, uint64_t right_value, ExprOp op, uint3
         case ExprOp::Eq:
             result = left_value == right_value;
             break;
+        case ExprOp::Power:
+            result = static_cast<uint64_t>(std::pow(left_value, right_value));
+            break;
         case ExprOp::GreaterEqThan:
             result = left_abs_value >= right_abs_value;
-            result = left_negative && !right_negative
+            result = (left_negative && !right_negative)
                          ? false
                          : !left_negative && right_negative ? true : result ^ left_negative;
             break;
         case ExprOp::LessEqThan:
             result = left_abs_value <= right_abs_value;
-            result = left_negative && !right_negative
+            result = (left_negative && !right_negative)
                          ? true
                          : !left_negative && right_negative ? false : result ^ left_negative;
             break;
         case ExprOp::LessThan:
             result = left_abs_value < right_abs_value;
-            result = left_negative && !right_negative
+            result = (left_negative && !right_negative)
                          ? true
                          : !left_negative && right_negative ? false : result ^ left_negative;
             break;
         case ExprOp ::GreaterThan:
             result = left_abs_value > right_abs_value;
-            result = left_negative && !right_negative
+            result = (left_negative && !right_negative)
                          ? false
                          : !left_negative && right_negative ? true : result ^ left_negative;
             break;

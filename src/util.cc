@@ -76,6 +76,8 @@ std::string ExprOpStr(ExprOp op) {
             return "==";
         case ExprOp::Neq:
             return "!=";
+        case ExprOp::Power:
+            return "**";
         case ExprOp::Conditional:
             return ":";
         case ExprOp::Concat:
