@@ -837,10 +837,17 @@ Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
 }
 
 Param::Param(Generator *m, std::string name)
-    : Const(m, 0, 1, false), parameter_name_(std::move(name)) {
+    : Const(m, 0, 1, false), parameter_name_(std::move(name)), param_type_(ParamType::RawType) {
     // override the type value
     type_ = VarType::Parameter;
-    param_type_ = ParamType::RawType;
+}
+
+Param::Param(Generator *m, std::string name, Enum *enum_def)
+    : Const(m, 0, enum_def->width(), false),
+      parameter_name_(std::move(name)),
+      param_type_(ParamType::Enum),
+      enum_def_(enum_def) {
+    type_ = VarType::Parameter;
 }
 
 void Param::set_value(int64_t new_value) {
@@ -867,7 +874,7 @@ std::string Param::value_str() const {
     if (param_type_ == ParamType::Integral) {
         return Const::to_string();
     } else if (param_type_ == ParamType::Parameter) {
-        const auto* p = parent_param();
+        const auto *p = parent_param();
         return p->to_string();
     } else {
         // raw type
@@ -1010,10 +1017,12 @@ std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle
     // overloaded to_string methods?
     if (is_expand_op(expr->op))
         return use_handle ? expr->handle_name(ignore_top)
-                          : scope ? expr->handle_name(scope) : expr->to_string();
+               : scope    ? expr->handle_name(scope)
+                          : expr->to_string();
     if (expr->op == ExprOp::Conditional)
         return ::format("({0})", use_handle ? expr->handle_name(ignore_top)
-                                            : scope ? expr->handle_name(scope) : expr->to_string());
+                                 : scope    ? expr->handle_name(scope)
+                                            : expr->to_string());
 
     auto left = expr->left;
     auto right = expr->right;
@@ -1022,7 +1031,8 @@ std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle
                         ? expr_to_string(left->as<Expr>().get(), expr->op == left->as<Expr>()->op,
                                          use_handle, ignore_top, scope)
                         : (use_handle ? left->handle_name(ignore_top)
-                                      : scope ? left->handle_name(scope) : left->to_string());
+                           : scope    ? left->handle_name(scope)
+                                      : left->to_string());
 
     if (right != nullptr) {
         auto right_str =
@@ -1030,7 +1040,8 @@ std::string inline expr_to_string(const Expr *expr, bool is_top, bool use_handle
                 ? expr_to_string(right->as<Expr>().get(), expr->op == right->as<Expr>()->op,
                                  use_handle, ignore_top, scope)
                 : (use_handle ? right->handle_name(ignore_top)
-                              : scope ? right->handle_name(scope) : right->to_string());
+                   : scope    ? right->handle_name(scope)
+                              : right->to_string());
         if (is_top)
             return ::format("{0} {1} {2}", left_str, ExprOpStr(expr->op), right_str);
         else
@@ -1281,7 +1292,7 @@ void Var::move_linked_to(kratos::Var *new_var) {
     casted_.clear();
 }
 
-void Var::clear_sources(bool remove_parent) { // NOLINT
+void Var::clear_sources(bool remove_parent) {  // NOLINT
     if (remove_parent) {
         for (auto &stmt : sources_) {
             stmt->remove_from_parent();
@@ -1291,11 +1302,10 @@ void Var::clear_sources(bool remove_parent) { // NOLINT
     sources_.clear();
 }
 
-void Var::clear_sinks(bool remove_parent) { // NOLINT
+void Var::clear_sinks(bool remove_parent) {  // NOLINT
     if (remove_parent) {
         for (auto &stmt : sinks_) {
-            if (stmt->parent())
-                stmt->remove_from_parent();
+            if (stmt->parent()) stmt->remove_from_parent();
         }
     }
 
@@ -1641,7 +1651,7 @@ void IterVar::fix_width(Var *&var, uint32_t target_width) {
 }
 
 std::shared_ptr<AssignStmt> EnumVar::assign_(const std::shared_ptr<Var> &var,
-                                              kratos::AssignmentType type) {
+                                             kratos::AssignmentType type) {
     if (!var->is_enum())
         throw VarException("Cannot assign enum type to non enum type", {this, var.get()});
     if (var->type() == VarType::ConstValue) {

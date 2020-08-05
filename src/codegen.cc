@@ -307,17 +307,24 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
         indent_++;
         uint32_t count = 0;
         for (auto const& [name, param] : params) {
-            std::string value_str;
+            std::string value_str, type_str;
             if (param->get_initial_value()) {
                 auto value = *param->get_initial_value();
                 auto c = Const(value, param->width(), param->is_signed());
                 value_str = c.to_string();
+            } else if (param->param_type() == ParamType::RawType) {
+                value_str = param->value_str();
+                type_str = "type";
+            } else if (param->param_type() == ParamType::Enum) {
+                type_str = param->enum_def()->name;
             } else if (param->param_type() != ParamType::Parameter) {
                 value_str = param->value_str();
             }
+            std::string param_str =
+                type_str.empty() ? "parameter" : ::format("parameter {0}", type_str);
             stream_ << indent()
-                    << (value_str.empty() ? ::format("parameter {0}", name)
-                                          : ::format("parameter {0} = {1}", name, value_str));
+                    << (value_str.empty() ? ::format("{0} {1}", param_str, name)
+                                          : ::format("{0} {1} = {2}", param_str, name, value_str));
             if (++count < params.size()) {
                 stream_ << ",";
             }

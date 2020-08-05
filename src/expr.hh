@@ -64,7 +64,7 @@ enum class VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, Bas
 
 enum class VarCastType { Signed, Unsigned, Clock, AsyncReset, ClockEnable, Reset, Enum, Resize };
 
-enum class ParamType { Integral, Parameter, RawType };
+enum class ParamType { Integral, Parameter, Enum, RawType };
 
 struct Var : public std::enable_shared_from_this<Var>, public IRNode {
 public:
@@ -429,6 +429,7 @@ public:
     Param(Generator *m, std::string name, uint32_t width, bool is_signed);
     // raw type. only used for interacting with imported modules
     Param(Generator *m, std::string name);
+    Param(Generator *m, std::string name, Enum* enum_def);
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
@@ -445,6 +446,7 @@ public:
 
     const Param *parent_param() const { return parent_param_; }
     ParamType param_type() const { return param_type_; }
+    Enum *enum_def() const { return enum_def_; }
 
 private:
     std::string parameter_name_;
@@ -455,6 +457,7 @@ private:
     Param *parent_param_ = nullptr;
 
     std::optional<int64_t> initial_value_;
+    Enum *enum_def_ = nullptr;
 };
 
 struct PackedStruct {
