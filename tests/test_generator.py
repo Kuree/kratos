@@ -1964,5 +1964,23 @@ def test_port_type():
     assert "input color in_enum" in src
 
 
+def test_param_size(check_gold):
+    mod = Generator("mod")
+    width = mod.parameter("WIDTH", 16, 8)
+    addr_width = mod.parameter("ADDR_WIDTH", 16, 8)
+    data_in = mod.input("data_in", width)
+    addr = mod.input("addr", addr_width)
+    clk = mod.clock("clk")
+    mem = mod.var("data", width, size=2 ** addr_width)
+
+    @always_ff((posedge, clk))
+    def code():
+        mem[addr] = data_in
+
+    mod.add_always(code)
+
+    check_gold(mod, "test_param_size")
+
+
 if __name__ == "__main__":
     test_port_type()

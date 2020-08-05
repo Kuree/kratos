@@ -366,7 +366,8 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("handle_name",
              [](const Var &var, bool ignore_top) { return var.handle_name(ignore_top); })
         .def("handle_name", [](const Var &var, Generator *gen) { return var.handle_name(gen); })
-        .def("set_generator", &Var::set_generator);
+        .def("set_generator", &Var::set_generator)
+        .def("set_size_param", &Var::set_size_param);
 
     def_attributes<py::class_<Var, ::shared_ptr<Var>>, Var>(class_);
 }
