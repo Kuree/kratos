@@ -316,7 +316,7 @@ void Var::set_size_param(uint32_t index, Var *param) {
         if (!slice->sliced_by_var()) {
             auto slice_index = slice->get_slice_index();
             if (slice_index.size() > index) {
-                auto [high, low] = slice_index[new_dim_size];
+                auto [high, low] = slice_index[index];
                 if (high >= new_dim_size || low >= new_dim_size)
                     throw VarException(
                         ::format("Unable to parameterize dim {0} due to usage of {1}", index,

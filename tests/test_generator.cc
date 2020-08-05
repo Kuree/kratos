@@ -1537,3 +1537,24 @@ TEST(codegen, yosys_src) {  // NOLINT
     EXPECT_NE(mod_src.find("(* src = \"test.cc:1\" *)"), std::string::npos);
     EXPECT_NE(mod_src.find("(* src = \"test.cc:3\" *)"), std::string::npos);
 }
+
+TEST(codegen, param_size_single_module) { // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+
+    auto &param = mod.parameter("P", 5);
+    auto &in = mod.port(PortDirection::In, "in", 5, 3);
+    // create a slice
+    in[2];
+    // this should be an exception
+    EXPECT_THROW(in.set_size_param(1, &param), UserException);
+    param.set_value(1);
+    EXPECT_THROW(in.set_size_param(0, &param), VarException);
+
+    param.set_value(7);
+    EXPECT_NO_THROW(in.set_size_param(0, &param));
+
+    auto src = generate_verilog(&mod);
+    auto mod_src = src.at("mod");
+    EXPECT_NE(mod_src.find("input logic [4:0] in [P-1:0]"), std::string::npos);
+}
