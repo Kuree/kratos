@@ -3,8 +3,8 @@ module SRAM_MACRO (
   input logic CEB,
   input logic CLK,
   input logic [15:0] D,
-  output logic [15:0] Q,
-  input logic WEB
+  input logic WEB,
+  output logic [15:0] Q
 );
 
 logic [15:0] data_array [1023:0];

@@ -1,8 +1,8 @@
 module test (
   input logic clk,
   input logic in,
-  output logic out,
-  input logic rst
+  input logic rst,
+  output logic out
 );
 
 logic a;

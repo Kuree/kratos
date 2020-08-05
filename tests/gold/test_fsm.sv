@@ -1,8 +1,8 @@
 module mod (
   input logic clk,
   input logic [1:0] in,
-  output logic [1:0] out,
-  input logic rst
+  input logic rst,
+  output logic [1:0] out
 );
 
 typedef enum logic {

@@ -1,7 +1,7 @@
 module mod (
   input logic a,
-  output logic b,
-  input logic clk
+  input logic clk,
+  output logic b
 );
 
 logic a_tmp;

@@ -1,8 +1,8 @@
 module mod (
   input logic [3:0] in,
-  output logic [3:0] out,
   input logic [1:0] raddr,
-  input logic [1:0] warr
+  input logic [1:0] warr,
+  output logic [3:0] out
 );
 
 logic [3:0] reg_file [3:0];

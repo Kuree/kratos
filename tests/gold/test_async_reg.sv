@@ -1,8 +1,8 @@
 module register (
   input logic clk,
   input logic [15:0] in,
-  output logic [15:0] out,
-  input logic rst
+  input logic rst,
+  output logic [15:0] out
 );
 
 logic [15:0] val;

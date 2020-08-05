@@ -252,6 +252,16 @@ void SystemVerilogCodeGen::generate_ports(Generator* generator) {
     const auto& port_names_set = generator->get_port_names();
     std::vector<std::string> port_names(port_names_set.begin(), port_names_set.end());
     std::sort(port_names.begin(), port_names.end());
+    // sort again based on the input and output
+    // use stable sort to preserve the previous order
+    std::stable_sort(port_names.begin(), port_names.end(),
+                     [generator](const auto& lhs, const auto& rhs) {
+                         auto p_l = generator->get_port(lhs);
+                         auto p_r = generator->get_port(rhs);
+                         return p_l->port_direction() == PortDirection::In &&
+                                p_r->port_direction() == PortDirection::Out;
+                     });
+
     std::unordered_set<std::string> interface_name;
 
     std::vector<Port*> ports;
@@ -324,8 +334,7 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
             } else if (param->param_type() == ParamType::Enum) {
                 type_str = param->enum_def()->name;
             } else if (param->param_type() != ParamType::Parameter) {
-                if (param->has_value())
-                    value_str = param->value_str();
+                if (param->has_value()) value_str = param->value_str();
             }
             std::string param_str =
                 type_str.empty() ? "parameter" : ::format("parameter {0}", type_str);
@@ -956,6 +965,13 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
     for (auto const& iter : mapping) ports.emplace_back(iter);
     std::sort(ports.begin(), ports.end(),
               [](const auto& lhs, const auto& rhs) { return lhs.first->name < rhs.first->name; });
+    // sort again based on the input and output
+    // use stable sort to preserve the previous order
+    std::stable_sort(ports.begin(), ports.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.first->port_direction() == PortDirection::In &&
+               rhs.first->port_direction() == PortDirection::Out;
+    });
+
     auto debug_info = stmt->port_debug();
     std::unordered_map<std::string, std::string> interface_names;
     std::vector<std::pair<std::string, std::string>> connections;

@@ -3,8 +3,8 @@ module Memory (
   input logic CEB,
   input logic CLK,
   input logic [15:0] D,
-  output logic [15:0] Q,
-  input logic WEB
+  input logic WEB,
+  output logic [15:0] Q
 );
 
 logic [15:0] Q_array [5:0];
@@ -53,8 +53,8 @@ SRAM_MACRO SRAM_0 (
   .CEB(CEB),
   .CLK(CLK),
   .D(D),
-  .Q(SRAM_0_Q),
-  .WEB(SRAM_0_WEB)
+  .WEB(SRAM_0_WEB),
+  .Q(SRAM_0_Q)
 );
 
 SRAM_MACRO SRAM_1 (
@@ -62,8 +62,8 @@ SRAM_MACRO SRAM_1 (
   .CEB(CEB),
   .CLK(CLK),
   .D(D),
-  .Q(SRAM_1_Q),
-  .WEB(SRAM_1_WEB)
+  .WEB(SRAM_1_WEB),
+  .Q(SRAM_1_Q)
 );
 
 SRAM_MACRO SRAM_2 (
@@ -71,8 +71,8 @@ SRAM_MACRO SRAM_2 (
   .CEB(CEB),
   .CLK(CLK),
   .D(D),
-  .Q(SRAM_2_Q),
-  .WEB(SRAM_2_WEB)
+  .WEB(SRAM_2_WEB),
+  .Q(SRAM_2_Q)
 );
 
 SRAM_MACRO SRAM_3 (
@@ -80,8 +80,8 @@ SRAM_MACRO SRAM_3 (
   .CEB(CEB),
   .CLK(CLK),
   .D(D),
-  .Q(SRAM_3_Q),
-  .WEB(SRAM_3_WEB)
+  .WEB(SRAM_3_WEB),
+  .Q(SRAM_3_Q)
 );
 
 SRAM_MACRO SRAM_4 (
@@ -89,8 +89,8 @@ SRAM_MACRO SRAM_4 (
   .CEB(CEB),
   .CLK(CLK),
   .D(D),
-  .Q(SRAM_4_Q),
-  .WEB(SRAM_4_WEB)
+  .WEB(SRAM_4_WEB),
+  .Q(SRAM_4_Q)
 );
 
 SRAM_MACRO SRAM_5 (
@@ -98,8 +98,8 @@ SRAM_MACRO SRAM_5 (
   .CEB(CEB),
   .CLK(CLK),
   .D(D),
-  .Q(SRAM_5_Q),
-  .WEB(SRAM_5_WEB)
+  .WEB(SRAM_5_WEB),
+  .Q(SRAM_5_Q)
 );
 
 endmodule   // Memory
@@ -109,8 +109,8 @@ module SRAM_MACRO (
   input logic CEB,
   input logic CLK,
   input logic [15:0] D,
-  output logic [15:0] Q,
-  input logic WEB
+  input logic WEB,
+  output logic [15:0] Q
 );
 
 logic [15:0] data_array [1023:0];
