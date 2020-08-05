@@ -1,12 +1,12 @@
 #ifndef KRATOS_EXPR_HH
 #define KRATOS_EXPR_HH
 
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include <optional>
 
 #include "context.hh"
 #include "ir.hh"
@@ -208,7 +208,9 @@ public:
     // will do a sanity check to make sure that the changed size won't affect already existing
     // slices
     void set_size_param(uint32_t index, Var *param);
-    const std::unordered_map<uint32_t, Var*> &size_param() const { return size_param_; }
+    inline Var *get_size_param(uint32_t index) const {
+        return size_param_.find(index) == size_param_.end() ? nullptr : size_param_.at(index);
+    }
 
     Var(const Var &var) = delete;
     Var() = delete;
@@ -218,7 +220,7 @@ public:
 protected:
     uint32_t var_width_;
     std::vector<uint32_t> size_;
-    std::unordered_map<uint32_t, Var*> size_param_;
+    std::unordered_map<uint32_t, Var *> size_param_;
     bool is_signed_;
 
     std::unordered_set<std::shared_ptr<AssignStmt>> sinks_;
@@ -246,7 +248,7 @@ protected:
 
     // assign function
     virtual std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
-                                                 AssignmentType type);
+                                                AssignmentType type);
 
 private:
     std::set<std::shared_ptr<VarCasted>> casted_;
@@ -289,12 +291,8 @@ public:
     const std::unordered_set<std::shared_ptr<AssignStmt>> &sources() const override {
         return parent_var_->sources();
     };
-    void clear_sinks(bool remove_parent) override {
-        parent_var_->clear_sources(remove_parent);
-    }
-    void clear_sources(bool remove_parent) override {
-        parent_var_->clear_sinks(remove_parent);
-    }
+    void clear_sinks(bool remove_parent) override { parent_var_->clear_sources(remove_parent); }
+    void clear_sources(bool remove_parent) override { parent_var_->clear_sinks(remove_parent); }
     void remove_source(const std::shared_ptr<AssignStmt> &stmt) override {
         parent_var_->remove_source(stmt);
     }
@@ -310,7 +308,7 @@ public:
 
 protected:
     std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
-                                         AssignmentType type) override;
+                                        AssignmentType type) override;
 
 private:
     Var *parent_var_ = nullptr;
@@ -436,7 +434,7 @@ public:
     Param(Generator *m, std::string name, uint32_t width, bool is_signed);
     // raw type. only used for interacting with imported modules
     Param(Generator *m, std::string name);
-    Param(Generator *m, std::string name, Enum* enum_def);
+    Param(Generator *m, std::string name, Enum *enum_def);
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
@@ -445,7 +443,7 @@ public:
     std::string value_str() const;
 
     void add_param_width_var(Var *var) { param_vars_width_.emplace(var); }
-    void add_param_size_var(Var *var, uint32_t index, Var* expr);
+    void add_param_size_var(Var *var, uint32_t index, Var *expr);
 
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);
@@ -461,7 +459,7 @@ private:
     ParamType param_type_ = ParamType::Integral;
 
     std::unordered_set<Var *> param_vars_width_;
-    std::set<std::tuple<Var*, uint32_t, Var*>> param_vars_size_;
+    std::set<std::tuple<Var *, uint32_t, Var *>> param_vars_size_;
     std::unordered_set<Param *> param_params_;
     Param *parent_param_ = nullptr;
 
@@ -671,7 +669,7 @@ public:
 
 protected:
     std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
-                                         AssignmentType type) override;
+                                        AssignmentType type) override;
 
 private:
     Enum *enum_type_;

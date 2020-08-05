@@ -72,6 +72,7 @@ public:
     std::string static get_port_str(Port* port);
     static std::string get_var_width_str(const Var* var);
     static std::string get_width_str(uint32_t width);
+    static std::string get_width_str(Var *var);
     static std::string enum_code(Enum* enum_);
 
 private:

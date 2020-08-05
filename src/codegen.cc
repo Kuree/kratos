@@ -18,6 +18,8 @@ using fmt::format;
 
 namespace kratos {
 
+std::string get_var_size_str(Var* var);
+
 Stream::Stream(Generator* generator, SystemVerilogCodeGen* codegen)
     : generator_(generator), codegen_(codegen), line_no_(1) {}
 
@@ -112,18 +114,14 @@ std::string Stream::get_var_decl(kratos::Var* var) {
     if (var->size().front() > 1 || var->size().size() > 1 || var->explicit_array()) {
         // it's an array
         if (var->is_packed()) {
-            std::string array_str;
-            for (auto const& w : var->size())
-                array_str.append(SystemVerilogCodeGen::get_width_str(w));
+            std::string array_str = get_var_size_str(var);
             if (!var_width.empty()) array_str.append(var_width);
             str.emplace_back(array_str);
             str.emplace_back(var->name);
         } else {
             if (!var_width.empty()) str.emplace_back(var_width);
             str.emplace_back(var->name);
-            std::string array_str;
-            for (auto const& w : var->size())
-                array_str.append(SystemVerilogCodeGen::get_width_str(w));
+            std::string array_str = get_var_size_str(var);
             str.emplace_back(array_str);
         }
     } else {
@@ -237,6 +235,10 @@ std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {
 
 std::string SystemVerilogCodeGen::get_width_str(uint32_t width) {
     return ::format("[{0}:0]", width - 1);
+}
+
+std::string SystemVerilogCodeGen::get_width_str(Var* var) {
+    return ::format("[{0}-1:0]", var->to_string());
 }
 
 void SystemVerilogCodeGen::generate_ports(Generator* generator) {
@@ -856,6 +858,18 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
 
 void SystemVerilogCodeGen::stmt_code(LatchStmtBlock* stmt) { block_code("always_latch", stmt); }
 
+std::string get_var_size_str(Var* var) {
+    std::string str;
+    for (uint32_t i = 0; i < var->size().size(); i++) {
+        auto* p = var->get_size_param(i);
+        if (p)
+            str.append(SystemVerilogCodeGen::get_width_str(p));
+        else
+            str.append(SystemVerilogCodeGen::get_width_str(var->size()[i]));
+    }
+    return str;
+}
+
 std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     std::vector<std::string> strs;
     strs.reserve(8);
@@ -874,8 +888,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     if (port->is_signed()) strs.emplace_back("signed");
     if ((port->size().front() > 1 || port->size().size() > 1 || port->explicit_array()) &&
         port->is_packed()) {
-        std::string str;
-        for (auto const& w : port->size()) str.append(get_width_str(w));
+        auto str = get_var_size_str(port);
         strs.emplace_back(str);
     }
     if (!port->is_struct() && !port->is_enum()) {
@@ -886,8 +899,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
 
     if ((port->size().front() > 1 || port->size().size() > 1 || port->explicit_array()) &&
         !port->is_packed()) {
-        std::string str;
-        for (auto const& w : port->size()) str.append(get_width_str(w));
+        auto str = get_var_size_str(port);
         strs.emplace_back(str);
     }
     return string::join(strs.begin(), strs.end(), " ");
