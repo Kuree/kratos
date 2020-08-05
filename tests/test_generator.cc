@@ -1544,6 +1544,7 @@ TEST(codegen, param_size_single_module) { // NOLINT
 
     auto &param = mod.parameter("P", 5);
     auto &in = mod.port(PortDirection::In, "in", 5, 3);
+    auto &in2 = mod.port(PortDirection::In, "in2", 6, {3, 2});
     // create a slice
     in[2];
     // this should be an exception
@@ -1552,9 +1553,12 @@ TEST(codegen, param_size_single_module) { // NOLINT
     EXPECT_THROW(in.set_size_param(0, &param), VarException);
 
     param.set_value(7);
-    EXPECT_NO_THROW(in.set_size_param(0, &param));
+    auto &new_param = param * constant(2, 5);
+    EXPECT_NO_THROW(in.set_size_param(0, &new_param));
+    EXPECT_NO_THROW(in2.set_size_param(1, &param));
 
     auto src = generate_verilog(&mod);
     auto mod_src = src.at("mod");
-    EXPECT_NE(mod_src.find("input logic [4:0] in [P-1:0]"), std::string::npos);
+    EXPECT_NE(mod_src.find("input logic [4:0] in [(P * 5'h2)-1:0]"), std::string::npos);
+    EXPECT_NE(mod_src.find("input logic [5:0] in2 [2:0][P-1:0]"), std::string::npos);
 }

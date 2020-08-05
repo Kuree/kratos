@@ -238,7 +238,12 @@ std::string SystemVerilogCodeGen::get_width_str(uint32_t width) {
 }
 
 std::string SystemVerilogCodeGen::get_width_str(Var* var) {
-    return ::format("[{0}-1:0]", var->to_string());
+    std::string format;
+    if (var->type() == VarType::Parameter)
+        format = "[{0}-1:0]";
+    else
+        format = "[({0})-1:0]";
+    return ::format(format.c_str(), var->to_string());
 }
 
 void SystemVerilogCodeGen::generate_ports(Generator* generator) {
