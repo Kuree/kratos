@@ -313,7 +313,6 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
                 auto c = Const(value, param->width(), param->is_signed());
                 value_str = c.to_string();
             } else if (param->param_type() == ParamType::RawType) {
-                value_str = param->value_str();
                 type_str = "type";
             } else if (param->param_type() == ParamType::Enum) {
                 type_str = param->enum_def()->name;

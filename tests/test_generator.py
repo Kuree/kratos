@@ -1955,7 +1955,12 @@ def test_port_type():
     enum = kratos.enum("color", ["color", "green"])
     enum.external = True
     mod.input("in_enum", enum)
-    # check type
+    # raw types
+    mod.param("type_t", is_raw_type=True)
+    src = verilog(mod)["mod"]
+    assert "type type_t" in src
+    assert "input config in" in src
+    assert "input color in_enum" in src
 
 
 if __name__ == "__main__":

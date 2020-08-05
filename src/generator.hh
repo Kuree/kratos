@@ -53,6 +53,7 @@ public:
     PortPackedStruct &port_packed(PortDirection direction, const std::string &port_name,
                                   const PackedStruct &packed_struct_);
     VarPackedStruct &var_packed(const std::string &var_name, const PackedStruct &packed_struct_);
+    Param &parameter(const std::string &parameter_name);
     Param &parameter(const std::string &parameter_name, uint32_t width);
     Param &parameter(const std::string &parameter_name, uint32_t width, bool is_signed);
     Enum &enum_(const std::string &enum_name, const std::map<std::string, uint64_t> &definition,

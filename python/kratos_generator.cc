@@ -88,6 +88,8 @@ void init_generator(py::module &m) {
              py::return_value_policy::reference)
         .def("port", py::overload_cast<const Port &, const std::string &>(&Generator::port),
              py::return_value_policy::reference)
+        .def("parameter", py::overload_cast<const std::string &>(&Generator::parameter),
+             py::return_value_policy::reference)
         .def("parameter",
              py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
              py::return_value_policy::reference)
@@ -247,13 +249,11 @@ void init_generator(py::module &m) {
                  return py::make_iterator(generator.get_port_names());
              })
         .def("vars_iter",
-             [](const Generator &generator) {
-                 return py::make_iterator(generator.vars());
-             })
-        .def("param_iter",
-             [](const Generator &generator) {
-                 return py::make_iterator(generator.get_params());
-             }, py::return_value_policy::reference)
+             [](const Generator &generator) { return py::make_iterator(generator.vars()); })
+        .def(
+            "param_iter",
+            [](const Generator &generator) { return py::make_iterator(generator.get_params()); },
+            py::return_value_policy::reference)
         .def("add_raw_import", &Generator::add_raw_import)
         .def_property_readonly("raw_package_imports", &Generator::raw_package_imports)
         .def("parent_generator",

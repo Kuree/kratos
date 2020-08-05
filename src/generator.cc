@@ -171,6 +171,12 @@ Expr &Generator::expr(ExprOp op, Var *left, Var *right) {
     return *expr;
 }
 
+Param &Generator::parameter(const std::string &parameter_name) {
+    auto ptr = std::make_shared<Param>(this, parameter_name);
+    params_.emplace(parameter_name, ptr);
+    return *ptr;
+}
+
 Param &Generator::parameter(const std::string &parameter_name, uint32_t width) {
     return parameter(parameter_name, width, false);
 }
