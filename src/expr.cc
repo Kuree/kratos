@@ -1384,6 +1384,14 @@ PackedStruct::PackedStruct(std::string struct_name,
                            std::vector<std::tuple<std::string, uint32_t, bool>> attributes)
     : struct_name(std::move(struct_name)), attributes(std::move(attributes)) {}
 
+PackedStruct::PackedStruct(std::string struct_name,
+                           const std::vector<std::tuple<std::string, uint32_t>> &attributes)
+    : struct_name(std::move(struct_name)) {
+    for (auto const &[name, size] : attributes) {
+        this->attributes.emplace_back(std::make_tuple(name, size, false));
+    }
+}
+
 PackedSlice::PackedSlice(PortPackedStruct *parent, const std::string &member_name)
     : VarSlice(parent, 0, 0), member_name_(member_name) {
     auto const &struct_ = parent->packed_struct();

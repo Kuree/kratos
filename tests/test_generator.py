@@ -515,8 +515,8 @@ def test_clone():
 
 
 def test_packed_struct(check_gold, check_file):
-    struct = PackedStruct("config_data", [("read", 16, False),
-                                          ("data", 16, False)])
+    struct = PackedStruct("config_data", [("read", 16),
+                                          ("data", 16)])
 
     class Mod(Generator):
         def __init__(self, debug=False):
@@ -1946,5 +1946,17 @@ def test_generator_port_connected():
     assert not un_c.connected()
 
 
+def test_port_type():
+    mod = Generator("mod")
+    struct = PackedStruct("config", [("read", 16), ("write", 16)])
+    # make it external to test if we can skip the generation
+    struct.external = True
+    mod.input("in", struct)
+    enum = kratos.enum("color", ["color", "green"])
+    enum.external = True
+    mod.input("in_enum", enum)
+    # check type
+
+
 if __name__ == "__main__":
-    test_generator_port_connected()
+    test_port_type()

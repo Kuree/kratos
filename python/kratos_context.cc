@@ -27,5 +27,5 @@ void init_context(py::module &m) {
                context.clear_hash();
              })
         .def("enum", &Context::enum_, py::arg("enum_name"), py::arg("definition"),
-             py::arg("width"));
+             py::arg("width"), py::return_value_policy::reference);
 }

@@ -451,8 +451,10 @@ void init_expr(py::module &m) {
     // struct info for packed
     auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");
     struct_.def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t, bool>>>())
+        .def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t>>>())
         .def_readonly("struct_name", &PackedStruct::struct_name)
-        .def_readonly("attributes", &PackedStruct::attributes);
+        .def_readonly("attributes", &PackedStruct::attributes)
+        .def_readwrite("external", &PackedStruct::external);
 
     auto port_packed_slice =
         py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>(m, "PackedSlice");
@@ -494,5 +496,6 @@ void init_enum_type(py::module &m) {
         .def("__getitem__",
              [](Enum &enum_, const std::string &name) { return enum_.get_enum(name); })
         .def("__getattr__",
-             [](Enum &enum_, const std::string &name) { return enum_.get_enum(name); });
+             [](Enum &enum_, const std::string &name) { return enum_.get_enum(name); })
+        .def_readwrite("external", &Enum::external);
 }

@@ -464,9 +464,12 @@ struct PackedStruct {
 public:
     std::string struct_name;
     std::vector<std::tuple<std::string, uint32_t, bool>> attributes;
+    bool external = false;
 
     PackedStruct(std::string struct_name,
                  std::vector<std::tuple<std::string, uint32_t, bool>> attributes);
+    PackedStruct(std::string struct_name,
+                 const std::vector<std::tuple<std::string, uint32_t>> &attributes);
 };
 
 struct PackedSlice : public VarSlice {
@@ -627,6 +630,7 @@ public:
     Enum(const std::string &name, const std::map<std::string, uint64_t> &values, uint32_t width);
     std::map<std::string, std::shared_ptr<EnumConst>> values;
     std::string name;
+    bool external = false;
 
     uint32_t inline width() const { return width_; }
 
