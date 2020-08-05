@@ -444,6 +444,7 @@ public:
     std::string inline to_string() const override { return parameter_name_; }
 
     std::string value_str() const;
+    inline bool has_value() const { return has_value_; }
 
     void add_param_width_var(Var *var) { param_vars_width_.emplace(var); }
     void add_param_size_var(Var *var, uint32_t index, Var *expr);
@@ -466,6 +467,7 @@ private:
     std::unordered_set<Param *> param_params_;
     Param *parent_param_ = nullptr;
 
+    bool has_value_ = false;
     std::optional<int64_t> initial_value_;
     Enum *enum_def_ = nullptr;
 };

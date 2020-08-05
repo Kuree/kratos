@@ -1235,6 +1235,7 @@ def test_param(check_gold):
     mod = Generator("mod", True)
     param = mod.parameter("P", 4, 4)
     param2 = mod.parameter("P2", 4, 4)
+    param3 = mod.parameter("P3", 4) # P3 doesn't have init or value
     in_ = mod.input("in", param)
     out = mod.output("out", param2)
     var = mod.var("v", param)

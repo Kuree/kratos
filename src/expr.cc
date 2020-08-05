@@ -916,6 +916,7 @@ void Param::set_value(int64_t new_value) {
             {this});
     }
     Const::set_value(new_value);
+    has_value_ = true;
 
     // change the width of parametrized variables
     for (const auto &var : param_vars_width_) {

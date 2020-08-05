@@ -324,7 +324,8 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
             } else if (param->param_type() == ParamType::Enum) {
                 type_str = param->enum_def()->name;
             } else if (param->param_type() != ParamType::Parameter) {
-                value_str = param->value_str();
+                if (param->has_value())
+                    value_str = param->value_str();
             }
             std::string param_str =
                 type_str.empty() ? "parameter" : ::format("parameter {0}", type_str);
