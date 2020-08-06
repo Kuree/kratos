@@ -492,7 +492,7 @@ void init_expr(py::module &m) {
     py::class_<EnumVar, ::shared_ptr<EnumVar>, Var>(m, "EnumVar")
         .def("enum_type", &EnumVar::enum_type);
 
-    auto enum_const = py::class_<EnumConst, ::shared_ptr<EnumConst>, Var>(m, "EnumConst");
+    auto enum_const = py::class_<EnumConst, ::shared_ptr<EnumConst>, Const>(m, "EnumConst");
 
     auto var_extend = py::class_<VarExtend, ::shared_ptr<VarExtend>, Var>(m, "VarExtend");
 
