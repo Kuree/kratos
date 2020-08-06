@@ -1,6 +1,7 @@
 #include "stmt.hh"
 
 #include <algorithm>
+#include <cassert>
 
 #include "except.hh"
 #include "fmt/format.h"

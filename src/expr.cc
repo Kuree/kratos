@@ -4,6 +4,7 @@
 #include <iostream>
 #include <queue>
 #include <stdexcept>
+#include <cassert>
 
 #include "except.hh"
 #include "fmt/format.h"

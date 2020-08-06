@@ -5,6 +5,7 @@
 #include <iostream>
 #include <mutex>
 #include <numeric>
+#include <cassert>
 
 #include "codegen.hh"
 #include "debug.hh"
