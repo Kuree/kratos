@@ -31,6 +31,7 @@ struct Enum;
 struct EnumConst;
 struct EnumVar;
 struct FunctionCallVar;
+struct PackedSlice;
 class Stmt;
 class AssignStmt;
 class IfStmt;

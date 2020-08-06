@@ -353,6 +353,9 @@ public:
 
     std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const override;
 
+    PackedSlice &operator[](const std::string &member_name);
+    VarSlice &operator[](uint32_t index) override { return Var::operator[](index); }
+
     const Var *get_var_root_parent() const override;
     Var *get_var_root_parent() override;
 
@@ -489,6 +492,11 @@ public:
     PackedSlice(PortPackedStruct *parent, const std::string &member_name);
     PackedSlice(VarPackedStruct *parent, const std::string &member_name);
 
+    // this is used for packed struct array
+    PackedSlice(VarSlice *slice, bool is_root);
+
+    PackedSlice &slice_member(const std::string &member_name);
+
     std::string to_string() const override;
 
     std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override;
@@ -496,6 +504,8 @@ public:
 private:
     void set_up(const PackedStruct &struct_, const std::string &member_name);
     std::string member_name_;
+
+    bool is_root_ = false;
 };
 
 struct PackedInterface {
@@ -506,6 +516,8 @@ struct PackedInterface {
 struct VarPackedStruct : public Var, public PackedInterface {
 public:
     VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_);
+    VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_, uint32_t size);
+    VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_, const std::vector<uint32_t>& size);
 
     bool is_struct() const override { return true; }
 
@@ -527,6 +539,8 @@ public:
 
 private:
     PackedStruct struct_;
+
+    void compute_width();
 };
 
 struct Expr : public Var {

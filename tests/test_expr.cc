@@ -162,6 +162,19 @@ TEST(expr, port_packed) {  // NOLINT
     EXPECT_EQ(slice2.high, 2);
 }
 
+TEST(expr, var_packed_array) {  // NOLINT
+    Context c;
+    auto mod = c.generator("mod");
+    auto struct_ = PackedStruct("data", {{"value1", 1, false}, {"value2", 2, false}});
+    auto var_ = std::make_shared<VarPackedStruct>(&mod, "in", struct_, 5);
+    auto &var = *var_;
+
+    auto &slice = var[1];
+
+    auto &s= slice["value2"];
+    EXPECT_EQ(s.to_string(), "in[1].value2");
+}
+
 TEST(expr, array_slice) {  // NOLINT
     Context c;
     auto mod = c.generator("mod");

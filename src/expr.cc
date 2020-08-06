@@ -190,7 +190,13 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     // create a new one
     // notice that slice is not part of generator's variables. It's handled by the parent (var)
     // itself
-    auto var_slice = ::make_shared<VarSlice>(this, high, low);
+    // depends on the root variable, if it is actually a struct, we need to return to the
+    // actual trampoline class as proxy
+    auto var_root = get_var_root_parent();
+    std::shared_ptr<VarSlice> var_slice = ::make_shared<VarSlice>(this, high, low);
+    if (var_root->is_struct() && var_slice->width() == var_slice->var_width()) {
+        // we actually reached the real struct
+    }
     slices_.emplace_back(var_slice);
     return *var_slice;
 }
@@ -480,6 +486,15 @@ std::vector<std::pair<uint32_t, uint32_t>> VarSlice::get_slice_index() const {
     std::vector<std::pair<uint32_t, uint32_t>> result = parent_var->get_slice_index();
     result.emplace_back(std::make_pair(high, low));
     return result;
+}
+
+PackedSlice & VarSlice::operator[](const std::string &member_name) {
+    auto const *root = get_var_root_parent();
+    if (!root->is_packed() || width() != var_width())
+        throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
+    auto p = std::make_shared<PackedSlice>(this, true);
+    slices_.emplace_back(p);
+    return p->slice_member(member_name);
 }
 
 VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
@@ -1474,6 +1489,9 @@ PackedSlice::PackedSlice(kratos::VarPackedStruct *parent, const std::string &mem
     set_up(struct_, member_name);
 }
 
+PackedSlice::PackedSlice(VarSlice *slice, bool is_root)
+    : VarSlice(slice, 0, 0), is_root_(is_root) {}
+
 void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string &member_name) {
     // compute the high and low
     uint32_t low_ = 0;
@@ -1499,6 +1517,7 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
 }
 
 shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
+    if (is_root_) return var;
     if (var->type() == VarType::PortIO) {
         auto v = var->as<PortPackedStruct>();
         return v->operator[](member_name_).shared_from_this();
@@ -1508,8 +1527,30 @@ shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
     }
 }
 
+PackedSlice &PackedSlice::slice_member(const std::string &member_name) {
+    if (!is_root_) throw UserException("Only struct array can slice member at the end");
+    auto *root = get_var_root_parent();
+    std::shared_ptr<PackedSlice> p;
+    if (root->type() == VarType::PortIO) {
+        auto v = root->as<PortPackedStruct>();
+        p = ::make_shared<PackedSlice>(this, false);
+        p->set_up(v->packed_struct(), member_name);
+    } else {
+        auto v = root->as<VarPackedStruct>();
+        p = ::make_shared<PackedSlice>(this, false);
+        p->set_up(v->packed_struct(), member_name);
+    }
+    p->member_name_ = member_name;
+    slices_.emplace_back(p);
+    return *p;
+}
+
 std::string PackedSlice::to_string() const {
-    return ::format("{0}.{1}", parent_var->to_string(), member_name_);
+    if (is_root_) {
+        return parent_var->to_string();
+    } else {
+        return ::format("{0}.{1}", parent_var->to_string(), member_name_);
+    }
 }
 
 PackedSlice &VarPackedStruct::operator[](const std::string &member_name) {
@@ -1520,6 +1561,22 @@ PackedSlice &VarPackedStruct::operator[](const std::string &member_name) {
 
 VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_)
     : Var(m, name, 1, 1, false), struct_(std::move(packed_struct_)) {
+    compute_width();
+}
+
+VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_,
+                                 uint32_t size)
+    : Var(m, name, 1, size, false), struct_(std::move(packed_struct_)) {
+    compute_width();
+}
+
+VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_,
+                                 const std::vector<uint32_t> &size)
+    : Var(m, name, 1, size, false), struct_(std::move(packed_struct_)) {
+    compute_width();
+}
+
+void VarPackedStruct::compute_width() {
     // compute the width
     uint32_t width = 0;
     for (auto const &def : struct_.attributes) {
