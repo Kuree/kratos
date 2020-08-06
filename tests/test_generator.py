@@ -1983,5 +1983,16 @@ def test_param_size(check_gold):
     check_gold(mod, "test_param_size")
 
 
+def test_param_packed_struct_array(check_gold):
+    mod = Generator("mod")
+    struct = PackedStruct("bus", [("read", 16), ("write", 16)])
+    param = mod.parameter("P", 32, 42)
+    out = mod.output("out", struct, size=[param])
+    var = mod.var("v", struct, size=[param])
+    mod.add_stmt(out.assign(var))
+
+    check_gold(mod, "test_param_packed_struct_array")
+
+
 if __name__ == "__main__":
     test_port_type()

@@ -406,8 +406,9 @@ class Generator(metaclass=GeneratorMeta):
             v = self.__generator.var(name, width, size, is_signed)
         if self.debug:
             v.add_fn_ln(get_fn_ln())
-        v.is_packed = packed
-        v.explicit_array = explicit_array
+        if not isinstance(width, _kratos.PackedStruct):
+            v.is_packed = packed
+            v.explicit_array = explicit_array
         self.__set_var_size(v, params)
         return v
 
