@@ -381,10 +381,10 @@ void Var::copy_meta_data(Var *new_var) const {
     // basically the parameters
     if (param_) {
         const auto *parent_param = param_->parent_param();
-        if (parent_param->generator() != new_var->generator()) {
+        if (!parent_param || parent_param->generator() != new_var->generator()) {
             throw UserException(
-                ::format("Unable to copy var definition since the width parametrization is not set "
-                         "in parent"));
+                ::format("Unable to copy var definition since the width parametrization is set to "
+                         "different generator"));
         }
         new_var->param_ = const_cast<Param *>(parent_param);
     }
