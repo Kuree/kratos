@@ -108,6 +108,10 @@ Enum &Context::enum_(const std::string &enum_name,
     return *p;
 }
 
+bool Context::has_enum(const std::string &name) const {
+    return enum_defs_.find(name) != enum_defs_.end();
+}
+
 void Context::reset_enum() {
     enum_defs_.clear();
 }

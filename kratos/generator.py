@@ -155,6 +155,10 @@ def enum(name, definition, width=None):
     return Generator.get_context().enum(name, definition, width)
 
 
+def has_enum(name):
+    return Generator.get_context().has_enum(name)
+
+
 class PortProxy:
     def __init__(self, generator: "Generator"):
         self.__generator = generator

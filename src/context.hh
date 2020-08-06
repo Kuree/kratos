@@ -105,6 +105,7 @@ public:
     std::map<std::string, std::shared_ptr<Enum>> &enum_Defs() { return enum_defs_; }
     Enum &enum_(const std::string &enum_name, const std::map<std::string, uint64_t> &definition,
                 uint32_t width);
+    bool has_enum(const std::string &name) const;
     void reset_enum();
 
     void clear();
