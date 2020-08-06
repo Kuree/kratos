@@ -303,14 +303,16 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def(
             "__pow__", [](const Var &left, const Var &right) -> Expr & { return left.pow(right); },
             py::return_value_policy::reference)
-        .def("__rpow__",
-             [](const Var &left, const int64_t &right) -> Expr & {
-                 return convert_int_to_const(left, right).pow(left);
-             }, py::return_value_policy::reference)
+        .def(
+            "__rpow__",
+            [](const Var &left, const int64_t &right) -> Expr & {
+                return convert_int_to_const(left, right).pow(left);
+            },
+            py::return_value_policy::reference)
         .def(
             "__pow__",
             [](const Var &left, const int64_t &right) -> Expr & {
-              return left.pow(convert_int_to_const(left, right));
+                return left.pow(convert_int_to_const(left, right));
             },
             py::return_value_policy::reference)
         .def("r_or", &Var::r_or, py::return_value_policy::reference)
@@ -412,7 +414,13 @@ void init_expr(py::module &m) {
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
     slice.def_property_readonly("sliced_by_var", &VarSlice::sliced_by_var)
         .def_property_readonly("high", [](VarSlice &var) { return var.high; })
-        .def_property_readonly("low", [](VarSlice &var) { return var.low; });
+        .def_property_readonly("low", [](VarSlice &var) { return var.low; })
+        .def(
+            "__getitem__",
+            [](VarSlice &var, const std::string &member_name) -> VarSlice & {
+                return var[member_name];
+            },
+            py::return_value_policy::reference);
 
     auto var_slice = py::class_<VarVarSlice, ::shared_ptr<VarVarSlice>, VarSlice>(m, "VarVarSlice");
     var_slice.def_property_readonly(

@@ -114,8 +114,29 @@ void init_generator(py::module &m) {
                                          " as interface");
                  return interfaces.at(name);
              })
-        .def("port_packed", &Generator::port_packed, py::return_value_policy::reference)
-        .def("var_packed", &Generator::var_packed, py::return_value_policy::reference)
+        .def("port_packed",
+             py::overload_cast<PortDirection, const std::string &, const PackedStruct &>(
+                 &Generator::port_packed),
+             py::return_value_policy::reference)
+        .def("port_packed",
+             py::overload_cast<PortDirection, const std::string &, const PackedStruct &, uint32_t>(
+                 &Generator::port_packed),
+             py::return_value_policy::reference)
+        .def("port_packed",
+             py::overload_cast<PortDirection, const std::string &, const PackedStruct &,
+                               const std::vector<uint32_t> &>(&Generator::port_packed),
+             py::return_value_policy::reference)
+        .def("var_packed",
+             py::overload_cast<const std::string &, const PackedStruct &>(&Generator::var_packed),
+             py::return_value_policy::reference)
+        .def("var_packed",
+             py::overload_cast<const std::string &, const PackedStruct &, uint32_t>(
+                 &Generator::var_packed),
+             py::return_value_policy::reference)
+        .def("var_packed",
+             py::overload_cast<const std::string &, const PackedStruct &,
+                               const std::vector<uint32_t> &>(&Generator::var_packed),
+             py::return_value_policy::reference)
         .def("enum", &Generator::enum_, py::return_value_policy::reference)
         .def("enum_var", &Generator::enum_var, py::return_value_policy::reference)
         .def("get_params", &Generator::get_params)

@@ -393,12 +393,15 @@ class Generator(metaclass=GeneratorMeta):
     def get_stmt_by_index(self, index):
         return self.__generator.get_stmt(index)
 
-    def var(self, name: str, width: Union[int, _kratos.Param, _kratos.Enum],
+    def var(self, name: str, width: Union[int, _kratos.Param, _kratos.Enum,
+                                          _kratos.PackedStruct],
             is_signed: bool = False, size: Union[int, Union[List, Tuple]] = 1,
             packed: bool = False, explicit_array: bool = False) -> _kratos.Var:
         size, params = self.__filter_size(size)
         if isinstance(width, _kratos.Enum):
             v = self.__generator.enum_var(name, width)
+        elif isinstance(width, _kratos.PackedStruct):
+            v = self.__generator.var_packed(name, width, size)
         else:
             v = self.__generator.var(name, width, size, is_signed)
         if self.debug:
@@ -478,7 +481,7 @@ class Generator(metaclass=GeneratorMeta):
             p = self.__generator.port(PortDirection.In.value, name, width)
         elif isinstance(width, _kratos.PackedStruct):
             p = self.__generator.port_packed(PortDirection.In.value, name,
-                                             width)
+                                             width, size)
         else:
             p = self.__generator.port(PortDirection.In.value, name, width, size,
                                       port_type.value, is_signed)
@@ -528,7 +531,7 @@ class Generator(metaclass=GeneratorMeta):
             p = self.__generator.port(PortDirection.Out.value, name, width)
         elif isinstance(width, _kratos.PackedStruct):
             p = self.__generator.port_packed(PortDirection.Out.value, name,
-                                             width)
+                                             width, size)
         else:
             p = self.__generator.port(PortDirection.Out.value, name, width,
                                       size,
