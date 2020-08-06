@@ -485,7 +485,7 @@ void init_expr(py::module &m) {
     auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");
     struct_.def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t, bool>>>())
         .def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t>>>())
-        .def_readonly("struct_name", &PackedStruct::struct_name)
+        .def_readwrite("struct_name", &PackedStruct::struct_name)
         .def_readonly("attributes", &PackedStruct::attributes)
         .def_readwrite("external", &PackedStruct::external);
 
