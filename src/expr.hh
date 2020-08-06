@@ -188,6 +188,9 @@ public:
     void set_width_param(const std::shared_ptr<Param> &param);
     void set_width_param(Param *param);
     Param *param() const { return param_; }
+    bool raw_type_parametrized() const { return raw_type_param_ != nullptr; }
+    void set_raw_type_param(Param* param) { raw_type_param_ = param; }
+    Param* get_raw_type_param() { return raw_type_param_; }
     void set_explicit_array(bool value) { explicit_array_ = value; }
     bool explicit_array() const { return explicit_array_; }
     virtual std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const { return {}; }
@@ -244,6 +247,8 @@ protected:
 
     // parametrization
     Param *param_ = nullptr;
+    // raw type parametrization
+    Param *raw_type_param_ = nullptr;
 
     bool is_packed_ = false;
 

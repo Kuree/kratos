@@ -890,12 +890,15 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     strs.reserve(8);
     strs.emplace_back(port_dir_to_str(port->port_direction()));
     // we use logic for all inputs and outputs
-    if (!port->is_struct() && !port->is_enum()) {
+    if (!port->is_struct() && !port->is_enum() && !port->raw_type_parametrized()) {
         strs.emplace_back("logic");
     } else if (port->is_enum()) {
         auto* enum_def = dynamic_cast<EnumPort*>(port);
         if (!enum_def) throw InternalException("Unable to convert port to enum_def");
         strs.emplace_back(enum_def->enum_type()->name);
+    } else if (port->raw_type_parametrized()) {
+        auto *p = port->get_raw_type_param();
+        strs.emplace_back(p->to_string());
     } else {
         auto* ptr = reinterpret_cast<PortPackedStruct*>(port);
         strs.emplace_back(ptr->packed_struct().struct_name);

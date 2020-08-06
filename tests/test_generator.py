@@ -1958,11 +1958,15 @@ def test_port_type():
     enum.external = True
     mod.input("in_enum", enum)
     # raw types
-    mod.param("type_t", is_raw_type=True)
+    param = mod.param("type_t", is_raw_type=True)
+    # raw type port
+    p = mod.input("in_raw", 1)
+    p.raw_type_param = param
     src = verilog(mod)["mod"]
     assert "type type_t" in src
     assert "input config in" in src
     assert "input color in_enum" in src
+    assert "input type_t in_raw" in src
 
 
 def test_param_size(check_gold):
