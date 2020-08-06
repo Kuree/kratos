@@ -1,10 +1,10 @@
 #include "expr.hh"
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
 #include <queue>
 #include <stdexcept>
-#include <cassert>
 
 #include "except.hh"
 #include "fmt/format.h"
@@ -349,6 +349,54 @@ void Var::set_size_param(uint32_t index, Var *param) {
     }
 }
 
+Var &copy_var_const_parm(Var *var, Generator *parent) {
+    if (var->is_param()) {
+        auto param = var->as<Param>();
+        const auto *param_parent = param->parent_param();
+        if (!param_parent || param_parent->generator() != parent)
+            throw UserException(
+                ::format("Unable to copy var definition since the width parametrization is not set "
+                         "in parent"));
+        return *const_cast<Param *>(param_parent);
+    } else if (var->type() == VarType::ConstValue) {
+        auto c = var->as<Const>();
+        auto &c_ = constant(c->value(), c->width(), c->is_signed());
+        c_.set_generator(parent);
+        return c_;
+    } else {
+        if (var->type() != VarType::Expression)
+            throw UserException("Only expression with constant and parameters allowed");
+        auto expr = var->as<Expr>();
+        auto &left = copy_var_const_parm(expr->left, parent);
+        if (expr->right) {
+            auto &right = copy_var_const_parm(expr->right, parent);
+            return parent->expr(expr->op, &left, &right);
+        } else {
+            return parent->expr(expr->op, &left, nullptr);
+        }
+    }
+}
+
+void Var::copy_meta_data(Var *new_var) const {
+    // basically the parameters
+    if (param_) {
+        const auto *parent_param = param_->parent_param();
+        if (parent_param->generator() != new_var->generator()) {
+            throw UserException(
+                ::format("Unable to copy var definition since the width parametrization is not set "
+                         "in parent"));
+        }
+        new_var->param_ = const_cast<Param *>(parent_param);
+    }
+    // need to copy size as well
+    // notice that size parameters are actually expressions, so we need to copy all the expressions
+    // over using ast visitor
+    for (const auto &[index, v] : size_param_) {
+        auto &new_v = copy_var_const_parm(v, new_var->generator());
+        new_var->set_size_param(index, &new_v);
+    }
+}
+
 uint32_t num_size_decrease(Var *var) {
     if (var->type() == VarType::Slice) {
         auto *slice = reinterpret_cast<VarSlice *>(var);
@@ -581,7 +629,8 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
     assert(left->ir_node_kind() == IRNodeKind::VarKind);
     if (right != nullptr && left->width() != right->width()) {
         // see if we can resize
-        if (IterVar::safe_to_resize(left, right->width(), right->is_signed())) {
+        if (IterVar::safe_to_resize(left, right->width(), right->is_signed()) &&
+            right->type() != VarType::ConstValue) {
             IterVar::fix_width(left, right->width());
             this->left = left;
         } else if (IterVar::safe_to_resize(right, left->width(), left->is_signed())) {

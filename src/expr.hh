@@ -167,6 +167,7 @@ public:
     virtual bool inline is_packed() const { return is_packed_; }
     virtual void set_is_packed(bool value) { is_packed_ = value; }
     virtual bool inline is_enum() const { return false; }
+    virtual bool inline is_param() const { return false; }
     virtual bool inline is_function() const { return false; }
     virtual bool inline is_interface() const { return false; }
     virtual std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) { return var; }
@@ -217,6 +218,9 @@ public:
     inline Var *get_size_param(uint32_t index) const {
         return size_param_.find(index) == size_param_.end() ? nullptr : size_param_.at(index);
     }
+
+    // copy metadata over
+    void copy_meta_data(Var *new_var) const;
 
     Var(const Var &var) = delete;
     Var() = delete;
@@ -464,6 +468,8 @@ public:
     void set_value(const std::shared_ptr<Param> &param);
     void set_initial_value(int64_t new_value) { initial_value_ = new_value; }
     std::optional<int64_t> get_initial_value() const { return initial_value_; }
+
+    bool is_param() const override { return true; }
 
     const Param *parent_param() const { return parent_param_; }
     ParamType param_type() const { return param_type_; }

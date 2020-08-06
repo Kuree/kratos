@@ -142,6 +142,8 @@ Port &Generator::port(const Port &p, const std::string &port_name) {
         port(p.port_direction(), port_name, p.var_width(), p.size(), p.port_type(), p.is_signed());
     p_.set_explicit_array(p.explicit_array());
     p_.set_is_packed(p.is_packed());
+    // need to copy other definition over
+    p.copy_meta_data(&p_);
     return p_;
 }
 
