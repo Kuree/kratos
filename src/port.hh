@@ -42,8 +42,7 @@ public:
     [[nodiscard]] std::unordered_set<std::shared_ptr<Port>> connected_to() const;
     [[nodiscard]] std::unordered_set<std::shared_ptr<Port>> connected_from() const;
 
-    [[nodiscard]]
-    bool connected() const;
+    [[nodiscard]] bool connected() const;
 
 protected:
     std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
@@ -79,6 +78,10 @@ struct PortPackedStruct : public Port, public PackedInterface {
 public:
     PortPackedStruct(Generator *module, PortDirection direction, const std::string &name,
                      PackedStruct packed_struct_);
+    PortPackedStruct(Generator *m, PortDirection direction, const std::string &name,
+                     PackedStruct packed_struct_, uint32_t size);
+    PortPackedStruct(Generator *m, PortDirection direction, const std::string &name,
+                     PackedStruct packed_struct_, const std::vector<uint32_t> &size);
 
     void set_port_type(PortType type) override;
 
@@ -102,6 +105,8 @@ public:
 
 private:
     PackedStruct struct_;
+
+    void setup_size();
 };
 
 struct PortBundleDefinition {

@@ -157,6 +157,26 @@ PortPackedStruct::PortPackedStruct(Generator* module, PortDirection direction,
                                    const std::string& name, PackedStruct packed_struct_)
     : Port(module, direction, name, 1, 1, PortType::Data, false),
       struct_(std::move(packed_struct_)) {
+    setup_size();
+}
+
+PortPackedStruct::PortPackedStruct(Generator* m, PortDirection direction, const std::string& name,
+                                   PackedStruct packed_struct_, uint32_t size)
+    : Port(m, direction, name, 1, size, PortType::Data, false), struct_(std::move(packed_struct_)) {
+    setup_size();
+}
+
+PortPackedStruct::PortPackedStruct(Generator* m, PortDirection direction, const std::string& name,
+                                   PackedStruct packed_struct_, const std::vector<uint32_t>& size)
+    : Port(m, direction, name, 1, size, PortType::Data, false), struct_(std::move(packed_struct_)) {
+    setup_size();
+}
+
+void PortPackedStruct::set_port_type(PortType) {
+    throw UserException("Cannot set port type for packed struct");
+}
+
+void PortPackedStruct::setup_size() {
     // compute the width
     uint32_t width = 0;
     for (auto const& def : struct_.attributes) {
@@ -165,11 +185,10 @@ PortPackedStruct::PortPackedStruct(Generator* module, PortDirection direction,
     var_width_ = width;
 }
 
-void PortPackedStruct::set_port_type(PortType) {
-    throw UserException("Cannot set port type for packed struct");
-}
-
 PackedSlice& PortPackedStruct::operator[](const std::string& member_name) {
+    if (width() != var_width())
+        throw UserException(
+            ::format("Unable to access member of {0}, which is an array", to_string()));
     auto ptr = std::make_shared<PackedSlice>(this, member_name);
     slices_.emplace_back(ptr);
     return *ptr;

@@ -1,8 +1,8 @@
+#include "../src/debug.hh"
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
 #include "../src/stmt.hh"
-#include "../src/debug.hh"
 #include "gtest/gtest.h"
 
 using namespace kratos;
@@ -162,17 +162,29 @@ TEST(expr, port_packed) {  // NOLINT
     EXPECT_EQ(slice2.high, 2);
 }
 
-TEST(expr, var_packed_array) {  // NOLINT
+TEST(expr, packed_struct_array) {  // NOLINT
     Context c;
     auto mod = c.generator("mod");
     auto struct_ = PackedStruct("data", {{"value1", 1, false}, {"value2", 2, false}});
     auto var_ = std::make_shared<VarPackedStruct>(&mod, "in", struct_, 5);
     auto &var = *var_;
 
+    EXPECT_THROW(var["value1"], UserException);
+
     auto &slice = var[1];
 
-    auto &s= slice["value2"];
+    auto &s = slice["value2"];
     EXPECT_EQ(s.to_string(), "in[1].value2");
+
+    auto port_ = std::make_shared<PortPackedStruct>(&mod, PortDirection::In, "out", struct_,
+                                                    std::vector<uint32_t>{4, 5});
+    auto &port = *port_;
+
+    EXPECT_THROW(port["value1"], UserException);
+    EXPECT_THROW(port[1]["value1"], UserException);
+
+    auto &s_p = port[1][2]["value1"];
+    EXPECT_EQ(s_p.to_string(), "out[1][2].value1");
 }
 
 TEST(expr, array_slice) {  // NOLINT
@@ -308,12 +320,12 @@ TEST(expr, extract_source) {  // NOLINT
     EXPECT_EQ(sources.size(), 2);
 }
 
-TEST(expr, extend) {    // NOLINT
+TEST(expr, extend) {  // NOLINT
     auto &a = constant(4, 4).extend(8);
     EXPECT_EQ(a.to_string(), "8'(4'h4)");
 }
 
-TEST(expr, md_array) {    // NOLINT
+TEST(expr, md_array) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 16, {4, 2});
@@ -332,7 +344,7 @@ TEST(expr, md_array) {    // NOLINT
     EXPECT_NO_THROW((b[{1, 0}].assign(c[{1, 0}])));
 }
 
-TEST(expr, bit_slice) { // NOLINT
+TEST(expr, bit_slice) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &array = mod.var("array", 2, 2);
@@ -345,7 +357,7 @@ TEST(expr, bit_slice) { // NOLINT
     EXPECT_EQ(v_1.var_low(), 1);
 }
 
-TEST(var, valid_check) {    // NOLINT
+TEST(var, valid_check) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
 
@@ -355,7 +367,7 @@ TEST(var, valid_check) {    // NOLINT
     EXPECT_THROW(Enum("var", {}, 1), UserException);
 }
 
-TEST(var, size_1_slice) {   // NOLINT
+TEST(var, size_1_slice) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 4, {1, 1});
@@ -379,7 +391,7 @@ TEST(var, const_promote) {  // NOLINT
     EXPECT_THROW(constant(3, 2).set_width(1), VarException);
 }
 
-TEST(var, iter_demote) {    // NOLINT
+TEST(var, iter_demote) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 5);
@@ -389,7 +401,7 @@ TEST(var, iter_demote) {    // NOLINT
     EXPECT_THROW(a.assign(iter2), VarException);
 }
 
-TEST(expr, packed) {    // NOLINT
+TEST(expr, packed) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 5, 5);
@@ -398,7 +410,7 @@ TEST(expr, packed) {    // NOLINT
     EXPECT_THROW(a + b, VarException);
 }
 
-TEST(port, connected) { // NOLINT
+TEST(port, connected) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &mod1 = context.generator("mod1");

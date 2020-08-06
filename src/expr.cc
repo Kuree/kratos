@@ -488,7 +488,7 @@ std::vector<std::pair<uint32_t, uint32_t>> VarSlice::get_slice_index() const {
     return result;
 }
 
-PackedSlice & VarSlice::operator[](const std::string &member_name) {
+PackedSlice &VarSlice::operator[](const std::string &member_name) {
     auto const *root = get_var_root_parent();
     if (!root->is_packed() || width() != var_width())
         throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
@@ -1554,6 +1554,9 @@ std::string PackedSlice::to_string() const {
 }
 
 PackedSlice &VarPackedStruct::operator[](const std::string &member_name) {
+    if (width() != var_width())
+        throw UserException(
+            ::format("Unable to access member of {0}, which is an array", to_string()));
     auto ptr = std::make_shared<PackedSlice>(this, member_name);
     slices_.emplace_back(ptr);
     return *ptr;
