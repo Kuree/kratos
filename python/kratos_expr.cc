@@ -420,6 +420,15 @@ void init_expr(py::module &m) {
             [](VarSlice &var, const std::string &member_name) -> VarSlice & {
                 return var[member_name];
             },
+            py::return_value_policy::reference)
+        .def(
+            "__getitem__", [](VarSlice &var, uint32_t index) -> VarSlice & { return var[index]; },
+            py::return_value_policy::reference)
+        .def(
+            "__getitem__",
+            [](VarSlice &var, std::pair<uint32_t, uint32_t> slice) -> VarSlice & {
+                return var[slice];
+            },
             py::return_value_policy::reference);
 
     auto var_slice = py::class_<VarVarSlice, ::shared_ptr<VarVarSlice>, VarSlice>(m, "VarVarSlice");

@@ -355,6 +355,9 @@ public:
 
     PackedSlice &operator[](const std::string &member_name);
     VarSlice &operator[](uint32_t index) override { return Var::operator[](index); }
+    VarSlice &operator[](std::pair<uint32_t, uint32_t> slice) override {
+        return Var::operator[](slice);
+    }
 
     const Var *get_var_root_parent() const override;
     Var *get_var_root_parent() override;
@@ -516,8 +519,10 @@ struct PackedInterface {
 struct VarPackedStruct : public Var, public PackedInterface {
 public:
     VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_);
-    VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_, uint32_t size);
-    VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_, const std::vector<uint32_t>& size);
+    VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_,
+                    uint32_t size);
+    VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_,
+                    const std::vector<uint32_t> &size);
 
     bool is_struct() const override { return true; }
 
