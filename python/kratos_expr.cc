@@ -461,7 +461,8 @@ void init_expr(py::module &m) {
                               }
                           }
                       })
-        .def_property("initial_value", &Param::get_initial_value, &Param::set_initial_value);
+        .def_property("initial_value", &Param::get_initial_value, &Param::set_initial_value)
+        .def_property_readonly("param_type", &Param::param_type);
 
     auto port_packed =
         py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Var>(m, "PortPackedStruct");

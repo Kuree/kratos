@@ -23,7 +23,7 @@ from _kratos import Sequence
 from _kratos import DebugDataBase
 from .stmts import IfStmt, SwitchStmt, if_, switch_, RawStringStmt
 from _kratos import Interface
-from _kratos import PropertyAction
+from _kratos import PropertyAction, ParamType
 
 # FSMs
 from _kratos import FSM, FSMState
@@ -47,7 +47,7 @@ __all__ += ["CombinationalCodeBlock", "SequentialCodeBlock", "SwitchStmt",
             "PackedStruct", "Port", "Var", "IfStmt", "AssignmentType",
             "if_", "switch_", "Attribute", "PortBundle", "DebugDataBase",
             "add_scope_context", "set_global_debug", "Interface", "VarSlice",
-            "VarVarSlice"]
+            "VarVarSlice", "ParamType"]
 
 # utils
 __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",

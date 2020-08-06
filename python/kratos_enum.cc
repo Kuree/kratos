@@ -78,4 +78,10 @@ void init_enum(py::module &m) {
         .value("Cover", PropertyAction::Cover)
         .value("Assume", PropertyAction::Assume)
         .value("Assert", PropertyAction::Assert);
+
+    py::enum_<ParamType>(m, "ParamType")
+        .value("RawType", ParamType::RawType)
+        .value("Parameter", ParamType::Parameter)
+        .value("Enum", ParamType::Enum)
+        .value("Integral", ParamType::Integral);
 }

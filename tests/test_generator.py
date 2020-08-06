@@ -1962,6 +1962,7 @@ def test_port_type():
     # raw type port
     p = mod.input("in_raw", 1)
     p.raw_type_param = param
+    assert param.param_type == kratos.ParamType.RawType
     src = verilog(mod)["mod"]
     assert "type type_t" in src
     assert "input config in" in src
