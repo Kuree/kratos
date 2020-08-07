@@ -147,6 +147,38 @@ Port &Generator::port(const Port &p, const std::string &port_name) {
     return p_;
 }
 
+Port &Generator::port(const PortPackedStruct &port) {
+    return this->port(port, port.name);
+}
+
+Port &Generator::port(const PortPackedStruct &port, const std::string &port_name) {
+    if (ports_.find(port_name) != ports_.end())
+        throw VarException(::format("{0} already exists in {1}", port_name, name),
+                           {vars_.at(port_name).get()});
+    auto p = std::make_shared<PortPackedStruct>(this, port.port_direction(), port_name,
+                                                port.packed_struct(), port.size());
+    vars_.emplace(port_name, p);
+    ports_.emplace(port_name);
+    return *p;
+}
+
+Port &Generator::port(const EnumPort &port) {
+    return this->port(port, port.name);
+}
+
+Port &Generator::port(const EnumPort &port, const std::string &port_name) {
+    if (ports_.find(port_name) != ports_.end())
+        throw VarException(::format("{0} already exists in {1}", port_name, name),
+                           {vars_.at(port_name).get()});
+    auto enum_type = const_cast<Enum*>(port.enum_type());
+    auto p = std::make_shared<EnumPort>(this, port.port_direction(), port_name,
+                                        enum_type->shared_from_this());
+    vars_.emplace(port_name, p);
+    ports_.emplace(port_name);
+    return *p;
+}
+
+
 EnumPort &Generator::port(kratos::PortDirection direction, const std::string &port_name,
                           const std::shared_ptr<kratos::Enum> &def) {
     if (ports_.find(port_name) != ports_.end())

@@ -48,6 +48,10 @@ public:
                const std::vector<uint32_t> &size, PortType type, bool is_signed);
     Port &port(const Port &p);
     Port &port(const Port &p, const std::string &port_name);
+    Port &port(const PortPackedStruct &p);
+    Port &port(const PortPackedStruct &p, const std::string &port_name);
+    Port &port(const EnumPort &p);
+    Port &port(const EnumPort &p, const std::string &port_name);
     EnumPort &port(PortDirection direction, const std::string &port_name,
                    const std::shared_ptr<Enum> &def);
     PortPackedStruct &port_packed(PortDirection direction, const std::string &port_name,

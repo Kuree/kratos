@@ -84,9 +84,18 @@ void init_generator(py::module &m) {
              py::overload_cast<PortDirection, const std::string &, const std::shared_ptr<Enum> &>(
                  &Generator::port),
              py::return_value_policy::reference)
+        .def("port", py::overload_cast<const EnumPort &>(&Generator::port),
+             py::return_value_policy::reference)
+        .def("port", py::overload_cast<const EnumPort &, const std::string &>(&Generator::port),
+             py::return_value_policy::reference)
         .def("port", py::overload_cast<const Port &>(&Generator::port),
              py::return_value_policy::reference)
         .def("port", py::overload_cast<const Port &, const std::string &>(&Generator::port),
+             py::return_value_policy::reference)
+        .def("port", py::overload_cast<const PortPackedStruct &>(&Generator::port),
+             py::return_value_policy::reference)
+        .def("port",
+             py::overload_cast<const PortPackedStruct &, const std::string &>(&Generator::port),
              py::return_value_policy::reference)
         .def("parameter", py::overload_cast<const std::string &>(&Generator::parameter),
              py::return_value_policy::reference)

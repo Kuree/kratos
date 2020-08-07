@@ -382,9 +382,10 @@ void Var::copy_meta_data(Var *new_var) const {
     if (param_) {
         const auto *parent_param = param_->parent_param();
         if (!parent_param || parent_param->generator() != new_var->generator()) {
-            throw UserException(
+            throw UserException(::format(
                 ::format("Unable to copy var definition since the width parametrization is set to "
-                         "different generator"));
+                         "different generator for var {0}",
+                         to_string())));
         }
         new_var->param_ = const_cast<Param *>(parent_param);
     }
@@ -392,8 +393,12 @@ void Var::copy_meta_data(Var *new_var) const {
     // notice that size parameters are actually expressions, so we need to copy all the expressions
     // over using ast visitor
     for (const auto &[index, v] : size_param_) {
-        auto &new_v = copy_var_const_parm(v, new_var->generator());
-        new_var->set_size_param(index, &new_v);
+        try {
+            auto &new_v = copy_var_const_parm(v, new_var->generator());
+            new_var->set_size_param(index, &new_v);
+        } catch (UserException &) {
+            continue;
+        }
     }
 }
 
@@ -953,7 +958,7 @@ void Const::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
 }
 
 Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
-    : Const(m, 0, width, is_signed), parameter_name_(std::move(name)) {
+    : Const(m, 1, width, is_signed), parameter_name_(std::move(name)) {
     // override the type value
     type_ = VarType::Parameter;
 }

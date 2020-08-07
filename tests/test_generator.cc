@@ -1606,11 +1606,8 @@ TEST(codegen, copy_port_definition) {   // NOLINT
     auto &p_p = parent.parameter("P", 32);
     p_p.set_value(2);
 
-    EXPECT_THROW(parent.port(c_in), UserException);
-    parent.remove_port("in");
     parent.add_child_generator("inst", child);
-    EXPECT_THROW(parent.port(c_in), UserException);
-    parent.remove_port("in");
+
     c_p.set_value(p_p.as<Param>());
     // copy the definition from the child
     auto &p_in = parent.port(c_in);
