@@ -466,8 +466,7 @@ void init_expr(py::module &m) {
 
     auto port_packed =
         py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Var>(m, "PortPackedStruct");
-    port_packed.def("port_direction", &PortPackedStruct::port_direction)
-        .def("port_type", &PortPackedStruct::port_type)
+    port_packed
         .def(
             "__getitem__",
             [](PortPackedStruct & port, const std::string &name) -> auto & { return port[name]; },

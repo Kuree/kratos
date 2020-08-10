@@ -349,14 +349,18 @@ void Var::set_size_param(uint32_t index, Var *param) {
     }
 }
 
+void check_parent_param(const Param* param, const Generator *parent) {
+    if (!param || param->generator() != parent)
+        throw UserException(
+            ::format("Unable to copy var definition since the width parametrization is not set "
+                     "in parent"));
+}
+
 Var &copy_var_const_parm(Var *var, Generator *parent) {
     if (var->is_param()) {
         auto param = var->as<Param>();
         const auto *param_parent = param->parent_param();
-        if (!param_parent || param_parent->generator() != parent)
-            throw UserException(
-                ::format("Unable to copy var definition since the width parametrization is not set "
-                         "in parent"));
+        check_parent_param(param_parent, parent);
         return *const_cast<Param *>(param_parent);
     } else if (var->type() == VarType::ConstValue) {
         auto c = var->as<Const>();
@@ -381,12 +385,7 @@ void Var::copy_meta_data(Var *new_var) const {
     // basically the parameters
     if (param_) {
         const auto *parent_param = param_->parent_param();
-        if (!parent_param || parent_param->generator() != new_var->generator()) {
-            throw UserException(::format(
-                ::format("Unable to copy var definition since the width parametrization is set to "
-                         "different generator for var {0}",
-                         to_string())));
-        }
+        check_parent_param(parent_param, generator());
         new_var->param_ = const_cast<Param *>(parent_param);
     }
     // need to copy size as well
@@ -399,6 +398,18 @@ void Var::copy_meta_data(Var *new_var) const {
         } catch (UserException &) {
             continue;
         }
+    }
+
+    // need to copy the raw_param as well
+    if (raw_type_param_) {
+        const auto *parent_param = raw_type_param_->parent_param();
+        if (!parent_param || parent_param->generator() != new_var->generator()) {
+            throw UserException(::format(
+                ::format("Unable to copy var definition since the width parametrization is set to "
+                         "different generator for var {0}",
+                         to_string())));
+        }
+        new_var->raw_type_param_ = const_cast<Param*>(parent_param);
     }
 }
 
@@ -964,7 +975,7 @@ Param::Param(Generator *m, std::string name, uint32_t width, bool is_signed)
 }
 
 Param::Param(Generator *m, std::string name)
-    : Const(m, 0, 1, false), parameter_name_(std::move(name)), param_type_(ParamType::RawType) {
+    : Const(m, 1, 1, false), parameter_name_(std::move(name)), param_type_(ParamType::RawType) {
     // override the type value
     type_ = VarType::Parameter;
 }

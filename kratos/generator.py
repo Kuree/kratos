@@ -468,8 +468,11 @@ class Generator(metaclass=GeneratorMeta):
         self.__set_var_size(p, params)
         return p
 
-    def port_from_def(self, port: _kratos.Port):
-        return self.__generator.port(port)
+    def port_from_def(self, port: _kratos.Port, name=""):
+        if name:
+            return self.__generator.port(port, name)
+        else:
+            return self.__generator.port(port)
 
     def input(self, name, width: Union[int, _kratos.Param, _kratos.Enum,
                                        _kratos.PackedStruct],
