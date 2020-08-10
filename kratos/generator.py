@@ -810,11 +810,15 @@ class Generator(metaclass=GeneratorMeta):
         if comment:
             self.__generator.set_child_comment(instance_name, comment)
 
+        # set parameter values first
+        for child_param, parent_value in kargs.items():
+            if child_param in generator.params:
+                generator.params[child_param].value = parent_value
+
         # bulk wiring
         for child_port, parent_port in kargs.items():
-            # it can be parameter as well
+            # it can be parameter as well. we already taken care of that
             if child_port in generator.params:
-                generator.params[child_port].value = parent_port
                 continue
             if isinstance(parent_port, str):
                 if parent_port in self.ports:
