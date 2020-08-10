@@ -1017,7 +1017,7 @@ void Param::set_value(int64_t new_value) {
 std::string Param::value_str() const {
     if (param_type_ == ParamType::Integral) {
         return Const::to_string();
-    } else if (param_type_ == ParamType::Parameter) {
+    } else if (parent_param_) {
         const auto *p = parent_param();
         return p->to_string();
     } else {
@@ -1033,7 +1033,8 @@ void Param::add_param_size_var(Var *var, uint32_t index, Var *expr) {
 void Param::set_value(const std::shared_ptr<Param> &param) {
     param->param_params_.emplace(this);
     parent_param_ = param.get();
-    param_type_ = ParamType::Parameter;
+    if (param->param_type() != ParamType::RawType)
+        param_type_ = ParamType::Parameter;
 
     // update the values
     set_value(param->value());

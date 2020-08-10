@@ -571,10 +571,13 @@ class Generator(metaclass=GeneratorMeta):
             param = self.__generator.parameter(name)
         else:
             param = self.__generator.parameter(name, width, is_signed)
-            if value is not None:
-                param.value = value
-            if initial_value is not None:
-                param.initial_value = initial_value
+        if value is not None:
+            param.value = value
+        if initial_value is not None:
+            param.initial_value = initial_value
+            # set value as well
+            if value is None:
+                param.value = initial_value
         if self.debug:
             fn, ln = get_fn_ln()
             param.add_fn_ln((fn, ln))

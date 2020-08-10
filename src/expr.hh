@@ -190,8 +190,8 @@ public:
     void set_width_param(Param *param);
     Param *param() const { return param_; }
     bool raw_type_parametrized() const { return raw_type_param_ != nullptr; }
-    void set_raw_type_param(Param* param) { raw_type_param_ = param; }
-    Param* get_raw_type_param() { return raw_type_param_; }
+    void set_raw_type_param(Param *param) { raw_type_param_ = param; }
+    Param *get_raw_type_param() { return raw_type_param_; }
     void set_explicit_array(bool value) { explicit_array_ = value; }
     bool explicit_array() const { return explicit_array_; }
     virtual std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const { return {}; }
@@ -471,12 +471,16 @@ public:
     void set_initial_value(int64_t new_value) { initial_value_ = new_value; }
     std::optional<int64_t> get_initial_value() const { return initial_value_; }
     std::optional<std::string> get_raw_str_value() const { return raw_str_value_; }
+    void set_initial_raw_str_value(const std::string &value) { initial_raw_str_value_ = value; }
+    std::optional<std::string> get_raw_str_initial_value() const { return initial_raw_str_value_; }
 
     bool is_param() const override { return true; }
 
     const Param *parent_param() const { return parent_param_; }
     ParamType param_type() const { return param_type_; }
     Enum *enum_def() const { return enum_def_; }
+
+    [[nodiscard]] const std::string &parameter_name() const { return parameter_name_; }
 
 private:
     std::string parameter_name_;
@@ -491,6 +495,7 @@ private:
     std::optional<int64_t> initial_value_;
     // for now only used for raw_type strings
     std::optional<std::string> raw_str_value_;
+    std::optional<std::string> initial_raw_str_value_;
     Enum *enum_def_ = nullptr;
 };
 

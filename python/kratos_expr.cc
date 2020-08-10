@@ -452,6 +452,12 @@ void init_expr(py::module &m) {
                               try {
                                   auto v = value.cast<const std::shared_ptr<Param>>();
                                   param.set_value(v);
+                                  if (v->param_type() == ParamType::RawType) {
+                                      if (param.param_type() != ParamType::RawType) {
+                                          throw py::value_error(
+                                              "Only raw param type can be set by a raw param type");
+                                      }
+                                  }
                               } catch (py::cast_error &) {
                                   // use string
                                   // if it errors out, it will throw an exception at Python's side
@@ -467,8 +473,19 @@ void init_expr(py::module &m) {
                               }
                           }
                       })
-        .def_property("initial_value", &Param::get_initial_value, &Param::set_initial_value)
-        .def_property_readonly("param_type", &Param::param_type);
+        .def_property("initial_value", &Param::get_initial_value,
+                      [](Param &param, const py::object &value) {
+                          try {
+                              auto v = value.cast<int64_t>();
+                              param.set_initial_value(v);
+                          } catch (py::cast_error &) {
+                              auto v = value.cast<std::string>();
+                              param.set_initial_raw_str_value(v);
+                          }
+                      })
+        .def_property_readonly("param_type", &Param::param_type)
+        .def_property("initial_raw_str_value", &Param::get_raw_str_initial_value,
+                      &Param::set_initial_raw_str_value);
 
     auto port_packed =
         py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Var>(m, "PortPackedStruct");

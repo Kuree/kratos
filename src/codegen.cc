@@ -331,8 +331,13 @@ void SystemVerilogCodeGen::generate_parameters(Generator* generator) {
                 value_str = c.to_string();
             } else if (param->param_type() == ParamType::RawType) {
                 type_str = "type";
+                // determine the initial values
                 if (param->get_raw_str_value()) {
                     value_str = *param->get_raw_str_value();
+                }
+                if (param->get_raw_str_initial_value()) {
+                    // use the initial lvalue instead since it's user's intention
+                    value_str = *param->get_raw_str_initial_value();
                 }
             } else if (param->param_type() == ParamType::Enum) {
                 type_str = param->enum_def()->name;
@@ -754,6 +759,13 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
             (*param->get_initial_value()) == param->value()) {
             continue;
         }
+        // could be raw string type as well
+        if (param->param_type() == ParamType::RawType &&
+            ((param->get_raw_str_value() && param->get_raw_str_initial_value() &&
+              (*param->get_raw_str_value()) == (*param->get_raw_str_initial_value())) ||
+             (!param->get_raw_str_value() && param->get_raw_str_initial_value()))) {
+            continue;
+        }
         params_.emplace(std::make_pair(name, param.get()));
     }
 
@@ -900,7 +912,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         if (!enum_def) throw InternalException("Unable to convert port to enum_def");
         strs.emplace_back(enum_def->enum_type()->name);
     } else if (port->raw_type_parametrized()) {
-        auto *p = port->get_raw_type_param();
+        auto* p = port->get_raw_type_param();
         strs.emplace_back(p->to_string());
     } else {
         auto* ptr = reinterpret_cast<PortPackedStruct*>(port);

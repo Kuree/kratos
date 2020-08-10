@@ -1953,13 +1953,16 @@ def test_port_type():
     struct = PackedStruct("config", [("read", 16), ("write", 16)])
     # make it external to test if we can skip the generation
     struct.external = True
-    mod.input("in", struct)
+    in1 = mod.input("in1", struct)
     enum = kratos.enum("color", ["color", "green"])
     enum.external = True
-    mod.input("in_enum", enum)
+    in2 = mod.input("in_enum", enum)
     # raw types
     param = mod.param("type_t", is_raw_type=True)
     param.value = "pkg::new_type_t"
+    mod.parameter("type2", is_raw_type=True, initial_value="pkg::new_type_t")
+    mod.parameter("type3", is_raw_type=True, initial_value="pkg::new_type_t")
+
     # raw type port
     # width 5 should be ignored. this is just for testing
     p = mod.input("in_raw", width=5)
@@ -1967,10 +1970,27 @@ def test_port_type():
     assert param.param_type == kratos.ParamType.RawType
     src = verilog(mod)["mod"]
     assert "type type_t" in src
-    assert "input config in" in src
+    assert "input config in1" in src
     assert "input color in_enum" in src
     assert "input type_t in_raw" in src
     assert "parameter type type_t = pkg::new_type_t" in src
+
+    # test raw type codegen with a parent
+    parent = Generator("parent")
+    p_raw = parent.parameter("p_type", is_raw_type=True,
+                             value="pkg::old_value_t")
+    param.raw_type_param = p_raw
+    param.value = p_raw
+
+    parent.port_from_def(in1)
+    parent.port_from_def(in2)
+    parent.port_from_def(p)
+    parent.add_child("inst", mod, in1=parent.ports.in1,
+                     in_enum=parent.ports.in_enum,
+                     in_raw=parent.ports.in_raw)
+
+    src = verilog(parent)["parent"]
+    assert "type_t(p_type)" in src
 
 
 def test_param_size(check_gold):
