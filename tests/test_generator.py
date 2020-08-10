@@ -1959,6 +1959,7 @@ def test_port_type():
     mod.input("in_enum", enum)
     # raw types
     param = mod.param("type_t", is_raw_type=True)
+    param.value = "pkg::new_type_t"
     # raw type port
     # width 5 should be ignored. this is just for testing
     p = mod.input("in_raw", width=5)
@@ -1969,6 +1970,7 @@ def test_port_type():
     assert "input config in" in src
     assert "input color in_enum" in src
     assert "input type_t in_raw" in src
+    assert "parameter type type_t = pkg::new_type_t" in src
 
 
 def test_param_size(check_gold):

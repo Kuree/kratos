@@ -466,8 +466,11 @@ public:
 
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);
+    // used as raw string
+    void set_value(const std::string &str_value);
     void set_initial_value(int64_t new_value) { initial_value_ = new_value; }
     std::optional<int64_t> get_initial_value() const { return initial_value_; }
+    std::optional<std::string> get_raw_str_value() const { return raw_str_value_; }
 
     bool is_param() const override { return true; }
 
@@ -486,6 +489,8 @@ private:
 
     bool has_value_ = false;
     std::optional<int64_t> initial_value_;
+    // for now only used for raw_type strings
+    std::optional<std::string> raw_str_value_;
     Enum *enum_def_ = nullptr;
 };
 

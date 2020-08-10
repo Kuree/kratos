@@ -449,9 +449,15 @@ void init_expr(py::module &m) {
                               param.set_value(v);
                           } catch (py::cast_error &) {
                               // try with param instead
-                              // if it fail, a cast error will raise here
-                              auto v = value.cast<const std::shared_ptr<Param>>();
-                              param.set_value(v);
+                              try {
+                                  auto v = value.cast<const std::shared_ptr<Param>>();
+                                  param.set_value(v);
+                              } catch (py::cast_error &) {
+                                  // use string
+                                  // if it errors out, it will throw an exception at Python's side
+                                  auto v = value.cast<std::string>();
+                                  param.set_value(v);
+                              }
                           }
                           if (param.generator()->debug) {
                               // store the line change info

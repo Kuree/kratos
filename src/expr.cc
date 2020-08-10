@@ -1039,6 +1039,9 @@ void Param::set_value(const std::shared_ptr<Param> &param) {
     set_value(param->value());
 }
 
+void Param::set_value(const std::string &str_value) { raw_str_value_ = str_value;
+}
+
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
     for (auto &var : vars_) {
         var->add_source(stmt);
