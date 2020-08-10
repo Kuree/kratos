@@ -909,7 +909,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         auto str = get_var_size_str(port);
         strs.emplace_back(str);
     }
-    if (!port->is_struct() && !port->is_enum()) {
+    if (!port->is_struct() && !port->is_enum() && !port->raw_type_parametrized()) {
         auto const& var_width_str = get_var_width_str(port);
         if (!var_width_str.empty()) strs.emplace_back(var_width_str);
     }
