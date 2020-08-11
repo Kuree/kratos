@@ -797,12 +797,16 @@ void SystemVerilogCodeGen::stmt_code(ModuleInstantiationStmt* stmt) {
             stream_ << indent()
                     << ::format(
                            ".{0}({1}){2}", name, value,
-                           ++count == params.size() ? ")" : "," + std::string(1, stream_.endl()));
+                           ++count == params_.size() ? ")" : "," + std::string(1, stream_.endl()));
         }
 
+        // start a new line
+        stream_ << stream_.endl();
         indent_--;
+    } else {
+        stream_ << " ";
     }
-    stream_ << " " << stmt->target()->instance_name;
+    stream_ << stmt->target()->instance_name;
     generate_port_interface(stmt);
 }
 

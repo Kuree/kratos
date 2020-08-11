@@ -1876,7 +1876,7 @@ def test_param_set_value_instance():
     child.parameter("P", 32, 0)
     parent.add_child("inst", child, P=3)
     src = verilog(parent, optimize_passthrough=False)["parent"]
-    assert "child #(\n  .P(32'h3)) inst()" in src
+    assert "child #(\n  .P(32'h3))\ninst()" in src
 
 
 def test_ports_vars_iter():
@@ -1908,7 +1908,7 @@ def test_param_initial_codegen():
     parent1 = Generator("parent1")
     parent1.add_child("inst", child1, P=2)
     src = verilog(parent1, optimize_passthrough=False)["parent1"]
-    assert ".P(16'h2)) inst();" in src
+    assert ".P(16'h2))\ninst();" in src
 
     child2 = Generator("child2")
     child2.parameter("P", 16, initial_value=5)

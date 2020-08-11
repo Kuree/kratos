@@ -18,7 +18,8 @@ module parent #(
 logic [P-1:0] in;
 logic [P-1:0] out;
 child #(
-  .P2(P)) mod (
+  .P2(P))
+mod (
   .in(in),
   .out(out)
 );
