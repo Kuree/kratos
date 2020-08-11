@@ -220,7 +220,7 @@ public:
     }
 
     // copy metadata over
-    void copy_meta_data(Var *new_var) const;
+    void copy_meta_data(Var *new_var, bool check_param) const;
 
     Var(const Var &var) = delete;
     Var() = delete;
@@ -261,6 +261,7 @@ protected:
     // assign function
     virtual std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
                                                 AssignmentType type);
+
 
 private:
     std::set<std::shared_ptr<VarCasted>> casted_;

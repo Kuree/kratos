@@ -350,19 +350,32 @@ void Var::set_size_param(uint32_t index, Var *param) {
     }
 }
 
-void check_parent_param(const Param *param, const Generator *parent) {
+bool check_parent_param(const Param *param, const Generator *parent, bool check_param) {
+    bool correct = true;
     if (!param || param->generator() != parent)
+        correct = false;
+
+    if (!correct && check_param)
         throw UserException(
             ::format("Unable to copy var definition since the width parametrization is not set "
                      "in parent"));
+    return correct;
 }
 
-Var &copy_var_const_parm(Var *var, Generator *parent) {
+Var &copy_var_const_parm(Var *var, Generator *parent, bool check_param) {
     if (var->is_param()) {
         auto param = var->as<Param>();
         const auto *param_parent = param->parent_param();
-        check_parent_param(param_parent, parent);
-        return *const_cast<Param *>(param_parent);
+        bool correct = check_parent_param(param_parent, parent, check_param);
+        if (correct) {
+            return *const_cast<Param *>(param_parent);
+        } else {
+            // use the current value instead
+            auto &c = constant(param->value(), param->width(), param->is_signed());
+            c.set_generator(parent);
+            return c;
+        }
+
     } else if (var->type() == VarType::ConstValue) {
         auto c = var->as<Const>();
         auto &c_ = constant(c->value(), c->width(), c->is_signed());
@@ -372,9 +385,9 @@ Var &copy_var_const_parm(Var *var, Generator *parent) {
         if (var->type() != VarType::Expression)
             throw UserException("Only expression with constant and parameters allowed");
         auto expr = var->as<Expr>();
-        auto &left = copy_var_const_parm(expr->left, parent);
+        auto &left = copy_var_const_parm(expr->left, parent, check_param);
         if (expr->right) {
-            auto &right = copy_var_const_parm(expr->right, parent);
+            auto &right = copy_var_const_parm(expr->right, parent, check_param);
             return parent->expr(expr->op, &left, &right);
         } else {
             return parent->expr(expr->op, &left, nullptr);
@@ -382,23 +395,26 @@ Var &copy_var_const_parm(Var *var, Generator *parent) {
     }
 }
 
-void Var::copy_meta_data(Var *new_var) const {
+void Var::copy_meta_data(Var *new_var, bool check_param) const {
     // basically the parameters
     if (param_) {
         const auto *parent_param = param_->parent_param();
-        check_parent_param(parent_param, generator()->parent_generator());
-        new_var->param_ = const_cast<Param *>(parent_param);
+        bool param_set = check_parent_param(parent_param, generator()->parent_generator(), check_param);
+        if (param_set) {
+            new_var->param_ = const_cast<Param *>(parent_param);
+        }
+        else {
+            // use the current value instead
+            new_var->var_width_ = param_->value();
+        }
+
     }
     // need to copy size as well
     // notice that size parameters are actually expressions, so we need to copy all the expressions
     // over using ast visitor
     for (const auto &[index, v] : size_param_) {
-        try {
-            auto &new_v = copy_var_const_parm(v, new_var->generator());
-            new_var->set_size_param(index, &new_v);
-        } catch (UserException &) {
-            continue;
-        }
+        auto &new_v = copy_var_const_parm(v, new_var->generator(), check_param);
+        new_var->set_size_param(index, &new_v);
     }
 
     // need to copy the raw_param as well

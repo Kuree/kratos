@@ -135,21 +135,24 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
     return *p;
 }
 
-Port &Generator::port(const Port &p) { return port(p, p.name); }
+Port &Generator::port(const Port &p, bool check_param) { return port(p, p.name, check_param); }
 
-Port &Generator::port(const Port &p, const std::string &port_name) {
+Port &Generator::port(const Port &p, const std::string &port_name, bool check_param) {
     auto &p_ =
         port(p.port_direction(), port_name, p.var_width(), p.size(), p.port_type(), p.is_signed());
     p_.set_explicit_array(p.explicit_array());
     p_.set_is_packed(p.is_packed());
     // need to copy other definition over
-    p.copy_meta_data(&p_);
+    p.copy_meta_data(&p_, check_param);
     return p_;
 }
 
-Port &Generator::port(const PortPackedStruct &port) { return this->port(port, port.name); }
+Port &Generator::port(const PortPackedStruct &port, bool check_param) {
+    return this->port(port, port.name, check_param);
+}
 
-Port &Generator::port(const PortPackedStruct &port, const std::string &port_name) {
+Port &Generator::port(const PortPackedStruct &port, const std::string &port_name,
+                      bool check_param) {
     if (ports_.find(port_name) != ports_.end())
         throw VarException(::format("{0} already exists in {1}", port_name, name),
                            {vars_.at(port_name).get()});
@@ -157,20 +160,28 @@ Port &Generator::port(const PortPackedStruct &port, const std::string &port_name
                                                 port.packed_struct(), port.size());
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
+
+    port.copy_meta_data(p.get(), check_param);
+
     return *p;
 }
 
-Port &Generator::port(const EnumPort &port) { return this->port(port, port.name); }
+Port &Generator::port(const EnumPort &port, bool check_param) {
+    return this->port(port, port.name, check_param);
+}
 
-Port &Generator::port(const EnumPort &port, const std::string &port_name) {
+Port &Generator::port(const EnumPort &port, const std::string &port_name, bool check_param) {
     if (ports_.find(port_name) != ports_.end())
         throw VarException(::format("{0} already exists in {1}", port_name, name),
                            {vars_.at(port_name).get()});
-    auto enum_type = const_cast<Enum *>(port.enum_type());
+    auto *enum_type = const_cast<Enum *>(port.enum_type());
     auto p = std::make_shared<EnumPort>(this, port.port_direction(), port_name,
                                         enum_type->shared_from_this());
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
+
+    port.copy_meta_data(p.get(), check_param);
+
     return *p;
 }
 

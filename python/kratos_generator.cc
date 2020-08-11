@@ -84,18 +84,23 @@ void init_generator(py::module &m) {
              py::overload_cast<PortDirection, const std::string &, const std::shared_ptr<Enum> &>(
                  &Generator::port),
              py::return_value_policy::reference)
-        .def("port", py::overload_cast<const EnumPort &>(&Generator::port),
-             py::return_value_policy::reference)
-        .def("port", py::overload_cast<const EnumPort &, const std::string &>(&Generator::port),
-             py::return_value_policy::reference)
-        .def("port", py::overload_cast<const Port &>(&Generator::port),
-             py::return_value_policy::reference)
-        .def("port", py::overload_cast<const Port &, const std::string &>(&Generator::port),
-             py::return_value_policy::reference)
-        .def("port", py::overload_cast<const PortPackedStruct &>(&Generator::port),
+        .def("port", py::overload_cast<const EnumPort &, bool>(&Generator::port),
              py::return_value_policy::reference)
         .def("port",
-             py::overload_cast<const PortPackedStruct &, const std::string &>(&Generator::port),
+             py::overload_cast<const EnumPort &, const std::string &, bool>(&Generator::port),
+             py::return_value_policy::reference)
+        .def(
+            "port", [](Generator & gen, const Port &p) -> auto & { return gen.port(p, true); },
+            py::return_value_policy::reference)
+        .def("port", py::overload_cast<const Port &, bool>(&Generator::port),
+             py::return_value_policy::reference)
+        .def("port", py::overload_cast<const Port &, const std::string &, bool>(&Generator::port),
+             py::return_value_policy::reference)
+        .def("port", py::overload_cast<const PortPackedStruct &, bool>(&Generator::port),
+             py::return_value_policy::reference)
+        .def("port",
+             py::overload_cast<const PortPackedStruct &, const std::string &, bool>(
+                 &Generator::port),
              py::return_value_policy::reference)
         .def("parameter", py::overload_cast<const std::string &>(&Generator::parameter),
              py::return_value_policy::reference)

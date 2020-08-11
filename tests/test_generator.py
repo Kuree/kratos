@@ -1963,6 +1963,8 @@ def test_port_type():
     param.value = "pkg::new_type_t"
     mod.parameter("type2", is_raw_type=True, initial_value="pkg::new_type_t")
     mod.parameter("type3", is_raw_type=True, initial_value="pkg::new_type_t")
+    p_width = mod.parameter("P_width", value=5)
+    a_in = mod.input("a", p_width)
 
     # raw type port
     # width 5 should be ignored. this is just for testing
@@ -1986,12 +1988,15 @@ def test_port_type():
     parent.port_from_def(in1)
     parent.port_from_def(in2)
     parent.port_from_def(p)
+    parent.port_from_def(a_in, check_param=False)
     parent.add_child("inst", mod, in1=parent.ports.in1,
                      in_enum=parent.ports.in_enum,
-                     in_raw=parent.ports.in_raw)
+                     in_raw=parent.ports.in_raw,
+                     a=parent.ports.a)
 
     src = verilog(parent)["parent"]
     assert "type_t(p_type)" in src
+    assert ".P_width(32'h5)" in src
 
 
 def test_param_size(check_gold):
@@ -2044,4 +2049,4 @@ def test_param_copy_def():
 
 
 if __name__ == "__main__":
-    test_param_copy_def()
+    test_port_type()

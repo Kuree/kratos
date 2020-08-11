@@ -468,11 +468,11 @@ class Generator(metaclass=GeneratorMeta):
         self.__set_var_size(p, params)
         return p
 
-    def port_from_def(self, port: _kratos.Port, name=""):
+    def port_from_def(self, port: _kratos.Port, name="", check_param: bool = True):
         if name:
-            return self.__generator.port(port, name)
+            return self.__generator.port(port, name, check_param)
         else:
-            return self.__generator.port(port)
+            return self.__generator.port(port, check_param)
 
     def param_from_def(self, param: _kratos.Param, name=None):
         return self.__generator.parameter(param, name)
