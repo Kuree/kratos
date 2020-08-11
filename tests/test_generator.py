@@ -1236,7 +1236,7 @@ def test_param(check_gold):
     mod = Generator("mod", True)
     param = mod.parameter("P", 4, 4)
     param2 = mod.parameter("P2", 4, 4)
-    param3 = mod.parameter("P3", 4) # P3 doesn't have init or value
+    param3 = mod.parameter("P3", 4)  # P3 doesn't have init or value
     in_ = mod.input("in", param)
     out = mod.output("out", param2)
     var = mod.var("v", param)
@@ -2025,5 +2025,23 @@ def test_param_packed_struct_array(check_gold):
     assert out[0]["write"].width == 16
 
 
+def test_param_copy_def():
+    enum = kratos.enum("enum_t", ["A", "B"])
+    enum.external = True
+    child = Generator("child")
+    p1 = child.parameter("P1")
+    p2 = child.parameter("P2", is_raw_type=True)
+    p3 = child.parameter("P3", enum)
+    top = Generator("top")
+    top.param_from_def(p1)
+    top.param_from_def(p2, "P_t")
+    top.param_from_def(p3)
+    src = verilog(top)["top"]
+
+    assert "parameter P1" in src
+    assert "parameter enum_t P3" in src
+    assert "parameter type P_t" in src
+
+
 if __name__ == "__main__":
-    test_port_type()
+    test_param_copy_def()

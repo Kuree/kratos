@@ -69,6 +69,8 @@ public:
     Param &parameter(const std::string &parameter_name);
     Param &parameter(const std::string &parameter_name, uint32_t width);
     Param &parameter(const std::string &parameter_name, uint32_t width, bool is_signed);
+    Param &parameter(const std::string &parameter_name, const std::shared_ptr<Enum> &enum_def);
+    Param &parameter(const std::shared_ptr<Param> &param, const std::string &parameter_name);
     Enum &enum_(const std::string &enum_name, const std::map<std::string, uint64_t> &definition,
                 uint32_t width);
     EnumVar &enum_var(const std::string &var_name, const std::shared_ptr<Enum> &enum_def);
@@ -309,6 +311,9 @@ private:
 
     // raw imports. only used when interfacing foreign IPs
     std::unordered_set<std::string> raw_package_imports_;
+
+    // helper functions
+    void check_param_name_conflict(const std::string &parameter_name);
 };
 
 }  // namespace kratos

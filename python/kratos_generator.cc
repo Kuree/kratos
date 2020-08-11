@@ -102,6 +102,18 @@ void init_generator(py::module &m) {
         .def("parameter",
              py::overload_cast<const std::string &, uint32_t, bool>(&Generator::parameter),
              py::return_value_policy::reference)
+        .def(
+            "parameter",
+            [](Generator & generator, const std::shared_ptr<Param> &param,
+               std::optional<std::string> param_name) -> auto & {
+                auto name = param_name ? param_name.value() : param->parameter_name();
+                return generator.parameter(param, name);
+            },
+            py::return_value_policy::reference)
+        .def("parameter",
+             py::overload_cast<const std::string &, const std::shared_ptr<Enum> &>(
+                 &Generator::parameter),
+             py::return_value_policy::reference)
         .def("interface", [](Generator &generator, const std::shared_ptr<InterfaceDefinition> &def,
                              const std::string &name,
                              bool is_port) { return generator.interface(def, name, is_port); })

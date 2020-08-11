@@ -474,6 +474,9 @@ class Generator(metaclass=GeneratorMeta):
         else:
             return self.__generator.port(port)
 
+    def param_from_def(self, param: _kratos.Param, name=None):
+        return self.__generator.parameter(param, name)
+
     def input(self, name, width: Union[int, _kratos.Param, _kratos.Enum,
                                        _kratos.PackedStruct],
               port_type: PortType = PortType.Data,
@@ -570,7 +573,10 @@ class Generator(metaclass=GeneratorMeta):
         if is_raw_type:
             param = self.__generator.parameter(name)
         else:
-            param = self.__generator.parameter(name, width, is_signed)
+            if isinstance(width, _kratos.Enum):
+                param = self.__generator.parameter(name, width)
+            else:
+                param = self.__generator.parameter(name, width, is_signed)
         if value is not None:
             param.value = value
         if initial_value is not None:

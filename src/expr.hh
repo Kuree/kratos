@@ -456,6 +456,7 @@ public:
     // raw type. only used for interacting with imported modules
     Param(Generator *m, std::string name);
     Param(Generator *m, std::string name, Enum *enum_def);
+    Param(Generator *m, const std::shared_ptr<Param> &param, std::string parameter_name);
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 

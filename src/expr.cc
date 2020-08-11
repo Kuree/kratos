@@ -5,6 +5,7 @@
 #include <iostream>
 #include <queue>
 #include <stdexcept>
+#include <utility>
 
 #include "except.hh"
 #include "fmt/format.h"
@@ -349,7 +350,7 @@ void Var::set_size_param(uint32_t index, Var *param) {
     }
 }
 
-void check_parent_param(const Param* param, const Generator *parent) {
+void check_parent_param(const Param *param, const Generator *parent) {
     if (!param || param->generator() != parent)
         throw UserException(
             ::format("Unable to copy var definition since the width parametrization is not set "
@@ -409,7 +410,7 @@ void Var::copy_meta_data(Var *new_var) const {
                          "different generator for var {0}",
                          to_string())));
         }
-        new_var->raw_type_param_ = const_cast<Param*>(parent_param);
+        new_var->raw_type_param_ = const_cast<Param *>(parent_param);
     }
 }
 
@@ -988,6 +989,12 @@ Param::Param(Generator *m, std::string name, Enum *enum_def)
     type_ = VarType::Parameter;
 }
 
+Param::Param(Generator *m, const std::shared_ptr<Param> &param, std::string parameter_name)
+    : Const(m, 1, 1, false),
+      parameter_name_(std::move(parameter_name)),
+      param_type_(param->param_type_),
+      enum_def_(param->enum_def_) {}
+
 void Param::set_value(int64_t new_value) {
     if (new_value <= 0 && !param_vars_width_.empty()) {
         throw VarException(
@@ -1033,15 +1040,13 @@ void Param::add_param_size_var(Var *var, uint32_t index, Var *expr) {
 void Param::set_value(const std::shared_ptr<Param> &param) {
     param->param_params_.emplace(this);
     parent_param_ = param.get();
-    if (param->param_type() != ParamType::RawType)
-        param_type_ = ParamType::Parameter;
+    if (param->param_type() != ParamType::RawType) param_type_ = ParamType::Parameter;
 
     // update the values
     set_value(param->value());
 }
 
-void Param::set_value(const std::string &str_value) { raw_str_value_ = str_value;
-}
+void Param::set_value(const std::string &str_value) { raw_str_value_ = str_value; }
 
 void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
     for (auto &var : vars_) {
