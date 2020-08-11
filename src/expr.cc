@@ -385,7 +385,7 @@ void Var::copy_meta_data(Var *new_var) const {
     // basically the parameters
     if (param_) {
         const auto *parent_param = param_->parent_param();
-        check_parent_param(parent_param, generator());
+        check_parent_param(parent_param, generator()->parent_generator());
         new_var->param_ = const_cast<Param *>(parent_param);
     }
     // need to copy size as well

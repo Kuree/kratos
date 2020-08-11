@@ -488,7 +488,7 @@ void init_expr(py::module &m) {
                       &Param::set_initial_raw_str_value);
 
     auto port_packed =
-        py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Var>(m, "PortPackedStruct");
+        py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Port>(m, "PortPackedStruct");
     port_packed
         .def(
             "__getitem__",
