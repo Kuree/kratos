@@ -367,6 +367,9 @@ public:
     VarSlice &operator[](std::pair<uint32_t, uint32_t> slice) override {
         return Var::operator[](slice);
     }
+    VarSlice &operator[](const std::shared_ptr<Var> &slice) override {
+        return Var::operator[](slice);
+    }
 
     const Var *get_var_root_parent() const override;
     Var *get_var_root_parent() override;
