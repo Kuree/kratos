@@ -1574,6 +1574,7 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
             is_signed_ = is_signed;
             var_high_ = high;
             var_low_ = low;
+            var_width_ = var_high_ - var_low_ + 1;
             break;
         } else {
             low_ += width;
