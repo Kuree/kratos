@@ -11,6 +11,30 @@ using std::shared_ptr;
 
 std::optional<std::pair<std::string, uint32_t>> get_fn_ln(uint32_t num_frame_back);
 
+// templated function to set up packed struct for both port and var
+template <class T, class K>
+void setup_getitem(py::class_<T, ::shared_ptr<T>, K> &class_) {
+    using namespace kratos;
+    class_
+        .def(
+            "__getitem__", [](T & var, const std::string &name) -> auto & { return var[name]; },
+            py::return_value_policy::reference)
+        .def(
+            "__getitem__",
+            [](T & var, uint32_t index) -> auto & { return var.Var::operator[](index); },
+            py::return_value_policy::reference)
+        .def(
+            "__getitem__", [](T & var, std::pair<uint32_t, uint32_t> slice) -> auto & {
+                return var.Var::operator[](slice);
+            },
+            py::return_value_policy::reference)
+        .def(
+            "__getitem__", [](T & var, const std::shared_ptr<kratos::Var> &slice) -> auto & {
+                return var.Var::operator[](slice);
+            },
+            py::return_value_policy::reference);
+}
+
 void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_) {
     namespace py = pybind11;
     using std::shared_ptr;
@@ -495,21 +519,13 @@ void init_expr(py::module &m) {
 
     auto port_packed =
         py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Port>(m, "PortPackedStruct");
-    port_packed
-        .def(
-            "__getitem__",
-            [](PortPackedStruct & port, const std::string &name) -> auto & { return port[name]; },
-            py::return_value_policy::reference)
-        .def("member_names", &PortPackedStruct::member_names);
+    port_packed.def("member_names", &PortPackedStruct::member_names);
+    setup_getitem(port_packed);
 
     auto var_packed =
         py::class_<VarPackedStruct, ::shared_ptr<VarPackedStruct>, Var>(m, "VarPackedStruct");
-    var_packed
-        .def(
-            "__getitem__",
-            [](VarPackedStruct & port, const std::string &name) -> auto & { return port[name]; },
-            py::return_value_policy::reference)
-        .def("member_names", &VarPackedStruct::member_names);
+    var_packed.def("member_names", &VarPackedStruct::member_names);
+    setup_getitem(var_packed);
 
     // struct info for packed
     auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");

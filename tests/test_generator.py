@@ -528,9 +528,10 @@ def test_packed_struct(check_gold, check_file):
             self.wire(v, self.ports["in"])
 
             # tests
-            assert v.width == 16 + 16
+            # assert v.width == 16 + 16
             assert "read" in v.member_names()
             assert "data" in v.member_names()
+            assert v["read"].width == 16
 
     mod = Mod()
     check_gold(mod, "test_packed_struct", optimize_passthrough=False)
@@ -2020,6 +2021,8 @@ def test_param_packed_struct_array(check_gold):
     mod.add_stmt(out.assign(var))
 
     check_gold(mod, "test_param_packed_struct_array")
+
+    assert out[0]["write"].width == 16
 
 
 if __name__ == "__main__":
