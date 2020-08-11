@@ -352,8 +352,7 @@ void Var::set_size_param(uint32_t index, Var *param) {
 
 bool check_parent_param(const Param *param, const Generator *parent, bool check_param) {
     bool correct = true;
-    if (!param || param->generator() != parent)
-        correct = false;
+    if (!param || param->generator() != parent) correct = false;
 
     if (!correct && check_param)
         throw UserException(
@@ -399,15 +398,14 @@ void Var::copy_meta_data(Var *new_var, bool check_param) const {
     // basically the parameters
     if (param_) {
         const auto *parent_param = param_->parent_param();
-        bool param_set = check_parent_param(parent_param, generator()->parent_generator(), check_param);
+        bool param_set =
+            check_parent_param(parent_param, generator()->parent_generator(), check_param);
         if (param_set) {
             new_var->param_ = const_cast<Param *>(parent_param);
-        }
-        else {
+        } else {
             // use the current value instead
             new_var->var_width_ = param_->value();
         }
-
     }
     // need to copy size as well
     // notice that size parameters are actually expressions, so we need to copy all the expressions
@@ -1045,6 +1043,10 @@ std::string Param::value_str() const {
         return p->to_string();
     } else {
         // raw type
+        if (param_type_ == ParamType::RawType) {
+            if (raw_str_value_) return *raw_str_value_;
+            if (initial_raw_str_value_) return *initial_raw_str_value_;
+        }
         return name;
     }
 }
