@@ -39,7 +39,7 @@ class LogicOperatorVisitor(ast.NodeTransformer):
         if len(values) == 1:
             return values[0]
         node = ast.Call(func=ast.Attribute(attr=func_name, value=values[0],
-                                           cts=ast.Load()),
+                                           ctx=ast.Load()),
                         args=[values[1]], keywords=[])
         values = [node] + values[2:]
         return LogicOperatorVisitor.concat_ops(func_name, values)
@@ -77,7 +77,7 @@ class LogicOperatorVisitor(ast.NodeTransformer):
     def visit_UnaryOp(self, node):
         if isinstance(node.op, ast.Not):
             return ast.Call(func=ast.Attribute(attr="r_not", value=node.operand,
-                                               cts=ast.Load()),
+                                               ctx=ast.Load()),
                             args=[], keywords=[])
         return node
 
@@ -242,7 +242,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                         body.append(nn)
                 else:
                     body.append(n)
-            body_node = ast.Call(func=ast.Attribute(attr="loop", value=for_node, cts=ast.Load()),
+            body_node = ast.Call(func=ast.Attribute(attr="loop", value=for_node, ctx=ast.Load()),
                                  args=body, keywords=[])
             # create an entry for the target
             self.local[str(target.id)] = 0
@@ -278,7 +278,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 target_src = astor.to_source(target)
                 target_eval = eval(target_src, self.local)
                 if isinstance(target_eval, _kratos.Var):
-                    return ast.Call(func=ast.Attribute(value=target, attr="r_not", cts=ast.Load()),
+                    return ast.Call(func=ast.Attribute(value=target, attr="r_not", ctx=ast.Load()),
                                     args=[], keywords=[], ctx=ast.Load())
             else:
                 return node
@@ -298,7 +298,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
             # change it into a function all
             return ast.Call(func=ast.Attribute(value=left,
                                                attr="eq",
-                                               cts=ast.Load()),
+                                               ctx=ast.Load()),
                             args=node.comparators,
                             keywords=[],
                             ctx=ast.Load)
@@ -367,12 +367,12 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         if_node = ast.Call(func=ast.Attribute(value=ast.Name(id="scope",
                                                              ctx=ast.Load()),
                                               attr="if_",
-                                              cts=ast.Load()),
+                                              ctx=ast.Load()),
                            args=[predicate] + expression,
                            keywords=keywords_if,
                            ctx=ast.Load)
         else_node = ast.Call(func=ast.Attribute(attr="else_", value=if_node,
-                                                cts=ast.Load()),
+                                                ctx=ast.Load()),
                              args=else_expression, keywords=keywords_else)
 
         return self.visit(ast.Expr(value=else_node))
@@ -405,7 +405,7 @@ class AssignNodeVisitor(ast.NodeTransformer):
                 value=ast.Name(id="scope",
                                ctx=ast.Load()),
                 attr="assign",
-                cts=ast.Load()),
+                ctx=ast.Load()),
                 args=args,
                 keywords=[]))
 
@@ -425,7 +425,7 @@ class AssertNodeVisitor(ast.NodeTransformer):
             return ast.Call(func=ast.Attribute(
                 value=ast.Name(id="scope", ctx=ast.Load()),
                 attr="assert_",
-                cts=ast.Load()),
+                ctx=ast.Load()),
                 args=args,
                 keywords=[])
         return node
@@ -451,7 +451,7 @@ class ExceptionNodeVisitor(ast.NodeTransformer):
         if self.debug:
             args.append(ast.Constant(value=node.lineno))
         return ast.Call(func=ast.Attribute(value=ast.Name(id="scope", ctx=ast.Load()),
-                                           attr="assert_", cts=ast.Load()), args=args, keywords=[])
+                                           attr="assert_", ctx=ast.Load()), args=args, keywords=[])
 
 
 class ReturnNodeVisitor(ast.NodeTransformer):
@@ -469,7 +469,7 @@ class ReturnNodeVisitor(ast.NodeTransformer):
             value=ast.Name(id=self.scope_name,
                            ctx=ast.Load()),
             attr="return_",
-            cts=ast.Load()),
+            ctx=ast.Load()),
             args=args,
             keywords=[]))
 
@@ -660,7 +660,7 @@ def transform_block_comment(fn_body):
             comment = comment.replace("\"", "").replace("'", "")
             node.value.s = comment
             fn_body.body[i] = ast.Expr(value=ast.Call(func=ast.Name(id="comment"), args=[node.value],
-                                                      cts=ast.Load(), keywords=[]))
+                                                      ctx=ast.Load(), keywords=[]))
 
 
 def add_stmt_to_scope(fn_body):
@@ -668,7 +668,7 @@ def add_stmt_to_scope(fn_body):
         node = fn_body.body[i]
         fn_body.body[i] = ast.Expr(
             value=ast.Call(func=ast.Attribute(value=ast.Name(id="scope", ctx=ast.Load()),
-                                              attr="add_stmt", cts=ast.Load()),
+                                              attr="add_stmt", ctx=ast.Load()),
                            args=[node], keywords=[]))
 
 
@@ -900,7 +900,7 @@ def declare_var_definition(var_def, arg_order):
         width, is_signed = var_def[idx]
         body.append(ast.Assign(targets=[ast.Name(id=name)],
                                value=ast.Call(func=ast.Attribute(value=ast.Name(id="_scope", ctx=ast.Load()),
-                                                                 attr="input", cts=ast.Load()),
+                                                                 attr="input", ctx=ast.Load()),
                                               args=[ast.Str(s=name), ast.Constant(value=width),
                                                     ast.NameConstant(value=is_signed)],
                                               keywords=[])))
