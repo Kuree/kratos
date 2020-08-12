@@ -92,6 +92,16 @@ void init_generator(py::module &m) {
         .def(
             "port", [](Generator & gen, const Port &p) -> auto & { return gen.port(p, true); },
             py::return_value_policy::reference)
+        .def(
+            "port", [](Generator & gen, const Port &p, const std::string &name) -> auto & {
+                return gen.port(p, name, true);
+            },
+            py::return_value_policy::reference)
+        .def(
+            "port",
+            [](Generator & gen, const Port &p, const std::string &name,
+               bool check_param) -> auto & { return gen.port(p, name, check_param); },
+            py::return_value_policy::reference)
         .def("port", py::overload_cast<const Port &, bool>(&Generator::port),
              py::return_value_policy::reference)
         .def("port", py::overload_cast<const Port &, const std::string &, bool>(&Generator::port),
