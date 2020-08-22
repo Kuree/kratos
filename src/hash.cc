@@ -375,7 +375,8 @@ void hash_generator_name(Context* context, Generator* generator) {
 
 void hash_generators_context(Context* context, Generator* root, HashStrategy strategy) {
     // clear the hash first
-    context->clear_hash();
+    if (!context->get_keep_hash())
+        context->clear_hash();
 
     // compute the generator graph
     GeneratorGraph g(root);

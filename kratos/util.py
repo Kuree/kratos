@@ -159,6 +159,13 @@ def max_value(values):
     return max(s)
 
 
+def enable_multi_generate():
+    # need to enable if verilog() function is called multiple times
+    # and all of them will go to the same RTL code
+    from kratos import Generator
+    Generator.get_context().keep_hash = True
+
+
 # bit vector style syntax
 class ConstConstructor:
     def __getitem__(self, width):
@@ -225,6 +232,7 @@ def to_magma(kratos_inst, flatten_array=False, top_name=None, **kargs):  # pragm
         kratos = kratos_inst
     os.makedirs(".magma", exist_ok=True)
     filename = f".magma/{circ_name}-kratos.sv"
+    enable_multi_generate()
     # multiple definition inside the kratos instance is taken care of by
     # the track definition flag
     verilog(kratos_inst, filename=filename, track_generated_definition=True,

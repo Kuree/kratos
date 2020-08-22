@@ -2048,5 +2048,23 @@ def test_param_copy_def():
     assert "parameter type P_t" in src
 
 
+def test_multi_gen():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            a = self.input("a", 1)
+            b = self.output("b", 1)
+            self.wire(a, b)
+    mod1 = Mod()
+    verilog(mod1)
+    mod2 = Mod()
+    mod2.ports.a.name = "a2"
+    from kratos.util import enable_multi_generate
+    enable_multi_generate()
+    src = verilog(mod2)
+    assert "mod" not in src
+    assert "mod_unq0" in src
+
+
 if __name__ == "__main__":
-    test_port_type()
+    test_multi_gen()

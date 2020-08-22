@@ -61,7 +61,6 @@ struct InterfaceRef;
 class Property;
 class Sequence;
 
-
 class Context {
 private:
     std::unordered_map<std::string, std::set<std::shared_ptr<Generator>>> modules_;
@@ -72,8 +71,13 @@ private:
     // hold enum definition
     std::map<std::string, std::shared_ptr<Enum>> enum_defs_;
 
-    // just hold some generators that's not esssential
+    // just hold some generators that's not essential
     std::unordered_set<std::shared_ptr<Generator>> empty_generators_;
+
+    // for some cases we need to keep hash for generated generators,
+    // this is particular useful in python env where kratos is used to generate
+    // building blocks separately to RTL
+    bool keep_hash_ = false;
 
 public:
     Context() = default;
@@ -90,8 +94,8 @@ public:
     void inline clear_hash() { generator_hash_.clear(); }
 
     // managing the id for multiple invocation of dump database
-    int &max_instance_id() { return max_instance_id_; }
-    int &max_stmt_id() { return max_stmt_id_; }
+    int& max_instance_id() { return max_instance_id_; }
+    int& max_stmt_id() { return max_stmt_id_; }
     void reset_id();
 
     // for debugging
@@ -102,12 +106,15 @@ public:
     std::set<std::shared_ptr<Generator>> get_generators_by_name(const std::string& name) const;
     std::unordered_set<std::string> get_generator_names() const;
 
-    const std::map<std::string, std::shared_ptr<Enum>> &enum_defs() const { return enum_defs_; }
-    std::map<std::string, std::shared_ptr<Enum>> &enum_Defs() { return enum_defs_; }
-    Enum &enum_(const std::string &enum_name, const std::map<std::string, uint64_t> &definition,
+    const std::map<std::string, std::shared_ptr<Enum>>& enum_defs() const { return enum_defs_; }
+    std::map<std::string, std::shared_ptr<Enum>>& enum_Defs() { return enum_defs_; }
+    Enum& enum_(const std::string& enum_name, const std::map<std::string, uint64_t>& definition,
                 uint32_t width);
-    bool has_enum(const std::string &name) const;
+    bool has_enum(const std::string& name) const;
     void reset_enum();
+
+    void set_keep_hash(bool value) { keep_hash_ = value; }
+    bool get_keep_hash() const { return keep_hash_; }
 
     void clear();
 };
