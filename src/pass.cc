@@ -521,7 +521,8 @@ public:
 class MarkTrackedVisitor : public IRVisitor {
     void visit(Generator* generator) override {
         auto* context = generator->context();
-        context->add_tracked_generator(generator);
+        if (context)
+            context->add_tracked_generator(generator);
     }
 };
 
