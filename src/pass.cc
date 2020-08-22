@@ -1,11 +1,11 @@
 #include "pass.hh"
 
+#include <cassert>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <mutex>
 #include <numeric>
-#include <cassert>
 
 #include "codegen.hh"
 #include "debug.hh"
@@ -518,6 +518,21 @@ public:
     const std::map<std::string, Generator*>& generator_map() const { return generator_map_; };
 };
 
+class MarkTrackedVisitor : public IRVisitor {
+    void visit(Generator* generator) override {
+        auto* context = generator->context();
+        context->add_tracked_generator(generator);
+    }
+};
+
+void track_generators(Generator* top) {
+    // if we need to track if a generator has been touched for verilog
+    if (top->context() && top->context()->track_generated()) {
+        MarkTrackedVisitor track_visitor;
+        track_visitor.visit_generator_root_p(top);
+    }
+}
+
 std::map<std::string, std::string> generate_verilog(Generator* top) {
     // this pass assumes that all the generators has been uniquified
     std::map<std::string, std::string> result;
@@ -530,6 +545,7 @@ std::map<std::string, std::string> generate_verilog(Generator* top) {
         SystemVerilogCodeGen codegen(module_gen);
         result.emplace(module_name, codegen.str());
     }
+    track_generators(top);
     return result;
 }
 
@@ -546,6 +562,8 @@ void generate_verilog(Generator* top, const std::string& output_dir,
     // this can be parallelized
     unique_visitor.visit_generator_root_p(top);
     auto const& generator_map = unique_visitor.generator_map();
+    track_generators(top);
+
     // we use header_name + ".svh"
     std::string header_filename = package_name + ".svh";
     std::map<std::string, std::string> result;
@@ -639,11 +657,20 @@ void uniquify_generators(Generator* top) {
     Context* context = top->context();
     auto const& names = context->get_generator_names();
     for (auto const& name : names) {
-        const auto module_instances = context->get_generators_by_name(name);
+        auto const module_sets = context->get_generators_by_name(name);
+        auto module_instances =
+            std::vector<std::shared_ptr<Generator>>(module_sets.begin(), module_sets.end());
         // notice that since it is a set copied by value, it is fine to iterate through it
         if (module_instances.size() == 1)
             // only one module. we are good
             continue;
+        // reordering based on whether it's being tracked
+        if (context->track_generated()) {
+            std::sort(module_instances.begin(), module_instances.end(),
+                      [context](auto, auto rhs) {
+                          return !context->is_generated_tracked(rhs.get());
+                      });
+        }
         std::unordered_map<uint64_t, Generator*> name_map;
         std::unordered_set<std::string> new_names;
         for (const auto& instance : module_instances) {

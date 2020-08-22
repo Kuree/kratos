@@ -77,7 +77,8 @@ private:
     // for some cases we need to keep hash for generated generators,
     // this is particular useful in python env where kratos is used to generate
     // building blocks separately to RTL
-    bool keep_hash_ = false;
+    bool track_generated_ = false;
+    std::unordered_set<Generator*> tracked_generators_;
 
 public:
     Context() = default;
@@ -113,8 +114,11 @@ public:
     bool has_enum(const std::string& name) const;
     void reset_enum();
 
-    void set_keep_hash(bool value) { keep_hash_ = value; }
-    bool get_keep_hash() const { return keep_hash_; }
+    void set_track_generated(bool value) { track_generated_ = value; }
+    bool track_generated() const { return track_generated_; }
+    void clear_tracked_generator();
+    inline void add_tracked_generator(Generator* gen) { tracked_generators_.emplace(gen); }
+    bool is_generated_tracked(Generator *gen) const;
 
     void clear();
 };

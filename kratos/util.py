@@ -163,7 +163,7 @@ def enable_multi_generate():
     # need to enable if verilog() function is called multiple times
     # and all of them will go to the same RTL code
     from kratos import Generator
-    Generator.get_context().keep_hash = True
+    Generator.get_context().track_generated = True
 
 
 # bit vector style syntax

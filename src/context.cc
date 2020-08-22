@@ -1,4 +1,5 @@
 #include "context.hh"
+
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
@@ -15,7 +16,7 @@ Generator &Context::generator(const std::string &name) {
     return *p;
 }
 
-Generator  &Context::empty_generator() {
+Generator &Context::empty_generator() {
     auto gen = std::make_shared<Generator>(this, "");
     empty_generators_.emplace(gen);
     return *gen;
@@ -112,13 +113,20 @@ bool Context::has_enum(const std::string &name) const {
     return enum_defs_.find(name) != enum_defs_.end();
 }
 
-void Context::reset_enum() {
-    enum_defs_.clear();
-}
+void Context::reset_enum() { enum_defs_.clear(); }
 
 void Context::reset_id() {
     max_stmt_id_ = 0;
     max_instance_id_ = 0;
+}
+
+void Context::clear_tracked_generator() {
+    tracked_generators_.clear();
+    track_generated_ = false;
+}
+
+bool Context::is_generated_tracked(Generator *gen) const {
+    return tracked_generators_.find(gen) != tracked_generators_.end();
 }
 
 void Context::clear() {
@@ -126,6 +134,7 @@ void Context::clear() {
     clear_hash();
     reset_id();
     enum_defs_.clear();
+    clear_tracked_generator();
 }
 
 }  // namespace kratos

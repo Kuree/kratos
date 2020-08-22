@@ -29,5 +29,5 @@ void init_context(py::module &m) {
         .def("enum", &Context::enum_, py::arg("enum_name"), py::arg("definition"),
              py::arg("width"), py::return_value_policy::reference)
         .def("has_enum", &Context::has_enum)
-        .def_property("keep_hash", &Context::get_keep_hash, &Context::set_keep_hash);
+        .def_property("track_generated", &Context::track_generated, &Context::set_track_generated);
 }
