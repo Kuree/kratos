@@ -700,10 +700,10 @@ class Generator(metaclass=GeneratorMeta):
     def wire(self, var_to, var_from,
              attributes: Union[List[_kratos.passes.Attribute],
                                _kratos.passes.Attribute] = None,
-             comment="", locals_=None, fn_ln=None):
+             comment="", locals_=None, fn_ln=None, additional_frame=0):
         if self.is_cloned:
             if self.debug and locals_ is None:
-                locals_ = get_frame_local(2)
+                locals_ = get_frame_local(2 + additional_frame)
             self.__cached_initialization.append((self.wire, [var_to, var_from,
                                                              attributes,
                                                              comment, locals_]))
@@ -727,7 +727,7 @@ class Generator(metaclass=GeneratorMeta):
         if isinstance(var_to, _kratos.PortBundleRef):
             assert isinstance(var_from, _kratos.PortBundleRef)
             if self.debug:
-                entry = get_fn_ln()
+                entry = get_fn_ln(2 + additional_frame)
             else:
                 entry = []
             var_from.assign(var_to, self.__generator, entry)
@@ -742,9 +742,9 @@ class Generator(metaclass=GeneratorMeta):
             if fn_ln is not None:
                 stmt.add_fn_ln(fn_ln)
             else:
-                stmt.add_fn_ln(get_fn_ln())
+                stmt.add_fn_ln(get_fn_ln(2 + additional_frame))
                 if locals_ is None:
-                    locals_ = get_frame_local(2)
+                    locals_ = get_frame_local(2 + additional_frame)
                 add_scope_context(stmt, locals_)
 
         if attributes is not None:
@@ -834,7 +834,8 @@ class Generator(metaclass=GeneratorMeta):
                     parent_port = self.ports[parent_port]
                 else:
                     parent_port = self.vars[parent_port]
-            self.wire(generator.ports[child_port], parent_port)
+            self.wire(generator.ports[child_port], parent_port,
+                      additional_frame=1)
 
     # alias
     add_child = add_child_generator
