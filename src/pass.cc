@@ -203,8 +203,10 @@ public:
                     vars_to_remove.emplace(var_name);
                 } else {
                     // print out warnings
+                    error_mutex_.lock();
                     std::cerr << "Variable: " << var->to_string() << " has no sink" << std::endl;
                     print_ast_node(var.get());
+                    error_mutex_.unlock();
                 }
             }
         }
@@ -214,6 +216,9 @@ public:
             generator->remove_var(var_name);
         }
     }
+
+private:
+    std::mutex error_mutex_;
 };
 
 void remove_unused_vars(Generator* top) {
