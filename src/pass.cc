@@ -521,8 +521,7 @@ public:
 class MarkTrackedVisitor : public IRVisitor {
     void visit(Generator* generator) override {
         auto* context = generator->context();
-        if (context)
-            context->add_tracked_generator(generator);
+        if (context) context->add_tracked_generator(generator);
     }
 };
 
@@ -659,23 +658,28 @@ void uniquify_generators(Generator* top) {
     auto const& names = context->get_generator_names();
     for (auto const& name : names) {
         auto const module_sets = context->get_generators_by_name(name);
-        auto module_instances =
-            std::vector<std::shared_ptr<Generator>>(module_sets.begin(), module_sets.end());
+        std::vector<Generator*> module_instances;
+        module_instances.reserve(module_sets.size());
+        for (auto const& m : module_sets) module_instances.emplace_back(m.get());
         // notice that since it is a set copied by value, it is fine to iterate through it
         if (module_instances.size() == 1)
             // only one module. we are good
             continue;
         // reordering based on whether it's being tracked
         if (context->track_generated()) {
-            std::sort(module_instances.begin(), module_instances.end(),
-                      [context](auto, auto rhs) {
-                          return !context->is_generated_tracked(rhs.get());
-                      });
+            // O(n) algorithm. it does not need to be inplace
+            uint64_t head = 0;
+            for (uint64_t i = 0; i < module_instances.size(); i++) {
+                if (context->is_generated_tracked(module_instances[i])) {
+                    // swap
+                    std::swap(module_instances[i], module_instances[head]);
+                    head++;
+                }
+            }
         }
         std::unordered_map<uint64_t, Generator*> name_map;
         std::unordered_set<std::string> new_names;
-        for (const auto& instance : module_instances) {
-            auto* ptr = instance.get();
+        for (auto *const ptr : module_instances) {
             if (context->has_hash(ptr)) {
                 uint64_t hash = context->get_hash(ptr);
                 if (name_map.find(hash) == name_map.end()) {
