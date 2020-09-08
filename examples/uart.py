@@ -1,5 +1,7 @@
 # uart implementation is translated
 # from https://www.nandland.com/vhdl/modules/module-uart-serial-port-rs232.html
+# reset is added per discussion here
+# https://github.com/Kuree/kratos/issues/155
 
 from kratos import Generator, always_ff, verilog, posedge
 
@@ -10,6 +12,9 @@ class UartBase(Generator):
         # create some common variables
         # ports
         self.clk = self.clock("clk")
+        # add reset
+        # posedge synchronous reset
+        self.rst = self.reset("rst", is_async=False)
         # parameters
         self.clks_per_bit = self.parameter("CLKS_PER_BIT", 8,
                                            initial_value=87)
@@ -64,54 +69,61 @@ class UartRx(UartBase):
 
     @always_ff((posedge, "clk"))
     def fsm_control(self, state):
-        # FSM control. use state variable allows different state enum encoding
-        # if ... elif ... else ... will be converted into unique case
-        # automatically during code generation
-        if self._sm_main == state.IDLE:
+        if self.rst:
+            self._sm_main = state.IDLE
             self._rx_dv = 0
             self._clock_count = 0
             self._bit_index = 0
-            if self.rx_data == 0:
-                self._sm_main = state.START_BIT
-            else:
-                self._sm_main = state.IDLE
-        elif self._sm_main == state.START_BIT:
-            if self._clock_count == (self.clks_per_bit - 1) / 2:
-                if self._rx_data == 0:
-                    self._clock_count = 0
-                    self._sm_main = state.DATA_BITS
+        else:
+            # FSM control. use state variable allows different state enum
+            # encoding
+            # if ... elif ... else ... will be converted into unique case
+            # automatically during code generation
+            if self._sm_main == state.IDLE:
+                self._rx_dv = 0
+                self._clock_count = 0
+                self._bit_index = 0
+                if self.rx_data == 0:
+                    self._sm_main = state.START_BIT
                 else:
                     self._sm_main = state.IDLE
-            else:
-                self._clock_count += 1
-                self._sm_main = state.START_BIT
-        elif self._sm_main == state.DATA_BITS:
-            if self._clock_count < self.clks_per_bit - 1:
-                self._clock_count += 1
-                self._sm_main = state.DATA_BITS
-            else:
-                self._clock_count = 0
-                self._rx_byte[self._bit_index] = self._rx_data
-
-                if self._bit_index < 7:
-                    self._bit_index += 1
+            elif self._sm_main == state.START_BIT:
+                if self._clock_count == (self.clks_per_bit - 1) / 2:
+                    if self._rx_data == 0:
+                        self._clock_count = 0
+                        self._sm_main = state.DATA_BITS
+                    else:
+                        self._sm_main = state.IDLE
+                else:
+                    self._clock_count += 1
+                    self._sm_main = state.START_BIT
+            elif self._sm_main == state.DATA_BITS:
+                if self._clock_count < self.clks_per_bit - 1:
+                    self._clock_count += 1
                     self._sm_main = state.DATA_BITS
                 else:
-                    self._bit_index = 0
+                    self._clock_count = 0
+                    self._rx_byte[self._bit_index] = self._rx_data
+
+                    if self._bit_index < 7:
+                        self._bit_index += 1
+                        self._sm_main = state.DATA_BITS
+                    else:
+                        self._bit_index = 0
+                        self._sm_main = state.STOP_BIT
+            elif self._sm_main == state.STOP_BIT:
+                if self._clock_count < (self.clks_per_bit - 1):
+                    self._clock_count += 1
                     self._sm_main = state.STOP_BIT
-        elif self._sm_main == state.STOP_BIT:
-            if self._clock_count < (self.clks_per_bit - 1):
-                self._clock_count += 1
-                self._sm_main = state.STOP_BIT
+                else:
+                    self._rx_dv = 1
+                    self._clock_count = 0
+                    self._sm_main = state.CLEANUP
+            elif self._sm_main == state.CLEANUP:
+                self._sm_main = state.IDLE
+                self._rx_dv = 0
             else:
-                self._rx_dv = 1
-                self._clock_count = 0
-                self._sm_main = state.CLEANUP
-        elif self._sm_main == state.CLEANUP:
-            self._sm_main = state.IDLE
-            self._rx_dv = 0
-        else:
-            self._sm_main = state.IDLE
+                self._sm_main = state.IDLE
 
 
 class UartTx(UartBase):
@@ -139,58 +151,67 @@ class UartTx(UartBase):
 
     @always_ff((posedge, "clk"))
     def sm_main(self, state):
-        if self._sm_main == state.IDLE:
-            self.tx_serial = 1
+        if self.rst:
+            self._sm_main = state.IDLE
+            self.tx_serial = 0
             self._tx_done = 0
             self._clock_count = 0
             self._bit_index = 0
-
-            if self.tx_dv == 1:
-                self._tx_active = 1
-                self._tx_data = self.tx_byte
-                self._sm_main = state.START_BIT
-            else:
-                self._sm_main = state.IDLE
-        elif self._sm_main == state.START_BIT:
-            self.tx_serial = 0
-
-            if self._clock_count < (self.clks_per_bit -1):
-                self._clock_count += 1
-                self._sm_main = state.START_BIT
-            else:
+            self._tx_active = 0
+            self._tx_data = 0
+        else:
+            if self._sm_main == state.IDLE:
+                self.tx_serial = 1
+                self._tx_done = 0
                 self._clock_count = 0
-                self._sm_main = state.DATA_BITS
-        elif self._sm_main == state.DATA_BITS:
-            self.tx_serial = self._tx_data[self._bit_index]
+                self._bit_index = 0
 
-            if self._clock_count < self.clks_per_bit - 1:
-                self._clock_count += 1
-                self._sm_main = state.DATA_BITS
-            else:
-                self._clock_count = 0
+                if self.tx_dv == 1:
+                    self._tx_active = 1
+                    self._tx_data = self.tx_byte
+                    self._sm_main = state.START_BIT
+                else:
+                    self._sm_main = state.IDLE
+            elif self._sm_main == state.START_BIT:
+                self.tx_serial = 0
 
-                if self._bit_index < 7:
-                    self._bit_index += 1
+                if self._clock_count < (self.clks_per_bit -1):
+                    self._clock_count += 1
+                    self._sm_main = state.START_BIT
+                else:
+                    self._clock_count = 0
+                    self._sm_main = state.DATA_BITS
+            elif self._sm_main == state.DATA_BITS:
+                self.tx_serial = self._tx_data[self._bit_index]
+
+                if self._clock_count < self.clks_per_bit - 1:
+                    self._clock_count += 1
                     self._sm_main = state.DATA_BITS
                 else:
-                    self._bit_index = 0
-                    self._sm_main = state.STOP_BIT
-        elif self._sm_main == state.STOP_BIT:
-            self.tx_serial = 1
+                    self._clock_count = 0
 
-            if self._clock_count < self.clks_per_bit - 1:
-                self._clock_count += 1
-                self._sm_main = state.STOP_BIT
-            else:
+                    if self._bit_index < 7:
+                        self._bit_index += 1
+                        self._sm_main = state.DATA_BITS
+                    else:
+                        self._bit_index = 0
+                        self._sm_main = state.STOP_BIT
+            elif self._sm_main == state.STOP_BIT:
+                self.tx_serial = 1
+
+                if self._clock_count < self.clks_per_bit - 1:
+                    self._clock_count += 1
+                    self._sm_main = state.STOP_BIT
+                else:
+                    self._tx_done = 1
+                    self._clock_count = 0
+                    self._sm_main = state.CLEANUP
+                    self._tx_active = 0
+            elif self._sm_main == state.CLEANUP:
                 self._tx_done = 1
-                self._clock_count = 0
-                self._sm_main = state.CLEANUP
-                self._tx_active = 0
-        elif self._sm_main == state.CLEANUP:
-            self._tx_done = 1
-            self._sm_main = state.IDLE
-        else:
-            self._sm_main = state.IDLE
+                self._sm_main = state.IDLE
+            else:
+                self._sm_main = state.IDLE
 
 
 if __name__ == "__main__":
