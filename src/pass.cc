@@ -526,8 +526,14 @@ public:
 class MarkTrackedVisitor : public IRVisitor {
     void visit(Generator* generator) override {
         auto* context = generator->context();
-        if (context) context->add_tracked_generator(generator);
+        if (context) {
+            track_lock_.lock();
+            context->add_tracked_generator(generator);
+            track_lock_.unlock();
+        }
     }
+
+    std::mutex track_lock_;
 };
 
 void track_generators(Generator* top) {
