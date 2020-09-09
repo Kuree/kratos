@@ -923,7 +923,8 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         strs.emplace_back(ptr->packed_struct().struct_name);
     }
     if (port->is_signed()) strs.emplace_back("signed");
-    if ((port->size().front() > 1 || port->size().size() > 1 || port->explicit_array()) &&
+    if ((port->size().front() > 1 || port->size().size() > 1 || port->explicit_array() ||
+         port->get_size_param(0)) &&
         port->is_packed()) {
         auto str = get_var_size_str(port);
         strs.emplace_back(str);
@@ -934,7 +935,8 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
     }
     strs.emplace_back(port->name);
 
-    if ((port->size().front() > 1 || port->size().size() > 1 || port->explicit_array()) &&
+    if ((port->size().front() > 1 || port->size().size() > 1 || port->explicit_array() ||
+         port->get_size_param(0)) &&
         !port->is_packed()) {
         auto str = get_var_size_str(port);
         strs.emplace_back(str);

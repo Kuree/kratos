@@ -782,7 +782,7 @@ TEST(generator, non_synthesizable) {  // NOLINT
     auto &mod = c.generator("mod");
     auto comb = mod.combinational();
     auto dpi = mod.dpi_function("test_dpi");
-    auto &call = mod.call("test_dpi", {});
+    auto &call = mod.call("test_dpi", std::map<std::string, std::shared_ptr<Var>>{});
     auto stmt = std::make_shared<FunctionCallStmt>(call.as<FunctionCallVar>());
     comb->add_stmt(stmt);
     // add debug info

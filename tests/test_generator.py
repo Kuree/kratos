@@ -2078,11 +2078,13 @@ def test_param_resize():
 def test_clog2_var():
     from kratos import clog2
     mod = Generator("mod")
-    num = mod.parameter("num")
-    mod.var("a", width=clog2(num))
+    num = mod.parameter("num", value=32)
+    mod.input("a", 16, size=clog2(num))
+    mod.input("b", 16, size=clog2(num), packed=True)
 
-    src = verilog(mod)
-    print(src)
+    src = verilog(mod, filename="test.sv")["mod"]
+    assert "input logic [15:0] a [($clog2 (num))-1:0]" in src
+    assert "input logic [($clog2 (num))-1:0] [15:0] b" in src
 
 
 if __name__ == "__main__":

@@ -200,10 +200,10 @@ std::optional<uint64_t> Simulator::get_value_(const kratos::Var *var) const {
     if (var->size().size() != 1 || var->size().front() > 1) return std::nullopt;
 
     if (var->type() == VarType::Parameter) {
-        auto param = reinterpret_cast<const Param*>(var);
+        auto param = reinterpret_cast<const Param *>(var);
         return param->value();
     } else if (var->type() == VarType::ConstValue) {
-        auto const_ = reinterpret_cast<const Const*>(var);
+        auto const_ = reinterpret_cast<const Const *>(var);
         return const_->value();
     } else if (var->type() == VarType::Expression) {
         auto result = eval_expr(var);
@@ -243,10 +243,24 @@ std::optional<uint64_t> Simulator::get_value_(const kratos::Var *var) const {
         auto value = values[base];
         return (value >> low) & (~(0xFFFFFFFFFFFFFFFF << (high + 1)));
     } else {
-        if (values_.find(var) == values_.end())
+        // function call
+        if (var->is_function()) {
+            // only built-in function that can be statically evaluated is supported
+            auto const *func_call_car = reinterpret_cast<const FunctionCallVar *>(var);
+            auto *def = func_call_car->func();
+            if (def->is_builtin() && def->function_name() == "clog2") {
+                auto arg = func_call_car->args().begin()->second;
+                auto v = get_value_(arg.get());
+                if (v) return clog2(*v);
+            }
             return std::nullopt;
-        else
-            return values_.at(var);
+
+        } else {
+            if (values_.find(var) == values_.end())
+                return std::nullopt;
+            else
+                return values_.at(var);
+        }
     }
 }
 
@@ -462,11 +476,11 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(const Var 
     if (var->type() != VarType::Slice) {
         return {};
     }
-    auto slice = reinterpret_cast<const VarSlice*>(var);
+    auto slice = reinterpret_cast<const VarSlice *>(var);
     auto result = get_slice_index(slice->parent_var);
     uint32_t high, low;
     if (slice->sliced_by_var()) {
-        auto var_slice = reinterpret_cast<const VarVarSlice*>(slice);
+        auto var_slice = reinterpret_cast<const VarVarSlice *>(slice);
         auto v = var_slice->sliced_var();
         auto index = get_value_(v);
         // the index variable is empty
@@ -483,7 +497,8 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(const Var 
     return result;
 }
 
-void Simulator::trigger_event(const kratos::Var *var, const std::unordered_set<uint32_t> &bits_mask) {
+void Simulator::trigger_event(const kratos::Var *var,
+                              const std::unordered_set<uint32_t> &bits_mask) {
     if (bits_mask.empty()) return;
 
     if (dependency_.find(var) != dependency_.end()) {

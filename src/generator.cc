@@ -338,7 +338,7 @@ std::shared_ptr<DPIFunctionStmtBlock> Generator::dpi_function(const std::string 
 std::shared_ptr<BuiltInFunctionStmtBlock> Generator::builtin_function(
     const std::string &func_name) {
     auto p = std::make_shared<BuiltInFunctionStmtBlock>(this, func_name);
-    // don't need to recorded in the func_index
+    func_index_.emplace(static_cast<uint32_t>(funcs_.size()), func_name);
     funcs_.emplace(func_name, p);
     return p;
 }

@@ -2649,7 +2649,7 @@ public:
         for (auto const& iter : functions) {
             auto func = iter.second;
             // check if the function has a return
-            if (!func->has_return_value()) continue;
+            if (!func->has_return_value() || func->is_builtin()) continue;
             // build statement graph
             bool has_return = check_stmt_condition(
                 func.get(),
