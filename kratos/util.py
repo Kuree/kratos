@@ -49,10 +49,15 @@ def print_src(src, line_no: Union[List[int], int], offset: int = 1,
     print(CLIColors.OKBLUE + "-" * 80 + CLIColors.ENDC, file=sys.stderr)
 
 
-def clog2(x: int) -> int:
-    if x == 0:
-        return 0
-    return int(math.ceil(math.log2(x)))
+def clog2(x: Union[int, _kratos.Var]) -> Union[int, _kratos.Var]:
+    if isinstance(x, _kratos.Var):
+        from kratos.func import get_built_in
+        fn = get_built_in(x.generator, "clog2")
+        return fn(x)
+    else:
+        if x == 0:
+            return 0
+        return int(math.ceil(math.log2(x)))
 
 
 def flog2(x: int) -> int:

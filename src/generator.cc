@@ -296,6 +296,23 @@ FunctionCallVar &Generator::call(const std::string &func_name,
 }
 
 FunctionCallVar &Generator::call(const std::string &func_name,
+                                 const std::vector<std::shared_ptr<Var>> &args) {
+    if (funcs_.find(func_name) == funcs_.end())
+        throw UserException(::format("{0} not found", func_name));
+    auto func_def = funcs_.at(func_name);
+    if (!func_def->is_builtin())
+        throw UserException("Only built-in function can be called without arg names");
+    std::map<std::string, std::shared_ptr<Var>> mock_args;
+    for (uint64_t i = 0; i < args.size(); i++) {
+        mock_args.emplace(std::make_pair(std::to_string(i), args[i]));
+    }
+    auto p =
+        std::make_shared<FunctionCallVar>(this, func_def, mock_args, func_def->has_return_value());
+    calls_.emplace(p);
+    return *p;
+}
+
+FunctionCallVar &Generator::call(const std::string &func_name,
                                  const std::map<std::string, std::shared_ptr<Var>> &args) {
     return call(func_name, args, true);
 }
@@ -314,6 +331,14 @@ std::shared_ptr<DPIFunctionStmtBlock> Generator::dpi_function(const std::string 
         throw UserException(::format("function {0} already exists", func_name));
     auto p = std::make_shared<DPIFunctionStmtBlock>(this, func_name);
     func_index_.emplace(static_cast<uint32_t>(funcs_.size()), func_name);
+    funcs_.emplace(func_name, p);
+    return p;
+}
+
+std::shared_ptr<BuiltInFunctionStmtBlock> Generator::builtin_function(
+    const std::string &func_name) {
+    auto p = std::make_shared<BuiltInFunctionStmtBlock>(this, func_name);
+    // don't need to recorded in the func_index
     funcs_.emplace(func_name, p);
     return p;
 }

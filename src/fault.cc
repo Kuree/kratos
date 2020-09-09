@@ -128,8 +128,8 @@ void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stm
             compute_hit_stmts(state, result, s.get());
         }
     } else if (stmt->type() == StatementType::FunctionalCall) {
-        auto func = cast<FunctionCallStmt>(stmt);
-        if (func->var()->func()->is_dpi()) {
+        auto *func = cast<FunctionCallStmt>(stmt);
+        if (func->var()->func()->is_dpi() || func->var()->func()->is_builtin()) {
             // nothing
         } else {
             compute_hit_stmts(state, result, func->var()->func());

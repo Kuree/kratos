@@ -147,6 +147,10 @@ void init_stmt(py::module &m) {
         .def("set_is_pure", &DPIFunctionStmtBlock::set_is_pure)
         .def("set_is_context", &DPIFunctionStmtBlock::set_is_context);
 
+    py::class_<BuiltInFunctionStmtBlock, std::shared_ptr<BuiltInFunctionStmtBlock>,
+               FunctionStmtBlock>(m, "BuiltInFunctionStmtBlock")
+        .def("return_width", &BuiltInFunctionStmtBlock::return_width);
+
     py::class_<InitialStmtBlock, std::shared_ptr<InitialStmtBlock>, StmtBlock>(m,  // NOLINT
                                                                                "InitialStmtBlock");
 

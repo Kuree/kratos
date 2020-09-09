@@ -81,6 +81,8 @@ public:
                           const std::map<std::string, std::shared_ptr<Var>> &args);
     FunctionCallVar &call(const std::string &func_name,
                           const std::map<std::string, std::shared_ptr<Var>> &args, bool has_return);
+    FunctionCallVar &call(const std::string &func_name,
+                          const std::vector<std::shared_ptr<Var>> &args);
 
     Expr &expr(ExprOp op, Var *left, Var *right);
     void add_expr(const std::shared_ptr<Expr> &expr) { exprs_.emplace(expr); }
@@ -113,6 +115,7 @@ public:
     const std::map<std::string, std::shared_ptr<FSM>> &fsms() const { return fsms_; }
     std::shared_ptr<FunctionStmtBlock> function(const std::string &func_name);
     std::shared_ptr<DPIFunctionStmtBlock> dpi_function(const std::string &func_name);
+    std::shared_ptr<BuiltInFunctionStmtBlock> builtin_function(const std::string &func_name);
     const std::map<std::string, std::shared_ptr<FunctionStmtBlock>> &functions() const {
         return funcs_;
     }

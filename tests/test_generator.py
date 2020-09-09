@@ -2075,5 +2075,15 @@ def test_param_resize():
     mod.add_stmt(b.assign(a + p))
 
 
+def test_clog2_var():
+    from kratos import clog2
+    mod = Generator("mod")
+    num = mod.parameter("num")
+    mod.var("a", width=clog2(num))
+
+    src = verilog(mod)
+    print(src)
+
+
 if __name__ == "__main__":
-    test_param_resize()
+    test_clog2_var()

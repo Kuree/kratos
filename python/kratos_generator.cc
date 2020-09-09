@@ -291,6 +291,10 @@ void init_generator(py::module &m) {
                                const std::map<std::string, std::shared_ptr<Var>> &, bool>(
                  &Generator::call),
              py::return_value_policy::reference)
+        .def("call",
+             py::overload_cast<const std::string &, const std::vector<std::shared_ptr<Var>> &>(
+                 &Generator::call),
+             py::return_value_policy::reference)
         .def("function", &Generator::function)
         .def("has_function", &Generator::has_function)
         .def("get_function", &Generator::get_function)
@@ -298,6 +302,7 @@ void init_generator(py::module &m) {
         .def_property("def_instance", &Generator::def_instance, &Generator::set_def_instance,
                       py::return_value_policy::reference)
         .def("dpi_function", &Generator::dpi_function, py::return_value_policy::reference)
+        .def("builtin_function", &Generator::builtin_function, py::return_value_policy::reference)
         .def("handle_name", [](const Generator &generator) { return generator.handle_name(); })
         .def("handle_name", [](const Generator &generator,
                                bool ignore_top) { return generator.handle_name(ignore_top); })

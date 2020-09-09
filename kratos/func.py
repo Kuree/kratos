@@ -111,6 +111,19 @@ class DPIFunctionCall:
         return _DPIFunctionCall()
 
 
+def get_built_in(gen, func_name):
+    class _BuiltinFunctionCall:
+        def __init__(self):
+            self.func_name = func_name
+            self.gen = gen
+
+        def __call__(self, *args):
+            if not gen.has_function(self.func_name):
+                gen.builtin_function(self.func_name)
+            return gen.call(self.func_name, args)
+    return _BuiltinFunctionCall()
+
+
 # name alias
 function = FunctionCall
 dpi_function = DPIFunctionCall

@@ -551,7 +551,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::ScopedStmtBlock* stmt) {
 
 void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     // dpi is external module
-    if (stmt->is_dpi()) return;
+    if (stmt->is_dpi() || stmt->is_builtin()) return;
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
     }

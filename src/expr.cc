@@ -1933,13 +1933,16 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
     }
     // compute the width and sign
     auto handle = func_def->function_handler();
-    if (!handle && has_return && !func_def->is_dpi())
+    if (!handle && has_return && !func_def->is_dpi() && !func_def->is_builtin())
         throw StmtException(::format("{0} doesn't have return value", func_def->function_name()),
                             {func_def.get()});
-    if (has_return && !func_def->is_dpi()) {
-        var_width_ = handle->width();
-        size_ = handle->size();
-        is_signed_ = handle->is_signed();
+    if (has_return && func_def->is_builtin()) {
+        auto builtin = func_def->as<BuiltInFunctionStmtBlock>();
+        if (builtin->return_width()) {
+            var_width_ = builtin->return_width();
+            size_ = {1};
+            is_signed_ = false;
+        }
     } else if (has_return && func_def->is_dpi()) {
         auto dpi = func_def->as<DPIFunctionStmtBlock>();
         if (dpi->return_width()) {
@@ -1948,6 +1951,10 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
             size_ = {1};
             is_signed_ = false;
         }
+    } else if (has_return) {
+        var_width_ = handle->width();
+        size_ = handle->size();
+        is_signed_ = handle->is_signed();
     }
 }
 
@@ -1968,7 +1975,9 @@ void FunctionCallVar::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
 }
 
 std::string FunctionCallVar::to_string() const {
-    std::string result = func_def_->function_name() + " (";
+    auto name =
+        func_def_->is_builtin() ? "$" + func_def_->function_name() : func_def_->function_name();
+    std::string result = name + " (";
     std::vector<std::string> names;
     names.reserve(args_.size());
     for (auto const &iter : args_) names.emplace_back(iter.second->to_string());

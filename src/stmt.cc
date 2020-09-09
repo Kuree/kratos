@@ -66,7 +66,7 @@ std::shared_ptr<Stmt> Stmt::clone() const {
     return std::const_pointer_cast<Stmt>(shared_from_this());
 }
 
-void Stmt::copy_meta(const std::shared_ptr<Stmt>& stmt) const {
+void Stmt::copy_meta(const std::shared_ptr<Stmt> &stmt) const {
     stmt->verilog_ln = verilog_ln;
     stmt->comment = comment;
 }
@@ -181,7 +181,8 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
     else_body_->set_parent(this);
 
     // just to add the sinks
-    predicate_stmt_ = predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
+    predicate_stmt_ =
+        predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
     predicate_stmt_->set_parent(nullptr);
 }
 
@@ -189,7 +190,8 @@ void IfStmt::set_predicate(const std::shared_ptr<Var> &var) {
     predicate_stmt_->clear();
     assert(var->ir_node_kind() == IRNodeKind::VarKind);
     predicate_ = var;
-    predicate_stmt_ = predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
+    predicate_stmt_ =
+        predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
     predicate_stmt_->set_parent(nullptr);
 }
 
@@ -230,14 +232,14 @@ void IfStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
 
 void IfStmt::set_then(const std::shared_ptr<ScopedStmtBlock> &stmt) {
     then_body_->clear();
-    for (auto &s: *stmt) {
+    for (auto &s : *stmt) {
         then_body_->add_stmt(s);
     }
 }
 
 void IfStmt::set_else(const std::shared_ptr<ScopedStmtBlock> &stmt) {
     else_body_->clear();
-    for (auto &s: *stmt) {
+    for (auto &s : *stmt) {
         else_body_->add_stmt(s);
     }
 }
@@ -327,9 +329,7 @@ std::shared_ptr<Stmt> ForStmt::clone() const {
     return stmt;
 }
 
-void ForStmt::clear() {
-    loop_body_->clear();
-}
+void ForStmt::clear() { loop_body_->clear(); }
 
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 
@@ -363,7 +363,7 @@ void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
 }
 
 void StmtBlock::clear() {
-    for (auto &stmt: stmts_) {
+    for (auto &stmt : stmts_) {
         stmt->clear();
     }
     stmts_.clear();
@@ -543,7 +543,7 @@ std::shared_ptr<Stmt> SwitchStmt::clone() const {
 
 void SwitchStmt::clear() {
     target_stmt_->clear();
-    for (auto const &iter: body_) {
+    for (auto const &iter : body_) {
         iter.second->clear();
     }
 }
@@ -669,6 +669,27 @@ void DPIFunctionStmtBlock::set_is_context(bool value) {
 void DPIFunctionStmtBlock::set_is_pure(bool value) {
     is_pure_ = value;
     is_context_ = !value;
+}
+
+std::unordered_map<std::string, uint32_t> BuiltInFunctionStmtBlock::known_functions_;
+BuiltInFunctionStmtBlock::BuiltInFunctionStmtBlock(Generator *parent,
+                                                   const std::string &function_name)
+    : FunctionStmtBlock(parent, function_name) {
+    // check known functions
+    if (known_functions_.empty()) {
+        // initialize
+        // all the known functions should be synthesizable
+        known_functions_ = {{"clog2", 32}};
+    }
+    if (known_functions_.find(function_name) == known_functions_.end()) {
+        std::string known_functions;
+        for (auto const &iter : known_functions_) {
+            known_functions += ::format("\n  {0}", iter.first);
+        }
+        throw UserException(
+            ::format("{0} is either not supported or not a system. Supported methods are:{1}",
+                     function_name, known_functions));
+    }
 }
 
 ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def, std::shared_ptr<Var> value)

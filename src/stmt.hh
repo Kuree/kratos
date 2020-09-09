@@ -333,7 +333,7 @@ public:
     virtual std::shared_ptr<Port> input(const std::string &name, uint32_t width, bool is_signed);
     const std::map<std::string, std::shared_ptr<Port>> &ports() const { return ports_; }
     std::shared_ptr<Port> get_port(const std::string &port_name);
-    bool has_return_value() const { return has_return_value_; }
+    virtual bool has_return_value() const { return has_return_value_; }
     void set_has_return_value(bool value) { has_return_value_ = value; }
     std::string function_name() const { return function_name_; }
     std::shared_ptr<Var> function_handler() { return function_handler_; };
@@ -348,6 +348,8 @@ public:
 
     // to distinguish from dpi function
     virtual bool is_dpi() { return false; }
+    // tell if it's built-in functions
+    virtual bool is_builtin() const { return false; }
 
 protected:
     Generator *parent_;
@@ -373,8 +375,9 @@ public:
     std::shared_ptr<Port> output(const std::string &name, uint32_t width, bool is_signed);
     std::shared_ptr<Port> input(const std::string &name, uint32_t width, bool is_signed) override;
 
-    uint32_t return_width() { return return_width_; }
+    uint32_t return_width() const { return return_width_; }
     void set_return_width(uint32_t value) { return_width_ = value; }
+    bool has_return_value() const override { return return_width_ > 0; }
 
     bool is_dpi() override { return true; }
     bool is_context() const { return is_context_; }
@@ -386,6 +389,19 @@ protected:
     uint32_t return_width_ = 0;
     bool is_context_ = false;
     bool is_pure_ = false;
+};
+
+class BuiltInFunctionStmtBlock: public FunctionStmtBlock {
+public:
+    BuiltInFunctionStmtBlock(Generator *parent, const std::string &function_name);
+
+    bool is_builtin() const override { return true; }
+    bool has_return_value() const override { return return_width() > 0; }
+
+    uint32_t return_width() const { return known_functions_.at(function_name_); }
+
+private:
+    static std::unordered_map<std::string, uint32_t> known_functions_;
 };
 
 class ReturnStmt : public Stmt {

@@ -44,6 +44,7 @@ class SequentialStmtBlock;
 class LatchStmtBlock;
 class FunctionStmtBlock;
 class DPIFunctionStmtBlock;
+class BuiltInFunctionStmtBlock;
 class InitialStmtBlock;
 class FunctionCallStmt;
 class ReturnStmt;
