@@ -2067,5 +2067,13 @@ def test_multi_gen():
     assert "mod_unq0" in src
 
 
+def test_param_resize():
+    mod = Generator("mod")
+    p = mod.parameter("P")
+    a = mod.var("a", 5)
+    b = mod.var("b", 5)
+    mod.add_stmt(b.assign(a + p))
+
+
 if __name__ == "__main__":
-    test_multi_gen()
+    test_param_resize()

@@ -661,7 +661,7 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
     if (right != nullptr && left->width() != right->width()) {
         // see if we can resize
         if (IterVar::safe_to_resize(left, right->width(), right->is_signed()) &&
-            right->type() != VarType::ConstValue) {
+            (right->type() != VarType::ConstValue && right->type() != VarType::Parameter)) {
             IterVar::fix_width(left, right->width());
             this->left = left;
         } else if (IterVar::safe_to_resize(right, left->width(), left->is_signed())) {
@@ -1872,6 +1872,9 @@ void IterVar::fix_width(Var *&var, uint32_t target_width) {
         var = casted.get();
     } else if (var && var->type() == VarType::ConstValue) {
         auto *c = reinterpret_cast<Const *>(var);
+        c->set_width(target_width);
+    } else if (var && var->type() == VarType::Parameter) {
+        auto *c = reinterpret_cast<Param *>(var);
         c->set_width(target_width);
     } else if (var && var->type() == VarType::Expression) {
         auto *expr = reinterpret_cast<Expr *>(var);
