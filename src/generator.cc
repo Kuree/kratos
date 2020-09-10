@@ -605,7 +605,7 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
     }
     // check to see if it's a valid name
     if (!is_valid_variable_name(interface_name)) {
-        throw UserException(::format("{0} is a SystemVerilog keyword", name));
+        throw UserException(::format("{0} is a SystemVerilog keyword", interface_name));
     }
     // create vars
     auto const &vars = def->vars();
