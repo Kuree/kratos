@@ -185,10 +185,10 @@ public:
     virtual std::string handle_name(bool ignore_top) const;
     virtual std::string handle_name(Generator *scope) const;
     // is parametrized
-    bool parametrized() const { return param_ != nullptr; }
-    void set_width_param(const std::shared_ptr<Param> &param);
-    void set_width_param(Param *param);
-    Param *param() const { return param_; }
+    bool parametrized() const { return width_param_ != nullptr; }
+    void set_width_param(const std::shared_ptr<Var> &param);
+    void set_width_param(Var *param);
+    Var *width_param() const { return width_param_; }
     bool raw_type_parametrized() const { return raw_type_param_ != nullptr; }
     void set_raw_type_param(Param *param) { raw_type_param_ = param; }
     Param *get_raw_type_param() { return raw_type_param_; }
@@ -250,7 +250,7 @@ protected:
     bool explicit_array_ = false;
 
     // parametrization
-    Param *param_ = nullptr;
+    Var *width_param_ = nullptr;
     // raw type parametrization
     Param *raw_type_param_ = nullptr;
 

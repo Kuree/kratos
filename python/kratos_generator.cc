@@ -33,18 +33,18 @@ void init_generator(py::module &m) {
              py::return_value_policy::reference)
         .def(
             "var",
-            [](Generator &gen, const std::string &name, const std::shared_ptr<Param> &width,
+            [](Generator &gen, const std::string &name, const std::shared_ptr<Var> &width,
                uint32_t size, bool is_signed) -> Var & {
-                auto &v = gen.var(name, width->value(), size, is_signed);
+                auto &v = gen.var(name, 1, size, is_signed);
                 v.set_width_param(width);
                 return v;
             },
             py::return_value_policy::reference)
         .def(
             "var",
-            [](Generator &gen, const std::string &name, const std::shared_ptr<Param> &width,
+            [](Generator &gen, const std::string &name, const std::shared_ptr<Var> &width,
                const std::vector<uint32_t> &size, bool is_signed) -> Var & {
-                auto &v = gen.var(name, width->value(), size, is_signed);
+                auto &v = gen.var(name, 1, size, is_signed);
                 v.set_width_param(width);
                 return v;
             },
@@ -63,9 +63,9 @@ void init_generator(py::module &m) {
         .def(
             "port",
             [](Generator &gen, PortDirection dir, const std::string &name,
-               const std::shared_ptr<Param> &width, uint32_t size, PortType t,
+               const std::shared_ptr<Var> &width, uint32_t size, PortType t,
                bool is_signed) -> Port & {
-                auto &p = gen.port(dir, name, width->value(), size, t, is_signed);
+                auto &p = gen.port(dir, name, 1, size, t, is_signed);
                 p.set_width_param(width);
                 return p;
             },
@@ -73,9 +73,9 @@ void init_generator(py::module &m) {
         .def(
             "port",
             [](Generator &gen, PortDirection dir, const std::string &name,
-               const std::shared_ptr<Param> &width, const std::vector<uint32_t> &size, PortType t,
+               const std::shared_ptr<Var> &width, const std::vector<uint32_t> &size, PortType t,
                bool is_signed) -> Port & {
-                auto &p = gen.port(dir, name, width->value(), size, t, is_signed);
+                auto &p = gen.port(dir, name, 1, size, t, is_signed);
                 p.set_width_param(width);
                 return p;
             },

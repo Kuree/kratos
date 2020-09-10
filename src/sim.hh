@@ -21,6 +21,8 @@ public:
     void eval();
     std::optional<std::vector<uint64_t>> eval_expr(const Var *var) const;
 
+    static uint64_t static_evaluate_expr(Var *expr);
+
 protected:
     void set_value_(const Var *var, std::optional<uint64_t> op_value);
     void set_complex_value_(const Var *var, const std::optional<std::vector<uint64_t>> &op_value);

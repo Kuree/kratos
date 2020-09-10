@@ -226,11 +226,13 @@ void SystemVerilogCodeGen::generate_module_package_import(Generator* generator) 
 std::string SystemVerilogCodeGen::get_var_width_str(const Var* var) {
     std::string width;
     if (var->parametrized()) {
-        width = ::format("{0}-1", var->param()->to_string());
+        width = ::format("{0}-1", var->width_param()->to_string());
     } else {
         width = std::to_string(var->var_width() - 1);
     }
-    return var->var_width() > 1 && !var->is_struct() ? ::format("[{0}:0]", width) : "";
+    return (var->var_width() > 1 && !var->is_struct()) || var->parametrized()
+               ? ::format("[{0}:0]", width)
+               : "";
 }
 
 std::string SystemVerilogCodeGen::get_width_str(uint32_t width) {

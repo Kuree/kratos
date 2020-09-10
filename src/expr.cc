@@ -48,7 +48,7 @@ bool is_unary_op(ExprOp op) {
 }
 
 uint32_t Var::width() const {
-    uint32_t w = param_ ? param()->value() : var_width_;
+    uint32_t w = width_param_ ? Simulator::static_evaluate_expr(width_param_) : var_width_;
     for (auto const &i : size_) w *= i;
     return w;
 }
@@ -280,22 +280,8 @@ std::string Var::handle_name(kratos::Generator *scope) const {
     return var_name.substr(pos + gen_name.size() + 1);
 }
 
-void Var::set_width_param(const std::shared_ptr<Param> &param) { set_width_param(param.get()); }
+void Var::set_width_param(const std::shared_ptr<Var> &param) { set_width_param(param.get()); }
 
-void Var::set_width_param(kratos::Param *param) {
-    // set width to the current param value
-    if (param->value() <= 0) {
-        throw VarException(::format("{0} is non-positive ({1}), "
-                                    "thus cannot be used for parametrization width",
-                                    param->to_string(), param->value()),
-                           {param});
-    }
-    var_width_ = param->value();
-    param_ = param;
-    param->add_param_width_var(this);
-}
-
-VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
 
 class ParamVisitor : public IRVisitor {
 public:
@@ -306,23 +292,32 @@ private:
     std::unordered_set<Param *> params_;
 };
 
+void Var::set_width_param(Var *param) {
+    // set width to the current param value
+    auto value = Simulator::static_evaluate_expr(param);
+    var_width_ = value;
+    width_param_ = param;
+
+    // get all the parameters
+    ParamVisitor visitor;
+    visitor.visit_root(param);
+    auto const &params = visitor.params();
+    for (const auto &p : params) {
+        p->add_param_width_var(this);
+    }
+}
+
+VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
+
+
 void Var::set_size_param(uint32_t index, Var *param) {
     if (type_ != VarType::Base && type_ != VarType::PortIO)
         throw UserException(::format("{0} is not a variable or port", to_string()));
     if (index >= size_.size())
         throw UserException(::format("{0} does not have {1} dimension", to_string(), index));
 
-    // static evaluate the expression using built-in simulator
-    Simulator sim(nullptr);
-    auto result = sim.eval_expr(param);
-    // sanity check, no coverage
-    // LCOV_EXCL_START
-    if (!result || (*result).size() != 1)
-        throw UserException(::format("Unable to static elaborate value {0}", param->to_string()));
-    auto new_dim_size_i = static_cast<int64_t>((*result)[0]);
-    if (new_dim_size_i <= 0)
-        throw UserException(::format("Unable to static elaborate value {0}", param->to_string()));
-    auto new_dim_size = static_cast<uint64_t>(new_dim_size_i);
+    auto new_dim_size = Simulator::static_evaluate_expr(param);
+
     // LCOV_EXCL_STOP
     for (auto const &slice : slices_) {
         if (!slice->sliced_by_var()) {
@@ -396,16 +391,9 @@ Var &copy_var_const_parm(Var *var, Generator *parent, bool check_param) {
 
 void Var::copy_meta_data(Var *new_var, bool check_param) const {
     // basically the parameters
-    if (param_) {
-        const auto *parent_param = param_->parent_param();
-        bool param_set =
-            check_parent_param(parent_param, generator()->parent_generator(), check_param);
-        if (param_set) {
-            new_var->param_ = const_cast<Param *>(parent_param);
-        } else {
-            // use the current value instead
-            new_var->var_width_ = param_->value();
-        }
+    if (width_param_) {
+        auto &new_v = copy_var_const_parm(width_param_, new_var->generator(), check_param);
+        new_var->set_width_param(&new_v);
     }
     // need to copy size as well
     // notice that size parameters are actually expressions, so we need to copy all the expressions
@@ -662,13 +650,18 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
         // see if we can resize
         if (IterVar::safe_to_resize(left, right->width(), right->is_signed()) &&
             (right->type() != VarType::ConstValue && right->type() != VarType::Parameter)) {
-            IterVar::fix_width(left, right->width());
-            this->left = left;
+            // do a resize cast instead
+            auto new_left = left->cast(VarCastType::Resize);
+            auto left_casted = new_left->as<VarCasted>();
+            left_casted->set_target_width(right->width());
+            this->left = left_casted.get();
         } else if (IterVar::safe_to_resize(right, left->width(), left->is_signed())) {
-            IterVar::fix_width(right, left->width());
-            this->right = right;
+            auto new_right = right->cast(VarCastType::Resize);
+            auto right_casted = new_right->as<VarCasted>();
+            right_casted->set_target_width(left->width());
+            this->right = right_casted.get();
         }
-        if (left->width() != right->width())
+        if (this->left->width() != this->right->width())
             throw VarException(
                 ::format("left ({0}) width ({1}) doesn't match with right ({2}) width ({3})",
                          left->to_string(), left->width(), right->to_string(), right->width()),
@@ -1370,7 +1363,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
     if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
         throw VarException("Only base or port variables are allowed.", {var, new_var});
 
-    for (auto &stmt : var->sources()) {
+    for (const auto &stmt : var->sources()) {
         if (stmt->generator_parent() != parent) continue;
         stmt_set_left(stmt.get(), var, new_var);
         if (parent->debug) {
@@ -1379,7 +1372,7 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
         new_var->add_source(stmt);
         // pick a source parameter, if any
         if (stmt->right()->parametrized() && !new_var->parametrized()) {
-            new_var->set_width_param(stmt->right()->param());
+            new_var->set_width_param(stmt->right()->width_param());
         }
     }
     // now clear the sources
@@ -1400,7 +1393,7 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
     if (var->type_ == VarType::Expression || var->type_ == VarType::ConstValue)
         throw VarException("Only base or port variables are allowed.", {var, new_var});
 
-    for (auto &stmt : var->sinks()) {
+    for (const auto &stmt : var->sinks()) {
         if (stmt->generator_parent() != parent) {
             continue;
         }
@@ -1411,7 +1404,7 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
         new_var->add_sink(stmt);
         // pick a source parameter, if any
         if (stmt->left()->parametrized() && !new_var->parametrized()) {
-            new_var->set_width_param(stmt->left()->param());
+            new_var->set_width_param(stmt->left()->width_param());
         }
     }
     // now clear the sinks

@@ -34,6 +34,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             insert_verilator_info: bool = False,
             insert_break_on_edge: bool = False,
             check_flip_flop_always_ff: bool = True,
+            remove_unused: bool = True,
             debug_db_filename: str = "",
             use_parallel: bool = True,
             track_generated_definition: bool = False,
@@ -65,8 +66,9 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("verify_generator_connectivity")
     pass_manager.add_pass("decouple_generator_ports")
     pass_manager.add_pass("fix_assignment_type")
-    pass_manager.add_pass("remove_unused_vars")
-    pass_manager.add_pass("remove_unused_stmts")
+    if remove_unused:
+        pass_manager.add_pass("remove_unused_vars")
+        pass_manager.add_pass("remove_unused_stmts")
     pass_manager.add_pass("verify_assignments")
     if check_combinational_loop:
         pass_manager.add_pass("check_combinational_loop")

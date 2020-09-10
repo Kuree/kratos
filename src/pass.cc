@@ -103,13 +103,13 @@ public:
             throw StmtException(
                 ::format("assignment width doesn't match. left ({0}): {1} right ({2}): {3}",
                          left->to_string(), left->width(), right->to_string(), right->width()),
-                {stmt, left, right, left->param(), right->param()});
+                {stmt, left, right, left->width_param(), right->width_param()});
         if (left->is_signed() != right->is_signed())
             throw StmtException(
                 ::format("assignment sign doesn't match. left ({0}): {1} right ({2}): {3}",
                          left->to_string(), left->is_signed(), right->to_string(),
                          right->is_signed()),
-                {stmt, left, right, left->param(), right->param()});
+                {stmt, left, right, left->width_param(), right->width_param()});
         check_expr(right, stmt);
     }
 
@@ -168,12 +168,12 @@ private:
             if (!is_relational && !is_reduction && left->width() != width && !is_expand) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             left->to_string(), left->width(), width),
-                                   {var, left, stmt, left->param()});
+                                   {var, left, stmt, left->width_param()});
             }
             if (!is_relational && !is_reduction && right && right->width() != width && !is_expand) {
                 throw VarException(::format("{0}'s width should be {1} but used as {2}",
                                             right->to_string(), right->width(), width),
-                                   {var, right, stmt, right->param()});
+                                   {var, right, stmt, right->width_param()});
             }
             if (left->type() == VarType::Expression) {
                 check_expr(left, stmt);

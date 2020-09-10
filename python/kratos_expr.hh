@@ -43,7 +43,7 @@ kratos::Const &convert_int_to_const(int64_t value, T &var) {
     bool is_signed = var.is_signed();
     uint32_t width = var.width();
     auto &c = kratos::constant(value, width, is_signed);
-    if (var.parametrized()) c.set_width_param(var.param());
+    if (var.parametrized()) c.set_width_param(var.width_param());
     return c;
 }
 

@@ -717,6 +717,21 @@ void Simulator::process_stmt(kratos::SequentialStmtBlock *block, const Var *var_
     nba_values_.clear();
 }
 
+
+uint64_t Simulator::static_evaluate_expr(Var *expr) {
+    // static evaluate the expression using built-in simulator
+    Simulator sim(nullptr);
+    auto result = sim.eval_expr(expr);
+    // sanity check, no coverage
+    // LCOV_EXCL_START
+    if (!result || (*result).size() != 1)
+        throw UserException(::format("Unable to static elaborate value {0}", expr->to_string()));
+    auto value = static_cast<int64_t>((*result)[0]);
+    if (value <= 0)
+        throw UserException(::format("Unable to static elaborate value {0}", expr->to_string()));
+    return static_cast<uint64_t>(value);
+}
+
 class InitValueVisitor : public IRVisitor {
 public:
     explicit InitValueVisitor(std::function<void(AssignStmt *)> fn) : fn_(std::move(fn)) {}
