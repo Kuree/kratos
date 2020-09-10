@@ -1247,6 +1247,14 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
 Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_name) {
     auto& gen = top->context()->generator(wrapper_name);
     gen.add_child_generator(top->instance_name, top->shared_from_this());
+    // copy the parameter definition over
+    auto params = top->get_params();
+    for (auto const &[name, param]: params) {
+        auto &new_p = gen.parameter(name, 32);
+        new_p.set_value(param->value());
+        param->set_value(new_p.as<Param>());
+    }
+
     auto const& ports = top->get_port_names();
     for (auto const& port_name : ports) {
         auto p = top->get_port(port_name);

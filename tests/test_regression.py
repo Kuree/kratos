@@ -80,5 +80,16 @@ def test_regression_concat():
     assert "assign out2 = {child0_out, child1_out};" in src
 
 
+def test_regression_flatten_array_param():
+    from _kratos import create_wrapper_flatten
+    mod = Generator("mod")
+    p = mod.parameter("param", value=16)
+    mod.input("in", width=p)
+    inst = create_wrapper_flatten(mod.internal_generator, "wrapper")
+    gen = Generator("", internal_generator=inst)
+    src = verilog(gen)["wrapper"]
+    assert "parameter param = 32'h10" in src
+
+
 if __name__ == "__main__":
-    test_regression_concat()
+    test_regression_flatten_array_param()
