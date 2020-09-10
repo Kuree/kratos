@@ -1,4 +1,6 @@
-from kratos import Interface, Generator, always_ff, posedge
+from kratos import Interface, Generator, always_ff, posedge, verilog
+import tempfile
+import os
 
 
 class ConfigInterface(Interface):
@@ -120,7 +122,18 @@ def test_modport_io(check_gold):
     assert str(top.bus.read_data) == "bus_top.read_data"
 
 
+def test_port_interface():
+    mod = Generator("mod")
+    mod.interface(ConfigInterface(), "port_interface", is_port=True)
+
+    with tempfile.TemporaryDirectory() as temp:
+        filename = os.path.join(temp, "mod.sv")
+        verilog(mod, filename=filename)
+        with open(filename) as f:
+            content = f.read()
+            assert "endinterface" in content
+
+
 if __name__ == "__main__":
-    from conftest import check_gold_fn
-    test_modport_io(check_gold_fn)
+    test_port_interface()
 

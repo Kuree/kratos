@@ -1123,6 +1123,7 @@ std::string create_stub(Generator* top) {
 class InterfaceVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
+        // local variables
         uint64_t stmt_count = generator->stmts_count();
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = generator->get_stmt(i);
@@ -1130,58 +1131,69 @@ public:
                 visit(stmt->as<InterfaceInstantiationStmt>().get());
             }
         }
-    }
-    void visit(InterfaceInstantiationStmt* stmt) override {
-        auto def = stmt->interface()->definition();
-        lock_.lock();
-        if (interfaces_.find(def->def_name()) == interfaces_.end()) {
-            interfaces_.emplace(def->def_name(), std::make_pair(stmt, stmt->interface()));
-            lock_.unlock();
-        } else {
-            // making sure they are the same
-            auto const& [ref_stmt, ref_interface] = interfaces_.at(def->def_name());
-            auto ref_def = ref_interface->definition();
-            lock_.unlock();
-            auto const& ports = def->ports();
-            if (ref_def->ports() != ports)
-                throw UserException(
-                    ::format("{0}.{1}'s interface differs from {2}.{3}'s",
-                             stmt->generator_parent()->handle_name(), def->def_name(),
-                             ref_stmt->generator_parent()->handle_name(), ref_def->def_name()));
-            for (auto const& port_name : ports) {
-                if (def->port(port_name) != ref_def->port(port_name))
-                    throw UserException(
-                        ::format("{0}.{1}'s interface differs from {2}.{3}'s",
-                                 stmt->generator_parent()->handle_name(), def->def_name(),
-                                 ref_stmt->generator_parent()->handle_name(), ref_def->def_name()));
-            }
-            // same var as well
-            auto const& vars = def->vars();
-            if (ref_def->vars() != vars)
-                throw UserException(
-                    ::format("{0}.{1}'s interface differs from {2}.{3}'s",
-                             stmt->generator_parent()->handle_name(), def->def_name(),
-                             ref_stmt->generator_parent()->handle_name(), ref_def->def_name()));
-            for (auto const& port_name : vars) {
-                if (def->var(port_name) != ref_def->var(port_name))
-                    throw UserException(
-                        ::format("{0}.{1}'s interface differs from {2}.{3}'s",
-                                 stmt->generator_parent()->handle_name(), def->def_name(),
-                                 ref_stmt->generator_parent()->handle_name(), ref_def->def_name()));
+        // ports as well
+        std::set<const InterfaceRef*> refs;
+        for (auto const& port_name : generator->get_port_names()) {
+            auto p = generator->get_port(port_name);
+            if (p->is_interface()) {
+                auto interface_p = p->as<InterfacePort>();
+                const auto *ref = interface_p->interface();
+                auto def = ref->definition();
+                update_interface_definition(def, ref, generator);
             }
         }
     }
 
-    const std::unordered_map<std::string,
-                             std::pair<InterfaceInstantiationStmt*, const InterfaceRef*>>&
-    interfaces() const {
+    void visit(InterfaceInstantiationStmt* stmt) override {
+        auto def = stmt->interface()->definition();
+        update_interface_definition(def, stmt->interface(), stmt->generator_parent());
+    }
+
+    const std::unordered_map<std::string, std::pair<Generator*, const InterfaceRef*>>& interfaces()
+        const {
         return interfaces_;
     }
 
 private:
-    std::unordered_map<std::string, std::pair<InterfaceInstantiationStmt*, const InterfaceRef*>>
-        interfaces_;
+    std::unordered_map<std::string, std::pair<Generator*, const InterfaceRef*>> interfaces_;
     std::mutex lock_;
+
+    void update_interface_definition(const std::shared_ptr<IDefinition>& def,
+                                     const InterfaceRef* ref, Generator* gen) {
+        lock_.lock();
+        if (interfaces_.find(def->def_name()) == interfaces_.end()) {
+            interfaces_.emplace(def->def_name(), std::make_pair(gen, ref));
+            lock_.unlock();
+        } else {
+            // making sure they are the same
+            auto const& [reg_gen, ref_interface] = interfaces_.at(def->def_name());
+            auto ref_def = ref_interface->definition();
+            lock_.unlock();
+            auto const& ports = def->ports();
+            if (ref_def->ports() != ports)
+                throw UserException(::format("{0}.{1}'s interface differs from {2}.{3}'s",
+                                             gen->handle_name(), def->def_name(),
+                                             reg_gen->handle_name(), ref_def->def_name()));
+            for (auto const& port_name : ports) {
+                if (def->port(port_name) != ref_def->port(port_name))
+                    throw UserException(::format("{0}.{1}'s interface differs from {2}.{3}'s",
+                                                 gen->handle_name(), def->def_name(),
+                                                 reg_gen->handle_name(), ref_def->def_name()));
+            }
+            // same var as well
+            auto const& vars = def->vars();
+            if (ref_def->vars() != vars)
+                throw UserException(::format("{0}.{1}'s interface differs from {2}.{3}'s",
+                                             gen->handle_name(), def->def_name(),
+                                             reg_gen->handle_name(), ref_def->def_name()));
+            for (auto const& port_name : vars) {
+                if (def->var(port_name) != ref_def->var(port_name))
+                    throw UserException(::format("{0}.{1}'s interface differs from {2}.{3}'s",
+                                                 gen->handle_name(), def->def_name(),
+                                                 reg_gen->handle_name(), ref_def->def_name()));
+            }
+        }
+    }
 };
 
 std::map<std::string, std::string> extract_interface_info(Generator* top) {
