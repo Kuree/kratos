@@ -2082,13 +2082,19 @@ def test_clog2_var():
     num2 = mod.parameter("num2", value=1)
     c = clog2(num2)
     mod.input("a", 16, size=clog2(num))
-    mod.input("b", 16, size=clog2(num), packed=True)
-    mod.var("c", c)
+    b = mod.input("b", 16, size=clog2(num), packed=True)
+    c = mod.var("c", c)
 
     src = verilog(mod, filename="test.sv", remove_unused=False)["mod"]
     assert "input logic [15:0] a [($clog2 (num))-1:0]" in src
     assert "input logic [($clog2 (num))-1:0] [15:0] b" in src
     assert "logic [$clog2 (num2)-1:0] c" in src
+    # test slicing
+    d = mod.var("d", 1)
+    e = b[d]
+    assert str(e) == "b[d]"
+    f = c[d]
+    assert str(f) == "c[d]"
 
 
 if __name__ == "__main__":

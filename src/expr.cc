@@ -581,7 +581,10 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         // potentially cover all the bits
         var_high_ = parent->width() - 1;
         var_low_ = 0;
-        required_width = clog2(parent->width());
+        if (parent->width_param())
+            required_width = Simulator::static_evaluate_expr(parent->width_param());
+        else
+            required_width = clog2(parent->width());
     } else {
         var_width_ = parent->var_width();
         is_packed_ = parent->is_packed();
@@ -593,7 +596,10 @@ VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
         var_high_ = parent->var_high();
         var_low_ = parent->var_low();
         // we need to compute the clog2 here
-        required_width = clog2(parent->size().front());
+        if (parent->get_size_param(0))
+            required_width = clog2(Simulator::static_evaluate_expr(parent->get_size_param(0)));
+        else
+            required_width = clog2(parent->size().front());
     }
     if (required_width < sliced_var_->width()) {
         // may need to demote the variable if it's a var cast
