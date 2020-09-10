@@ -847,7 +847,8 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
             stream_ << "begin end" << stream_.endl();
         } else {
             // directly output the code if the block only has 1 element
-            if (stmt_blk->size() == 1 && label_index_.find(stmt_blk.get()) == label_index_.end()) {
+            if (stmt_blk->size() == 1 && label_index_.find(stmt_blk.get()) == label_index_.end() &&
+                stmt_blk->get_stmt(0)->type() == StatementType::Assign) {
                 skip_indent_ = true;
                 dispatch_node((*stmt_blk)[0].get());
             } else {
@@ -1249,8 +1250,8 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
     gen.add_child_generator(top->instance_name, top->shared_from_this());
     // copy the parameter definition over
     auto params = top->get_params();
-    for (auto const &[name, param]: params) {
-        auto &new_p = gen.parameter(name, 32);
+    for (auto const& [name, param] : params) {
+        auto& new_p = gen.parameter(name, 32);
         new_p.set_value(param->value());
         param->set_value(new_p.as<Param>());
     }

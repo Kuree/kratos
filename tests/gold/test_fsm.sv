@@ -21,15 +21,19 @@ end
 always_comb begin
   Color_next_state = Color_current_state;
   unique case (Color_current_state)
-    Blue: if (in == 2'h1) begin
-      Color_next_state = Red;
-    end
-    Red: if (in == 2'h1) begin
-      Color_next_state = Blue;
-    end
-    else if (in == 2'h0) begin
-      Color_next_state = Red;
-    end
+    Blue: begin
+        if (in == 2'h1) begin
+          Color_next_state = Red;
+        end
+      end
+    Red: begin
+        if (in == 2'h1) begin
+          Color_next_state = Blue;
+        end
+        else if (in == 2'h0) begin
+          Color_next_state = Red;
+        end
+      end
   endcase
 end
 always_comb begin

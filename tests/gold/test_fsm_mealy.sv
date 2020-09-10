@@ -28,18 +28,22 @@ end
 always_comb begin
   Color_next_state = Color_current_state;
   unique case (Color_current_state)
-    Blue: if (in == 2'h1) begin
-      Color_next_state = Red;
-      Color_output (2'h2);
-    end
-    Red: if (in == 2'h1) begin
-      Color_next_state = Blue;
-      Color_output (2'h1);
-    end
-    else if (in == 2'h0) begin
-      Color_next_state = Red;
-      Color_output (2'h2);
-    end
+    Blue: begin
+        if (in == 2'h1) begin
+          Color_next_state = Red;
+          Color_output (2'h2);
+        end
+      end
+    Red: begin
+        if (in == 2'h1) begin
+          Color_next_state = Blue;
+          Color_output (2'h1);
+        end
+        else if (in == 2'h0) begin
+          Color_next_state = Red;
+          Color_output (2'h2);
+        end
+      end
   endcase
 end
 endmodule   // mod

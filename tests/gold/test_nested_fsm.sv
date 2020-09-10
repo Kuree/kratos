@@ -22,21 +22,27 @@ end
 always_comb begin
   Color_next_state = Color_current_state;
   unique case (Color_current_state)
-    Color_Blue: if (in == 2'h1) begin
-      Color_next_state = Color_Red;
-    end
-    Color_Red: if (in == 2'h1) begin
-      Color_next_state = Color_Blue;
-    end
-    else if (in == 2'h0) begin
-      Color_next_state = Color_Red;
-    end
-    else if (in == 2'h2) begin
-      Color_next_state = HSV_idle;
-    end
-    HSV_idle: if (in == 2'h0) begin
-      Color_next_state = Color_Red;
-    end
+    Color_Blue: begin
+        if (in == 2'h1) begin
+          Color_next_state = Color_Red;
+        end
+      end
+    Color_Red: begin
+        if (in == 2'h1) begin
+          Color_next_state = Color_Blue;
+        end
+        else if (in == 2'h0) begin
+          Color_next_state = Color_Red;
+        end
+        else if (in == 2'h2) begin
+          Color_next_state = HSV_idle;
+        end
+      end
+    HSV_idle: begin
+        if (in == 2'h0) begin
+          Color_next_state = Color_Red;
+        end
+      end
     default: Color_next_state = Color_current_state;
   endcase
 end
