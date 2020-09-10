@@ -656,16 +656,25 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
         // see if we can resize
         if (IterVar::safe_to_resize(left, right->width(), right->is_signed()) &&
             (right->type() != VarType::ConstValue && right->type() != VarType::Parameter)) {
-            // do a resize cast instead
-            auto new_left = left->cast(VarCastType::Resize);
-            auto left_casted = new_left->as<VarCasted>();
-            left_casted->set_target_width(right->width());
-            this->left = left_casted.get();
+            // this is a hack
+            if (left->type() == VarType::ConstValue) {
+                left->var_width() = right->width();
+            } else {
+                // do a resize cast instead
+                auto new_left = left->cast(VarCastType::Resize);
+                auto left_casted = new_left->as<VarCasted>();
+                left_casted->set_target_width(right->width());
+                this->left = left_casted.get();
+            }
         } else if (IterVar::safe_to_resize(right, left->width(), left->is_signed())) {
-            auto new_right = right->cast(VarCastType::Resize);
-            auto right_casted = new_right->as<VarCasted>();
-            right_casted->set_target_width(left->width());
-            this->right = right_casted.get();
+            if (right->type() == VarType::ConstValue) {
+                right->var_width() = left->width();
+            } else {
+                auto new_right = right->cast(VarCastType::Resize);
+                auto right_casted = new_right->as<VarCasted>();
+                right_casted->set_target_width(left->width());
+                this->right = right_casted.get();
+            }
         }
         if (this->left->width() != this->right->width())
             throw VarException(
