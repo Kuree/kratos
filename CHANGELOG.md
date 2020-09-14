@@ -5,6 +5,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.31] - 2020-09-14
+### Added
+- Added packed struct array
+- Allow parameters to be "type", advanced use only
+- Enhance copy port definition by copying parameter as well
+- Add enum, struct, and raw_type to copy port definition
+- Allow parameter setting in add_child function
+- Add `__len__` to var, which has the same semantics as array size in Python
+- Add multi-stage generation support. The context will keep track of already generated instances
+- Allow additoinal frames for fn_ln inspection
+- Add tests to run on examples
+- Add ability to resize parameter at compile time (#159)
+- Add support for parameter as variable width
+- Add builtin tasks support, e.g., $clog2
+
+
+### Changed
+- Parameter value codegen is adjusted based on initial value
+- case statement will have begin-end block if the single statement is not an assignment
+
+### Fixed
+- Fix var_width for packed struct (#157)
+- Fix typo in ast (#158)
+- Fix cerr printout using mutex lock
+- Fix parameter propagation when flattening the instances
+- Fix slice on parametrization with width
+- Fix error message in interface valid varible name
+
 ## [0.0.30] - 2020-08-05
 ### Added
 - Add helper functions to get connected ports
