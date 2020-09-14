@@ -109,7 +109,7 @@ setup(
     ext_modules=[CMakeExtension('_kratos')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     install_requires=[
         "astor",
     ],
