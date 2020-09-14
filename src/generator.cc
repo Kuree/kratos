@@ -843,6 +843,22 @@ void Generator::wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
 
 void Generator::wire(Var &left, Var &right) { add_stmt(left.assign(right)); }
 
+void Generator::unwire(Var &var1, Var &var2) {
+    // brute force search matching statement
+    std::shared_ptr<Stmt> target = nullptr;
+    for (auto const &stmt : stmts_) {
+        if (stmt->type() == StatementType::Assign) {
+            auto assign_stmt = stmt->as<AssignStmt>();
+            if ((assign_stmt->left() == &var1 && assign_stmt->right() == &var2) ||
+                (assign_stmt->right() == &var1 && assign_stmt->left() == &var2)) {
+                target = assign_stmt;
+                break;
+            }
+        }
+    }
+    if (target) remove_stmt(target);
+}
+
 std::shared_ptr<Generator> Generator::clone() {
     auto generator = std::make_shared<Generator>(context_, name);
     auto port_names = get_port_names();

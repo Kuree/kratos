@@ -215,6 +215,7 @@ void init_generator(py::module &m) {
         .def("set_is_stub", &Generator::set_is_stub)
         .def("wire_ports", &Generator::wire_ports)
         .def("wire", &Generator::wire)
+        .def("unwire", &Generator::unwire)
         .def("wire_interface", &Generator::wire_interface)
         .def("correct_wire_direction", &Generator::correct_wire_direction)
         .def("correct_wire_direction",

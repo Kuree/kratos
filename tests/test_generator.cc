@@ -1621,3 +1621,18 @@ TEST(codegen, copy_port_definition) {   // NOLINT
     auto mod_src = src.at("parent");
     EXPECT_NE(mod_src.find("input logic [15:0] in [(P * 32'h2)-1:0]"), std::string::npos);
 }
+
+TEST(generator, unwire) {   // NOLINT
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+
+    mod.unwire(b, a);
+    EXPECT_EQ(mod.stmts_count(), 0);
+
+    mod.add_stmt(a.assign(b));
+    EXPECT_EQ(mod.stmts_count(), 1);
+    mod.unwire(b, a);
+    EXPECT_EQ(mod.stmts_count(), 0);
+}

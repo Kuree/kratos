@@ -195,6 +195,7 @@ public:
     void wire_interface(const std::shared_ptr<InterfaceRef> &inst1,
                         const std::shared_ptr<InterfaceRef> &inst2);
     void wire(Var &left, Var &right);
+    void unwire(Var &var1, Var &var2);
 
     bool debug = false;
 
