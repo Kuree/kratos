@@ -864,7 +864,7 @@ std::shared_ptr<Generator> Generator::clone() {
     auto port_names = get_port_names();
     for (auto const &port_name : port_names) {
         auto port = get_port(port_name);
-        generator->port(port->port_direction(), port_name, port->width(), port->size(),
+        generator->port(port->port_direction(), port_name, port->var_width(), port->size(),
                         port->port_type(), port->is_signed());
     }
     // also parameters
