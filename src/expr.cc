@@ -655,7 +655,7 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
     if (right != nullptr && left->width() != right->width()) {
         // see if we can resize
         if (IterVar::safe_to_resize(left, right->width(), right->is_signed()) &&
-            (right->type() != VarType::ConstValue && right->type() != VarType::Parameter)) {
+            (right->type() != VarType::ConstValue && right->type() != VarType::Parameter && right->type() != VarType::Iter)) {
             // this is a hack
             if (left->type() == VarType::ConstValue) {
                 left->var_width() = right->width();
