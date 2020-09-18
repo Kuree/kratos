@@ -690,7 +690,7 @@ void uniquify_generators(Generator* top) {
         }
         std::unordered_map<uint64_t, Generator*> name_map;
         std::unordered_set<std::string> new_names;
-        for (auto *const ptr : module_instances) {
+        for (auto* const ptr : module_instances) {
             if (context->has_hash(ptr)) {
                 uint64_t hash = context->get_hash(ptr);
                 if (name_map.find(hash) == name_map.end()) {
@@ -2915,6 +2915,10 @@ private:
             if (has_for_loop(stmt.get())) continue;
             auto* v = stmt->left();
             if (v->get_var_root_parent() != var) continue;
+            if (v->type() == VarType::Slice) {
+                auto slice = v->as<VarSlice>();
+                if (slice->sliced_by_var()) continue;
+            }
             uint32_t var_low = v->var_low();
             uint32_t var_high = v->var_high();
             for (uint32_t i = var_low; i <= var_high; i++) {
