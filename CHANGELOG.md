@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.31.1] - 2020-09-24
+### Added
+- Add `unwire` function to generator
+
+### Changed
+- Skip driver test if the variable is sliced by another variable
+- Change python requirements to >= 3.6 since 3.5 is EOL
+
+### Fixed
+- Fix resizing on iter variable
+- Fix clone port width calculation
+
 ## [0.0.31] - 2020-09-14
 ### Added
 - Added packed struct array
