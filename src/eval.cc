@@ -118,4 +118,12 @@ uint64_t eval_bin_op(uint64_t left_value, uint64_t right_value, ExprOp op, uint3
     result = result & (UINT64_MASK >> (64 - width));
     return result;
 }
+
+uint64_t eval_ternary_op(bool predicate, uint64_t left_value, uint64_t right_value,
+                         uint32_t width) {
+    uint64_t result = predicate? left_value: right_value;
+    result = result & (UINT64_MASK >> (64 - width));
+    return result;
+}
+
 }

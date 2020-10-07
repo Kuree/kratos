@@ -805,7 +805,15 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(const kratos::Var *var
             auto left_val = get_complex_value_(expr->left);
             if (!left_val) return left_val;
             auto right_val = get_complex_value_(expr->right);
-            if (!is_unary_op(expr->op)) {
+            if (is_ternary_op(expr->op)) {
+                auto const *cond = reinterpret_cast<const ConditionalExpr*>(expr);
+                auto predicate_val = get_complex_value_(cond->condition);
+                if (!predicate_val) return right_val;
+                bool c = (*predicate_val)[0];
+                auto result = eval_ternary_op(c, (*left_val)[0], (*right_val)[0], expr->width());
+                return std::vector<uint64_t>{result};
+            }
+            else if (!is_unary_op(expr->op)) {
                 if (!right_val) return std::nullopt;
                 if ((*left_val).size() > 1) throw std::runtime_error("Not implemented");
                 if ((*right_val).size() > 1) throw std::runtime_error("Not implemented");

@@ -296,3 +296,38 @@ TEST(eval, bin_op) {  // NOLINT
         }
     }
 }
+
+TEST(eval, ternary) {    // NOLINT
+    size_t seed = 42;
+    std::mt19937 rnd;  // NOLINT
+    rnd.seed(seed);
+    auto constexpr width = 10;
+    auto constexpr mask = UINT64_MASK >> (64u - width);
+    auto constexpr num_test = 420u;
+    for (uint32_t i = 0; i < num_test; i++) {
+        uint64_t v1 = rnd() % mask;
+        uint64_t v2 = rnd() % mask;
+        bool p = rnd() % 2;
+        auto result = eval_ternary_op(p, v1, v2, width);
+        auto gold = p? v1: v2;
+        EXPECT_EQ(result, gold);
+    }
+}
+
+TEST(sim, ternary) {    // NOLINT
+    Context ctx;
+    auto &gen = ctx.generator("mod");
+    auto &a = gen.var("a", 1);
+    auto &b = gen.var("b", 16);
+    auto &c = gen.var("c", 16);
+    Simulator sim(&gen);
+    sim.set(&a, 0);
+    sim.set(&b, 42);
+    sim.set(&c, 25);
+    auto cond = ConditionalExpr(a.shared_from_this(), b.shared_from_this(), c.shared_from_this());
+    auto result = (*sim.eval_expr(&cond))[0];
+    EXPECT_EQ(result, 25);
+    sim.set(&a, 1);
+    result = (*sim.eval_expr(&cond))[0];
+    EXPECT_EQ(result, 42);
+}

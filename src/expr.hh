@@ -60,6 +60,7 @@ bool is_relational_op(ExprOp op);
 bool is_reduction_op(ExprOp op);
 bool is_expand_op(ExprOp op);
 bool is_unary_op(ExprOp op);
+bool is_ternary_op(ExprOp op);
 
 enum class VarType { Base, Expression, Slice, ConstValue, PortIO, Parameter, BaseCasted, Iter };
 

@@ -40,6 +40,10 @@ bool is_expand_op(ExprOp op) {
     return ops.find(op) != ops.end();
 }
 
+bool is_ternary_op(ExprOp op) {
+    return op == ExprOp::Conditional;
+}
+
 bool is_unary_op(ExprOp op) {
     static std::unordered_set<ExprOp> ops = {ExprOp::UXor,  ExprOp::UPlus, ExprOp::UOr,
                                              ExprOp::UNot,  ExprOp::UXor,  ExprOp::UInvert,
