@@ -374,8 +374,27 @@ void FSM::generate_output(Enum& enum_def, EnumVar& current_state,
     auto output_comb = generator_->combinational();
     auto output_case_comb = std::make_shared<SwitchStmt>(current_state.shared_from_this());
     auto states = get_all_child_states(false);
-    for (auto const& state : states) {
-        auto const& state_name = state_name_mapping.at(state);
+
+    // need to deal with fully specified case where default is the same as start state
+    // also default case
+    if (!is_2_power(enum_def.values.size())) {
+        states.emplace_back(nullptr);
+    }
+
+
+    for (auto* state : states) {
+        std::shared_ptr<EnumConst> state_enum;
+        std::string state_name;
+        if (state) {
+            state_name = state_name_mapping.at(state);
+            state_enum = enum_def.get_enum(state_name);
+        } else {
+            state_name = "default";
+            state_enum = nullptr;
+            // use default state outputs
+            state = start_state_.get();
+        }
+
         std::vector<std::shared_ptr<Stmt>> stmts;
         auto const& output_values = state->output_values();
         stmts.reserve(output_values.size());
@@ -402,7 +421,7 @@ void FSM::generate_output(Enum& enum_def, EnumVar& current_state,
         // add it to the case
         if (!stmts.empty()) {
             auto& case_stmt =
-                output_case_comb->add_switch_case(enum_def.get_enum(state_name), stmts);
+                output_case_comb->add_switch_case(state_enum, stmts);
             generator_->add_named_block(::format("{0}_{1}_Output", fsm_name_, state_name),
                                         case_stmt.as<ScopedStmtBlock>());
         }

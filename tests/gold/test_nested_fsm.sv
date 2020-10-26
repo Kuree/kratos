@@ -57,6 +57,9 @@ always_comb begin
     HSV_idle: begin :Color_HSV_idle_Output
         out = 2'h2;
       end :Color_HSV_idle_Output
+    default: begin :Color_default_Output
+        out = 2'h2;
+      end :Color_default_Output
   endcase
 end
 endmodule   // mod
