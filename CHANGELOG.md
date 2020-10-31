@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.31.2] - 2020-10-31
+### Added
+- Add ternary eval to the sim function
+- Add default output to fully specify FSM output case statement
+
+### Fixed
+- Fix a sensitivity list bug where string is used to query variable instead of using the var directly
+
 ## [0.0.31.1] - 2020-09-24
 ### Added
 - Add `unwire` function to generator
