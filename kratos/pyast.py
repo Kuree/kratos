@@ -960,12 +960,12 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
                 assert name in local, "{0} not found".format(name)
                 n = eval(name, local)
                 assert isinstance(n, _kratos.Var), "{0} is not a variable".format(name)
-                signal_name = str(n)
+                signal_name = n
             elif isinstance(signal_name_node, ast.Attribute):
                 # need to eval the actual name
                 n = eval(astor.to_source(signal_name_node), local)
                 assert isinstance(n, _kratos.Var), "{0} is not a variable".format(signal_name_node)
-                signal_name = str(n)
+                signal_name = n
             else:
                 signal_name = signal_name_node.s
             result.append((edge_type, signal_name))

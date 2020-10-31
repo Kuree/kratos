@@ -1176,9 +1176,16 @@ def test_cast():
         def __init__(self):
             super().__init__("mod")
             self.v = self.var("v", 1)
+            clk = clock(self.v)
             # only procedural allowed
             seq = self.sequential((posedge, clock(self.v)))
             seq.add_stmt(self.output("out", 1).assign(const(1, 1)))
+
+            @always_ff((posedge, clk))
+            def fn():
+                self.v = 1
+
+            self.add_always(fn)
 
     mod = Mod2()
     verilog(mod)

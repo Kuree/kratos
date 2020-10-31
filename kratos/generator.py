@@ -659,7 +659,11 @@ class Generator(metaclass=GeneratorMeta):
             sensitivity_list = []
             for edge, var_name in raw_sensitives:
                 edge = BlockEdgeType[edge]
-                var = self.internal_generator.get_var(var_name)
+                if isinstance(var_name, str):
+                    var = self.internal_generator.get_var(var_name)
+                else:
+                    assert isinstance(var_name, _kratos.Var)
+                    var = var_name
                 sensitivity_list.append((edge, var))
             seq = SequentialCodeBlock(self, sensitivity_list)
             for stmt in stmts:
