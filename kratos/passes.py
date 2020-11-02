@@ -66,7 +66,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("verify_generator_connectivity")
     pass_manager.add_pass("decouple_generator_ports")
     pass_manager.add_pass("fix_assignment_type")
-    if remove_unused:
+    if remove_unused and not insert_debug_info:
         pass_manager.add_pass("remove_unused_vars")
         pass_manager.add_pass("remove_unused_stmts")
     pass_manager.add_pass("verify_assignments")

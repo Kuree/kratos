@@ -589,9 +589,13 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             throw InternalException(::format("Unable to find generator {0}", gen->handle_name()));
         auto id = gen_id_map.at(gen);
         for (auto const &[front_var, var] : vars) {
-            auto gen_var = gen->get_var(var);
-            if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
-            create_variable(gen_var.get(), id, front_var, "", false);
+            Var *gen_var = gen->get_var(var).get();
+            if (!gen_var) {
+                gen_var = gen->get_param(var).get();
+            }
+            if (!gen_var)
+                throw InternalException(::format("Unable to get variable {0}", var));
+            create_variable(gen_var, id, front_var, "", false);
         }
         auto all_vars = gen->get_all_var_names();
         for (auto const &var_name : all_vars) {
@@ -648,6 +652,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
         auto const &gen = stmt->generator_parent();
         auto handle_name = gen->handle_name();
         if (stmt_context_.find(stmt) == stmt_context_.end()) continue;
+        if (stmt_mapping_.find(stmt) == stmt_mapping_.end()) continue;
         if (handle_id_map.find(handle_name) == handle_id_map.end())
             throw InternalException(::format("Unable to find {0} in handle id map", handle_name));
 
@@ -663,6 +668,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
 
     // instance id set
     for (auto const &[stmt, id] : break_points_) {
+        if (stmt_mapping_.find(stmt) == stmt_mapping_.end()) continue;
         auto gen_id = stmt->generator_parent()->generator_id;
         InstanceSetEntry entry{std::make_unique<int>(gen_id), std::make_unique<int>(id)};
         storage.replace(entry);
