@@ -187,6 +187,14 @@ def test_power():
     assert str(b) == "5'h2 ** a"
 
 
+def test_lshift():
+    mod = Generator("mod")
+    a = mod.var("a", 5)
+    b = mod.var("b", 5)
+    c = a << b
+    assert str(c) == "a << b"
+
+
 if __name__ == "__main__":
-    test_power()
+    test_lshift()
 
