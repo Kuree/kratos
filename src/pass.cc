@@ -1125,7 +1125,7 @@ public:
                         if (reset_high != (*port->active_high())) {
                             throw VarException(
                                 ::format("{0} is declared reset {1} but is used as reset {2}",
-                                         port->to_string(), reset_high ? "high" : "low",
+                                         port->to_string(), reset_high ? "low" : "high",
                                          reset_high ? "high" : "low"),
                                 {port, stmt});
                         }
