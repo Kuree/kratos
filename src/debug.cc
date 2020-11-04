@@ -495,13 +495,13 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     // variables
     int variable_count = 0;
     std::unordered_set<Var *> var_id_set;
+    std::map<std::tuple<const int, std::string, std::string>, int> var_id_mapping;
     // function to create variable and flatten the hierarchy
-    auto create_variable = [&](Var *var_, const int handle_id_, const std::string& name_,
+    auto create_variable = [&](Var *var_, const int handle_id_, const std::string &name_,
                                const std::string &value_, bool is_context_,
                                uint32_t breakpoint_id_ = 0) {
         Variable v;
         v.is_var = var_ != nullptr;
-        v.is_context = is_context_;
         v.handle = std::make_unique<int>(handle_id_);
         v.name = "";
 
@@ -523,16 +523,21 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     std::string new_name;
                     if (!name_.empty()) {
                         new_name = name_;
-                        for (auto const &s: slice)
-                            new_name = ::format("{0}.{1}", new_name, s);
+                        for (auto const &s : slice) new_name = ::format("{0}.{1}", new_name, s);
                     }
                     std::string value = var_->name;
-                    for (auto const &s: slice)
-                        value = ::format("{0}[{1}]", value, s);
+                    for (auto const &s : slice) value = ::format("{0}[{1}]", value, s);
                     v.name = new_name;
                     v.value = value;
-                    v.id = variable_count++;
-                    storage.replace(v);
+                    if (var_id_mapping.find(std::make_tuple(handle_id_, v.name, v.value)) ==
+                        var_id_mapping.end()) {
+                        v.id = variable_count++;
+                        storage.replace(v);
+                        var_id_mapping.emplace(
+                            std::make_pair(std::make_tuple(handle_id_, v.name, v.value), v.id));
+                    } else {
+                        v.id = var_id_mapping.at(std::make_tuple(handle_id_, v.name, v.value));
+                    }
                     add_context();
                 }
             } else if (var_->is_struct()) {
@@ -545,8 +550,15 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                         // we need to store lots of them
                         if (!name_.empty()) v.name = ::format("{0}.{1}", name_, attr_name);
                         v.value = ::format("{0}.{1}", var_->name, attr_name);
-                        v.id = variable_count++;
-                        storage.replace(v);
+                        if (var_id_mapping.find(std::make_tuple(handle_id_, v.name, v.value)) ==
+                            var_id_mapping.end()) {
+                            v.id = variable_count++;
+                            storage.replace(v);
+                            var_id_mapping.emplace(
+                                std::make_pair(std::make_tuple(handle_id_, v.name, v.value), v.id));
+                        } else {
+                            v.id = var_id_mapping.at(std::make_tuple(handle_id_, v.name, v.value));
+                        }
                         add_context();
                     }
                 } else if (var_->type() == VarType::Base) {
@@ -557,8 +569,15 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                         // we need to store lots of them
                         if (!name_.empty()) v.name = ::format("{0}.{1}", name_, attr_name);
                         v.value = ::format("{0}.{1}", var_->name, attr_name);
-                        v.id = variable_count++;
-                        storage.replace(v);
+                        if (var_id_mapping.find(std::make_tuple(handle_id_, v.name, v.value)) ==
+                            var_id_mapping.end()) {
+                            v.id = variable_count++;
+                            storage.replace(v);
+                            var_id_mapping.emplace(
+                                std::make_pair(std::make_tuple(handle_id_, v.name, v.value), v.id));
+                        } else {
+                            v.id = var_id_mapping.at(std::make_tuple(handle_id_, v.name, v.value));
+                        }
                         add_context();
                     }
                 }
@@ -566,8 +585,15 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                 // the normal one
                 v.name = name_;
                 v.value = var_->name;
-                v.id = variable_count++;
-                storage.replace(v);
+                if (var_id_mapping.find(std::make_tuple(handle_id_, v.name, v.value)) ==
+                    var_id_mapping.end()) {
+                    v.id = variable_count++;
+                    storage.replace(v);
+                    var_id_mapping.emplace(
+                        std::make_pair(std::make_tuple(handle_id_, v.name, v.value), v.id));
+                } else {
+                    v.id = var_id_mapping.at(std::make_tuple(handle_id_, v.name, v.value));
+                }
                 add_context();
             }
             var_id_set.emplace(var_);
@@ -593,8 +619,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             if (!gen_var) {
                 gen_var = gen->get_param(var).get();
             }
-            if (!gen_var)
-                throw InternalException(::format("Unable to get variable {0}", var));
+            if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
             create_variable(gen_var, id, front_var, "", false);
         }
         auto all_vars = gen->get_all_var_names();

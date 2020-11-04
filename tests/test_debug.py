@@ -440,7 +440,7 @@ def test_array_packed():
         c.execute("SELECT * FROM variable")
         vars_ = c.fetchall()
         correct_struct, correct_array, correct_self = False, False, False
-        for _, _, value, name, _, _ in vars_:
+        for _, _, value, name, _ in vars_:
             if value == "a[1][3]" and name == "aa.1.3":
                 correct_array = True
             if value == "s.read" and name == "ss.read":
