@@ -38,7 +38,6 @@ void init_debug(py::module &m) {
              py::arg("mapping"))
         .def("set_generator_connection", &DebugDatabase::set_generator_connection, py::arg("top"))
         .def("set_generator_hierarchy", &DebugDatabase::set_generator_hierarchy, py::arg("top"))
-        .def("set_generator_variable", &DebugDatabase::set_generator_variable, py::arg("top"))
         .def("set_stmt_context", &DebugDatabase::set_stmt_context, py::arg("top"))
         // dump the database file
         .def("save_database",

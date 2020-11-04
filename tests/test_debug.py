@@ -337,7 +337,8 @@ def test_wire():
         c = conn.cursor()
         c.execute("SELECT * FROM breakpoint")
         assert len(c.fetchall()) == 1
-        c.execute("SELECT value FROM variable WHERE name = ?", "a")
+        c.execute("""SELECT variable.value FROM variable, context
+                     WHERE context.name = ? AND context.variable_id = variable.id""", "a")
         v = int(c.fetchone()[0])
         assert v == a
         conn.close()
@@ -437,10 +438,12 @@ def test_array_packed():
         verilog(mod, debug_db_filename=debug_db, insert_debug_info=True)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
-        c.execute("SELECT * FROM variable")
+        c.execute("SELECT variable.value, generator_variable.name FROM variable, generator_variable WHERE variable.id = generator_variable.variable_id")
         vars_ = c.fetchall()
+        c.execute("SELECT variable.value, context.name FROM variable, context WHERE variable.id = context.variable_id")
+        vars_ += c.fetchall()
         correct_struct, correct_array, correct_self = False, False, False
-        for _, _, value, name, _ in vars_:
+        for value, name in vars_:
             if value == "a[1][3]" and name == "aa.1.3":
                 correct_array = True
             if value == "s.read" and name == "ss.read":
@@ -513,4 +516,4 @@ def test_multiple_instance():
 
 
 if __name__ == "__main__":
-    test_array_packed()
+    test_context()

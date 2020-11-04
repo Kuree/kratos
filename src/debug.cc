@@ -326,15 +326,6 @@ void DebugDatabase::set_variable_mapping(
     }
 }
 
-void DebugDatabase::set_generator_variable(
-    const std::map<Generator *, std::map<std::string, std::string>> &values) {
-    for (auto const &[gen, map] : values) {
-        for (auto const &[name, value] : map) {
-            generator_values_[gen].emplace(name, value);
-        }
-    }
-}
-
 class StmtContextVisitor : public IRVisitor {
 public:
     void visit(IfStmt *stmt) override { add_content(stmt); }
@@ -499,18 +490,22 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     // function to create variable and flatten the hierarchy
     auto create_variable = [&](Var *var_, const int handle_id_, const std::string &name_,
                                const std::string &value_, bool is_context_,
-                               uint32_t breakpoint_id_ = 0) {
+                               uint32_t breakpoint_id_, bool gen_var = false) {
         Variable v;
         v.is_var = var_ != nullptr;
         v.handle = std::make_unique<int>(handle_id_);
-        v.name = "";
 
-        auto add_context = [&]() {
+        auto add_context_gen = [&](const std::string &name) {
             if (is_context_) {
                 // create context mapping as well
                 ContextVariable c_v{std::make_unique<uint32_t>(breakpoint_id_),
-                                    std::make_unique<int>(v.id), v.name};
+                                    std::make_unique<int>(v.id), name};
                 storage.replace(c_v);
+            }
+            if (gen_var) {
+                GeneratorVariable g_v{std::make_unique<int>(v.id),
+                                      std::make_unique<int>(*v.handle), name};
+                storage.replace(g_v);
             }
         };
 
@@ -527,18 +522,17 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     }
                     std::string value = var_->name;
                     for (auto const &s : slice) value = ::format("{0}[{1}]", value, s);
-                    v.name = new_name;
                     v.value = value;
-                    if (var_id_mapping.find(std::make_tuple(handle_id_, v.name, v.value)) ==
+                    if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                         var_id_mapping.end()) {
                         v.id = variable_count++;
                         storage.replace(v);
                         var_id_mapping.emplace(
-                            std::make_pair(std::make_tuple(handle_id_, v.name, v.value), v.id));
+                            std::make_pair(std::make_tuple(handle_id_, new_name, v.value), v.id));
                     } else {
-                        v.id = var_id_mapping.at(std::make_tuple(handle_id_, v.name, v.value));
+                        v.id = var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
                     }
-                    add_context();
+                    add_context_gen(new_name);
                 }
             } else if (var_->is_struct()) {
                 // it's an packed array
@@ -548,18 +542,19 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     for (auto const &iter : def.attributes) {
                         auto const &attr_name = std::get<0>(iter);
                         // we need to store lots of them
-                        if (!name_.empty()) v.name = ::format("{0}.{1}", name_, attr_name);
+                        std::string new_name = attr_name;
+                        if (!name_.empty()) new_name= ::format("{0}.{1}", name_, attr_name);
                         v.value = ::format("{0}.{1}", var_->name, attr_name);
-                        if (var_id_mapping.find(std::make_tuple(handle_id_, v.name, v.value)) ==
+                        if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                             var_id_mapping.end()) {
                             v.id = variable_count++;
                             storage.replace(v);
                             var_id_mapping.emplace(
-                                std::make_pair(std::make_tuple(handle_id_, v.name, v.value), v.id));
+                                std::make_pair(std::make_tuple(handle_id_, new_name, v.value), v.id));
                         } else {
-                            v.id = var_id_mapping.at(std::make_tuple(handle_id_, v.name, v.value));
+                            v.id = var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
                         }
-                        add_context();
+                        add_context_gen(new_name);
                     }
                 } else if (var_->type() == VarType::Base) {
                     auto *p = reinterpret_cast<VarPackedStruct *>(var_);
@@ -567,34 +562,34 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     for (auto const &iter : def.attributes) {
                         auto const &attr_name = std::get<0>(iter);
                         // we need to store lots of them
-                        if (!name_.empty()) v.name = ::format("{0}.{1}", name_, attr_name);
+                        std::string new_name = attr_name;
+                        if (!name_.empty()) new_name= ::format("{0}.{1}", name_, attr_name);
                         v.value = ::format("{0}.{1}", var_->name, attr_name);
-                        if (var_id_mapping.find(std::make_tuple(handle_id_, v.name, v.value)) ==
+                        if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                             var_id_mapping.end()) {
                             v.id = variable_count++;
                             storage.replace(v);
                             var_id_mapping.emplace(
-                                std::make_pair(std::make_tuple(handle_id_, v.name, v.value), v.id));
+                                std::make_pair(std::make_tuple(handle_id_, new_name, v.value), v.id));
                         } else {
-                            v.id = var_id_mapping.at(std::make_tuple(handle_id_, v.name, v.value));
+                            v.id = var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
                         }
-                        add_context();
+                        add_context_gen(new_name);
                     }
                 }
             } else {
                 // the normal one
-                v.name = name_;
                 v.value = var_->name;
-                if (var_id_mapping.find(std::make_tuple(handle_id_, v.name, v.value)) ==
+                if (var_id_mapping.find(std::make_tuple(handle_id_, name_, v.value)) ==
                     var_id_mapping.end()) {
                     v.id = variable_count++;
                     storage.replace(v);
                     var_id_mapping.emplace(
-                        std::make_pair(std::make_tuple(handle_id_, v.name, v.value), v.id));
+                        std::make_pair(std::make_tuple(handle_id_, name_, v.value), v.id));
                 } else {
-                    v.id = var_id_mapping.at(std::make_tuple(handle_id_, v.name, v.value));
+                    v.id = var_id_mapping.at(std::make_tuple(handle_id_, name_, v.value));
                 }
-                add_context();
+                add_context_gen(name_);
             }
             var_id_set.emplace(var_);
         } else {
@@ -602,11 +597,10 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             if (name_.empty()) {
                 throw UserException(::format("Non-variable cannot have empty name in database"));
             }
-            v.name = name_;
             v.value = value_;
             v.id = variable_count++;
             storage.replace(v);
-            add_context();
+            add_context_gen(name_);
         }
     };
     for (auto const &[handle_name, gen_map] : variable_mapping_) {
@@ -614,32 +608,26 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
         if (gen_id_map.find(gen) == gen_id_map.end())
             throw InternalException(::format("Unable to find generator {0}", gen->handle_name()));
         auto id = gen_id_map.at(gen);
+        // this will be this/self connection
         for (auto const &[front_var, var] : vars) {
             Var *gen_var = gen->get_var(var).get();
             if (!gen_var) {
                 gen_var = gen->get_param(var).get();
             }
-            if (!gen_var) throw InternalException(::format("Unable to get variable {0}", var));
-            create_variable(gen_var, id, front_var, "", false);
+            if (!gen_var) {
+                create_variable(nullptr, id, front_var, var, true, 0);
+            } else {
+                create_variable(gen_var, id, front_var, "", true, 0);
+            }
+
         }
+        // this will be generator instance values (RTL correspondence)
         auto all_vars = gen->get_all_var_names();
         for (auto const &var_name : all_vars) {
             auto var = gen->get_var(var_name);
-            // continue because we already have that variable stored
-            if (var_id_set.find(var.get()) != var_id_set.end()) continue;
             if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
-                create_variable(var.get(), id, "", "", false);
+                create_variable(var.get(), id, var_name, "", false, 0, true);
             }
-        }
-    }
-    for (auto const &[gen, map] : generator_values_) {
-        auto const handle_name = gen->handle_name();
-        if (handle_id_map.find(handle_name) == handle_id_map.end())
-            throw InternalException(::format("Unable to find id for {0}", handle_name));
-        auto id = handle_id_map.at(handle_name);
-        for (auto const &[name, value] : map) {
-            auto var = gen->get_var(name);
-            create_variable(var.get(), id, name, value, false);
         }
     }
 

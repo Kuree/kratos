@@ -21,7 +21,6 @@ struct Variable {
     int id;
     std::unique_ptr<int> handle;
     std::string value;
-    std::string name;
     bool is_var;
 };
 
@@ -41,6 +40,12 @@ struct Hierarchy {
 struct ContextVariable {
     std::unique_ptr<uint32_t> breakpoint_id;
     std::unique_ptr<int> variable_id;
+    std::string name;
+};
+
+struct GeneratorVariable {
+    std::unique_ptr<int> variable_id;
+    std::unique_ptr<int> handle;
     std::string name;
 };
 
@@ -66,7 +71,6 @@ auto inline init_storage(const std::string &filename) {
                    make_column("line_num", &BreakPoint::line_num)),
         make_table("variable", make_column("id", &Variable::id, primary_key()),
                    make_column("handle", &Variable::handle), make_column("value", &Variable::value),
-                   make_column("name", &Variable::name),
                    make_column("is_verilog_var", &Variable::is_var),
                    foreign_key(&Variable::handle).references(&Instance::id)),
         make_table("connection", make_column("handle_from", &Connection::handle_from),
@@ -84,12 +88,18 @@ auto inline init_storage(const std::string &filename) {
                    make_column("name", &ContextVariable::name),
                    foreign_key(&ContextVariable::variable_id).references(&Variable::id),
                    foreign_key(&ContextVariable::breakpoint_id).references(&BreakPoint::id)),
+        make_table("generator_variable",
+                   make_column("variable_id", &GeneratorVariable::variable_id),
+                   make_column("handle", &GeneratorVariable::handle),
+                   make_column("name", &GeneratorVariable::name),
+                   foreign_key(&GeneratorVariable::variable_id).references((&Variable::id)),
+                   foreign_key(&GeneratorVariable::handle).references(&Instance::id)),
         make_table("instance", make_column("id", &Instance::id, primary_key()),
                    make_column("handle_name", &Instance::handle_name)),
         make_table("instance_set", make_column("instance_id", &InstanceSetEntry::instance_id),
-            make_column("breakpoint_id", &InstanceSetEntry::breakpoint_id),
-            foreign_key(&InstanceSetEntry::instance_id).references(&Instance::id),
-            foreign_key(&InstanceSetEntry::breakpoint_id).references(&BreakPoint::id)));
+                   make_column("breakpoint_id", &InstanceSetEntry::breakpoint_id),
+                   foreign_key(&InstanceSetEntry::instance_id).references(&Instance::id),
+                   foreign_key(&InstanceSetEntry::breakpoint_id).references(&BreakPoint::id)));
     return storage;
 }
 
