@@ -487,6 +487,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     int variable_count = 0;
     std::unordered_set<Var *> var_id_set;
     std::map<std::tuple<const int, std::string, std::string>, int> var_id_mapping;
+    std::unordered_map<Generator*, std::map<std::string, std::string>> self_context_mapping;
     // function to create variable and flatten the hierarchy
     auto create_variable = [&](Var *var_, const int handle_id_, const std::string &name_,
                                const std::string &value_, bool is_context_,
@@ -515,11 +516,8 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                 // it's an array. need to flatten it
                 auto slices = get_flatten_slices(var_);
                 for (auto const &slice : slices) {
-                    std::string new_name;
-                    if (!name_.empty()) {
-                        new_name = name_;
-                        for (auto const &s : slice) new_name = ::format("{0}.{1}", new_name, s);
-                    }
+                    std::string new_name = name_;
+                    for (auto const &s : slice) new_name = ::format("{0}.{1}", new_name, s);
                     std::string value = var_->name;
                     for (auto const &s : slice) value = ::format("{0}[{1}]", value, s);
                     v.value = value;
@@ -542,8 +540,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     for (auto const &iter : def.attributes) {
                         auto const &attr_name = std::get<0>(iter);
                         // we need to store lots of them
-                        std::string new_name = attr_name;
-                        if (!name_.empty()) new_name= ::format("{0}.{1}", name_, attr_name);
+                        std::string new_name = ::format("{0}.{1}", name_, attr_name);
                         v.value = ::format("{0}.{1}", var_->name, attr_name);
                         if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                             var_id_mapping.end()) {
@@ -562,8 +559,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     for (auto const &iter : def.attributes) {
                         auto const &attr_name = std::get<0>(iter);
                         // we need to store lots of them
-                        std::string new_name = attr_name;
-                        if (!name_.empty()) new_name= ::format("{0}.{1}", name_, attr_name);
+                        std::string new_name = ::format("{0}.{1}", name_, attr_name);
                         v.value = ::format("{0}.{1}", var_->name, attr_name);
                         if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                             var_id_mapping.end()) {
@@ -607,26 +603,14 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
         auto const &[gen, vars] = gen_map;
         if (gen_id_map.find(gen) == gen_id_map.end())
             throw InternalException(::format("Unable to find generator {0}", gen->handle_name()));
+        self_context_mapping.emplace(gen, vars);
         auto id = gen_id_map.at(gen);
-        // this will be this/self connection
-        for (auto const &[front_var, var] : vars) {
-            Var *gen_var = gen->get_var(var).get();
-            if (!gen_var) {
-                gen_var = gen->get_param(var).get();
-            }
-            if (!gen_var) {
-                create_variable(nullptr, id, front_var, var, true, 0);
-            } else {
-                create_variable(gen_var, id, front_var, "", true, 0);
-            }
-
-        }
         // this will be generator instance values (RTL correspondence)
         auto all_vars = gen->get_all_var_names();
         for (auto const &var_name : all_vars) {
             auto var = gen->get_var(var_name);
             if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
-                create_variable(var.get(), id, var_name, "", false, 0, true);
+                create_variable(var.get(), id, var_name, var_name, false, 0, true);
             }
         }
     }
@@ -669,6 +653,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
         if (handle_id_map.find(handle_name) == handle_id_map.end())
             throw InternalException(::format("Unable to find {0} in handle id map", handle_name));
 
+        auto const &self_vars = self_context_mapping.at(gen);
         auto instance_id = handle_id_map.at(handle_name);
         auto values = stmt_context_.at(stmt);
 
@@ -676,6 +661,19 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             auto const &[is_var, value] = entry;
             auto *gen_var = is_var ? gen->get_var(value).get() : nullptr;
             create_variable(gen_var, instance_id, key, value, true, id);
+        }
+
+        // self/this instance
+        for (auto const &[front_var, var] : self_vars) {
+            Var *gen_var = gen->get_var(var).get();
+            if (!gen_var) {
+                gen_var = gen->get_param(var).get();
+            }
+            if (!gen_var) {
+                create_variable(nullptr, instance_id, front_var, var, true, id);
+            } else {
+                create_variable(gen_var, instance_id, front_var, var, true, id);
+            }
         }
     }
 
