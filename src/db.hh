@@ -15,6 +15,8 @@ struct BreakPoint {
     uint32_t id;
     std::string filename;
     uint32_t line_num;
+    // in kratos we don't support column, so this will always be 0
+    uint32_t column_num = 0;
 };
 
 struct Variable {
@@ -68,7 +70,8 @@ auto inline init_storage(const std::string &filename) {
                    make_column("value", &MetaData::value)),
         make_table("breakpoint", make_column("id", &BreakPoint::id, primary_key()),
                    make_column("filename", &BreakPoint::filename),
-                   make_column("line_num", &BreakPoint::line_num)),
+                   make_column("line_num", &BreakPoint::line_num),
+                   make_column("column_num", &BreakPoint::column_num)),
         make_table("variable", make_column("id", &Variable::id, primary_key()),
                    make_column("handle", &Variable::handle), make_column("value", &Variable::value),
                    make_column("is_verilog_var", &Variable::is_var),
