@@ -31,6 +31,7 @@ public:
     Var &var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed);
     Var &var(const std::string &var_name, uint32_t width, const std::vector<uint32_t> &size,
              bool is_signed);
+    Var &var(const Var &v, const std::string &var_name);
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width) {
         return port(direction, port_name, width, 1);
     }

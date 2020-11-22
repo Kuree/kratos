@@ -1935,6 +1935,17 @@ def test_port_from_def():
     assert p1.width == p2.width
 
 
+def test_var_from_def():
+    mod = Generator("mod")
+    v1 = mod.var("v1", 2, size=[2, 3])
+    v2 = mod.var_from_def(v1, "v2")
+    assert v2.width == v1.width
+    assert v2.name == "v2"
+    p1 = mod.input("p1", 42)
+    v3 = mod.var_from_def(p1, "v3")
+    assert v3.width == 42
+
+
 def test_raw_import():
     mod = Generator("mod")
     mod.internal_generator.add_raw_import("pkg_name")

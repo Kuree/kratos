@@ -103,6 +103,16 @@ Var &Generator::var(const std::string &var_name, uint32_t width, const std::vect
     return *p;
 }
 
+Var & Generator::var(const Var &v, const std::string &var_name) {
+    auto &v_ =
+        var(var_name, v.var_width(), v.size(), v.is_signed());
+    v_.set_explicit_array(v.explicit_array());
+    v_.set_is_packed(v.is_packed());
+    // need to copy other definition over
+    v_.copy_meta_data(&v_, true);
+    return v_;
+}
+
 std::shared_ptr<Var> Generator::get_var(const std::string &var_name) {
     if (vars_.find(var_name) == vars_.end()) return nullptr;
     return vars_.at(var_name);

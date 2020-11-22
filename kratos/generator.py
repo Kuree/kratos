@@ -474,6 +474,9 @@ class Generator(metaclass=GeneratorMeta):
         else:
             return self.__generator.port(port, check_param)
 
+    def var_from_def(self, var: _kratos.Var, name):
+        return self.__generator.var(var, name)
+
     def param_from_def(self, param: _kratos.Param, name=None):
         return self.__generator.parameter(param, name)
 
