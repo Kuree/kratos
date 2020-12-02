@@ -629,13 +629,15 @@ class Generator(metaclass=GeneratorMeta):
         return self.__generator
 
     def add_always(self, fn, comment="", label="", sensitivity=None,
-                   fn_ln=None, unroll_for=False, **kargs):
+                   fn_ln=None, unroll_for=False, ssa_transform=False,
+                   **kargs):
         if self.is_cloned:
             # TODO: fix this with kargs
             self.__cached_initialization.append((self.add_code, [fn, comment]))
             return
-        block_type, raw_sensitives, stmts = transform_stmt_block(self, fn, unroll_for,
-                                                                 fn_ln, kargs)
+        block_type, raw_sensitives, stmts = transform_stmt_block(self, fn, unroll_for=unroll_for,
+                                                                 fn_ln=fn_ln, kargs=kargs,
+                                                                 apply_ssa=ssa_transform)
         if sensitivity:
             # override the block type and sensivitives
             block_type = CodeBlockType.Sequential

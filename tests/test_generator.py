@@ -2115,5 +2115,25 @@ def test_clog2_var():
     assert str(f) == "c[d]"
 
 
+def test_ssa_transform():
+    mod = Generator("mod", debug=True)
+    a = mod.var("a", 4)
+    b = mod.var("b", 4)
+    c = mod.var("c", 4)
+
+    @always_comb
+    def func():
+        a = 1
+        a = 2
+        if a:
+            a = b + a
+        else:
+            a = b - a
+        c = a
+
+    mod.add_always(func, ssa_transform=True)
+    src = verilog(mod, check_inferred_latch=False)["mod"]
+
+
 if __name__ == "__main__":
-    test_clog2_var()
+    test_ssa_transform()

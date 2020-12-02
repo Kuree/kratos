@@ -494,6 +494,79 @@ class GenVarLocalVisitor(ast.NodeTransformer):
         return node
 
 
+def transform_always_comb_ssa(ast_tree, gen, _locals):
+    class SSAVisitor(ast.NodeTransformer):
+        # https://github.com/usagitoneko97/python-static-code-analysis/tree/master/cfg_and_ssa
+        def __init__(self):
+            self.vars = set()
+            self.var_ref = {}
+
+        def visit_Assign(self, node):
+            node.value = self.visit(node.value)
+            # see if there is any target we need to be careful
+            assert len(node.targets) == 1, "Unpacking not supported"
+            target = node.targets[0]
+            target = self.visit(target)
+            node.targets = [target]
+            return node
+
+        def create_new_var(self, name):
+            assert name in _locals, "Only local variable scope is currently supported"
+            var = _locals[name]
+            new_name = gen.internal_generator.get_unique_variable_name("", name)
+            new_var = gen.var_from_def(var, new_name)
+            _locals[new_name] = new_var
+            self.var_ref[name] = new_name
+            return new_name
+
+        def visit_Name(self, node: ast.Name):
+            if node.id not in self.vars:
+                # whether it's a usage or an actual assign
+                if isinstance(node.ctx, ast.Load):
+                    return node
+                else:
+                    self.vars.add(node.id)
+                    # need to create a rename
+                    name = self.create_new_var(node.id)
+                    node.id = name
+                    return node
+            else:
+                if isinstance(node.ctx, ast.Store):
+                    # need to rename again
+                    name = self.create_new_var(node.id)
+                    node.id = name
+                else:
+                    # use the existing name
+                    assert node.id in self.var_ref
+                    var_name = self.var_ref[node.id]
+                    node.id = var_name
+                return node
+
+        def visit_If(self, node: ast.If):
+            # need to flatten the if statement and add phi function
+            node.test = self.visit(node.test)
+            body = []
+            for stmt in node.body:
+                stmt = self.visit(stmt)
+                body.append(stmt)
+            node.body = body
+            if node.orelse:
+                orelse = []
+                for stmt in node.orelse:
+                    stmt = self.visit(stmt)
+                    orelse.append(stmt)
+                node.orelse = orelse
+            return node
+
+    ssa = SSAVisitor()
+    ast_tree = ssa.visit(ast_tree)
+
+    # need to add all the wires for each ref
+    for v1, v2 in ssa.var_ref.items():
+        gen.wire(gen.vars[v1], gen.vars[v2])
+    return ast_tree
+
+
 def add_scope_context(stmt, _locals):
     for key, value in _locals.items():
         if isinstance(value, (int, float, str, bool)):
@@ -674,7 +747,8 @@ def add_stmt_to_scope(fn_body):
 
 def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_self,
                            filename, func_ln,
-                           transform_return=False, pre_locals=None, unroll_for=False):
+                           transform_return=False, pre_locals=None, unroll_for=False,
+                           apply_ssa=False):
     # pre-compute the frames
     # we have 3 frames back
     f = inspect.currentframe().f_back.f_back.f_back
@@ -706,6 +780,10 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_
     # transform aug assign
     aug_assign_visitor = AugAssignNodeVisitor()
     fn_body = aug_assign_visitor.visit(fn_body)
+
+    # if there is a need to apply ssa
+    if apply_ssa:
+        fn_body = transform_always_comb_ssa(fn_body, generator, _locals)
 
     # transform assign
     assign_visitor = AssignNodeVisitor(generator, debug)
@@ -781,7 +859,7 @@ def filter_fn_args(fn_args):
     return args
 
 
-def transform_stmt_block(generator, fn, unroll_for=False, fn_ln=None, kargs=None):
+def transform_stmt_block(generator, fn, unroll_for=False, apply_ssa=False, fn_ln=None, kargs=None):
     if kargs is None:
         kargs = dict()
     env_kargs = dict()
@@ -828,10 +906,13 @@ def transform_stmt_block(generator, fn, unroll_for=False, fn_ln=None, kargs=None
     # creating the scope here
     scope = Scope(generator, filename, ln, store_local)
 
+    apply_ssa = blk_type == CodeBlockType.Combinational and apply_ssa
+
     _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
                                                fn_name, scope,
                                                insert_self, filename, ln,
                                                unroll_for=unroll_for,
+                                               apply_ssa=apply_ssa,
                                                pre_locals=env_kargs)
 
     src = astor.to_source(func_tree, pretty_source=__pretty_source)
