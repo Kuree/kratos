@@ -495,11 +495,18 @@ class GenVarLocalVisitor(ast.NodeTransformer):
 
 
 def transform_always_comb_ssa(ast_tree, gen, _locals):
+    class SSAScope:
+        def __init__(self, var_ref):
+            self.var_ref = var_ref.copy()
+            self.created_vars = {}
+
     class SSAVisitor(ast.NodeTransformer):
         # https://github.com/usagitoneko97/python-static-code-analysis/tree/master/cfg_and_ssa
         def __init__(self):
             self.vars = set()
             self.var_ref = {}
+
+            self.phi_scope = [SSAScope({})]
 
         def visit_Assign(self, node):
             node.value = self.visit(node.value)
@@ -517,6 +524,7 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
             new_var = gen.var_from_def(var, new_name)
             _locals[new_name] = new_var
             self.var_ref[name] = new_name
+            self.phi_scope[-1].created_vars[name] = new_name
             return new_name
 
         def visit_Name(self, node: ast.Name):
@@ -542,21 +550,76 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
                     node.id = var_name
                 return node
 
+        def __find_var_def(self, name):
+            for scope in reversed(self.phi_scope):
+                if name in scope.created_vars:
+                    return scope.created_vars[name]
+            return None
+
+        @staticmethod
+        def __add_list(target, result):
+            if isinstance(result, list):
+                for e in result:
+                    target.append(e)
+            else:
+                target.append(result)
+
         def visit_If(self, node: ast.If):
+            # push the mapping into a stack
             # need to flatten the if statement and add phi function
-            node.test = self.visit(node.test)
+            test = self.visit(node.test)
             body = []
+            self.phi_scope.append(SSAScope(self.var_ref))
             for stmt in node.body:
                 stmt = self.visit(stmt)
-                body.append(stmt)
-            node.body = body
+                self.__add_list(body, stmt)
+            body_scope: SSAScope = self.phi_scope[-1]
+            # pop the last scope
+            self.phi_scope = self.phi_scope[:-1]
+
+            else_scope: SSAScope = SSAScope({})
             if node.orelse:
-                orelse = []
+                self.phi_scope.append(SSAScope(self.var_ref))
+                else_scope = self.phi_scope[-1]
                 for stmt in node.orelse:
                     stmt = self.visit(stmt)
-                    orelse.append(stmt)
-                node.orelse = orelse
-            return node
+                    self.__add_list(body, stmt)
+                # pop the last scope
+                self.phi_scope = self.phi_scope[:-1]
+
+            # if there is any variable created, need to create phi functions
+            vars_ = []
+            for var in body_scope.created_vars:
+                if var not in vars_:
+                    vars_.append(var)
+            for var in else_scope.created_vars:
+                if var not in vars_:
+                    vars_.append(var)
+            for var in vars_:
+                if var in body_scope.created_vars:
+                    true_var = body_scope.created_vars[var]
+                    # both?
+                    if var in else_scope.created_vars:
+                        # create a phi node, in this, just a ternary
+                        else_var = else_scope.created_vars[var]
+                    else:
+                        # need previous scope value
+                        else_var = self.__find_var_def(var)
+                        assert else_var is not None, "Latch {0} is created!".format(var)
+                else:
+                    else_var = else_scope.created_vars[var]
+                    # need previous scope value
+                    true_var = self.__find_var_def(var)
+                    assert true_var is not None, "Latch {0} is created!".format(var)
+                n = ast.Expr(value=ast.Call(func=ast.Name(id="ternary"), args=[test, ast.Name(id=true_var),
+                                                                               ast.Name(id=else_var)],
+                                            ctx=ast.Load(), keywords=[]))
+                new_name = self.create_new_var(var)
+                n = ast.Assign(targets=[ast.Name(id=new_name, ctx=ast.Store())],
+                               value=n, lineno=node.lineno)
+                body.append(n)
+
+            return body
 
     ssa = SSAVisitor()
     ast_tree = ssa.visit(ast_tree)

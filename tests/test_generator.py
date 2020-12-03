@@ -2119,20 +2119,27 @@ def test_ssa_transform():
     mod = Generator("mod", debug=True)
     a = mod.var("a", 4)
     b = mod.var("b", 4)
-    c = mod.var("c", 4)
+    c = mod.output("c", 4)
 
     @always_comb
     def func():
         a = 1
         a = 2
-        if a:
+        if a == 2:
             a = b + a
+        if a == 3:
+            b = 2
         else:
-            a = b - a
+            if a == 4:
+                b = 3
+            else:
+                b = 4
+                # this is not a latch
+                a = 5
         c = a
 
     mod.add_always(func, ssa_transform=True)
-    src = verilog(mod, check_inferred_latch=False)["mod"]
+    src = verilog(mod)["mod"]
 
 
 if __name__ == "__main__":
