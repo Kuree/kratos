@@ -112,6 +112,8 @@ void realize_fsm(Generator* top);
 
 void sort_stmts(Generator* top);
 
+void ssa_transform_fix(Generator *top);
+
 class PassManager {
 public:
     PassManager() = default;

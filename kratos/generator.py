@@ -688,6 +688,9 @@ class Generator(metaclass=GeneratorMeta):
                 bool_val = bool(value)
                 if bool_val:
                     node.add_attribute(Attribute.create(key))
+        if ssa_transform:
+            from .passes import Attribute
+            node.add_attribute(Attribute.create("ssa"))
         return node
 
     add_code = add_always

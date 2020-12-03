@@ -3167,6 +3167,36 @@ void remove_empty_block(Generator* top) {
     visitor.visit_root(top);
 }
 
+class SSATransformFixVisitor: public IRVisitor {
+public:
+    void visit(Generator *gen) override {
+        auto stmts = gen->get_all_stmts();
+        for (auto const &stmt: stmts) {
+            if (stmt->type() == StatementType::Block && stmt->has_attribute("ssa")) {
+                auto blk_stmt = stmt->as<StmtBlock>();
+                if (blk_stmt->block_type() == StatementBlockType::Combinational) {
+                    process_always_comb(blk_stmt, gen);
+                }
+            }
+        }
+    }
+
+private:
+    static void process_always_comb(const std::shared_ptr<StmtBlock> &blk, Generator *gen) {
+        // also need to fix the scope variables
+        // we assume that every statement here has been SSA transformed
+        std::unordered_map<Var *, Var*> symbol_mapping;
+        for (auto const &stmt: *blk) {
+
+        }
+    }
+};
+
+void ssa_transform_fix(Generator *top) {
+    SSATransformFixVisitor visitor;
+    visitor.visit_root(top);
+}
+
 class GeneratorPropertyVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
@@ -3347,6 +3377,8 @@ void PassManager::register_builtin_passes() {
     register_pass("auto_insert_clock_enable", &auto_insert_clock_enable);
 
     register_pass("auto_insert_sync_reset", &auto_insert_sync_reset);
+
+    register_pass("ssa_transform_fix", &ssa_transform_fix);
 }
 
 }  // namespace kratos
