@@ -3,7 +3,7 @@ from _kratos import PortBundleDefinition, PortType, PortDirection, \
 
 
 # a helper class to deal with port interface
-class PortBundle(PortBundleDefinition):
+class PortBundle:
     def __init__(self, debug=False):
         self.definition = PortBundleDefinition(self.__class__.__name__)
         self.debug = debug

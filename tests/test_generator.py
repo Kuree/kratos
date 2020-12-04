@@ -1905,7 +1905,7 @@ def test_ports_vars_iter():
         vs.add(var_name)
     assert len(vs) == 3
     params = set()
-    for param_name in mod.params:
+    for param_name, _ in mod.params:
         params.add(param_name)
     assert len(params) == 2
 
