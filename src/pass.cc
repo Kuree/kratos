@@ -3182,51 +3182,35 @@ public:
             }
         }
         // clean the unused always_comb
-        for (auto const &stmt: remove_stmts) {
+        for (auto const& stmt : remove_stmts) {
             gen->remove_stmt(stmt);
         }
     }
 
 private:
-    struct SSAEntry {
-        std::unordered_set<std::string> symbols;
-        std::string mapped;
-    };
-
     static void process_always_comb(const std::shared_ptr<StmtBlock>& blk, Generator* gen) {
         // also need to fix the scope variables
         // we assume that every statement here has been SSA transformed
-        std::unordered_map<std::string, SSAEntry> symbol_mapping;
+        std::unordered_map<std::string, std::string> symbol_mapping;
+        std::unordered_set<Stmt*> stmts;
         for (auto const& stmt : *blk) {
             if (stmt->type() != StatementType::Assign)
                 throw StmtException("Invalid SSA transform", {stmt.get()});
+            auto assign_stmt = stmt->as<AssignStmt>();
+            auto* left = assign_stmt->left();
+            // every statement is assign, and every variable should have been SSA transformed
+            auto parse_result = get_target_var_name(left);
+            if (!parse_result) throw StmtException("Invalid SSA transform", {stmt.get()});
+            auto const& [target_scope_name, target_var_name] = *parse_result;
+            // just update the table name
+            symbol_mapping[target_scope_name] = left->to_string();
             // look into its scope variables
             auto const& scope = stmt->scope_context();
             std::map<std::string, std::pair<bool, std::string>> new_scope;
             for (auto const& [name, var_map] : scope) {
                 auto const& [is_var, var_name] = var_map;
-                if (is_var) {
-                    auto var = gen->get_var(var_name);
-                    if (!var) throw InternalException("Invalid SSA fixup state");
-                    // need to find target var name
-                    auto parse_result = get_target_var_name(var.get());
-                    if (!parse_result) throw VarException("Unable to parse SSA var", {var.get()});
-                    auto const& [target_scope_name, target_var_name] = *parse_result;
-                    if (!gen->has_var(target_var_name)) {
-                        throw VarException("Incorrect marked SSA variable", {var.get()});
-                    }
-                    auto& ssa_entry = symbol_mapping[target_var_name];
-                    if (ssa_entry.symbols.find(var_name) == ssa_entry.symbols.end()) {
-                        ssa_entry.symbols.emplace(var_name);
-                        ssa_entry.mapped = var_name;
-                        // this is a new var so store it
-                        new_scope.emplace(target_scope_name, std::make_pair(true, var_name));
-                    } else {
-                        // remap to the old name
-                        new_scope.emplace(target_scope_name,
-                                          std::make_pair(true, ssa_entry.mapped));
-                    }
-
+                if (is_var && symbol_mapping.find(name) != symbol_mapping.end()) {
+                    new_scope.emplace(name, std::make_pair(true, symbol_mapping.at(name)));
                 } else {
                     // just put it in the new scope
                     new_scope.emplace(name, var_map);
@@ -3236,10 +3220,13 @@ private:
 
             // move the assignment to the global scope
             gen->add_stmt(stmt);
+            stmts.emplace(stmt.get());
         }
 
         // clear out the always_comb
         blk->clear();
+        // clear will reset the parents
+        for (auto *stmt: stmts) stmt->set_parent(gen);
     }
 
     static std::optional<std::pair<std::string, std::string>> get_target_var_name(const Var* var) {
@@ -3248,7 +3235,7 @@ private:
             auto const& value_str = attr->value_str;
             if (value_str.rfind("ssa=") == 0) {
                 auto pos = value_str.rfind(':');
-                auto scope_name = value_str.substr(4, pos);
+                auto scope_name = value_str.substr(4, pos - 4);
                 auto var_name = value_str.substr(pos + 1);
                 return std::make_pair(scope_name, var_name);
             }

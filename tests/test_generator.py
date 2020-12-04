@@ -2115,7 +2115,7 @@ def test_clog2_var():
     assert str(f) == "c[d]"
 
 
-def test_ssa_transform():
+def test_ssa_transform(check_gold):
     mod = Generator("mod", debug=True)
     a = mod.var("a", 4)
     b = mod.var("b", 4)
@@ -2139,8 +2139,9 @@ def test_ssa_transform():
         c = a
 
     mod.add_always(func, ssa_transform=True)
-    src = verilog(mod)["mod"]
+    check_gold(mod, "test_ssa_transform", transform_ssa=True)
 
 
 if __name__ == "__main__":
-    test_ssa_transform()
+    from conftest import check_gold_fn
+    test_ssa_transform(check_gold_fn)
