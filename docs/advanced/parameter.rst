@@ -42,8 +42,8 @@ we created a parameter called ``value``.
   class ParameterModule(kratos.Generator):
     def __init__(self, width):
         super().__init__("add_value")
-        in_ = self.port("in", width, kratos.PortDirection.In)
-        out_ self.port("out", width, kratos.PortDirection.Out)
+        in_  = self.port("in", width, kratos.PortDirection.In)
+        out_ = self.port("out", width, kratos.PortDirection.Out)
         self.value_param = self.param("value", width, default_value=0)
         self.add_stmt(out_.assign(in_ + self.value_param))
 
