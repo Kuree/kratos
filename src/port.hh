@@ -26,6 +26,7 @@ public:
          const std::vector<uint32_t> &size, PortType type, bool is_signed);
 
     PortDirection port_direction() const { return direction_; }
+    void set_port_direction(PortDirection direction) { direction_ = direction; }
     PortType port_type() const { return type_; }
 
     virtual void set_port_type(PortType type);

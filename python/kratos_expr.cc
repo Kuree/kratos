@@ -443,7 +443,7 @@ void init_expr(py::module &m) {
     auto expr = py::class_<Expr, ::shared_ptr<Expr>, Var>(m, "Expr");
 
     auto port = py::class_<Port, ::shared_ptr<Port>, Var>(m, "Port");
-    port.def_property_readonly("port_direction", &Port::port_direction)
+    port.def_property("port_direction", &Port::port_direction, &Port::set_port_direction)
         .def_property("port_type", &Port::port_type, &Port::set_port_type)
         .def("connected_to", &Port::connected_to)
         .def("connected_from", &Port::connected_from)
