@@ -54,6 +54,7 @@ public:
     const std::map<std::string, std::pair<bool, std::string>> &scope_context() const {
         return scope_context_;
     }
+    void set_scope_context(const std::map<std::string, std::pair<bool, std::string>> &context);
     // For now it's a flat context that every breakpoint/stmt has its own context
     // in the future if the performance/storage size is a concern, we can group the stmt
     // together
@@ -64,7 +65,7 @@ public:
     virtual void remove_stmt(const std::shared_ptr<Stmt> &) {}
 
     virtual std::shared_ptr<Stmt> clone() const;
-    virtual void clear() {};
+    virtual void clear(){};
 
 protected:
     StatementType type_;
@@ -73,7 +74,7 @@ protected:
 
     std::map<std::string, std::pair<bool, std::string>> scope_context_;
 
-    void copy_meta(const std::shared_ptr<Stmt>& stmt) const;
+    void copy_meta(const std::shared_ptr<Stmt> &stmt) const;
 };
 
 class AssignStmt : public Stmt {
@@ -390,7 +391,7 @@ protected:
     bool is_pure_ = false;
 };
 
-class BuiltInFunctionStmtBlock: public FunctionStmtBlock {
+class BuiltInFunctionStmtBlock : public FunctionStmtBlock {
 public:
     BuiltInFunctionStmtBlock(Generator *parent, const std::string &function_name);
 
@@ -491,7 +492,7 @@ class CommentStmt : public Stmt {
 public:
     explicit CommentStmt(const std::string &comment) : CommentStmt(comment, default_width) {}
     CommentStmt(std::string comment, uint32_t line_width);
-    CommentStmt(): Stmt(StatementType::Comment) {}
+    CommentStmt() : Stmt(StatementType::Comment) {}
 
     const std::vector<std::string> &comments() { return comments_; }
 

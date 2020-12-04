@@ -3167,32 +3167,97 @@ void remove_empty_block(Generator* top) {
     visitor.visit_root(top);
 }
 
-class SSATransformFixVisitor: public IRVisitor {
+class SSATransformFixVisitor : public IRVisitor {
 public:
-    void visit(Generator *gen) override {
+    void visit(Generator* gen) override {
         auto stmts = gen->get_all_stmts();
-        for (auto const &stmt: stmts) {
+        std::set<std::shared_ptr<Stmt>> remove_stmts;
+        for (auto const& stmt : stmts) {
             if (stmt->type() == StatementType::Block && stmt->has_attribute("ssa")) {
                 auto blk_stmt = stmt->as<StmtBlock>();
                 if (blk_stmt->block_type() == StatementBlockType::Combinational) {
                     process_always_comb(blk_stmt, gen);
+                    remove_stmts.emplace(stmt);
                 }
             }
+        }
+        // clean the unused always_comb
+        for (auto const &stmt: remove_stmts) {
+            gen->remove_stmt(stmt);
         }
     }
 
 private:
-    static void process_always_comb(const std::shared_ptr<StmtBlock> &blk, Generator *gen) {
+    struct SSAEntry {
+        std::unordered_set<std::string> symbols;
+        std::string mapped;
+    };
+
+    static void process_always_comb(const std::shared_ptr<StmtBlock>& blk, Generator* gen) {
         // also need to fix the scope variables
         // we assume that every statement here has been SSA transformed
-        std::unordered_map<Var *, Var*> symbol_mapping;
-        for (auto const &stmt: *blk) {
+        std::unordered_map<std::string, SSAEntry> symbol_mapping;
+        for (auto const& stmt : *blk) {
+            if (stmt->type() != StatementType::Assign)
+                throw StmtException("Invalid SSA transform", {stmt.get()});
+            // look into its scope variables
+            auto const& scope = stmt->scope_context();
+            std::map<std::string, std::pair<bool, std::string>> new_scope;
+            for (auto const& [name, var_map] : scope) {
+                auto const& [is_var, var_name] = var_map;
+                if (is_var) {
+                    auto var = gen->get_var(var_name);
+                    if (!var) throw InternalException("Invalid SSA fixup state");
+                    // need to find target var name
+                    auto parse_result = get_target_var_name(var.get());
+                    if (!parse_result) throw VarException("Unable to parse SSA var", {var.get()});
+                    auto const& [target_scope_name, target_var_name] = *parse_result;
+                    if (!gen->has_var(target_var_name)) {
+                        throw VarException("Incorrect marked SSA variable", {var.get()});
+                    }
+                    auto& ssa_entry = symbol_mapping[target_var_name];
+                    if (ssa_entry.symbols.find(var_name) == ssa_entry.symbols.end()) {
+                        ssa_entry.symbols.emplace(var_name);
+                        ssa_entry.mapped = var_name;
+                        // this is a new var so store it
+                        new_scope.emplace(target_scope_name, std::make_pair(true, var_name));
+                    } else {
+                        // remap to the old name
+                        new_scope.emplace(target_scope_name,
+                                          std::make_pair(true, ssa_entry.mapped));
+                    }
 
+                } else {
+                    // just put it in the new scope
+                    new_scope.emplace(name, var_map);
+                }
+            }
+            stmt->set_scope_context(new_scope);
+
+            // move the assignment to the global scope
+            gen->add_stmt(stmt);
         }
+
+        // clear out the always_comb
+        blk->clear();
+    }
+
+    static std::optional<std::pair<std::string, std::string>> get_target_var_name(const Var* var) {
+        auto const& attrs = var->get_attributes();
+        for (auto const& attr : attrs) {
+            auto const& value_str = attr->value_str;
+            if (value_str.rfind("ssa=") == 0) {
+                auto pos = value_str.rfind(':');
+                auto scope_name = value_str.substr(4, pos);
+                auto var_name = value_str.substr(pos + 1);
+                return std::make_pair(scope_name, var_name);
+            }
+        }
+        return std::nullopt;
     }
 };
 
-void ssa_transform_fix(Generator *top) {
+void ssa_transform_fix(Generator* top) {
     SSATransformFixVisitor visitor;
     visitor.visit_root(top);
 }

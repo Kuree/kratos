@@ -42,6 +42,10 @@ Generator *Stmt::generator_parent() const {
     return dynamic_cast<Generator *>(p);
 }
 
+void Stmt::set_scope_context(const std::map<std::string, std::pair<bool, std::string>> &context) {
+    scope_context_ = context;
+}
+
 void Stmt::add_scope_variable(const std::string &name, const std::string &value, bool is_var,
                               bool override) {
     if (override || scope_context_.find(name) == scope_context_.end()) {

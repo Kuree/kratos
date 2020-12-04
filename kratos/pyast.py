@@ -523,7 +523,7 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
             var = _locals[name]
             new_name = gen.internal_generator.get_unique_variable_name("", name)
             new_var = gen.var_from_def(var, new_name)
-            new_var.add_attribute(Attribute.create("ssa={0}".format(name)))
+            new_var.add_attribute(Attribute.create("ssa={0}:{1}".format(name, var.name)))
             _locals[new_name] = new_var
             self.var_ref[name] = new_name
             self.phi_scope[-1].created_vars[name] = new_name
