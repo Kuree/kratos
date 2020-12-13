@@ -487,11 +487,11 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     int variable_count = 0;
     std::unordered_set<Var *> var_id_set;
     std::map<std::tuple<const int, std::string, std::string>, int> var_id_mapping;
-    std::unordered_map<Generator*, std::map<std::string, std::string>> self_context_mapping;
+    std::unordered_map<Generator *, std::map<std::string, std::string>> self_context_mapping;
     // function to create variable and flatten the hierarchy
     auto create_variable = [&](Var *var_, const int handle_id_, const std::string &name_,
-                               const std::string &value_, bool is_context_,
-                               uint32_t breakpoint_id_, bool gen_var = false) {
+                               const std::string &value_, bool is_context_, uint32_t breakpoint_id_,
+                               bool gen_var = false) {
         Variable v;
         v.is_var = var_ != nullptr;
         v.handle = std::make_unique<int>(handle_id_);
@@ -504,11 +504,12 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                 storage.replace(c_v);
             }
             if (gen_var) {
-                GeneratorVariable g_v{std::make_unique<int>(v.id),
-                                      std::make_unique<int>(*v.handle), name};
+                GeneratorVariable g_v{std::make_unique<int>(v.id), std::make_unique<int>(*v.handle),
+                                      name};
                 storage.replace(g_v);
             }
-        };
+            // clang-tidy-10 gives false memory leak warnings
+        };  // NOLINT
 
         if (var_) {
             // it is an variable
@@ -546,10 +547,11 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                             var_id_mapping.end()) {
                             v.id = variable_count++;
                             storage.replace(v);
-                            var_id_mapping.emplace(
-                                std::make_pair(std::make_tuple(handle_id_, new_name, v.value), v.id));
+                            var_id_mapping.emplace(std::make_pair(
+                                std::make_tuple(handle_id_, new_name, v.value), v.id));
                         } else {
-                            v.id = var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
+                            v.id =
+                                var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
                         }
                         add_context_gen(new_name);
                     }
@@ -565,10 +567,11 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                             var_id_mapping.end()) {
                             v.id = variable_count++;
                             storage.replace(v);
-                            var_id_mapping.emplace(
-                                std::make_pair(std::make_tuple(handle_id_, new_name, v.value), v.id));
+                            var_id_mapping.emplace(std::make_pair(
+                                std::make_tuple(handle_id_, new_name, v.value), v.id));
                         } else {
-                            v.id = var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
+                            v.id =
+                                var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
                         }
                         add_context_gen(new_name);
                     }

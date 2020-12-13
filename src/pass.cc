@@ -762,7 +762,7 @@ private:
                 const auto& stmt = *sources.begin();
                 if (stmt->left() == port) {
                     // the sink has to be it self
-                    auto src = stmt->right();
+                    auto* src = stmt->right();
                     if (correct_src_type(src, generator) ||
                         // here we are okay with input sliced in
                         (src->type() == VarType::Slice && src->parent() == generator->parent())) {
@@ -2334,7 +2334,7 @@ public:
                 auto sources = child_port->sources();
                 if (sources.size() > 1) continue;
                 if (sources.size() == 1) {
-                    auto right = (*sources.begin())->right();
+                    auto* right = (*sources.begin())->right();
                     if (right->type() == VarType::ConstValue) {
                         child_port->clear_sources(true);
                     }
@@ -2608,7 +2608,7 @@ bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
         if (stmt_->target()->is_enum()) {
             auto* enum_var = dynamic_cast<EnumType*>(stmt_->target().get());
             if (!enum_var) throw InternalException("Unable to resolve enum type");
-            auto* enum_def = enum_var->enum_type();
+            auto const* enum_def = enum_var->enum_type();
             targeted_cases = enum_def->values.size();
         } else {
             targeted_cases = 1u << stmt_->target()->width();

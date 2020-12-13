@@ -103,9 +103,8 @@ Var &Generator::var(const std::string &var_name, uint32_t width, const std::vect
     return *p;
 }
 
-Var & Generator::var(const Var &v, const std::string &var_name) {
-    auto &v_ =
-        var(var_name, v.var_width(), v.size(), v.is_signed());
+Var &Generator::var(const Var &v, const std::string &var_name) {
+    auto &v_ = var(var_name, v.var_width(), v.size(), v.is_signed());
     v_.set_explicit_array(v.explicit_array());
     v_.set_is_packed(v.is_packed());
     // need to copy other definition over
@@ -694,11 +693,11 @@ std::pair<bool, bool> correct_port_direction(Port *port1, Port *port2, Generator
         bool interface_port_wire = false;
         if (port1->is_interface() && !port2->is_interface()) {
             auto *port_i = reinterpret_cast<InterfacePort *>(port1);
-            auto *it = port_i->interface();
+            const auto *it = port_i->interface();
             interface_port_wire = !it->is_port();
         } else if (port2->is_interface() && !port1->is_interface()) {
             auto *port_i = reinterpret_cast<InterfacePort *>(port2);
-            auto *it = port_i->interface();
+            const auto *it = port_i->interface();
             interface_port_wire = !it->is_port();
         }
         check_direction(port1, port2, interface_port_wire);
@@ -762,7 +761,7 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
             bool flip_dir = false;
             if (port1->is_interface()) {
                 auto *port_i = reinterpret_cast<InterfacePort *>(port1);
-                auto *ref = port_i->interface();
+                const auto *ref = port_i->interface();
                 flip_dir = !(ref->is_port() && root2->generator() == this);
             }
             return {!flip_dir ? port1->port_direction() == PortDirection::Out
@@ -784,7 +783,7 @@ std::pair<bool, bool> Generator::correct_wire_direction(const std::shared_ptr<Va
             bool flip_dir = false;
             if (port2->is_interface()) {
                 auto *port_i = reinterpret_cast<InterfacePort *>(port2);
-                auto *ref = port_i->interface();
+                const auto *ref = port_i->interface();
                 flip_dir = !(ref->is_port() && root1->generator() == this);
             }
             return {!flip_dir ? port2->port_direction() == PortDirection::In

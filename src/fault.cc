@@ -18,11 +18,11 @@ namespace kratos {
 void SimulationRun::add_simulation_state(const std::map<std::string, int64_t> &values) {
     // need to parse the inputs and outputs
     states_.emplace_back(std::make_unique<Simulator>(top_));
-    auto state = get_state(states_.size() - 1);
+    auto *state = get_state(states_.size() - 1);
     for (auto const &[name, value] : values) {
         // we need to use dot notation to select from the hierarchy
         // notice these names do not contain the "top" name, e.g. TOP for verilator
-        auto var = select(name);
+        auto *var = select(name);
         if (!var) {
             throw UserException(::format("Unable to parse {0}", name));
         }
@@ -32,8 +32,8 @@ void SimulationRun::add_simulation_state(const std::map<std::string, int64_t> &v
 
 void SimulationRun::mark_wrong_value(const std::string &name) {
     if (states_.empty()) throw UserException("Simulation run is empty");
-    auto v = select(name);
-    auto v_base = const_cast<Var *>(v->get_var_root_parent());
+    auto *v = select(name);
+    auto *v_base = const_cast<Var *>(v->get_var_root_parent());
     auto index = states_.size() - 1;
     wrong_value_[index].emplace(v_base);
 }
@@ -67,7 +67,7 @@ Var *SimulationRun::select(const std::string &name) {
     auto var_tokens = std::vector<std::string>(tokens.begin() + index, tokens.end());
     // get var name, which has to be the first one
     auto const &var_name = var_tokens[0];
-    auto var = gen->get_var(var_name).get();
+    auto *var = gen->get_var(var_name).get();
     if (!var) return nullptr;
 
     if (var->is_packed()) {
@@ -104,14 +104,14 @@ void FaultAnalyzer::add_simulation_run(const std::shared_ptr<SimulationRun> &run
 
 template <typename T>
 T *cast(Stmt *stmt) {
-    auto r = dynamic_cast<T *>(stmt);
+    auto *r = dynamic_cast<T *>(stmt);
     if (!r) throw InternalException("Unable to cast stmt type");
     return r;
 }
 
 void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stmt *stmt) {
     if (stmt->type() == StatementType::If) {
-        auto if_ = cast<IfStmt>(stmt);
+        auto *if_ = cast<IfStmt>(stmt);
         auto cond = if_->predicate();
         auto val = state->get(cond.get());
         if (val && *val) {
@@ -120,7 +120,7 @@ void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stm
             compute_hit_stmts(state, result, if_->else_body().get());
         }
     } else if (stmt->type() == StatementType::Block) {
-        auto block = cast<StmtBlock>(stmt);
+        auto *block = cast<StmtBlock>(stmt);
         // normal sequential block and combinational block always gets executed
         // as a result, we're only interested in the conditional statement block, i.e. scoped block
         if (block->block_type() == StatementBlockType::Scope) result.emplace(stmt);
@@ -138,7 +138,7 @@ void compute_hit_stmts(Simulator *state, std::unordered_set<Stmt *> &result, Stm
 }
 
 std::unordered_set<Stmt *> FaultAnalyzer::compute_coverage(uint32_t index) {
-    auto run = runs_[index].get();
+    auto *run = runs_[index].get();
     std::unordered_set<Stmt *> result;
     if (run->has_coverage()) {
         auto const &cov = run->coverage();
@@ -146,7 +146,7 @@ std::unordered_set<Stmt *> FaultAnalyzer::compute_coverage(uint32_t index) {
     } else {
         auto num_states = run->num_states();
         for (uint64_t i = 0; i < num_states; i++) {
-            auto state = run->get_state(i);
+            auto *state = run->get_state(i);
             // given the state, we need to go through each generators
             GeneratorGraph g(generator_);
             auto generators = g.get_sorted_generators();
@@ -305,12 +305,12 @@ private:
 class CoverageStatVisitor : public IRVisitor {
 public:
     void visit(AssignStmt *stmt) override {
-        auto parent = stmt->parent();
+        auto *parent = stmt->parent();
         if (parent->ir_node_kind() == IRNodeKind::StmtKind) {
-            auto st = reinterpret_cast<Stmt *>(parent);
+            auto *st = reinterpret_cast<Stmt *>(parent);
             // we are only interested in
             if (st->type() == StatementType::Block) {
-                auto st_ = cast<StmtBlock>(st);
+                auto *st_ = cast<StmtBlock>(st);
                 if (st_->block_type() == StatementBlockType::Scope) {
                     // only add if it has coverage
                     if (!stmt->fn_name_ln.empty()) stmts_.emplace(stmt);
@@ -405,8 +405,8 @@ void FaultAnalyzer::output_coverage_xml(std::ostream &stream) {
 
     // compute the actual coverage
     std::unordered_map<IRNode *, uint32_t> line_cover_count;
-    for (auto stmt : total_lines) {
-        auto parent = has_parent(total_branches, stmt);
+    for (auto *stmt : total_lines) {
+        auto *parent = has_parent(total_branches, stmt);
         if (parent && branch_cover_count.find(parent) != branch_cover_count.end()) {
             auto count = branch_cover_count.at(parent);
             line_cover_count.emplace(stmt, count);
@@ -462,7 +462,7 @@ void FaultAnalyzer::output_coverage_xml(std::ostream &stream) {
         // we need to group them by generator name
         std::map<std::string, std::map<uint32_t, IRNode *>> classes;
         for (auto const &[ln, stmt] : stmts) {
-            auto st = dynamic_cast<Stmt *>(stmt);
+            auto *st = dynamic_cast<Stmt *>(stmt);
             if (!st) throw InternalException("Unable to cast stmt");
             auto gen_name = st->generator_parent()->name;
             classes[gen_name].emplace(ln, stmt);
@@ -516,7 +516,7 @@ public:
 
 private:
     void add_stmt(Stmt *stmt) {
-        auto gen = stmt->generator_parent();
+        auto *gen = stmt->generator_parent();
         if (!gen->verilog_fn.empty()) {
             auto filename = fs::basename(gen->verilog_fn);
             stmt_map_.emplace(std::make_pair(filename, stmt->verilog_ln), stmt);
@@ -623,20 +623,18 @@ std::vector<std::string> get_icc_tokens(std::string str) {
                 if (str[pos + 1] == ' ') {
                     // end of token
                     string::trim(buf);
-                    if (!buf.empty())
-                        result.emplace_back(buf);
+                    if (!buf.empty()) result.emplace_back(buf);
                     buf = "";
                     continue;
                 }
             }
         }
-        buf += str[pos]; // maybe more efficient way to do this?
+        buf += str[pos];  // maybe more efficient way to do this?
     }
 
     if (!buf.empty()) result.emplace_back(buf);
     return result;
 }
-
 
 std::unordered_map<Stmt *, uint32_t> parse_icc_coverage(Generator *top,
                                                         const std::string &filename) {
@@ -685,9 +683,8 @@ std::unordered_map<Stmt *, uint32_t> parse_icc_coverage(Generator *top,
             // since only the control statements determine what to run
             // we need to see if any of the branch has taken
             auto kind = tokens[3];
-            const static std::unordered_set<std::string> allowed_branch_kind = {"true part of",
-                                                                                "false part of",
-                                                                                "a case item of"};
+            const static std::unordered_set<std::string> allowed_branch_kind = {
+                "true part of", "false part of", "a case item of"};
             if (allowed_branch_kind.find(kind) == allowed_branch_kind.end()) {
                 // skip since it is just a normal code block
                 continue;

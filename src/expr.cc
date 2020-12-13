@@ -40,9 +40,7 @@ bool is_expand_op(ExprOp op) {
     return ops.find(op) != ops.end();
 }
 
-bool is_ternary_op(ExprOp op) {
-    return op == ExprOp::Conditional;
-}
+bool is_ternary_op(ExprOp op) { return op == ExprOp::Conditional; }
 
 bool is_unary_op(ExprOp op) {
     static std::unordered_set<ExprOp> ops = {ExprOp::UXor,  ExprOp::UPlus, ExprOp::UOr,
@@ -198,7 +196,7 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     // itself
     // depends on the root variable, if it is actually a struct, we need to return to the
     // actual trampoline class as proxy
-    auto var_root = get_var_root_parent();
+    auto *var_root = get_var_root_parent();
     std::shared_ptr<VarSlice> var_slice = ::make_shared<VarSlice>(this, high, low);
     if (var_root->is_struct() && var_slice->width() == var_slice->var_width()) {
         // we actually reached the real struct
@@ -286,7 +284,6 @@ std::string Var::handle_name(kratos::Generator *scope) const {
 
 void Var::set_width_param(const std::shared_ptr<Var> &param) { set_width_param(param.get()); }
 
-
 class ParamVisitor : public IRVisitor {
 public:
     void visit(Param *param) override { params_.emplace(param); }
@@ -312,7 +309,6 @@ void Var::set_width_param(Var *param) {
 }
 
 VarSlice &Var::operator[](uint32_t bit) { return this->operator[]({bit, bit}); }
-
 
 void Var::set_size_param(uint32_t index, Var *param) {
     if (type_ != VarType::Base && type_ != VarType::PortIO)
@@ -659,7 +655,8 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
     if (right != nullptr && left->width() != right->width()) {
         // see if we can resize
         if (IterVar::safe_to_resize(left, right->width(), right->is_signed()) &&
-            (right->type() != VarType::ConstValue && right->type() != VarType::Parameter && right->type() != VarType::Iter)) {
+            (right->type() != VarType::ConstValue && right->type() != VarType::Parameter &&
+             right->type() != VarType::Iter)) {
             // this is a hack
             if (left->type() == VarType::ConstValue) {
                 left->var_width() = right->width();
@@ -983,14 +980,14 @@ void Const::add_source(const std::shared_ptr<AssignStmt> &) {
 }
 
 void Const::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
-    auto left = stmt->left();
+    auto *left = stmt->left();
     // if it's a port, we change the constant's generator to that of port
-    auto generator = left->generator();
+    auto *generator = left->generator();
     if (!generator)
         throw StmtException(::format("Unable to find left hand side generator"), {stmt.get()});
-    auto parent = generator->parent();
+    auto *parent = generator->parent();
     if (parent && parent->ir_node_kind() == GeneratorKind) {
-        auto gen = dynamic_cast<Generator *>(parent);
+        auto *gen = dynamic_cast<Generator *>(parent);
         this->generator_ = gen;
     }
 }
@@ -1466,7 +1463,7 @@ void Var::move_linked_to(kratos::Var *new_var) {
 
     // change concat'ed vars
     // we use overloaded ones
-    for (auto &concat : concat_vars_) {
+    for (auto const &concat : concat_vars_) {
         concat->move_linked_to(new_var);
         concat->replace_var(shared_from_this(), new_var->shared_from_this());
     }
@@ -1475,7 +1472,7 @@ void Var::move_linked_to(kratos::Var *new_var) {
     concat_vars_.clear();
 
     // casted
-    for (auto &var : casted_) {
+    for (auto const &var : casted_) {
         var->set_parent(new_var->get_var_root_parent());
         new_var->get_var_root_parent()->casted_.emplace(var);
     }
@@ -1484,7 +1481,7 @@ void Var::move_linked_to(kratos::Var *new_var) {
 
 void Var::clear_sources(bool remove_parent) {  // NOLINT
     if (remove_parent) {
-        for (auto &stmt : sources_) {
+        for (auto const &stmt : sources_) {
             stmt->remove_from_parent();
         }
     }
@@ -1494,7 +1491,7 @@ void Var::clear_sources(bool remove_parent) {  // NOLINT
 
 void Var::clear_sinks(bool remove_parent) {  // NOLINT
     if (remove_parent) {
-        for (auto &stmt : sinks_) {
+        for (auto const &stmt : sinks_) {
             if (stmt->parent()) stmt->remove_from_parent();
         }
     }
@@ -1786,7 +1783,7 @@ void extract_iter_var(const Var *var, std::vector<const IterVar *> &iters) {
     if (var->type() == VarType::Iter) {
         iters.emplace_back(reinterpret_cast<const IterVar *>(var));
     } else if (var->type() == VarType::Expression) {
-        auto expr = reinterpret_cast<const Expr *>(var);
+        auto const *expr = reinterpret_cast<const Expr *>(var);
         extract_iter_var(expr->left, iters);
         extract_iter_var(expr->right, iters);
     }
@@ -1797,9 +1794,9 @@ std::optional<int64_t> convert_value(const Var *var,
     if (!values) {
         return std::nullopt;
     }
-    auto v = &((*values)[0]);
+    auto const *v = &((*values)[0]);
     if (var->is_signed()) {
-        auto s_v = reinterpret_cast<const int64_t *>(v);
+        auto const *s_v = reinterpret_cast<const int64_t *>(v);
         return *s_v;
     } else {
         return *v;
@@ -1867,10 +1864,10 @@ bool IterVar::has_iter_var(const Var *var) {
     if (!var) return false;
     if (var->type() == VarType::Iter) return true;
     if (var->type() == VarType::Slice) {
-        auto slice = reinterpret_cast<const VarSlice *>(var);
+        auto const *slice = reinterpret_cast<const VarSlice *>(var);
         return has_iter_var(slice->get_var_root_parent());
     } else if (var->type() == VarType::Expression) {
-        auto expr = reinterpret_cast<const Expr *>(var);
+        auto const *expr = reinterpret_cast<const Expr *>(var);
         return has_iter_var(expr->left) || has_iter_var(expr->right);
     }
     return false;
@@ -1910,7 +1907,7 @@ std::shared_ptr<AssignStmt> EnumVar::assign_(const std::shared_ptr<Var> &var,
         if (p->enum_def()->name != enum_type_->name)
             throw VarException("Cannot assign different enum type", {this, var.get()});
     } else {
-        auto p = dynamic_cast<EnumType *>(var.get());
+        auto *p = dynamic_cast<EnumType *>(var.get());
         if (!p) throw InternalException("Unable to obtain enum definition");
         if (!p->enum_type())
             throw VarException(::format("Cannot obtain enum information from var ({0}). "
@@ -1935,7 +1932,7 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
             throw VarException(::format("{0} is not connected", port_name), {func_port.get()});
         }
         // check the port types
-        auto &arg_port = args.at(port_name);
+        auto const &arg_port = args.at(port_name);
         if (func_port->width() != arg_port->width())
             throw VarException(::format("{0}'s width doesn't match", port_name),
                                {func_port.get(), arg_port.get()});

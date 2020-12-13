@@ -1,5 +1,7 @@
 #include "hash.hh"
+
 #include <fstream>
+
 #include "cxxpool.h"
 #include "debug.hh"
 #include "generator.hh"
@@ -54,7 +56,7 @@ public:
 
         totalLength += length;
         // byte-wise access
-        auto data = (const unsigned char*)input;
+        auto const* data = (const unsigned char*)input;
 
         // unprocessed old data plus new data still fit in temporary buffer ?
         if (bufferSize + length < MaxBufferSize) {
@@ -184,7 +186,7 @@ private:
     /// process a block of 4x4 bytes, this is the main part of the XXHash32 algorithm
     static inline void process(const void* data, uint64_t& state0, uint64_t& state1,
                                uint64_t& state2, uint64_t& state3) {
-        auto block = (const uint64_t*)data;
+        auto const* block = (const uint64_t*)data;
         state0 = processSingle(state0, block[0]);
         state1 = processSingle(state1, block[1]);
         state2 = processSingle(state2, block[2]);
@@ -196,7 +198,7 @@ private:
 // but it's simple, so use it to hash the variables
 // based on https://gist.github.com/underscorediscovery/81308642d0325fd386237cfa3b44785c
 uint64_t hash_64_fnv1a(const void* key, uint64_t len) {
-    auto data = static_cast<const char*>(key);
+    auto const* data = static_cast<const char*>(key);
     uint64_t hash = 0xcbf29ce484222325;
     uint64_t prime = 0x100000001b3;
 
@@ -217,11 +219,11 @@ constexpr uint64_t shift_const(uint64_t value, uint8_t amount) {
 static uint64_t hash_var(Var* var) {
     if (!var) return 0;
     if (var->type() == VarType::Expression) {
-        auto expr = reinterpret_cast<Expr*>(var);
+        auto* expr = reinterpret_cast<Expr*>(var);
         auto op_hash = (uint64_t)expr->op;
         return hash_var(expr->left) ^ hash_var(expr->right) ^ op_hash;
     } else if (var->type() == VarType::ConstValue) {
-        auto c = reinterpret_cast<Const*>(var);
+        auto* c = reinterpret_cast<Const*>(var);
         return static_cast<uint64_t>(c->value());
     } else if (var->type() == VarType::Parameter) {
         auto v = var->to_string();
@@ -262,8 +264,7 @@ public:
     }
 
     void visit(AssignStmt* stmt) override {
-        uint64_t stmt_hash =
-            hash_var(stmt->left()) ^ (shift(hash_var(stmt->right()), 1));
+        uint64_t stmt_hash = hash_var(stmt->left()) ^ (shift(hash_var(stmt->right()), 1));
         // based on level
         stmt_hash = shift(stmt_hash, level);
         stmt_hashes_.emplace_back(stmt_hash);
@@ -311,7 +312,7 @@ public:
         // it is the caller's responsibility to do prepare the calling sequence so that there
         // won't be any race condition.
         // by requiring this, we can have a lock-free implementation ready to scale
-        auto target = stmt->target();
+        auto const* target = stmt->target();
         if (!context_->has_hash(target)) {
             throw std::runtime_error("Internal error: " + target->name + " doesn't have a hash");
         }
@@ -375,8 +376,7 @@ void hash_generator_name(Context* context, Generator* generator) {
 
 void hash_generators_context(Context* context, Generator* root, HashStrategy strategy) {
     // clear the hash first
-    if (!context->track_generated())
-        context->clear_hash();
+    if (!context->track_generated()) context->clear_hash();
 
     // compute the generator graph
     GeneratorGraph g(root);
@@ -389,7 +389,7 @@ void hash_generators_context(Context* context, Generator* root, HashStrategy str
         // reserve for list
         list.reserve(sequence.size());
 
-        for (auto& node : sequence) {
+        for (auto const& node : sequence) {
             // different cases
             if (node->external()) {
                 if (node->external_filename().empty()) {

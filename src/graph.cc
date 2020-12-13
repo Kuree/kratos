@@ -25,9 +25,9 @@ class GeneratorGraphVisitor : public IRVisitor {
 public:
     explicit GeneratorGraphVisitor(GeneratorGraph *g) : g_(g) {}
     void visit(Generator *generator) override {
-        auto parent_node = g_->get_node(generator);
+        auto *parent_node = g_->get_node(generator);
         for (auto const &child : generator->get_child_generators()) {
-            auto child_node = g_->get_node(child.get());
+            auto *child_node = g_->get_node(child.get());
             if (child_node->parent != nullptr)
                 throw InternalException(::format("{0} already has a parent",
                                                  child_node->parent->generator->instance_name));
@@ -76,8 +76,8 @@ void topological_sort_helper(GeneratorGraph *g, GeneratorNode *node,
     visited.emplace(node);
 
     // visit all the child node
-    for (auto &child : node->children) {
-        auto child_node = g->get_node(child);
+    for (auto const &child : node->children) {
+        auto *child_node = g->get_node(child);
         if (visited.find(child_node) == visited.end()) {
             // visit it
             topological_sort_helper(g, child_node, visited, queue);
@@ -90,7 +90,7 @@ std::queue<GeneratorNode *> GeneratorGraph::topological_sort() {
     std::unordered_set<GeneratorNode *> visited;
     std::queue<GeneratorNode *> queue;
     for (auto &iter : nodes_) {
-        auto node = &iter.second;
+        auto *node = &iter.second;
         if (visited.find(node) == visited.end()) {
             // visit it
             topological_sort_helper(this, node, visited, queue);
@@ -156,17 +156,16 @@ void StatementGraph::add_stmt_child(Stmt *stmt) {
     else
         parent_node = &nodes_.at(stmt);
     for (uint64_t i = 0; i < child_count; i++) {
-        auto ir_node = stmt->get_child(i);
+        auto *ir_node = stmt->get_child(i);
         if (ir_node->ir_node_kind() != IRNodeKind::StmtKind) continue;
-        auto s = dynamic_cast<Stmt *>(ir_node);
+        auto *s = dynamic_cast<Stmt *>(ir_node);
         if (!s) throw StmtException("Non statement in statement block", {stmt});
         if (nodes_.find(s) != nodes_.end())
             throw StmtException("Duplicated statement detected", {stmt, s});
         StmtNode node_value{parent_node, s, {}};
         nodes_.emplace(s, node_value);
-        auto node = &nodes_.at(s);
-        if (parent_node)
-            parent_node->children.emplace(node);
+        auto *node = &nodes_.at(s);
+        if (parent_node) parent_node->children.emplace(node);
         add_stmt_child(s);
     }
 }

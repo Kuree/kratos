@@ -125,14 +125,14 @@ private:
         std::unordered_map<const Var *, std::unordered_map<uint32_t, Var *>> &linked_dep) {
         auto var_high = slice->var_high();
         auto var_low = slice->var_low();
-        auto root = slice->get_var_root_parent();
+        auto *root = slice->get_var_root_parent();
         for (uint32_t i = var_low; i <= var_high; i++) {
             linked_dep[root].emplace(i, slice);
         }
         // if indexed by a var
         if (slice->sliced_by_var()) {
-            auto var_slice = reinterpret_cast<VarVarSlice *>(slice);
-            auto p = var_slice->sliced_var();
+            auto *var_slice = reinterpret_cast<VarVarSlice *>(slice);
+            auto *p = var_slice->sliced_var();
             var_high = p->var_high();
             var_low = p->var_low();
             root = p->get_var_root_parent();
@@ -200,10 +200,10 @@ std::optional<uint64_t> Simulator::get_value_(const kratos::Var *var) const {
     if (var->size().size() != 1 || var->size().front() > 1) return std::nullopt;
 
     if (var->type() == VarType::Parameter) {
-        auto param = reinterpret_cast<const Param *>(var);
+        auto const *param = reinterpret_cast<const Param *>(var);
         return param->value();
     } else if (var->type() == VarType::ConstValue) {
-        auto const_ = reinterpret_cast<const Const *>(var);
+        auto const *const_ = reinterpret_cast<const Const *>(var);
         return const_->value();
     } else if (var->type() == VarType::Expression) {
         auto result = eval_expr(var);
@@ -213,7 +213,7 @@ std::optional<uint64_t> Simulator::get_value_(const kratos::Var *var) const {
             return std::nullopt;
         }
     } else if (var->type() == VarType::Slice) {
-        auto root = var->get_var_root_parent();
+        auto const *root = var->get_var_root_parent();
         std::vector<uint64_t> values;
         if (root->type() == VarType::ConstValue || root->type() == VarType::Parameter) {
             auto value = get_value_(var);
@@ -274,7 +274,7 @@ void Simulator::set_value_(const kratos::Var *var, std::optional<uint64_t> op_va
     if (var->type() == VarType::Parameter || var->type() == VarType::ConstValue) {
         throw UserException(::format("Cannot set value for constant {0}", var->handle_name()));
     } else if (var->type() == VarType::Slice) {
-        auto root = var->get_var_root_parent();
+        auto const *root = var->get_var_root_parent();
         std::vector<uint64_t *> values;
         if (root->type() == VarType::ConstValue || root->type() == VarType::Parameter) {
             throw UserException(::format("Cannot set value for constant {0}", var->handle_name()));
@@ -306,7 +306,7 @@ void Simulator::set_value_(const kratos::Var *var, std::optional<uint64_t> op_va
         auto base = var_low / root->var_width();
         var_high = var_high - base * root->var_width();
         var_low = var_low - base * root->var_width();
-        auto v = values[base];
+        auto *v = values[base];
         auto temp = *v;
         // compute the mask
         uint64_t mask = (0xFFFFFFFFFFFFFFFF >> (var_high + 1)) >> var_low;
@@ -355,7 +355,7 @@ std::optional<std::vector<uint64_t>> Simulator::get_complex_value_(const kratos:
             return std::nullopt;
     }
     if (var->type() == VarType::Slice) {
-        auto root = var->get_var_root_parent();
+        auto const *root = var->get_var_root_parent();
         auto index = get_slice_index(var);
         if (index.empty()) return std::nullopt;
         auto const [var_high, var_low] = compute_var_high_low(root, index);
@@ -388,7 +388,7 @@ void Simulator::set_complex_value_(const kratos::Var *var,
     const Var *fill_var;
     uint32_t low, high;
     if (var->type() == VarType::Slice) {
-        auto root = var->get_var_root_parent();
+        const auto *root = var->get_var_root_parent();
         fill_var = root;
         auto index = get_slice_index(var);
         if (index.empty()) throw InternalException("Empty slice");
@@ -454,7 +454,7 @@ void Simulator::set_complex_value_(const kratos::Var *var,
         } else {
             throw UserException("Misaligned slicing");
         }
-    };
+    }
     std::unordered_set<uint32_t> changed_bits;
     uint32_t var_width = fill_var->var_width();
 
@@ -476,12 +476,12 @@ std::vector<std::pair<uint32_t, uint32_t>> Simulator::get_slice_index(const Var 
     if (var->type() != VarType::Slice) {
         return {};
     }
-    auto slice = reinterpret_cast<const VarSlice *>(var);
+    const auto *slice = reinterpret_cast<const VarSlice *>(var);
     auto result = get_slice_index(slice->parent_var);
     uint32_t high, low;
     if (slice->sliced_by_var()) {
-        auto var_slice = reinterpret_cast<const VarVarSlice *>(slice);
-        auto v = var_slice->sliced_var();
+        const auto *var_slice = reinterpret_cast<const VarVarSlice *>(slice);
+        auto *v = var_slice->sliced_var();
         auto index = get_value_(v);
         // the index variable is empty
         if (!index) {
@@ -508,11 +508,11 @@ void Simulator::trigger_event(const kratos::Var *var,
         }
     }
 
-    auto root = var->get_var_root_parent();
+    const auto *root = var->get_var_root_parent();
     if (linked_dependency_.find(root) != linked_dependency_.end()) {
         auto const &vars = linked_dependency_.at(root);
         std::unordered_set<Var *> vs;
-        for (auto &[bit, v] : vars) {
+        for (const auto &[bit, v] : vars) {
             if (bits_mask.find(bit) != bits_mask.end()) vs.emplace(v);
         }
 
@@ -590,12 +590,12 @@ void Simulator::set_i(const kratos::Var *var, const std::optional<std::vector<in
 void Simulator::process_stmt(kratos::Stmt *stmt, const Var *var) {
     switch (stmt->type()) {
         case StatementType::Assign: {
-            auto assign = reinterpret_cast<AssignStmt *>(stmt);
+            auto *assign = reinterpret_cast<AssignStmt *>(stmt);
             process_stmt(assign, var);
             break;
         }
         case StatementType::Block: {
-            auto block = reinterpret_cast<StmtBlock *>(stmt);
+            auto *block = reinterpret_cast<StmtBlock *>(stmt);
             if (block->block_type() == StatementBlockType::Combinational) {
                 process_stmt(reinterpret_cast<CombinationalStmtBlock *>(block), var);
             } else if (block->block_type() == StatementBlockType::Sequential) {
@@ -606,12 +606,12 @@ void Simulator::process_stmt(kratos::Stmt *stmt, const Var *var) {
             break;
         }
         case StatementType::If: {
-            auto if_ = reinterpret_cast<IfStmt *>(stmt);
+            auto *if_ = reinterpret_cast<IfStmt *>(stmt);
             process_stmt(if_, var);
             break;
         }
         case StatementType::Switch: {
-            auto switch_ = reinterpret_cast<SwitchStmt *>(stmt);
+            auto *switch_ = reinterpret_cast<SwitchStmt *>(stmt);
             process_stmt(switch_, var);
             break;
         }
@@ -621,7 +621,7 @@ void Simulator::process_stmt(kratos::Stmt *stmt, const Var *var) {
 }
 
 void Simulator::process_stmt(kratos::AssignStmt *stmt, const Var *) {
-    auto right = stmt->right();
+    auto *right = stmt->right();
     auto val = eval_expr(right);
     if (val) {
         if (stmt->assign_type() != AssignmentType::NonBlocking)
@@ -656,7 +656,7 @@ void Simulator::process_stmt(kratos::IfStmt *if_, const Var *var) {
 }
 
 void Simulator::process_stmt(kratos::SwitchStmt *switch_, const Var *var) {
-    auto target = switch_->target().get();
+    auto *target = switch_->target().get();
     auto val = get_value_(target);
     auto const &body = switch_->body();
     if (!val) {
@@ -717,7 +717,6 @@ void Simulator::process_stmt(kratos::SequentialStmtBlock *block, const Var *var_
     nba_values_.clear();
 }
 
-
 uint64_t Simulator::static_evaluate_expr(Var *expr) {
     // static evaluate the expression using built-in simulator
     Simulator sim(nullptr);
@@ -734,7 +733,8 @@ uint64_t Simulator::static_evaluate_expr(Var *expr) {
 
 class InitValueVisitor : public IRVisitor {
 public:
-    explicit InitValueVisitor(std::function<void(AssignStmt *)> fn) : fn_(std::move(fn)) {}
+    [[maybe_unused]] explicit InitValueVisitor(std::function<void(AssignStmt *)> fn)
+        : fn_(std::move(fn)) {}
 
     void visit(Generator *gen) override {
         uint64_t stmt_count = gen->stmts_count();
@@ -761,15 +761,15 @@ void Simulator::init_pull_up_value(Generator *generator) {
 
 std::optional<std::vector<uint64_t>> Simulator::eval_expr(const kratos::Var *var) const {
     if (var->type() == VarType::Expression) {
-        auto expr = reinterpret_cast<const Expr *>(var);
+        const auto *expr = reinterpret_cast<const Expr *>(var);
         // there are couple special ones
         if (expr->op == ExprOp::Concat) {
-            auto var_concat = reinterpret_cast<const VarConcat *>(expr);
+            const auto *var_concat = reinterpret_cast<const VarConcat *>(expr);
             auto vars = std::vector<Var *>(var_concat->vars().begin(), var_concat->vars().end());
             std::reverse(vars.begin(), vars.end());
             uint32_t shift_amount = 0;
             uint64_t value = 0;
-            for (auto var_ : vars) {
+            for (auto *var_ : vars) {
                 auto v = get_value_(var_);
                 if (v) {
                     value |= (*v) << shift_amount;
@@ -781,8 +781,8 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(const kratos::Var *var
             return std::vector<uint64_t>{value};
         } else if (expr->op == ExprOp::Extend) {
             // depends on whether it's a signed value or not
-            auto extend = reinterpret_cast<const VarExtend *>(var);
-            auto base_var = extend->parent_var();
+            const auto *extend = reinterpret_cast<const VarExtend *>(var);
+            auto *base_var = extend->parent_var();
             auto value = get_complex_value_(base_var);
             if (!value) return std::nullopt;
             if (var->is_signed()) {
@@ -806,14 +806,13 @@ std::optional<std::vector<uint64_t>> Simulator::eval_expr(const kratos::Var *var
             if (!left_val) return left_val;
             auto right_val = get_complex_value_(expr->right);
             if (is_ternary_op(expr->op)) {
-                auto const *cond = reinterpret_cast<const ConditionalExpr*>(expr);
+                auto const *cond = reinterpret_cast<const ConditionalExpr *>(expr);
                 auto predicate_val = get_complex_value_(cond->condition);
                 if (!predicate_val) return right_val;
                 bool c = (*predicate_val)[0];
                 auto result = eval_ternary_op(c, (*left_val)[0], (*right_val)[0], expr->width());
                 return std::vector<uint64_t>{result};
-            }
-            else if (!is_unary_op(expr->op)) {
+            } else if (!is_unary_op(expr->op)) {
                 if (!right_val) return std::nullopt;
                 if ((*left_val).size() > 1) throw std::runtime_error("Not implemented");
                 if ((*right_val).size() > 1) throw std::runtime_error("Not implemented");
