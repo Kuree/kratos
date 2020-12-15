@@ -2140,6 +2140,18 @@ def test_ssa_transform(check_gold):
 
     mod.add_always(func, ssa_transform=True)
     check_gold(mod, "test_ssa_transform", transform_ssa=True)
+    # check if the local variable mapping is fixed
+    # assign a_5 = (a_3 == 4'h4) ? a_3: a_4;
+    # which corresponds to a = 5
+    # notice that a should be pointing to a = b + a, since it's the last
+    # time a gets assigned
+    stmt = mod.get_stmt_by_index(12)
+    scope = stmt.scope_context
+    is_var, a_mapping = scope["a"]
+    assert is_var
+    # this is assign a_2 = b + a_1;
+    stmt = mod.get_stmt_by_index(5)
+    assert str(a_mapping) == str(stmt.left)
 
 
 if __name__ == "__main__":

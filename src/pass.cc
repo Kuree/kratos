@@ -3191,19 +3191,32 @@ private:
     static void process_always_comb(const std::shared_ptr<StmtBlock>& blk, Generator* gen) {
         // also need to fix the scope variables
         // we assume that every statement here has been SSA transformed
-        std::unordered_map<std::string, std::string> symbol_mapping;
+        using SymbolMapping = std::unordered_map<std::string, std::string>;
+        uint64_t current_scope = 1;
+        std::unordered_map<uint64_t, SymbolMapping> symbol_mappings = {{current_scope, {}}};
         std::unordered_set<Stmt*> stmts;
         for (auto const& stmt : *blk) {
             if (stmt->type() != StatementType::Assign)
                 throw StmtException("Invalid SSA transform", {stmt.get()});
             auto assign_stmt = stmt->as<AssignStmt>();
             auto* left = assign_stmt->left();
+            auto scope_id = get_target_scope(left);
+            if (scope_id) {
+                // detect when to start a new scope
+                if (current_scope != *scope_id) {
+                    // copy current scope to the new one
+                    auto const &current_mapping = symbol_mappings.at(current_scope);
+                    for (auto const &iter: current_mapping) {
+                        symbol_mappings[*scope_id].emplace(iter);
+                    }
+                }
+                current_scope = *scope_id;
+            }
+            auto &symbol_mapping = symbol_mappings.at(current_scope);
             // every statement is assign, and every variable should have been SSA transformed
             auto parse_result = get_target_var_name(left);
             if (!parse_result) throw StmtException("Invalid SSA transform", {stmt.get()});
             auto const& [target_scope_name, target_var_name] = *parse_result;
-            // just update the table name
-            symbol_mapping[target_scope_name] = left->to_string();
             // look into its scope variables
             auto const& scope = stmt->scope_context();
             std::map<std::string, std::pair<bool, std::string>> new_scope;
@@ -3217,6 +3230,10 @@ private:
                 }
             }
             stmt->set_scope_context(new_scope);
+
+            // just update the table name
+            // update symbol after the scope since the left side hasn't showed up in scope yet
+            symbol_mapping[target_scope_name] = left->to_string();
 
             // move the assignment to the global scope
             gen->add_stmt(stmt);
@@ -3238,6 +3255,19 @@ private:
                 auto scope_name = value_str.substr(4, pos - 4);
                 auto var_name = value_str.substr(pos + 1);
                 return std::make_pair(scope_name, var_name);
+            }
+        }
+        return std::nullopt;
+    }
+
+    static std::optional<uint64_t> get_target_scope(const Var *var) {
+        auto const& attrs = var->get_attributes();
+        for (auto const& attr : attrs) {
+            auto const& value_str = attr->value_str;
+            auto pos = value_str.rfind("ssa-scope=");
+            if (pos == 0) {
+                auto v = value_str.substr(10);
+                return std::stoul(v);
             }
         }
         return std::nullopt;
