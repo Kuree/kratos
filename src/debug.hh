@@ -22,11 +22,11 @@ void inject_assert_fail_exception(Generator *top);
 void remove_assertion(Generator *top);
 void convert_continuous_stmt(Generator *top);
 void propagate_scope_variable(Generator *top);
-std::unordered_map<Var*, std::unordered_set<Var*>> find_driver_signal(Generator *top);
+std::unordered_map<Var *, std::unordered_set<Var *>> find_driver_signal(Generator *top);
 // this is a pass for systems that don't fully integrate kratos as their backend but only
 // want to partially use Kratos' debuggability
 // it will fake a hierarchy
-void mock_hierarchy(Generator *top, const std::string &top_name="");
+void mock_hierarchy(Generator *top, const std::string &top_name = "");
 
 // for verilator
 void insert_verilator_public(Generator *top);
@@ -47,7 +47,8 @@ public:
     void set_generator_hierarchy(Generator *top);
 
     void set_variable_mapping(const std::map<Generator *, std::map<std::string, Var *>> &mapping);
-    void set_variable_mapping(const std::map<Generator *, std::map<std::string, std::string>> &mapping);
+    void set_variable_mapping(
+        const std::map<Generator *, std::map<std::string, std::string>> &mapping);
     void set_stmt_context(Generator *top);
 
     void save_database(const std::string &filename, bool override);
@@ -60,10 +61,9 @@ private:
     std::unordered_map<std::string, std::pair<Generator *, std::map<std::string, std::string>>>
         variable_mapping_;
     ConnectionMap connection_map_;
-    std::vector<std::pair<std::string, Generator*>> hierarchy_;
+    std::vector<std::pair<std::string, Generator *>> hierarchy_;
     std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
-    std::unordered_set<Generator*> generators_;
-
+    std::unordered_set<Generator *> generators_;
 
     std::string top_name_ = "TOP";
     Context *context_ = nullptr;

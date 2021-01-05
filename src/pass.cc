@@ -1606,6 +1606,74 @@ std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_
     return (*entry).second;
 }
 
+class EnableStmtVisitor : public IRVisitor {
+public:
+    void visit(AssignStmt* stmt) override {
+        auto *left = stmt->left();
+        auto str_value = get_enable_condition(left, stmt);
+        if (!str_value.empty()) {
+            values.emplace(stmt, str_value);
+        }
+    }
+    std::map<Stmt*, std::string> values;
+
+private:
+    static std::string get_enable_condition(Var* target, Stmt *stmt) {
+        std::vector<std::string> str_values;
+        IRNode* node = stmt;
+        while (true) {
+            auto* parent = node->parent();
+            if (parent->ir_node_kind() == IRNodeKind::GeneratorKind) {
+                break;
+            } else {
+                auto* parent_stmt = reinterpret_cast<Stmt*>(parent);
+                if (parent_stmt->type() == StatementType::If) {
+                    auto* if_stmt = reinterpret_cast<IfStmt*>(parent_stmt);
+                    auto const& test = if_stmt->predicate();
+                    // check if it's then or else
+                    if (node == if_stmt->then_body().get()) {
+                        str_values.emplace_back(test->to_string());
+                    } else {
+                        str_values.emplace_back(::format("~({0})", test->to_string()));
+                    }
+                }
+            }
+        }
+
+        // check attributes
+        auto const& attrs = target->get_attributes();
+        if (!attrs.empty()) {
+            for (auto const& attr : attrs) {
+                auto val = get_ssa_en(attr.get());
+                if (val) str_values.emplace_back(*val);
+            }
+        }
+
+        return string::join(str_values.begin(), str_values.end(), " and ");
+    }
+
+    static std::optional<std::string> get_ssa_en(const Attribute* attr) {
+        auto const& value_str = attr->value_str;
+        constexpr auto en_str = "ssa-en=";
+        auto static const start_pos = std::string(en_str).size();
+        auto pos = value_str.rfind(en_str);
+        if (pos == 0) {
+            auto v = value_str.substr(start_pos);
+            return v;
+        } else {
+            return std::nullopt;
+        }
+    }
+};
+
+std::map<Stmt*, std::string> compute_enable_condition(Generator* top) {
+    // notice that this pass assumes SSA pass has transformed the always_comb block into
+    // top-level continuous assignment
+    EnableStmtVisitor visitor;
+    visitor.visit_root(top);
+    return visitor.values;
+}
+
 class PortPackedVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
@@ -3205,14 +3273,14 @@ private:
                 // detect when to start a new scope
                 if (current_scope != *scope_id) {
                     // copy current scope to the new one
-                    auto const &current_mapping = symbol_mappings.at(current_scope);
-                    for (auto const &iter: current_mapping) {
+                    auto const& current_mapping = symbol_mappings.at(current_scope);
+                    for (auto const& iter : current_mapping) {
                         symbol_mappings[*scope_id].emplace(iter);
                     }
                 }
                 current_scope = *scope_id;
             }
-            auto &symbol_mapping = symbol_mappings.at(current_scope);
+            auto& symbol_mapping = symbol_mappings.at(current_scope);
             // every statement is assign, and every variable should have been SSA transformed
             auto parse_result = get_target_var_name(left);
             if (!parse_result) throw StmtException("Invalid SSA transform", {stmt.get()});
@@ -3243,7 +3311,7 @@ private:
         // clear out the always_comb
         blk->clear();
         // clear will reset the parents
-        for (auto *stmt: stmts) stmt->set_parent(gen);
+        for (auto* stmt : stmts) stmt->set_parent(gen);
     }
 
     static std::optional<std::pair<std::string, std::string>> get_target_var_name(const Var* var) {
@@ -3260,7 +3328,7 @@ private:
         return std::nullopt;
     }
 
-    static std::optional<uint64_t> get_target_scope(const Var *var) {
+    static std::optional<uint64_t> get_target_scope(const Var* var) {
         auto const& attrs = var->get_attributes();
         for (auto const& attr : attrs) {
             auto const& value_str = attr->value_str;

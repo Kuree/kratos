@@ -499,6 +499,7 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
         def __init__(self, var_ref):
             self.var_ref = var_ref.copy()
             self.created_vars = {}
+            self.enable_cond = []
 
     class SSAVisitor(ast.NodeTransformer):
         # https://github.com/usagitoneko97/python-static-code-analysis/tree/master/cfg_and_ssa
@@ -528,6 +529,12 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
             # scope is used to indicate the hierarchy of scopes so that the backend can reconstruct
             # the scopes
             new_var.add_attribute(Attribute.create("ssa-scope={0}".format(len(self.phi_scope))))
+            # set the ssa enable condition
+            if len(self.phi_scope) > 0:
+                for phi in self.phi_scope:
+                    cond = phi.enable_cond
+                    for var in cond:
+                        new_var.add_attribute(Attribute.create("ssa-en={0}".format(var)))
             _locals[new_name] = new_var
             self.var_ref[name] = new_name
             self.phi_scope[-1].created_vars[name] = new_name
@@ -570,12 +577,23 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
             else:
                 target.append(result)
 
+        def set_enable_cond(self, node, is_else):
+            node_str = astor.to_source(node)
+            phi = self.phi_scope[-1]
+            # add it to the enable
+            if is_else:
+                node_str = "~" + node_str
+            node_str = node_str.strip()
+            phi.enable_cond.append(node_str)
+
         def visit_If(self, node: ast.If):
             # push the mapping into a stack
             # need to flatten the if statement and add phi function
             test = self.visit(node.test)
             body = []
             self.phi_scope.append(SSAScope(self.var_ref))
+            # compute the enable condition
+            self.set_enable_cond(test, False)
             for stmt in node.body:
                 stmt = self.visit(stmt)
                 self.__add_list(body, stmt)
@@ -587,6 +605,8 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
             if node.orelse:
                 self.phi_scope.append(SSAScope(self.var_ref))
                 else_scope = self.phi_scope[-1]
+                # compute the enable condition
+                self.set_enable_cond(test, True)
                 for stmt in node.orelse:
                     stmt = self.visit(stmt)
                     self.__add_list(body, stmt)

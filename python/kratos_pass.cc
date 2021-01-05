@@ -36,6 +36,7 @@ void init_pass(py::module &m) {
         .def("remove_fanout_one_wires", &remove_fanout_one_wires)
         .def("remove_pass_through_modules", &remove_pass_through_modules)
         .def("extract_debug_info", &extract_debug_info)
+        .def("compute_enable_condition", &compute_enable_condition)
         .def("extract_struct_info", &extract_struct_info)
         .def("extract_enum_info", &extract_enum_info)
         .def("merge_wire_assignments", merge_wire_assignments)

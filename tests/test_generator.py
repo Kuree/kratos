@@ -2153,6 +2153,11 @@ def test_ssa_transform(check_gold):
     stmt = mod.get_stmt_by_index(5)
     assert str(a_mapping) == str(stmt.left)
 
+    # test enable table extraction
+    from _kratos.passes import compute_enable_condition
+    enable_map = compute_enable_condition(mod.internal_generator)
+    assert len(enable_map) > 5
+
 
 if __name__ == "__main__":
     from conftest import check_gold_fn
