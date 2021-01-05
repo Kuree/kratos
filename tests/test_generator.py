@@ -2159,6 +2159,25 @@ def test_ssa_transform(check_gold):
     assert len(enable_map) > 5
 
 
+def test_enable_condition_always_ff():
+    mod = Generator("mod")
+    a = mod.var("a", 4)
+    b = mod.var("b", 1)
+    clk = mod.clock("clk")
+
+    @always_ff((posedge, clk))
+    def logic():
+        if b:
+            a = 0
+        else:
+            a = 1
+
+    mod.add_always(logic)
+    from _kratos.passes import compute_enable_condition
+    enable_map = compute_enable_condition(mod.internal_generator)
+    assert len(enable_map) == 2
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
     test_ssa_transform(check_gold_fn)

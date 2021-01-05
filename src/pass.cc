@@ -1637,6 +1637,7 @@ private:
                         str_values.emplace_back(::format("~({0})", test->to_string()));
                     }
                 }
+                node = parent;
             }
         }
 
