@@ -1492,6 +1492,7 @@ private:
         if (port_names.size() % 2) return false;
         if (generator->stmts_count() != port_names.size() / 2) return false;
 
+        // NOLINTNEXTLINE
         for (const auto& port_name : port_names) {
             auto const port = generator->get_port(port_name);
             if (port->port_direction() == PortDirection::In) {

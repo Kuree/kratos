@@ -189,6 +189,7 @@ inline void store_breakpoint(DebugDatabase &db, uint32_t id, uint32_t instance_i
                           .line_num = line_num,
                           .column_num = column_num,
                           .condition = condition});
+    // NOLINTNEXTLINE
 }
 
 inline void store_instance(DebugDatabase &db, uint32_t id, const std::string &name) {
@@ -225,6 +226,7 @@ inline void store_context_variable(DebugDatabase &db, const std::string &name,
     db.replace(ContextVariable{.name = name,
                                .breakpoint_id = std::make_unique<uint32_t>(breakpoint_id),
                                .variable_id = std::make_unique<uint32_t>(variable_id)});
+    // NOLINTNEXTLINE
 }
 
 inline void store_generator_variable(DebugDatabase &db, const std::string &name,
@@ -232,6 +234,7 @@ inline void store_generator_variable(DebugDatabase &db, const std::string &name,
     db.replace(GeneratorVariable{.name = name,
                                  .instance_id = std::make_unique<uint32_t>(instance_id),
                                  .variable_id = std::make_unique<uint32_t>(variable_id)});
+    // NOLINTNEXTLINE
 }
 
 }  // namespace hgdb
