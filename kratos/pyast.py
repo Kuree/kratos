@@ -1,14 +1,16 @@
 import ast
-import textwrap
-import inspect
-import astor
-import _kratos
-from .util import print_src
-from _kratos import get_frame_local
 import copy
-import os
 import enum
+import inspect
+import os
 import sys
+import textwrap
+
+import _kratos
+import astor
+from _kratos import get_frame_local
+
+from .util import print_src
 
 
 def has_format_string():
@@ -82,7 +84,7 @@ class LogicOperatorVisitor(ast.NodeTransformer):
         return node
 
 
-class StaticElaborationNodeVisitor(ast.NodeTransformer):
+class StaticElaborationNodeForVisitor(ast.NodeTransformer):
     class NameVisitor(ast.NodeTransformer):
         def __init__(self, target, value):
             self.target = target
@@ -126,7 +128,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
             if not self.legal:
                 return
             s = node.slice
-            has_var = StaticElaborationNodeVisitor.HasVar(self.target.id)
+            has_var = StaticElaborationNodeForVisitor.HasVar(self.target.id)
             has_var.visit(s)
             if has_var.has_target:
                 if not isinstance(s, ast.Index):
@@ -172,7 +174,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         valid = True
         for node in nodes:
             if valid:
-                visitor = StaticElaborationNodeVisitor.LoopIndexVisitor(target, self.scope, self.local, self.global_)
+                visitor = StaticElaborationNodeForVisitor.LoopIndexVisitor(target, self.scope, self.local, self.global_)
                 visitor.visit(node)
                 valid = visitor.legal
         return valid
@@ -233,7 +235,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                                 args=[ast.Str(s=target.id)] + _vars,
                                 keywords=keywords,
                                 ctx=ast.Load())
-            body_visitor = StaticElaborationNodeVisitor.NameVisitor(target, index)
+            body_visitor = StaticElaborationNodeForVisitor.NameVisitor(target, index)
             body = []
             for i in range(len(node.body)):
                 n = self.visit(body_visitor.visit(node.body[i]))
@@ -253,7 +255,7 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 loop_body = copy.deepcopy(node.body)
                 for n in loop_body:
                     # need to replace all the reference to
-                    visitor = StaticElaborationNodeVisitor.NameVisitor(target, value)
+                    visitor = StaticElaborationNodeForVisitor.NameVisitor(target, value)
                     n = visitor.visit(n)
                     self.key_pair.append((target.id, value))
                     n = self.visit(n)
@@ -267,6 +269,26 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                         new_node.append(n)
                         self.target_node[n] = (target.id, value)
             return new_node
+
+
+class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
+    def __init__(self, generator, fn_src, scope, local, global_, filename, func_ln):
+        super().__init__()
+        self.generator = generator
+        self.fn_src = fn_src
+        self.local = local.copy()
+        self.global_ = global_.copy()
+        self.local["self"] = self.generator
+        if "scope" in local and (not isinstance(local["scope"], Scope)):
+            raise SyntaxError("scope is a reserved keyword and shall not be used in a kratos program")
+        self.local["scope"] = scope
+        self.target_node = {}
+        self.scope = scope
+
+        self.filename = filename
+        self.scope_ln = func_ln
+
+        self.key_pair = []
 
     def __change_if_predicate(self, node):
         if isinstance(node, ast.UnaryOp):
@@ -326,14 +348,14 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
                 raise SyntaxError("Cannot statically evaluate if predicate")
             if predicate_value:
                 for i, n in enumerate(node.body):
-                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src, self.scope, self.unroll_for,
-                                                          self.local, self.global_, self.filename, self.scope_ln)
+                    if_exp = StaticElaborationNodeIfVisitor(self.generator, self.fn_src, self.scope,
+                                                            self.local, self.global_, self.filename, self.scope_ln)
                     node.body[i] = if_exp.visit(n)
                 return node.body
             else:
                 for i, n in enumerate(node.orelse):
-                    if_exp = StaticElaborationNodeVisitor(self.generator, self.fn_src, self.scope, self.unroll_for,
-                                                          self.local, self.global_, self.filename, self.scope_ln)
+                    if_exp = StaticElaborationNodeIfVisitor(self.generator, self.fn_src, self.scope,
+                                                            self.local, self.global_, self.filename, self.scope_ln)
                     node.orelse[i] = if_exp.visit(n)
                 return node.orelse
         else:
@@ -374,7 +396,8 @@ class StaticElaborationNodeVisitor(ast.NodeTransformer):
         else_node = ast.Call(func=ast.Attribute(attr="else_", value=if_node,
                                                 ctx=ast.Load()),
                              args=else_expression, keywords=keywords_else)
-
+        # store the mapping
+        self.target_node[node] = else_node
         return self.visit(ast.Expr(value=else_node))
 
 
@@ -407,7 +430,8 @@ class AssignNodeVisitor(ast.NodeTransformer):
                 attr="assign",
                 ctx=ast.Load()),
                 args=args,
-                keywords=[]))
+                keywords=[],
+                lineno=node.lineno))
 
 
 class AssertNodeVisitor(ast.NodeTransformer):
@@ -427,7 +451,8 @@ class AssertNodeVisitor(ast.NodeTransformer):
                 attr="assert_",
                 ctx=ast.Load()),
                 args=args,
-                keywords=[])
+                keywords=[],
+                lineno=node.lineno)
         return node
 
 
@@ -451,7 +476,7 @@ class ExceptionNodeVisitor(ast.NodeTransformer):
         if self.debug:
             args.append(ast.Constant(value=node.lineno))
         return ast.Call(func=ast.Attribute(value=ast.Name(id="scope", ctx=ast.Load()),
-                                           attr="assert_", ctx=ast.Load()), args=args, keywords=[])
+                                           attr="assert_", ctx=ast.Load()), args=args, keywords=[], lineno=node.lineno)
 
 
 class ReturnNodeVisitor(ast.NodeTransformer):
@@ -471,7 +496,9 @@ class ReturnNodeVisitor(ast.NodeTransformer):
             attr="return_",
             ctx=ast.Load()),
             args=args,
-            keywords=[]))
+            keywords=[],
+            lineno=node.lineno),
+            lineno=node.lineno)
 
 
 class GenVarLocalVisitor(ast.NodeTransformer):
@@ -491,7 +518,7 @@ class GenVarLocalVisitor(ast.NodeTransformer):
                                       value=ast.Str(s=self.value))
                 node.keywords.append(keyword)
 
-        return node
+        return self.generic_visit(node)
 
 
 def transform_always_comb_ssa(ast_tree, gen, _locals):
@@ -639,7 +666,8 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
                     assert true_var is not None, "Latch {0} is created!".format(var)
                 n = ast.Expr(value=ast.Call(func=ast.Name(id="ternary"), args=[test, ast.Name(id=true_var),
                                                                                ast.Name(id=else_var)],
-                                            ctx=ast.Load(), keywords=[]))
+                                            ctx=ast.Load(), keywords=[]),
+                             lineno=test.lineno)
                 new_name = self.create_new_var(var)
                 n = ast.Assign(targets=[ast.Name(id=new_name, ctx=ast.Store())],
                                value=n, lineno=node.lineno)
@@ -834,6 +862,15 @@ def add_stmt_to_scope(fn_body):
                            args=[node], keywords=[]))
 
 
+def compute_target_node(for_nodes, if_nodes):
+    result = {}
+    for origin_node, values in for_nodes.items():
+        if origin_node in if_nodes:
+            target_node = if_nodes[origin_node]
+            result[target_node] = values
+    return result
+
+
 def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_self,
                            filename, func_ln,
                            transform_return=False, pre_locals=None, unroll_for=False,
@@ -872,17 +909,25 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_
 
     # if there is a need to apply ssa
     if apply_ssa:
+        # only elaborate for
+        for_visitor = StaticElaborationNodeForVisitor(generator, fn_src, scope, True, _locals,
+                                                      _globals, filename, func_ln)
+        fn_body = for_visitor.visit(fn_body)
+        target_nodes = for_visitor.target_node
         fn_body = transform_always_comb_ssa(fn_body, generator, _locals)
+    else:
+        # static eval for loop and if statement
+        for_visitor = StaticElaborationNodeForVisitor(generator, fn_src, scope, unroll_for, _locals,
+                                                      _globals, filename, func_ln)
+        fn_body = for_visitor.visit(fn_body)
+        if_visitor = StaticElaborationNodeIfVisitor(generator, fn_src, scope, _locals, _globals, filename, func_ln)
+        fn_body = if_visitor.visit(fn_body)
+        target_nodes = compute_target_node(for_visitor.target_node, if_visitor.target_node)
 
     # transform assign
     assign_visitor = AssignNodeVisitor(generator, debug)
     fn_body = assign_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
-
-    # static eval for loop and if statement
-    static_visitor = StaticElaborationNodeVisitor(generator, fn_src, scope, unroll_for, _locals,
-                                                  _globals, filename, func_ln)
-    fn_body = static_visitor.visit(fn_body)
 
     # transform the assert_ function to get fn_ln
     assert_visitor = AssertNodeVisitor(generator, debug)
@@ -891,7 +936,6 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_
     fn_body = exception_visitor.visit(fn_body)
 
     # mark the local variables
-    target_nodes = static_visitor.target_node
     for node, (key, value) in target_nodes.items():
         assign_local_visitor = GenVarLocalVisitor(key, value, "scope")
         assign_local_visitor.visit(node)
@@ -1097,7 +1141,7 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
     if len(deco_list) == 0:
         return CodeBlockType.Combinational, []
     else:
-        assert len(deco_list) == 1,  "{0} is not called with multiple decorators blocks".format(fn_name)
+        assert len(deco_list) == 1, "{0} is not called with multiple decorators blocks".format(fn_name)
         call_obj = deco_list[0]
         if isinstance(call_obj, ast.Call):
             call_name = call_obj.func.id

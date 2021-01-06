@@ -397,5 +397,52 @@ def test_multiple_instance():
         assert count == num_instance * (num_instance + 3) / 2
 
 
+def get_line(line):
+    with open(__file__) as f:
+        lines = f.readlines()
+        lines = [l.rstrip() for l in lines]
+    return lines.index(line) + 1
+
+
+def test_ssa_debug():
+    mod = Generator("mod", debug=True)
+    a = mod.var("a", 4)
+    clk = mod.clock("clk")
+    b = mod.var("b", 1)
+    loop_size = 4
+
+    @always_comb
+    def logic1():
+        a = 0
+        if b:
+            for i in range(loop_size):
+                a = a + i
+
+    @always_ff((posedge, clk))
+    def logic2():
+        if a == 1:
+            b = 1
+        else:
+            b = 0
+
+    mod.add_always(logic1, ssa_transform=True)
+    mod.add_always(logic2)
+
+    with tempfile.TemporaryDirectory() as temp:
+        temp = "temp"
+        debug_db = os.path.join(temp, "debug.db")
+        verilog(mod, insert_debug_info=True, debug_db_filename=debug_db)
+        # assert the line number tracking
+        conn = sqlite3.connect(debug_db)
+        c = conn.cursor()
+        c.execute("SELECT * FROM breakpoint")
+        result = c.fetchall()
+        idx = get_line("                a = a + i")
+        loop_body = [row for row in result if row[-3] == idx]
+        assert len(loop_body) == loop_size
+        # check the context variable
+        conn.close()
+
+
 if __name__ == "__main__":
-    test_context()
+    test_ssa_debug()
