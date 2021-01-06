@@ -415,6 +415,7 @@ class AssignNodeVisitor(ast.NodeTransformer):
         super().__init__()
         self.generator = generator
         self.debug = debug
+        self.target_node = {}
 
     def visit_Assign(self, node):
         if len(node.targets) > 1:
@@ -423,7 +424,7 @@ class AssignNodeVisitor(ast.NodeTransformer):
         args = node.targets[:] + [node.value]
         if self.debug:
             args.append(ast.Constant(value=node.lineno))
-        return ast.Expr(
+        new_node = ast.Expr(
             value=ast.Call(func=ast.Attribute(
                 value=ast.Name(id="scope",
                                ctx=ast.Load()),
@@ -432,6 +433,8 @@ class AssignNodeVisitor(ast.NodeTransformer):
                 args=args,
                 keywords=[],
                 lineno=node.lineno))
+        self.target_node[node] = new_node
+        return new_node
 
 
 class AssertNodeVisitor(ast.NodeTransformer):
@@ -862,11 +865,11 @@ def add_stmt_to_scope(fn_body):
                            args=[node], keywords=[]))
 
 
-def compute_target_node(for_nodes, if_nodes):
+def compute_target_node(for_nodes, new_nodes):
     result = {}
     for origin_node, values in for_nodes.items():
-        if origin_node in if_nodes:
-            target_node = if_nodes[origin_node]
+        if origin_node in new_nodes:
+            target_node = new_nodes[origin_node]
             result[target_node] = values
     return result
 
@@ -928,6 +931,9 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_
     assign_visitor = AssignNodeVisitor(generator, debug)
     fn_body = assign_visitor.visit(fn_body)
     ast.fix_missing_locations(fn_body)
+
+    if apply_ssa:
+        target_nodes = compute_target_node(target_nodes, assign_visitor.target_node)
 
     # transform the assert_ function to get fn_ln
     assert_visitor = AssertNodeVisitor(generator, debug)
