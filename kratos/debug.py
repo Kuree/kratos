@@ -45,8 +45,8 @@ def enable_runtime_debug(generator: Generator):
     _kratos.inject_debug_break_points(generator.internal_generator)
 
 
-def dump_debug_database(generator: Generator, top_name: str, filename: str):
-    db = _kratos.DebugDataBase(top_name)
+def dump_debug_database(generator: Generator, filename: str):
+    db = _kratos.DebugDataBase()
     raw_symbol_table, raw_str_table = extract_symbol_table(generator)
     db.set_break_points(generator.internal_generator)
     # convert raw table to internal generator
@@ -60,8 +60,6 @@ def dump_debug_database(generator: Generator, top_name: str, filename: str):
     # store the string values
     db.set_variable_mapping(str_table)
     # insert other metadata information
-    db.set_generator_connection(generator.internal_generator)
-    db.set_generator_hierarchy(generator.internal_generator)
     db.set_stmt_context(generator.internal_generator)
     db.save_database(filename)
 
@@ -79,4 +77,4 @@ def dump_external_database(generators: List[Generator], top_name: str, filename:
             assert len(generators) == 1
             gen.instance_name = top_name
             top = gen
-    dump_debug_database(top, top_name, filename)
+    dump_debug_database(top, filename)

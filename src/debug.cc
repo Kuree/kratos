@@ -2,11 +2,12 @@
 
 #include <mutex>
 
-#include "db.hh"
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
+#include "graph.hh"
 #include "pass.hh"
+#include "schema.hh"
 #include "tb.hh"
 #include "util.hh"
 
@@ -273,6 +274,14 @@ void mock_hierarchy(Generator *top, const std::string &top_name) {
     }
 }
 
+void DebugDatabase::compute_generators(Generator *top) {
+    GeneratorGraph g(top);
+    auto generators = g.get_sorted_generators();
+    for (auto *gen: generators) {
+        generators_.emplace(gen);
+    }
+}
+
 void DebugDatabase::set_break_points(Generator *top) { set_break_points(top, ".py"); }
 
 void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {
@@ -294,8 +303,8 @@ void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {
             }
         }
     }
-    // set context
-    context_ = top->context();
+    // set generators
+    compute_generators(top);
 }
 
 void DebugDatabase::set_variable_mapping(
@@ -352,115 +361,18 @@ void DebugDatabase::set_stmt_context(kratos::Generator *top) {
     stmt_context_ = visitor.stmt_context();
 }
 
-class ConnectionVisitor : public IRVisitor {
-public:
-    void visit(Generator *generator) override {
-        lock_.lock();
-        generators_.emplace(generator);
-        lock_.unlock();
-        // loop through the module instance statement, where it holds the connection
-        // information
-        uint64_t child_count = generator->stmts_count();
-        for (uint64_t i = 0; i < child_count; i++) {
-            auto const stmt = generator->get_stmt(i);
-            if (stmt->type() == StatementType::ModuleInstantiation) {
-                auto mod = stmt->as<ModuleInstantiationStmt>();
-                const auto *target = mod->target();
-                auto target_handle_name = target->handle_name();
-                auto mapping = mod->port_mapping();
-                for (auto [target_port, parent_var] : mapping) {
-                    // we ignore the constant connection
-                    if (parent_var->type() != VarType::PortIO) {
-                        if (target_port->port_direction() == PortDirection::In) {
-                            auto source = parent_var->sources();
-                            if (source.size() == 1) {
-                                parent_var = (*source.begin())->right();
-                            }
-                        } else {
-                            auto sink = parent_var->sinks();
-                            if (sink.size() == 1) {
-                                parent_var = (*sink.begin())->left();
-                            }
-                        }
-                    }
-                    if (parent_var->type() != VarType::PortIO) {
-                        continue;
-                    }
-                    auto *gen = parent_var->generator();
-                    auto gen_handle = gen->handle_name();
-                    // the direction is var -> var
-                    lock_.lock();
-                    if (target_port->port_direction() == PortDirection::In) {
-                        connections_.emplace(
-                            std::make_pair(gen_handle, parent_var->to_string()),
-                            std::make_pair(target_handle_name, target_port->to_string()));
-                    } else {
-                        connections_.emplace(
-                            std::make_pair(target_handle_name, target_port->to_string()),
-                            std::make_pair(gen_handle, parent_var->to_string()));
-                    }
-                    lock_.unlock();
-                }
-            }
-        }
-    }
-
-    const DebugDatabase::ConnectionMap &connections() const { return connections_; }
-    const std::unordered_set<Generator *> &generators() const { return generators_; }
-
-private:
-    DebugDatabase::ConnectionMap connections_;
-    std::unordered_set<Generator *> generators_;
-    std::mutex lock_;
-};
-
-void DebugDatabase::set_generator_connection(kratos::Generator *top) {
-    // we create a IR visitor to visit the generators
-    ConnectionVisitor visitor;
-    // this can be parallelized
-    visitor.visit_generator_root_p(top);
-    connection_map_ = visitor.connections();
-    generators_ = visitor.generators();
-}
-
-class HierarchyVisitor : public IRVisitor {
-public:
-    void visit(Generator *generator) override {
-        auto handle_name = generator->handle_name();
-        for (auto const &gen : generator->get_child_generators()) {
-            hierarchy_.emplace_back(std::make_pair(handle_name, gen.get()));
-        }
-    }
-    const std::vector<std::pair<std::string, Generator *>> &hierarchy() const { return hierarchy_; }
-
-private:
-    std::vector<std::pair<std::string, Generator *>> hierarchy_;
-};
-
-void DebugDatabase::set_generator_hierarchy(kratos::Generator *top) {
-    HierarchyVisitor visitor;
-    // no parallel to make it in order
-    visitor.visit_generator_root(top);
-    hierarchy_ = visitor.hierarchy();
-}
-
 void DebugDatabase::save_database(const std::string &filename, bool override) {
     if (override) {
         if (fs::exists(filename)) {
             fs::remove(filename);
         }
     }
-    auto storage = init_storage(filename);
+    auto storage = hgdb::init_debug_db(filename);
     storage.sync_schema();
     // insert tables
-    // use transaction to speed up
-    auto guard = storage.transaction_guard();
-    // metadata
-    MetaData top_name{"top_name", top_name_};
-    storage.insert(top_name);
 
     // insert generator ids
-    std::unordered_map<Generator *, uint32_t> gen_id_map;
+    std::unordered_map<const Generator *, uint32_t> gen_id_map;
     std::unordered_map<std::string, uint32_t> handle_id_map;
     for (auto const &gen : generators_) {
         if (gen->generator_id < 0) {
@@ -470,16 +382,17 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
         int id = gen->generator_id;
         gen_id_map.emplace(gen, id);
         handle_id_map.emplace(gen->handle_name(), id);
-        Instance inst{id, gen->handle_name()};
-        storage.replace(inst);
+        hgdb::store_instance(storage, gen->generator_id, gen->handle_name());
     }
 
     // break points
     for (auto const &[stmt, id] : break_points_) {
         if (stmt_mapping_.find(stmt) != stmt_mapping_.end()) {
             auto const &[fn, ln] = stmt_mapping_.at(stmt);
-            BreakPoint br{id, fn, ln};
-            storage.replace(br);
+            auto const *gen = stmt->generator_parent();
+            auto instance_id = gen_id_map.at(gen);
+            // TODO add enable condition
+            hgdb::store_breakpoint(storage, id, instance_id, fn, ln, 0, "");
         }
     }
 
@@ -489,27 +402,22 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     std::map<std::tuple<const int, std::string, std::string>, int> var_id_mapping;
     std::unordered_map<Generator *, std::map<std::string, std::string>> self_context_mapping;
     // function to create variable and flatten the hierarchy
+    // NOLINTNEXTLINE
     auto create_variable = [&](Var *var_, const int handle_id_, const std::string &name_,
                                const std::string &value_, bool is_context_, uint32_t breakpoint_id_,
                                bool gen_var = false) {
-        Variable v;
-        v.is_var = var_ != nullptr;
-        v.handle = std::make_unique<int>(handle_id_);
+        hgdb::Variable v;
+        v.is_rtl = var_ != nullptr;
 
         auto add_context_gen = [&](const std::string &name) {
             if (is_context_) {
                 // create context mapping as well
-                ContextVariable c_v{std::make_unique<uint32_t>(breakpoint_id_),
-                                    std::make_unique<int>(v.id), name};
-                storage.replace(c_v);
+                hgdb::store_context_variable(storage, name, breakpoint_id_, v.id);
             }
             if (gen_var) {
-                GeneratorVariable g_v{std::make_unique<int>(v.id), std::make_unique<int>(*v.handle),
-                                      name};
-                storage.replace(g_v);
+                hgdb::store_generator_variable(storage, name, handle_id_, v.id);
             }
-            // clang-tidy-10 gives false memory leak warnings
-        };  // NOLINT
+        };
 
         if (var_) {
             // it is an variable
@@ -525,7 +433,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                         var_id_mapping.end()) {
                         v.id = variable_count++;
-                        storage.replace(v);
+                        hgdb::store_variable(storage, v.id, v.value);
                         var_id_mapping.emplace(
                             std::make_pair(std::make_tuple(handle_id_, new_name, v.value), v.id));
                     } else {
@@ -546,7 +454,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                         if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                             var_id_mapping.end()) {
                             v.id = variable_count++;
-                            storage.replace(v);
+                            hgdb::store_variable(storage, v.id, v.value);
                             var_id_mapping.emplace(std::make_pair(
                                 std::make_tuple(handle_id_, new_name, v.value), v.id));
                         } else {
@@ -566,7 +474,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                         if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                             var_id_mapping.end()) {
                             v.id = variable_count++;
-                            storage.replace(v);
+                            hgdb::store_variable(storage, v.id, v.value);
                             var_id_mapping.emplace(std::make_pair(
                                 std::make_tuple(handle_id_, new_name, v.value), v.id));
                         } else {
@@ -598,7 +506,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             }
             v.value = value_;
             v.id = variable_count++;
-            storage.replace(v);
+            hgdb::store_variable(storage, v.id, v.value);
             add_context_gen(name_);
         }
     };
@@ -616,34 +524,6 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                 create_variable(var.get(), id, var_name, var_name, false, 0, true);
             }
         }
-    }
-
-    // connections
-    for (auto const &[from, to] : connection_map_) {
-        auto const [from_handle, from_var] = from;
-        auto const [to_handle, to_var] = to;
-        if (handle_id_map.find(from_handle) == handle_id_map.end())
-            throw InternalException(::format("Unable to find id for {0}", from_handle));
-        if (handle_id_map.find(to_handle) == handle_id_map.end())
-            throw InternalException(::format("Unable to find id for {0}", to_handle));
-        auto from_id = handle_id_map.at(from_handle);
-        auto to_id = handle_id_map.at(to_handle);
-        Connection conn{std::make_unique<int>(from_id), from_var, std::make_unique<int>(to_id),
-                        to_var};
-        storage.replace(conn);
-    }
-
-    // hierarchy
-    for (auto const &[handle, child] : hierarchy_) {
-        if (handle_id_map.find(handle) == handle_id_map.end())
-            throw InternalException(::format("Unable to find id for {0}", handle));
-        if (handle_id_map.find(child->handle_name()) == handle_id_map.end())
-            throw InternalException(::format("Unable to find id for {0}", child->handle_name()));
-        auto id = handle_id_map.at(handle);
-        auto child_id = handle_id_map.at(child->handle_name());
-        Hierarchy h{std::make_unique<int>(id), child->instance_name,
-                    std::make_unique<int>(child_id)};
-        storage.replace(h);
     }
 
     // local context variables
@@ -679,16 +559,6 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             }
         }
     }
-
-    // instance id set
-    for (auto const &[stmt, id] : break_points_) {
-        if (stmt_mapping_.find(stmt) == stmt_mapping_.end()) continue;
-        auto gen_id = stmt->generator_parent()->generator_id;
-        InstanceSetEntry entry{std::make_unique<int>(gen_id), std::make_unique<int>(id)};
-        storage.replace(entry);
-    }
-
-    guard.commit();
 }
 
 void inject_clock_break_points(Generator *top) {

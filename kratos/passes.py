@@ -172,9 +172,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
 
     # debug database
     if debug_db_filename:
-        dump_debug_database(generator,
-                            generator.internal_generator.handle_name(),
-                            debug_db_filename)
+        dump_debug_database(generator, debug_db_filename)
 
     return r
 

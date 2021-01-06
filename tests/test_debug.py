@@ -104,24 +104,6 @@ def test_seq_debug():
         conn.close()
 
 
-def test_metadata():
-    mod = Generator("mod", True)
-    mod.input("in", 1)
-    mod.output("out", 1)
-    mod.wire(mod.ports.out, mod.ports["in"])
-    with tempfile.TemporaryDirectory() as temp:
-        debug_db = os.path.join(temp, "debug.db")
-        filename = os.path.join(temp, "test.sv")
-        verilog(mod, filename=filename, insert_debug_info=True,
-                debug_db_filename=debug_db)
-        conn = sqlite3.connect(debug_db)
-        c = conn.cursor()
-        c.execute("SELECT value FROM metadata WHERE name = ?", ["top_name"])
-        value = c.fetchone()[0]
-        assert value == "mod"
-        conn.close()
-
-
 def test_context():
     class Mod(Generator):
         def __init__(self, width):
@@ -150,49 +132,9 @@ def test_context():
                 debug_db_filename=debug_db)
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
-        c.execute("SELECT * FROM context")
+        c.execute("SELECT * FROM context_variable")
         variables = c.fetchall()
         assert len(variables) > 20
-        conn.close()
-
-
-def test_hierarchy_conn():
-    from functools import reduce
-    mods = []
-    num_child = 4
-    for i in range(num_child):
-        mod = Generator("mod", True)
-        in_ = mod.input("in", 1)
-        out_ = mod.output("out", 1)
-        mod.wire(out_, in_ & 1)
-        mods.append(mod)
-
-    parent = Generator("parent", True)
-    in_ = parent.input("in", 1)
-    out_ = parent.output("out", 1)
-    for i, mod in enumerate(mods):
-        parent.add_child("mod{0}".format(i), mod)
-        if i == 0:
-            continue
-        parent.wire(mod.ports["in"], mods[i - 1].ports.out)
-    parent.wire(mods[0].ports["in"], in_)
-    comb = parent.combinational()
-    comb.add_stmt(out_.assign(reduce(lambda a, b: a ^ b,
-                              [mod.ports.out for mod in mods])))
-    with tempfile.TemporaryDirectory() as temp:
-        debug_db = os.path.join(temp, "debug.db")
-        filename = os.path.join(temp, "test.sv")
-        verilog(parent, filename=filename, insert_debug_info=True,
-                debug_db_filename=debug_db)
-        conn = sqlite3.connect(debug_db)
-        c = conn.cursor()
-        c.execute("SELECT * FROM hierarchy")
-        mods = c.fetchall()
-        assert len(mods) == num_child
-        c.execute("SELECT * FROM connection")
-        conns = c.fetchall()
-        # plus 2 because in and out from parent to mod0 and mod3
-        assert len(conns) == num_child - 1 + 2
         conn.close()
 
 
@@ -226,66 +168,6 @@ def test_clock_interaction():
                 debug_db_filename=debug_db)
 
 
-def test_design_hierarchy():
-    from functools import reduce
-    mods = []
-    num_child = 4
-    num_child_child = 3
-
-    def add_child(m):
-        output = None
-        outputs_ = []
-        for c in range(num_child_child):
-            child = Generator("child", True)
-            m.add_child("child{0}".format(c), child)
-            in__ = child.input("in", 4)
-            out__ = child.output("out", 4)
-            clk__ = child.clock("clk")
-            m.wire(m.ports.clk, clk__)
-            if output is None:
-                m.wire(m.ports["in"], in__)
-            else:
-                m.wire(output, in__)
-            output = out__
-            seq_ = child.sequential((posedge, clk__))
-            seq_.add_stmt(out__.assign(in__))
-            outputs_.append(out__)
-        return outputs_
-
-    for i in range(num_child):
-        mod = Generator("mod", True)
-        mod.input("in", 4)
-        out_ = mod.output("out", 4)
-        clk = mod.clock("clk")
-        seq = mod.sequential((posedge, clk))
-        outputs = add_child(mod)
-        seq.add_stmt(out_.assign(reduce(lambda x, y: x + y, outputs)))
-        mods.append(mod)
-    parent = Generator("parent")
-    clk = parent.clock("clk")
-    in_ = parent.input("in", 4)
-    out = parent.output("out", 4)
-    for i, mod in enumerate(mods):
-        parent.add_child("mod{0}".format(i), mod)
-        parent.wire(mod.ports.clk, clk)
-        if i == 0:
-            continue
-        parent.wire(mod.ports["in"], mods[i - 1].ports.out)
-    parent.wire(mods[0].ports["in"], in_)
-    parent.wire(out, mods[-1].ports.out)
-    with tempfile.TemporaryDirectory() as temp:
-        debug_db = os.path.join(temp, "debug.db")
-        filename = os.path.join(temp, "test.sv")
-        verilog(parent, filename=filename, insert_debug_info=True,
-                debug_db_filename=debug_db)
-        conn = sqlite3.connect(debug_db)
-        c = conn.cursor()
-        c.execute("SELECT * FROM hierarchy")
-        mods = c.fetchall()
-        assert len(mods) == num_child_child * num_child + num_child
-        conn.close()
-
-
 def test_assert():
     from kratos import assert_
     mod = Generator("mod", True)
@@ -313,7 +195,7 @@ def test_assert():
         lines = c.fetchall()
         assert len(lines) == 2
         # they are only one line apart
-        assert abs(lines[0][2] - lines[1][2]) == 1
+        assert abs(lines[0][3] - lines[1][3]) == 1
         conn.close()
     # once we remove the assertion, it should not be there
     _kratos.passes.remove_assertion(mod.internal_generator)
@@ -337,8 +219,8 @@ def test_wire():
         c = conn.cursor()
         c.execute("SELECT * FROM breakpoint")
         assert len(c.fetchall()) == 1
-        c.execute("""SELECT variable.value FROM variable, context
-                     WHERE context.name = ? AND context.variable_id = variable.id""", "a")
+        c.execute("""SELECT variable.value FROM variable, context_variable
+                     WHERE context_variable.name = ? AND context_variable.variable_id = variable.id""", "a")
         v = int(c.fetchone()[0])
         assert v == a
         conn.close()
@@ -376,7 +258,7 @@ def test_inst_id():
             assert "breakpoint_trace (KRATOS_INSTANCE_ID, 32'h0);" in src
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
-        c.execute("SELECT * FROM instance_set")
+        c.execute("SELECT * FROM instance")
         res = c.fetchall()
         assert len(res) == 3
         conn.close()
@@ -387,7 +269,7 @@ def test_empty():
     mod = Generator("mod", True)
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
-        dump_external_database([mod], "dut", debug_db)
+        dump_external_database([mod], "mod", debug_db)
 
 
 def test_nested_scope():
@@ -440,7 +322,7 @@ def test_array_packed():
         c = conn.cursor()
         c.execute("SELECT variable.value, generator_variable.name FROM variable, generator_variable WHERE variable.id = generator_variable.variable_id")
         vars_ = c.fetchall()
-        c.execute("SELECT variable.value, context.name FROM variable, context WHERE variable.id = context.variable_id")
+        c.execute("SELECT variable.value, context_variable.name FROM variable, context_variable WHERE variable.id = context_variable.variable_id")
         vars_ += c.fetchall()
         correct_struct, correct_array, correct_self = False, False, False
         for value, name in vars_:

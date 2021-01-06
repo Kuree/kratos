@@ -37,14 +37,9 @@ public:
         std::map<std::pair<std::string, std::string>, std::pair<std::string, std::string>>;
 
     DebugDatabase() = default;
-    explicit DebugDatabase(std::string top_name) : top_name_(std::move(top_name)) {}
 
     void set_break_points(Generator *top);
     void set_break_points(Generator *top, const std::string &ext);
-
-    // these have to be called after unification happens
-    void set_generator_connection(Generator *top);
-    void set_generator_hierarchy(Generator *top);
 
     void set_variable_mapping(const std::map<Generator *, std::map<std::string, Var *>> &mapping);
     void set_variable_mapping(
@@ -60,13 +55,12 @@ private:
     std::map<Stmt *, std::pair<std::string, uint32_t>> stmt_mapping_;
     std::unordered_map<std::string, std::pair<Generator *, std::map<std::string, std::string>>>
         variable_mapping_;
-    ConnectionMap connection_map_;
-    std::vector<std::pair<std::string, Generator *>> hierarchy_;
     std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
     std::unordered_set<Generator *> generators_;
 
-    std::string top_name_ = "TOP";
     Context *context_ = nullptr;
+
+    void compute_generators(Generator *top);
 };
 
 }  // namespace kratos
