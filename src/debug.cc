@@ -275,6 +275,7 @@ void mock_hierarchy(Generator *top, const std::string &top_name) {
 }
 
 void DebugDatabase::compute_generators(Generator *top) {
+    top_ = top;
     GeneratorGraph g(top);
     auto generators = g.get_sorted_generators();
     for (auto *gen: generators) {
@@ -369,6 +370,9 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     }
     auto storage = hgdb::init_debug_db(filename);
     storage.sync_schema();
+
+    // compute breakpoint conditions
+    auto breakpoint_conditions = compute_enable_condition(top_);
     // insert tables
 
     // insert generator ids
@@ -391,8 +395,12 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             auto const &[fn, ln] = stmt_mapping_.at(stmt);
             auto const *gen = stmt->generator_parent();
             auto instance_id = gen_id_map.at(gen);
-            // TODO add enable condition
-            hgdb::store_breakpoint(storage, id, instance_id, fn, ln, 0, "");
+            std::string condition;
+            if (breakpoint_conditions.find(stmt) != breakpoint_conditions.end())
+                condition = breakpoint_conditions.at(stmt);
+            // we don't support column breakpoint since there is normally no such usage in
+            // Python
+            hgdb::store_breakpoint(storage, id, instance_id, fn, ln, 0, condition);
         }
     }
 

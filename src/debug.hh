@@ -58,7 +58,7 @@ private:
     std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
     std::unordered_set<Generator *> generators_;
 
-    Context *context_ = nullptr;
+    Generator *top_ = nullptr;
 
     void compute_generators(Generator *top);
 };
