@@ -1610,7 +1610,7 @@ std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_
 class EnableStmtVisitor : public IRVisitor {
 public:
     void visit(AssignStmt* stmt) override {
-        auto *left = stmt->left();
+        auto* left = stmt->left();
         auto str_value = get_enable_condition(left, stmt);
         if (!str_value.empty()) {
             values.emplace(stmt, str_value);
@@ -1619,7 +1619,7 @@ public:
     std::map<Stmt*, std::string> values;
 
 private:
-    static std::string get_enable_condition(Var* target, Stmt *stmt) {
+    static std::string get_enable_condition(Var* target, Stmt* stmt) {
         std::vector<std::string> str_values;
         IRNode* node = stmt;
         while (true) {
@@ -3075,7 +3075,8 @@ private:
         // get all the sources
         auto const& sources = var->sources();
         for (auto const& stmt : sources) {
-            if (stmt->assign_type() == AssignmentType::Blocking && has_var(stmt->right(), var)) {
+            if (stmt->assign_type() == AssignmentType::Blocking && has_var(stmt->right(), var) &&
+                stmt->parent()->ir_node_kind() == IRNodeKind::GeneratorKind) {
                 throw StmtException(::format("Combinational loop detected at {0} <- {1}",
                                              stmt->left()->to_string(), stmt->right()->to_string()),
                                     {stmt.get(), var});
