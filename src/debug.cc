@@ -27,6 +27,16 @@ public:
 
     void visit(ScopedStmtBlock *stmt) override { insert_statements(stmt); }
 
+    void visit(AssignStmt *stmt) override {
+        auto const *parent = stmt->parent();
+        if (parent->ir_node_kind() == IRNodeKind::GeneratorKind) {
+            auto const *p = reinterpret_cast<const Generator *>(parent);
+            if (p->debug) {
+                process_stmt(stmt);
+            }
+        }
+    }
+
 private:
     void insert_statements(StmtBlock *block) {
         auto *parent = block->generator_parent();
@@ -35,10 +45,14 @@ private:
             return;
 
         for (auto const &stmt : *block) {
-            uint32_t stmt_id = context_->max_stmt_id()++;
-            // set stmt id
-            stmt->set_stmt_id(stmt_id);
+            process_stmt(stmt.get());
         }
+    }
+
+    void process_stmt(Stmt *stmt) {
+        uint32_t stmt_id = context_->max_stmt_id()++;
+        // set stmt id
+        stmt->set_stmt_id(stmt_id);
     }
 
     Context *context_;
@@ -226,7 +240,7 @@ void DebugDatabase::compute_generators(Generator *top) {
     top_ = top;
     GeneratorGraph g(top);
     auto generators = g.get_sorted_generators();
-    for (auto *gen: generators) {
+    for (auto *gen : generators) {
         generators_.emplace(gen);
     }
 }
