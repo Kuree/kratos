@@ -33,65 +33,13 @@ private:
         if (!parent->debug)
             // we only insert statements to the ones that has debug turned on
             return;
-        std::vector<std::shared_ptr<Stmt>> new_blocks;
-        new_blocks.reserve(block->size() * 2);
 
         for (auto const &stmt : *block) {
             uint32_t stmt_id = context_->max_stmt_id()++;
-            // make a function call
-            auto bp_stmt = get_function_call_stmt(parent, stmt_id);
-            // FIXME: See #89
-            bp_stmt->set_parent(block);
-            new_blocks.emplace_back(bp_stmt);
-            // insert the normal one
-            new_blocks.emplace_back(stmt);
             // set stmt id
             stmt->set_stmt_id(stmt_id);
         }
-
-        // replace the content
-        block->set_stmts(new_blocks);
     }
-
-    std::shared_ptr<FunctionCallStmt> get_function_call_stmt(Generator *generator,
-                                                             uint32_t stmt_id) {
-        if (!generator->has_function(break_point_func_name)) {
-            // create the function in the generator
-            auto func = generator->dpi_function(break_point_func_name);
-            func->input(break_point_instance_id_arg, var_size_, false);
-            func->input(var_name_, var_size_, false);
-            func->set_port_ordering({{break_point_instance_id_arg, 0}, {break_point_func_arg, 1}});
-        }
-        auto &id_const = constant(stmt_id, var_size_);
-        auto i_id_const = generator->get_param(break_point_param_name);
-        if (!i_id_const) {
-            throw UserException(::format("{0} not found for {1}", break_point_param_name,
-                                         generator->handle_name()));
-        }
-        auto &var = generator->call(
-            break_point_func_name,
-            {{var_name_, id_const.shared_from_this()}, {break_point_instance_id_arg, i_id_const}},
-            false);
-        return std::make_shared<FunctionCallStmt>(var.as<FunctionCallVar>());
-    }
-
-    static StmtBlock *get_root_block(Stmt *stmt) {
-        if (stmt->type() == StatementType::Block) {
-            auto *block = reinterpret_cast<StmtBlock *>(stmt);
-            if (block->block_type() != StatementBlockType::Scope) {
-                return block;
-            }
-        }
-        auto *parent = stmt->parent();
-        if (parent->ir_node_kind() != IRNodeKind::StmtKind) {
-            throw InternalException("Non block statement's parent has to be a block statement");
-        }
-        auto *parent_stmt = reinterpret_cast<Stmt *>(parent);
-        return get_root_block(parent_stmt);
-    }
-
-    const std::string var_name_ = break_point_func_arg;
-    const uint32_t var_size_ = 32;
 
     Context *context_;
 };

@@ -32,7 +32,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
             output_dir: str = None,
             insert_debug_info: bool = False,
             insert_verilator_info: bool = False,
-            insert_break_on_edge: bool = False,
             check_flip_flop_always_ff: bool = True,
             remove_unused: bool = True,
             debug_db_filename: str = "",
@@ -93,8 +92,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("convert_continuous_stmt")
         pass_manager.add_pass("inject_instance_ids")
         pass_manager.add_pass("inject_debug_break_points")
-        if insert_break_on_edge:
-            pass_manager.add_pass("inject_clock_break_points")
         pass_manager.add_pass("inject_assert_fail_exception")
     if use_parallel:
         pass_manager.add_pass("hash_generators_parallel")
