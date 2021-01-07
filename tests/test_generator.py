@@ -2120,7 +2120,7 @@ def test_ssa_transform(check_gold):
         c = a
 
     mod.add_always(func, ssa_transform=True)
-    check_gold(mod, "test_ssa_transform", transform_ssa=True)
+    check_gold(mod, "test_ssa_transform", ssa_transform=True)
     # check if the local variable mapping is fixed
     # assign a_5 = (a_3 == 4'h4) ? a_3: a_4;
     # which corresponds to a = 5

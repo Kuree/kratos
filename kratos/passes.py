@@ -35,7 +35,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             check_flip_flop_always_ff: bool = True,
             remove_unused: bool = True,
             debug_db_filename: str = "",
-            transform_ssa: bool = False,
+            ssa_transform: bool = False,
             use_parallel: bool = True,
             track_generated_definition: bool = False,
             compile_to_verilog: bool = False):
@@ -51,7 +51,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     if remove_assertion:
         pass_manager.add_pass("remove_assertion")
     pass_manager.add_pass("realize_fsm")
-    if transform_ssa:
+    if ssa_transform:
         pass_manager.add_pass("ssa_transform_fix")
     if optimize_passthrough:
         pass_manager.add_pass("remove_pass_through_modules")
