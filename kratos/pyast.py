@@ -683,7 +683,7 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
 
     # need to add all the wires for each ref
     for v1, v2 in ssa.var_ref.items():
-        gen.wire(gen.vars[v1], gen.vars[v2])
+        gen.wire(gen.vars[v1], gen.vars[v2], no_fn_ln=True)
     return ast_tree
 
 

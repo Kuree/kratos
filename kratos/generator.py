@@ -712,7 +712,8 @@ class Generator(metaclass=GeneratorMeta):
     def wire(self, var_to, var_from,
              attributes: Union[List[_kratos.passes.Attribute],
                                _kratos.passes.Attribute] = None,
-             comment="", locals_=None, fn_ln=None, additional_frame=0):
+             comment="", locals_=None, fn_ln=None, additional_frame=0,
+             no_fn_ln=False):
         if self.is_cloned:
             if self.debug and locals_ is None:
                 locals_ = get_frame_local(2 + additional_frame)
@@ -750,7 +751,7 @@ class Generator(metaclass=GeneratorMeta):
         else:
             stmt = self.__assign(var_to, var_from)
 
-        if self.debug:
+        if self.debug and not no_fn_ln:
             if fn_ln is not None:
                 stmt.add_fn_ln(fn_ln)
             else:

@@ -322,9 +322,9 @@ def test_array_packed():
         vars_ += c.fetchall()
         correct_struct, correct_array, correct_self = False, False, False
         for value, name in vars_:
-            if value == "a[1][3]" and name == "aa.1.3":
+            if value == "mod.a[1][3]" and name == "aa.1.3":
                 correct_array = True
-            if value == "s.read" and name == "ss.read":
+            if value == "mod.s.read" and name == "ss.read":
                 correct_struct = True
             if "self.sss" in name:
                 correct_self = True
