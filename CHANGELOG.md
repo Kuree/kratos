@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.0.32] - 2021-01-07
+### Added
+- hgdb support!
+- SSA support. Off by default
+
+### Changed
+- Code refactoring based on the newest clang-tidy
+- Debug symbol table change due to the adoption of hgdb
+
+### Fixed
+- Fix a bug in combinational loop detection
+
 ## [0.0.31.2] - 2020-10-31
 ### Added
 - Add ternary eval to the sim function
