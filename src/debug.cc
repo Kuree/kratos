@@ -378,7 +378,6 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                                bool gen_var = false) {
         hgdb::Variable v;
         v.is_rtl = var_ != nullptr;
-        auto hierarchy_name = var_? ::format("{0}.", var_->generator()->instance_name): "";
 
         auto add_context_gen = [&](const std::string &name) {
             if (is_context_) {
@@ -404,7 +403,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                         var_id_mapping.end()) {
                         v.id = variable_count++;
-                        hgdb::store_variable(storage, v.id, hierarchy_name + v.value);
+                        hgdb::store_variable(storage, v.id, v.value);
                         var_id_mapping.emplace(
                             std::make_pair(std::make_tuple(handle_id_, new_name, v.value), v.id));
                     } else {
@@ -425,7 +424,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                         if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                             var_id_mapping.end()) {
                             v.id = variable_count++;
-                            hgdb::store_variable(storage, v.id, hierarchy_name + v.value);
+                            hgdb::store_variable(storage, v.id, v.value);
                             var_id_mapping.emplace(std::make_pair(
                                 std::make_tuple(handle_id_, new_name, v.value), v.id));
                         } else {
@@ -445,7 +444,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                         if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
                             var_id_mapping.end()) {
                             v.id = variable_count++;
-                            hgdb::store_variable(storage, v.id, hierarchy_name + v.value);
+                            hgdb::store_variable(storage, v.id, v.value);
                             var_id_mapping.emplace(std::make_pair(
                                 std::make_tuple(handle_id_, new_name, v.value), v.id));
                         } else {
@@ -461,7 +460,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                 if (var_id_mapping.find(std::make_tuple(handle_id_, name_, v.value)) ==
                     var_id_mapping.end()) {
                     v.id = variable_count++;
-                    hgdb::store_variable(storage, v.id, hierarchy_name + v.value);
+                    hgdb::store_variable(storage, v.id, v.value);
                     var_id_mapping.emplace(
                         std::make_pair(std::make_tuple(handle_id_, name_, v.value), v.id));
                 } else {
