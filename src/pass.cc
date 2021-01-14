@@ -1635,7 +1635,7 @@ private:
                     if (node == if_stmt->then_body().get()) {
                         str_values.emplace_back(test->to_string());
                     } else {
-                        str_values.emplace_back(::format("~({0})", test->to_string()));
+                        str_values.emplace_back(::format("{0} == 0", test->to_string()));
                     }
                 }
                 node = parent;
