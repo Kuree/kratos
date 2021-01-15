@@ -426,7 +426,7 @@ def test_ssa_debug():
 
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
-        verilog(mod, insert_debug_info=True, debug_db_filename=debug_db)
+        verilog(mod, insert_debug_info=True, debug_db_filename=debug_db, ssa_transform=True)
         # assert the line number tracking
         conn = sqlite3.connect(debug_db)
         c = conn.cursor()
@@ -434,6 +434,7 @@ def test_ssa_debug():
         c.execute("SELECT * FROM breakpoint WHERE line_num=?", (idx,))
         result = c.fetchall()
         assert len(result) == loop_size
+        assert "a_4" in result[0][-1]
         # check the context variable
         c.execute("SELECT * FROM context_variable WHERE context_variable.name = 'i'")
         result = c.fetchall()
