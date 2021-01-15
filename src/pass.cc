@@ -3238,6 +3238,24 @@ void remove_empty_block(Generator* top) {
     visitor.visit_root(top);
 }
 
+class TriggerConditionVisitor : public IRVisitor {
+public:
+    void visit(Var* var) override {
+        auto base_name = var->get_var_root_parent()->base_name();
+        values.emplace(base_name);
+    }
+
+    std::unordered_set<std::string> values;
+};
+
+std::string get_trigger_attribute(const std::shared_ptr<StmtBlock>& blk) {
+    TriggerConditionVisitor visitor;
+    visitor.visit_root(blk.get());
+    auto const& values = visitor.values;
+    if (values.empty()) return "";
+    return string::join(values.begin(), values.end(), " ");
+}
+
 class SSATransformFixVisitor : public IRVisitor {
 public:
     void visit(Generator* gen) override {
@@ -3266,6 +3284,7 @@ private:
         uint64_t current_scope = 1;
         std::unordered_map<uint64_t, SymbolMapping> symbol_mappings = {{current_scope, {}}};
         std::unordered_set<Stmt*> stmts;
+        auto trigger_str = get_trigger_attribute(blk);
         for (auto const& stmt : *blk) {
             if (stmt->type() != StatementType::Assign)
                 throw StmtException("Invalid SSA transform", {stmt.get()});
@@ -3305,6 +3324,12 @@ private:
             // just update the table name
             // update symbol after the scope since the left side hasn't showed up in scope yet
             symbol_mapping[target_scope_name] = left->to_string();
+
+            // set the trigger property
+            auto trigger_attribute = std::make_shared<Attribute>();
+            trigger_attribute->type_str = "ssa-trigger";
+            trigger_attribute->value_str = trigger_str;
+            stmt->add_attribute(trigger_attribute);
 
             // move the assignment to the global scope
             gen->add_stmt(stmt);

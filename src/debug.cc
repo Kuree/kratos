@@ -324,6 +324,15 @@ void DebugDatabase::set_stmt_context(kratos::Generator *top) {
     stmt_context_ = visitor.stmt_context();
 }
 
+std::string get_trigger_condition(const Stmt *stmt) {
+    for (auto const &attr : stmt->get_attributes()) {
+        if (attr->type_str == "ssa-trigger") {
+            return attr->value_str;
+        }
+    }
+    return "";
+}
+
 void DebugDatabase::save_database(const std::string &filename, bool override) {
     if (override) {
         if (fs::exists(filename)) {
@@ -331,7 +340,6 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
         }
     }
     auto storage = hgdb::init_debug_db(filename);
-    storage.sync_schema();
 
     // compute breakpoint conditions
     auto breakpoint_conditions = compute_enable_condition(top_);
@@ -360,9 +368,10 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             std::string condition;
             if (breakpoint_conditions.find(stmt) != breakpoint_conditions.end())
                 condition = breakpoint_conditions.at(stmt);
+            auto trigger_str = get_trigger_condition(stmt);
             // we don't support column breakpoint since there is normally no such usage in
             // Python
-            hgdb::store_breakpoint(storage, id, instance_id, fn, ln, 0, condition);
+            hgdb::store_breakpoint(storage, id, instance_id, fn, ln, 0, condition, trigger_str);
         }
     }
 
