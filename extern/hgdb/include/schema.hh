@@ -79,6 +79,13 @@ struct Instance {
      * and then get the proper full path name
      */
     std::string name;
+    /**
+     * Annotation on the generator instance. Useful if the compiler wants to pass information
+     * to other tools that consuming the information. Leave it as an empty string if not used.
+     * hgdb will not read/use this field, so how this annotation is formatted depends on the
+     * agreement between the compiler and tools that consume this information
+     */
+    std::string annotation;
 };
 
 /**
@@ -110,7 +117,50 @@ struct Variable {
     uint32_t id;
     /**
      * If the variable represents a RTL signal, it is the full hierarchy name or the name within
-     * the scope of its parent module, otherwise it is the string value
+     * the scope of its parent instance, otherwise it is the string value
+     *
+     * Since we don't store types in the variable, every variable here has to be a scalar value.
+     * Proper flattening required when storing variables. Notice that this requires no RTL
+     * change.
+     * If you have an array named array_1, with dimension [3:0][1:0], you need to store it in the
+     * following ways (either one works)
+     * 1. array_1.0.0
+     *    array_1.0.1
+     *    array_1.0.2
+     *    ...
+     *    array_1.1.0
+     *    ...
+     * 2. array_1[0][[0]
+     *    array_1[0][1]
+     *    ...
+     *    array_1[1[0]
+     *
+     * If you have a packed struct, you need to store in the similar fashion. Nested struct is
+     * also supported.
+     *
+     * Notice that there are several interesting use cases
+     * 1. If the generator instance referring to this variable is several hierarchy above
+     *    this RTL variable, you can prefix the missing hierarchy in the value.
+     *    e.g.
+     *      full name of the value is top.dut.mod_a.b
+     *      generator instance name is top.dut
+     *      then the value is mod_a.b
+     * 2. Since variable does not point to any instance, it can be re-used. Think it as
+     *    part of the module definition.
+     *    e.g.
+     *      module mod;
+     *        logic a;
+     *      endmodule
+     *
+     *      mod mod1();
+     *      mod mod2();
+     *
+     *      We can have a single variable with value a, and two generator variables, which point
+     *      to variable a
+     *
+     *      Doing so reduce the storage size. However, unless you have hundreds of thousands
+     *      instances, it won't impact storage size and query speed that much due to the
+     *      optimization from SQLite
      */
     std::string value;
     /**
@@ -125,6 +175,33 @@ struct Variable {
 struct ContextVariable {
     /**
      * Variable name in the source language
+     *
+     * Since we only store scalar type, if you want to store a complex data type such as
+     * bundle or array, you need to flatten the variable name when interacting with the symbol
+     * table. No RTL change required.
+     *
+     * If you want to store an array, array_1, with dimension [3:0][1:0], you can store it in
+     * the following ways:
+     * 1. array_1.0.0
+     *    array_1.0.1
+     *    array_1.0.2
+     *    ...
+     *    array_1.1.0
+     *    ...
+     * 2. array_1[0][[0]
+     *    array_1[0][1]
+     *    ...
+     *    array_1[1[0]
+     *
+     * Similarly if you have a struct or bundle, struct_value, you can store it as
+     *   struct_value.field_1
+     *   struct_value.field_2
+     *
+     * Nested hierarchy is also supported (you can mix arrays with structs)
+     *
+     * Notice that we *do not* support slicing, even though it may result in a scalar variable.
+     * You need to change RTL to create an extra net to wire with your slice value and store
+     * the new net instead.
      */
     std::string name;
     /**
@@ -143,6 +220,10 @@ struct ContextVariable {
 struct GeneratorVariable {
     /**
      * Generator variable name, e.g. class attribute/field names
+     *
+     * The naming convention is the same as the ContextVariable. You should also check out
+     * the the usage cases in the Variable table if you want to have more flexibility when
+     * creating generator variables.
      */
     std::string name;
     /**
@@ -153,9 +234,16 @@ struct GeneratorVariable {
      * Variable ID associated with the generator variable
      */
     std::unique_ptr<uint32_t> variable_id;
+    /**
+     * Annotation on the generator variable. Useful if the compiler wants to pass information
+     * to other tools that consuming the information. Leave it as an empty string if not used.
+     * hgdb will not read/use this field, so how this annotation is formatted depends on the
+     * agreement between the compiler and tools that consume this information
+     */
+    std::string annotation;
 };
 
-/*
+/**
  * Annotation on the symbol table. Can be used to store metadata
  * information or pass extra design information to the debugger
  *
@@ -190,7 +278,8 @@ auto inline init_debug_db(const std::string &filename) {
                    make_column("trigger", &BreakPoint::trigger),
                    foreign_key(&BreakPoint::instance_id).references(&Instance::id)),
         make_table("instance", make_column("id", &Instance::id, primary_key()),
-                   make_column("name", &Instance::name)),
+                   make_column("name", &Instance::name),
+                   make_column("annotation", &Instance::annotation)),
         make_table("scope", make_column("scope", &Scope::id, primary_key()),
                    make_column("breakpoints", &Scope::breakpoints)),
         make_table("variable", make_column("id", &Variable::id, primary_key()),
@@ -204,6 +293,7 @@ auto inline init_debug_db(const std::string &filename) {
         make_table("generator_variable", make_column("name", &GeneratorVariable::name),
                    make_column("instance_id", &GeneratorVariable::instance_id),
                    make_column("variable_id", &GeneratorVariable::variable_id),
+                   make_column("annotation", &GeneratorVariable::annotation),
                    foreign_key(&GeneratorVariable::instance_id).references(&Instance::id),
                    foreign_key(&GeneratorVariable::variable_id).references(&Variable::id)),
         make_table("annotation", make_column("name", &Annotation::name),
@@ -230,8 +320,9 @@ inline void store_breakpoint(DebugDatabase &db, uint32_t id, uint32_t instance_i
     // NOLINTNEXTLINE
 }
 
-inline void store_instance(DebugDatabase &db, uint32_t id, const std::string &name) {
-    db.replace(Instance{.id = id, .name = name});
+inline void store_instance(DebugDatabase &db, uint32_t id, const std::string &name,
+                           const std::string &annotation = "") {
+    db.replace(Instance{.id = id, .name = name, .annotation = annotation});
 }
 
 inline void store_scope(DebugDatabase &db, uint32_t id, const std::string &breakpoints) {
@@ -268,10 +359,12 @@ inline void store_context_variable(DebugDatabase &db, const std::string &name,
 }
 
 inline void store_generator_variable(DebugDatabase &db, const std::string &name,
-                                     uint32_t instance_id, uint32_t variable_id) {
+                                     uint32_t instance_id, uint32_t variable_id,
+                                     const std::string &annotation = "") {
     db.replace(GeneratorVariable{.name = name,
                                  .instance_id = std::make_unique<uint32_t>(instance_id),
-                                 .variable_id = std::make_unique<uint32_t>(variable_id)});
+                                 .variable_id = std::make_unique<uint32_t>(variable_id),
+                                 .annotation = annotation});
     // NOLINTNEXTLINE
 }
 
