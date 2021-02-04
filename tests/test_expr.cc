@@ -439,3 +439,11 @@ TEST(port, connected) {  // NOLINT
     auto to_port = *connected_to.begin();
     EXPECT_EQ(to_port, a2.shared_from_this());
 }
+
+TEST(expr, large_width) {   // NOLINT
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 1024);
+
+    EXPECT_NO_THROW(a + Const(1, 1024, false));
+}

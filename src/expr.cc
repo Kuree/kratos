@@ -836,7 +836,7 @@ Const::Const(Generator *generator, int64_t value, uint32_t width, bool is_signed
         std::memcpy(&min, &temp, sizeof(min));
         throw UserException(::format("{0} is smaller than the minimum value ({1}) given width {2}",
                                      value, min, width));
-    } else if (is_legal == ConstantLegal::Big) {
+    } else if (is_legal == ConstantLegal::Big && width <= 64) {
         uint64_t max = (1ull << width) - 1;
         uint64_t unsigned_value;
         std::memcpy(&unsigned_value, &value, sizeof(unsigned_value));
