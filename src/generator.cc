@@ -873,8 +873,9 @@ std::shared_ptr<Generator> Generator::clone() {
     auto port_names = get_port_names();
     for (auto const &port_name : port_names) {
         auto port = get_port(port_name);
-        generator->port(port->port_direction(), port_name, port->var_width(), port->size(),
+        auto &p = generator->port(port->port_direction(), port_name, port->var_width(), port->size(),
                         port->port_type(), port->is_signed());
+        p.set_is_packed(port->is_packed());
     }
     // also parameters
     for (auto const &[param_name, param] : params_) {
