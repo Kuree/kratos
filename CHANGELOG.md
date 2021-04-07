@@ -6,7 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.32.3] - 2020-01-28
+## [0.0.32.4] - 2021-04-06
+### Fixed
+- fix value bound check on large const numbers
+- fix a bug where cloned generators lose their port packed attribute
+
+## [0.0.32.3] - 2021-01-28
 ### Changed
 - Updated schema for hgdb
 
