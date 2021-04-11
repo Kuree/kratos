@@ -858,7 +858,7 @@ Const::ConstantLegal Const::is_legal(int64_t value, uint32_t width, bool is_sign
         std::memcpy(&max, &temp, sizeof(max));
         if (value > max) return Const::ConstantLegal::Big;
     } else {
-        uint64_t max = (1ull << width) - 1;
+        uint64_t max = width == 64 ? std::numeric_limits<uint64_t>::max() : (1ull << width) - 1;
         uint64_t unsigned_value;
         std::memcpy(&unsigned_value, &value, sizeof(unsigned_value));
         if (unsigned_value > max) return Const::ConstantLegal::Big;
