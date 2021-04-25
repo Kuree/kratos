@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.33] - 2021-04-25
+### Fixed
+- Fix consteval corner cases
+
+### Added
+- Python3.9 support
+
 ## [0.0.32.4] - 2021-04-06
 ### Fixed
 - fix value bound check on large const numbers
