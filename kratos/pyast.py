@@ -124,16 +124,18 @@ class StaticElaborationNodeForVisitor(ast.NodeTransformer):
             self.local_env[target.id] = 0
             self.global_env = global_env
 
-        def visit_Subscript(self, node: ast.Index):
+        def visit_Subscript(self, node: ast.Subscript):
             if not self.legal:
                 return
             s = node.slice
             has_var = StaticElaborationNodeForVisitor.HasVar(self.target.id)
             has_var.visit(s)
             if has_var.has_target:
-                if not isinstance(s, ast.Index):
-                    self.legal = False
-                    return
+                # python changed its syntax ast
+                if sys.version_info.minor < 9:
+                    if not isinstance(s, ast.Index):
+                        self.legal = False
+                        return
                 # make sure that the value is a kratos var
                 value_src = astor.to_source(node.value)
                 try:

@@ -17,8 +17,8 @@ environment:
 
 # scripts that are called at very beginning, before repo cloning
 init:
-  # if it's not tagged, only run py37
-  - ps: If (($env:APPVEYOR_REPO_TAG -notmatch "true" ) -and ($env:PYTHON -ne "37"))  {Exit-AppveyorBuild}
+  # if it's not tagged, only run py39
+  - ps: If (($env:APPVEYOR_REPO_TAG -notmatch "true" ) -and ($env:PYTHON -ne "39"))  {Exit-AppveyorBuild}
   - cmd: cmake --version
 
 install:
