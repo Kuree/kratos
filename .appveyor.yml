@@ -13,6 +13,7 @@ environment:
     - PYTHON: "36"
     - PYTHON: "37"
     - PYTHON: "38"
+    - PYTHON: "39"
 
 # scripts that are called at very beginning, before repo cloning
 init:
