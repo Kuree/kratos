@@ -760,7 +760,8 @@ private:
             // the variable
             if (sources.size() == 1) {
                 const auto& stmt = *sources.begin();
-                if (stmt->left() == port) {
+                if (stmt->parent()->ir_node_kind() == IRNodeKind::GeneratorKind &&
+                    stmt->left() == port) {
                     // the sink has to be it self
                     auto* src = stmt->right();
                     if (correct_src_type(src, generator) ||
@@ -829,7 +830,8 @@ private:
                 } else {
                     correct_src_type_ = true;
                 }
-                if (correct_src_type_ && src->generator() == generator->parent() &&
+                if (stmt->parent()->ir_node_kind() == IRNodeKind::GeneratorKind &&
+                    correct_src_type_ && src->generator() == generator->parent() &&
                     stmt->right() == port) {
                     // remove it from the parent generator
                     stmt->remove_from_parent();
