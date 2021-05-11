@@ -70,7 +70,7 @@ Var *SimulationRun::select(const std::string &name) {
     auto *var = gen->get_var(var_name).get();
     if (!var) return nullptr;
 
-    if (var->is_packed()) {
+    if (var->is_packed() && (var->size().size() > 1 || var->size()[0] > 1)) {
         throw InternalException("Packed struct not supported yet");
     }
     // get index, if any

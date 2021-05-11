@@ -1544,7 +1544,9 @@ TEST(codegen, param_size_single_module) { // NOLINT
 
     auto &param = mod.parameter("P", 5);
     auto &in = mod.port(PortDirection::In, "in", 5, 3);
+    in.set_is_packed(false);
     auto &in2 = mod.port(PortDirection::In, "in2", 6, {3, 2});
+    in2.set_is_packed(false);
     // create a slice
     in[2];
     // this should be an exception
@@ -1570,11 +1572,13 @@ TEST(codegen, param_size_nested_module) {   // NOLINT
     // c_p has to have value
     c_p.set_value(1);
     auto &c_in = child.port(PortDirection::In, "in", 16, 32);
+    c_in.set_is_packed(false);
     c_in.set_size_param(0, &c_p);
 
     auto &parent = c.generator("parent");
     auto &p_p = parent.parameter("P", 32);
     auto &p_in = parent.port(PortDirection::In, "in", 16, 32);
+    p_in.set_is_packed(false);
     p_p.set_value(2);
     p_in.set_size_param(0, &p_p);
 
@@ -1600,6 +1604,7 @@ TEST(codegen, copy_port_definition) {   // NOLINT
     // c_p has to have value
     c_p.set_value(1);
     auto &c_in = child.port(PortDirection::In, "in", 16, 32);
+    c_in.set_is_packed(false);
     c_in.set_size_param(0, &(c_p * constant(2, 16)));
 
     auto &parent = c.generator("parent");

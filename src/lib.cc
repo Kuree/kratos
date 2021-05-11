@@ -33,6 +33,7 @@ void SRAM::init_sram() {
     init_clock();
     // register array
     data_ = var("data_array", data_width(), 1u << addr_width(), false).shared_from_this();
+    data_->set_is_packed(false);
 }
 
 SinglePortSRAM::SinglePortSRAM(kratos::Context *context, const std::string &stub_name,
@@ -136,6 +137,7 @@ SinglePortSRAM::SinglePortSRAM(kratos::Context *context, const std::string &stub
     // output array
     // num_sram array seems to be wrong
     auto &Q_array = var("Q_array", data_width_, num_sram);
+    Q_array.set_is_packed(false);
     add_stmt(output_data_->assign(Q_array[output_select.shared_from_this()]));
 
     // generate a list of srams

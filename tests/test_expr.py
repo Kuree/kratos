@@ -131,6 +131,11 @@ def test_packed_unpacked():
     except _kratos.exception.StmtException:
         assert True
 
+    # test for slices
+    e = mod.var("e", 2, size=2, packed=True)
+    e_0 = e[0]
+    assert e_0.is_packed
+
 
 def test_md_array():
     mod = Generator("mod")
@@ -196,5 +201,4 @@ def test_lshift():
 
 
 if __name__ == "__main__":
-    test_lshift()
-
+    test_packed_unpacked()

@@ -329,12 +329,11 @@ TEST(expr, md_array) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 16, {4, 2});
+    a.set_is_packed(false);
     EXPECT_EQ(a.size()[0], 4);
     EXPECT_EQ(a.size()[1], 2);
     auto &b = mod.var("b", 16, {4, 2});
     auto &c = mod.var("c", 16, {4, 2});
-    b.set_is_packed(true);
-    c.set_is_packed(true);
     // mixture packed and unpacked
     EXPECT_THROW(a.assign(b), StmtException);
     EXPECT_THROW(a[0].assign(b[0]), StmtException);
@@ -405,8 +404,8 @@ TEST(expr, packed) {  // NOLINT
     Context context;
     auto &mod = context.generator("mod");
     auto &a = mod.var("a", 5, 5);
-    a.set_is_packed(true);
     auto &b = mod.var("b", 5, 5);
+    b.set_is_packed(false);
     EXPECT_THROW(a + b, VarException);
 }
 

@@ -255,7 +255,7 @@ protected:
     // raw type parametrization
     Param *raw_type_param_ = nullptr;
 
-    bool is_packed_ = false;
+    bool is_packed_ = true;
 
     Generator *generator_;
 

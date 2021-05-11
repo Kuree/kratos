@@ -465,16 +465,16 @@ VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
         // the wire, which means we need to count the number of size decreases
         // this is the actual slice
         var_width_ = high - low + 1;
-        is_packed_ = false;
+        is_packed_ = parent->is_packed();
     } else if (parent->size().size() == 1 && parent->size().front() == 1 && dropped_dim_size1) {
         // need to keep the var width calculation correct
         var_width_ = parent->var_width();
-        is_packed_ = false;
+        is_packed_ = true;
     } else {
         if (high == low) {
             if (parent->size().size() == 1) {
                 size_ = {1};
-                is_packed_ = false;
+                is_packed_ = true;
             } else {
                 size_ = std::vector<uint32_t>(parent->size().begin() + 1, parent->size().end());
                 is_packed_ = parent->is_packed();
@@ -1161,7 +1161,7 @@ VarExtend::VarExtend(const std::shared_ptr<Var> &var, uint32_t width)
     var_width_ = width;
     is_signed_ = parent_->is_signed();
     if (parent_->size().size() > 1 || parent_->size().front() > 1 ||
-        (parent_->is_packed() && parent_->type() != VarType::ConstValue)) {
+        (parent_->explicit_array() && parent_->type() != VarType::ConstValue)) {
         throw VarException(::format("Cannot extend an array ({0})", parent_->to_string()),
                            {parent_});
     }
