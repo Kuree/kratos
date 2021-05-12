@@ -5,7 +5,7 @@ from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
 from .passes import Attribute, verilog, clear_context
 from .util import clog2, reduce_add, reduce_and, reduce_mul, reduce_or, \
     concat, ext, mux, ternary, signed, const, comment, unsigned, create_stub, \
-    resize
+    resize, clock_en
 
 from .ports import PortBundle
 from .tb import TestBench, assert_, delay, assume, cover

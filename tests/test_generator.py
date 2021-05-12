@@ -1133,7 +1133,7 @@ def test_symbol_table():
 
 
 def test_cast():
-    from kratos.util import clock
+    from kratos.util import clock, clock_en
 
     class Mod1(Generator):
         def __init__(self):
@@ -1158,6 +1158,9 @@ def test_cast():
             super().__init__("mod")
             self.v = self.var("v", 1)
             clk = clock(self.v)
+            cn_var = self.var("cn", 1)
+            cn = self.output("cn_out", 1, PortType.ClockEnable)
+            self.add_stmt(cn.assign(clock_en(cn_var)))
             # only procedural allowed
             seq = self.sequential((posedge, clock(self.v)))
             seq.add_stmt(self.output("out", 1).assign(const(1, 1)))
