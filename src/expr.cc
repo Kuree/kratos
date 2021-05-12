@@ -941,6 +941,9 @@ void VarCasted::set_target_width(uint32_t width) {
 }
 
 void VarCasted::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_var_->add_sink(stmt); }
+void VarCasted::add_source(const std::shared_ptr<AssignStmt> &stmt) {
+    parent_var_->add_source(stmt);
+}
 
 std::shared_ptr<Var> Var::cast(VarCastType cast_type) {
     if (cast_type == VarCastType::Signed && is_signed_) {

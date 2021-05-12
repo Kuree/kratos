@@ -281,6 +281,7 @@ public:
     Generator *generator() const override { return parent_var_->generator(); }
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
     void set_parent(Var *parent) { parent_var_ = parent; }
 
     const Var *get_var_root_parent() const override { return parent_var_->get_var_root_parent(); }
