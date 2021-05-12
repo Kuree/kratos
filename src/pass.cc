@@ -791,12 +791,13 @@ private:
             }
             Var* var = parent->get_var(new_name).get();
             // be careful about the port type. if it's special type, it needs properly casted
-            if (port->port_type() == PortType::Clock) {
-                var = var->cast(VarCastType::Clock).get();
-            } else if (port->port_type() == PortType::AsyncReset) {
-                var = var->cast(VarCastType::AsyncReset).get();
-            } else if (port->port_type() == PortType::Reset) {
-                var = var->cast(VarCastType::Reset).get();
+            const static std::unordered_map<PortType, VarCastType> cast_maps = {
+                {PortType::Clock, VarCastType::Clock},
+                {PortType::AsyncReset, VarCastType::AsyncReset},
+                {PortType::Reset, VarCastType::Reset},
+                {PortType::ClockEnable, VarCastType::ClockEnable}};
+            if (cast_maps.find(port->port_type()) != cast_maps.end()) {
+                var = var->cast(cast_maps.at(port->port_type())).get();
             }
             if (parent->debug) {
                 // need to copy over the changes over
