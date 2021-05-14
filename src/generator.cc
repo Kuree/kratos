@@ -865,7 +865,12 @@ void Generator::unwire(Var &var1, Var &var2) {
             }
         }
     }
-    if (target) remove_stmt(target);
+    if (target) {
+        auto assign_stmt = target->as<AssignStmt>();
+        assign_stmt->left()->remove_source(assign_stmt);
+        assign_stmt->right()->remove_sink(assign_stmt);
+        remove_stmt(target);
+    }
 }
 
 std::shared_ptr<Generator> Generator::clone() {
