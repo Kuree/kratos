@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.33.1] - 2021-05-14
+### Added
+- Add clk_en cast
+
+### Changed
+- vars are now packed by default in C++
+
+### Fixed
+- Fix pyast logic with python3.9+
+- fix port decuople logic that moves wire connection inside a stmt block
+- Fix a bug where var cast won't pass sources to parent
+
 ## [0.0.33] - 2021-04-25
 ### Fixed
 - Fix consteval corner cases
