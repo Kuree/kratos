@@ -389,6 +389,12 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
                 }
                 var.name = value;
                 gen->reindex_vars();
+                if (gen->debug) {
+                    auto fn_ln = get_fn_ln(1);
+                    if (fn_ln) {
+                        var.fn_name_ln.emplace_back(*fn_ln);
+                    }
+                }
             })
         .def_property(
             "width", [](Var &var) { return var.var_width(); },
