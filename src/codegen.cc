@@ -1259,6 +1259,13 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
     return result;
 }
 
+void copy_attrs(const Var &src, Var &target) {
+    auto const &attributes = src.get_attributes();
+    for (auto const &attr: attributes) {
+        target.add_attribute(attr);
+    }
+}
+
 Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_name) {
     auto& gen = top->context()->generator(wrapper_name);
     gen.add_child_generator(top->instance_name, top->shared_from_this());
@@ -1281,6 +1288,7 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
             } else {
                 gen.add_stmt(new_port.assign(p, AssignmentType::Blocking));
             }
+            copy_attrs(*p, new_port);
         } else {
             // need to flatten the array
             auto slices = get_flatten_slices(p.get());
@@ -1299,6 +1307,7 @@ Generator& create_wrapper_flatten(Generator* top, const std::string& wrapper_nam
                     gen.add_stmt(
                         new_port.assign(slice_port->shared_from_this(), AssignmentType::Blocking));
                 }
+                copy_attrs(*p, new_port);
             }
         }
     }
