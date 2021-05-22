@@ -162,13 +162,13 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def(
             "__lshift__",
             [](const Var &left, const int64_t &right) -> Expr & {
-              return left << convert_int_to_const(left, right);
+                return left << convert_int_to_const(left, right);
             },
             py::return_value_policy::reference)  // NOLINT
         .def(
             "__lshift__",
             [](const int64_t &left, Var &right) -> Expr & {
-              return convert_int_to_const(left, right) << right;
+                return convert_int_to_const(left, right) << right;
             },
             py::return_value_policy::reference)  // NOLINT
         .def(
@@ -378,7 +378,18 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("type", &Var::type)
         .def("concat", &Var::concat, py::return_value_policy::reference, py::arg("var"))
         .def("extend", &Var::extend, py::return_value_policy::reference, py::arg("width"))
-        .def_readwrite("name", &Var::name)
+        .def_property(
+            "name", [](const Var &var) { return var.name; },
+            [](Var &var, const std::string &value) {
+                if (var.name == value) return;
+                auto *gen = var.generator();
+                if (gen->has_var(value)) {
+                    throw UserException(
+                        fmt::format("{0} already exists in {1}", value, gen->instance_name));
+                }
+                var.name = value;
+                gen->reindex_vars();
+            })
         .def_property(
             "width", [](Var &var) { return var.var_width(); },
             [](Var &var, uint32_t width) {

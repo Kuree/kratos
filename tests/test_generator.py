@@ -2162,6 +2162,23 @@ def test_enable_condition_always_ff():
     assert len(enable_map) == 2
 
 
+def test_var_rename():
+    import _kratos
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+    b = mod.input("b", 1)
+    a.name = "c"
+    b.name = "d"
+    assert "c" in mod.vars
+    assert "a" not in mod.vars
+    assert "c" == a.name
+    try:
+        a.name = "d"
+        assert False
+    except _kratos.exception.UserException:
+        pass
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
     test_ssa_transform(check_gold_fn)

@@ -107,6 +107,7 @@ public:
     bool has_var(const std::string &var_name) { return vars_.find(var_name) != vars_.end(); }
     void remove_port(const std::string &port_name);
     void rename_var(const std::string &old_name, const std::string &new_name);
+    void reindex_vars();
     void add_call_var(const std::shared_ptr<FunctionCallVar> &var);
     const inline std::map<std::string, std::shared_ptr<Param>> &get_params() const {
         return params_;
@@ -323,4 +324,4 @@ private:
 
 }  // namespace kratos
 
-#endif  // KRATOS_MODULE_HH22
+#endif  // KRATOS_MODULE_HH

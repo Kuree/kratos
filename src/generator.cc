@@ -584,6 +584,23 @@ void Generator::rename_var(const std::string &old_name, const std::string &new_n
     vars_.insert(std::move(handle));
 }
 
+void Generator::reindex_vars() {
+    // this is a little bit expensive in terms of computation
+    std::map<std::string, std::shared_ptr<Var>> vars;
+    std::set<std::string> ports;
+
+    for (auto const &[n_, var] : vars_) {
+        auto const &name_ = var->name;
+        vars.emplace(name_, var);
+        if (var->type() == VarType::PortIO) {
+            ports_.emplace(name_);
+        }
+    }
+
+    vars_ = vars;
+    ports_ = ports;
+}
+
 void Generator::add_call_var(const std::shared_ptr<FunctionCallVar> &var) {
     calls_.emplace(var);
     var->set_generator(this);
@@ -878,8 +895,8 @@ std::shared_ptr<Generator> Generator::clone() {
     auto port_names = get_port_names();
     for (auto const &port_name : port_names) {
         auto port = get_port(port_name);
-        auto &p = generator->port(port->port_direction(), port_name, port->var_width(), port->size(),
-                        port->port_type(), port->is_signed());
+        auto &p = generator->port(port->port_direction(), port_name, port->var_width(),
+                                  port->size(), port->port_type(), port->is_signed());
         p.set_is_packed(port->is_packed());
     }
     // also parameters
