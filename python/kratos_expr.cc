@@ -396,6 +396,12 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
                     }
                 }
             })
+        .def("rename", [](Var &var, const std::string &name) {
+            // this is for pass usage only. need to reindex the variables
+            // once you're done
+            // maybe refactor how the IR visits vars?
+            var.name = name;
+        })
         .def_property(
             "width", [](Var &var) { return var.var_width(); },
             [](Var &var, uint32_t width) {

@@ -34,7 +34,7 @@ def test_ir_port(check_gold):
                 if isinstance(node, Port):
                     # rename the output port
                     if node.name == "out":
-                        node.name = "test"
+                        node.rename("test")
 
         visitor = Visitor()
         visitor.visit_root(generator)
