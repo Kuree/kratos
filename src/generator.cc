@@ -1115,10 +1115,10 @@ void Generator::remove_var(const std::string &var_name) {
     }
     auto var = vars_.at(var_name);
     if (!var->sources().empty()) {
-        throw UserException(::format("{0} still has source connection(s)"));
+        throw UserException(::format("{0} still has source connection(s)", var->name));
     }
     if (!var->sinks().empty()) {
-        throw UserException(::format("{0} still has sink connection(s)"));
+        throw UserException(::format("{0} still has sink connection(s)", var->name));
     }
 
     vars_.erase(var_name);

@@ -3395,6 +3395,50 @@ void change_property_into_stmt(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
+class MergeConstPortVisitor : public IRVisitor {
+    void visit(Generator* generator) override {
+        // scan each var that's one source and one sink, where the source is a constant
+        // and the sink is a child generator instance input port
+        auto const vars = generator->get_vars();
+        std::set<std::string> vars_to_remove;
+        std::set<std::shared_ptr<Stmt>> stmts_to_remove;
+
+        for (auto const& var_name : vars) {
+            auto const& var = generator->get_var(var_name);
+            if (var->type() == VarType::Base && var->sources().size() == 1 &&
+                var->sinks().size() == 1) {
+                auto source_stmt = *(var->sources().begin());
+                auto sink_stmt = *(var->sinks().begin());
+                auto* source_from = source_stmt->right();
+                auto* sink_to = sink_stmt->left();
+                if (source_from->type() == VarType::ConstValue &&
+                    sink_to->type() == VarType::PortIO &&
+                    sink_to->generator()->parent() == generator) {
+                    sink_to->clear_sources(false);
+                    generator->add_stmt(sink_to->assign(*source_from, AssignmentType::Blocking));
+                    var->remove_sink(sink_stmt);
+                    var->remove_source(source_stmt);
+                    stmts_to_remove.emplace(sink_stmt);
+                    stmts_to_remove.emplace(source_stmt);
+                    vars_to_remove.emplace(var_name);
+                }
+            }
+        }
+
+        for (auto const& var_name : vars_to_remove) {
+            generator->remove_var(var_name);
+        }
+        for (auto const& stmt : stmts_to_remove) {
+            generator->remove_stmt(stmt);
+        }
+    }
+};
+
+void merge_const_port_assignment(Generator* top) {
+    MergeConstPortVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
 class GeneratorVarVisitor : public IRVisitor {
 public:
     explicit GeneratorVarVisitor(bool registers_only) : registers_only_(registers_only) {}
@@ -3540,6 +3584,8 @@ void PassManager::register_builtin_passes() {
     register_pass("propagate_scope_variable", &propagate_scope_variable);
 
     register_pass("change_property_into_stmt", &change_property_into_stmt);
+
+    register_pass("merge_const_port_assignment", &merge_const_port_assignment);
 
     // TODO:
     //  add inline pass

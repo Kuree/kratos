@@ -60,6 +60,7 @@ void init_pass(py::module &m) {
         .def("check_flip_flop_always_ff", &check_flip_flop_always_ff)
         .def("check_combinational_loop", &check_combinational_loop)
         .def("merge_if_block", &merge_if_block)
+        .def("merge_const_port_assignment", &merge_const_port_assignment)
         .def("find_driver_signal", &find_driver_signal)
         .def("extract_register_names", &extract_register_names)
         .def("extract_var_names", &extract_var_names)

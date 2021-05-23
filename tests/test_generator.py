@@ -2185,6 +2185,17 @@ def test_var_rename():
         pass
 
 
+def test_merge_const_port_assignment():
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+    child = Generator("child")
+    b = child.input("b", 1)
+    mod.add_child("child", child, b=a)
+    mod.add_stmt(a.assign(1))
+    v = verilog(mod)["mod"]
+    assert ".b(1'h1)" in v
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
     test_wrapper_flatten_generator(check_gold_fn)
