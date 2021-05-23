@@ -379,6 +379,7 @@ void Generator::add_function(const std::shared_ptr<FunctionStmtBlock> &func) {
 }
 
 IRNode *Generator::get_child(uint64_t index) {
+    if (is_external_) return nullptr;
     if (index < stmts_count()) {
         return stmts_[index].get();
     } else if (index < stmts_count() + funcs_.size()) {
@@ -462,6 +463,7 @@ void Generator::remove_child_generator(const std::shared_ptr<Generator> &child) 
 
 std::vector<std::shared_ptr<Generator>> Generator::get_child_generators() {
     std::vector<std::shared_ptr<Generator>> result;
+    if (is_external_) return result;
     result.reserve(children_.size());
     for (auto const &n : children_names_) {
         result.emplace_back(children_.at(n));

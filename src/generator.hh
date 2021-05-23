@@ -167,7 +167,7 @@ public:
     // AST stuff
     void accept(IRVisitor *visitor) override;
     uint64_t inline child_count() override {
-        return stmts_count() + funcs_.size() + get_child_generator_size();
+        return is_external_? 0: stmts_count() + funcs_.size() + get_child_generator_size();
     }
     IRNode *get_child(uint64_t index) override;
 
@@ -187,7 +187,7 @@ public:
     void set_is_stub(bool value) { is_stub_ = value; }
 
     // if imported from verilog or specified
-    bool external() { return (!lib_files_.empty()) || is_external_; }
+    bool external() const { return (!lib_files_.empty()) || is_external_; }
     std::string external_filename() const { return lib_files_.empty() ? "" : lib_files_[0]; }
     void set_external(bool value) { is_external_ = value; }
 
