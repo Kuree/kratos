@@ -3,7 +3,7 @@ add_library(kratos port.cc port.hh generator.cc generator.hh
         codegen.cc codegen.hh stmt.cc stmt.hh pass.cc pass.hh
         ir.cc ir.hh graph.cc graph.hh hash.cc hash.hh util.cc util.hh except.cc except.hh fsm.cc fsm.hh
         syntax.hh syntax.cc tb.hh tb.cc debug.hh debug.cc sim.cc sim.hh eval.cc eval.hh interface.cc interface.hh
-        lib.cc lib.hh fault.cc fault.hh formal.cc formal.hh)
+        lib.cc lib.hh fault.cc fault.hh formal.cc formal.hh event.cc event.hh)
 
 target_include_directories(kratos PUBLIC
         ../extern/fmt/include
