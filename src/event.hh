@@ -45,7 +45,7 @@ private:
     std::string event_name_;
 };
 
-std::unordered_map<std::shared_ptr<EventGatheringStmt>, std::shared_ptr<Expr>>
+std::unordered_map<std::shared_ptr<EventGatheringStmt>, std::shared_ptr<Var>>
 extract_event_fire_condition(Generator *top);
 
 void remove_event_stmts(Generator *top);
