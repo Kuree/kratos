@@ -1035,6 +1035,10 @@ public:
         }
     }
 
+    void visit(AuxiliaryStmt *stmt) override {
+        nodes_.emplace_back(stmt);
+    }
+
     const std::vector<IRNode*>& nodes() const { return nodes_; }
 
 private:
@@ -1048,7 +1052,7 @@ void check_non_synthesizable_content(Generator* top) {
     if (!nodes.empty()) {
         print_nodes(nodes);
         throw UserException(
-            "Non-synthesizable content detected. Please see the revelent lines "
+            "Non-synthesizable content detected. Please see the relevant lines "
             "output above (after using debug mode)");
     }
 }

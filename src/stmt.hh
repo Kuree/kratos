@@ -538,6 +538,8 @@ public:
     }
     const std::string &event_name() const { return event_name_; }
 
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+
 private:
     std::string event_name_;
     std::map<std::string, const Var *> event_fields_;

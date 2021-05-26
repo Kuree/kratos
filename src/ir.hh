@@ -100,6 +100,7 @@ public:
     virtual inline void visit(ReturnStmt *) {}
     virtual inline void visit(ModuleInstantiationStmt *) {}
     virtual inline void visit(InterfaceInstantiationStmt *) {}
+    virtual inline void visit(AuxiliaryStmt *) {}
     virtual inline void visit(AssertBase *) {}
 
     // generator specific traversal

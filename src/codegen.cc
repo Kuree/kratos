@@ -427,6 +427,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         case StatementType::For:
             stmt_code(reinterpret_cast<ForStmt*>(node));
             break;
+        case StatementType::Auxiliary:
+            throw UserException("Auxiliary statement should not be in the codegen!");
     }
 }
 
