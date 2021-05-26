@@ -19,12 +19,16 @@ enum class StatementType {
     Return,
     Assert,
     Comment,
-    RawString
+    RawString,
+    // auxiliary type of statement will not get
+    // code generated, mainly used for information gathering
+    Auxiliary
 };
 
 enum class AssignmentType : int { Blocking, NonBlocking, Undefined };
 enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial, Latch };
 enum class BlockEdgeType { Posedge, Negedge };
+enum class AuxiliaryType { EventGathering };
 
 class StmtBlock;
 class ScopedStmtBlock;
@@ -514,6 +518,29 @@ public:
 
 private:
     std::vector<std::string> stmts_;
+};
+
+class AuxiliaryStmt : public Stmt {
+public:
+    explicit AuxiliaryStmt(AuxiliaryType type);
+
+    AuxiliaryType aux_type() const { return type_; }
+
+private:
+    AuxiliaryType type_;
+};
+
+class EventGatheringStmt : public AuxiliaryStmt {
+public:
+    explicit EventGatheringStmt(std::string name);
+    void add_event_field(const std::string &name, const Var *var) {
+        event_fields_.emplace(name, var);
+    }
+    const std::string &event_name() const { return event_name_; }
+
+private:
+    std::string event_name_;
+    std::map<std::string, const Var *> event_fields_;
 };
 
 }  // namespace kratos
