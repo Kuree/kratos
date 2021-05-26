@@ -388,32 +388,45 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
     // yosys src
     if (yosys_src_) output_yosys_src(node);
 
-    if (stmt_ptr->type() == StatementType::Assign) {
-        stmt_code(reinterpret_cast<AssignStmt*>(node));
-    } else if (stmt_ptr->type() == StatementType::Block) {
-        stmt_code(reinterpret_cast<StmtBlock*>(node));
-    } else if (stmt_ptr->type() == StatementType::If) {
-        stmt_code(reinterpret_cast<IfStmt*>(node));
-    } else if (stmt_ptr->type() == StatementType::ModuleInstantiation) {
-        stmt_code(reinterpret_cast<ModuleInstantiationStmt*>(node));
-    } else if (stmt_ptr->type() == StatementType ::Switch) {
-        stmt_code(reinterpret_cast<SwitchStmt*>(node));
-    } else if (stmt_ptr->type() == StatementType ::FunctionalCall) {
-        stmt_code(reinterpret_cast<FunctionCallStmt*>(node));
-    } else if (stmt_ptr->type() == StatementType::Return) {
-        stmt_code(reinterpret_cast<ReturnStmt*>(node));
-    } else if (stmt_ptr->type() == StatementType::Assert) {
-        stmt_code(reinterpret_cast<AssertBase*>(node));
-    } else if (stmt_ptr->type() == StatementType::Comment) {
-        stmt_code(reinterpret_cast<CommentStmt*>(node));
-    } else if (stmt_ptr->type() == StatementType::InterfaceInstantiation) {
-        // do nothing
-    } else if (stmt_ptr->type() == StatementType::RawString) {
-        stmt_code(reinterpret_cast<RawStringStmt*>(node));
-    } else if (stmt_ptr->type() == StatementType::For) {
-        stmt_code(reinterpret_cast<ForStmt*>(node));
-    } else {
-        throw StmtException("Not implemented", {node});
+    // use switch for branch tables
+    // also let compiler check if we have all the types covered
+    switch (stmt_ptr->type()) {
+        case StatementType::Assign:
+            stmt_code(reinterpret_cast<AssignStmt*>(node));
+            break;
+        case StatementType::Block:
+            stmt_code(reinterpret_cast<StmtBlock*>(node));
+            break;
+        case StatementType::If:
+            stmt_code(reinterpret_cast<IfStmt*>(node));
+            break;
+        case StatementType::ModuleInstantiation:
+            stmt_code(reinterpret_cast<ModuleInstantiationStmt*>(node));
+            break;
+        case StatementType::Switch:
+            stmt_code(reinterpret_cast<SwitchStmt*>(node));
+            break;
+        case StatementType::FunctionalCall:
+            stmt_code(reinterpret_cast<FunctionCallStmt*>(node));
+            break;
+        case StatementType::Return:
+            stmt_code(reinterpret_cast<ReturnStmt*>(node));
+            break;
+        case StatementType::Assert:
+            stmt_code(reinterpret_cast<AssertBase*>(node));
+            break;
+        case StatementType::Comment:
+            stmt_code(reinterpret_cast<CommentStmt*>(node));
+            break;
+        case StatementType::InterfaceInstantiation:
+            // do nothing
+            break;
+        case StatementType::RawString:
+            stmt_code(reinterpret_cast<RawStringStmt*>(node));
+            break;
+        case StatementType::For:
+            stmt_code(reinterpret_cast<ForStmt*>(node));
+            break;
     }
 }
 
