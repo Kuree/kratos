@@ -35,6 +35,7 @@ void init_event(py::module &m) {
         .def_readonly("condition", &EventInfo::condition)
         .def_readonly("type", &EventInfo::type)
         .def_readonly("fields", &EventInfo::fields)
+        .def_readonly("stmt", &EventInfo::stmt)
         .def("__repr__", [](const EventInfo &info) {
             auto dict = py::dict();
             dict["name"] = info.name;

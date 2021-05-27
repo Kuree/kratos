@@ -1,5 +1,8 @@
 #include "event.hh"
 
+#include <algorithm>
+#include <numeric>
+
 #include "except.hh"
 #include "generator.hh"
 
@@ -22,7 +25,7 @@ public:
         if (stmt->aux_type() != AuxiliaryType::EventTracing) return;
         auto event = stmt->as<EventTracingStmt>();
         auto expr = get_cond(stmt);
-        add_info(event.get(), expr);
+        add_info(event, expr);
     }
 
     // NOLINTNEXTLINE
@@ -61,11 +64,22 @@ public:
             if (!expr) {
                 // it's the default one. we nor them together
                 std::shared_ptr<Var> or_;
+                std::vector<std::shared_ptr<Const>> conditions;
+                conditions.reserve(body.size());
                 for (auto const &[cond, stmt_blk] : body) {
-                    if (!or_) {
-                        or_ = cond;
-                    } else if (cond) {
-                        or_ = or_->operator||(*cond).shared_from_this();
+                    if (cond) conditions.emplace_back(cond);
+                }
+                // sort conditions based on the value. it's guarantee to be unique
+                // so no problems of overlap
+                std::sort(
+                    conditions.begin(), conditions.end(),
+                    [](const std::shared_ptr<Const> &left, const std::shared_ptr<Const> &right) {
+                        return left->value() < right->value();
+                    });
+                or_ = conditions[0];
+                if (conditions.size() > 1) {
+                    for (uint64_t i = 1; i < conditions.size(); i++) {
+                        or_ = or_->operator||(*conditions[i]).shared_from_this();
                     }
                 }
                 expr = (switch_->target()->operator!=(*or_)).shared_from_this();
@@ -81,7 +95,7 @@ public:
         }
     }
 
-    void add_info(EventTracingStmt *stmt, const std::shared_ptr<Var> &cond) {
+    void add_info(const std::shared_ptr<EventTracingStmt> &stmt, const std::shared_ptr<Var> &cond) {
         bool combinational = true;
         auto *p = stmt->parent();
 
@@ -105,6 +119,7 @@ public:
         i.type = stmt->action_type();
         i.condition = cond;
         i.fields = stmt->event_fields();
+        i.stmt = stmt;
 
         info.emplace_back(i);
     }
