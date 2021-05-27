@@ -1,6 +1,6 @@
 #include "event.hh"
-#include "except.hh"
 
+#include "except.hh"
 #include "generator.hh"
 
 namespace kratos {
@@ -31,26 +31,26 @@ public:
         if (ir_parent->ir_node_kind() == IRNodeKind::GeneratorKind) {
             return nullptr;
         }
-        auto *parent_stmt = reinterpret_cast<Stmt*>(ir_parent);
+        auto *parent_stmt = reinterpret_cast<Stmt *>(ir_parent);
         std::shared_ptr<Var> expr;
         if (parent_stmt->type() == StatementType::If) {
             // need to figure out which block it belongs to
-            auto *if_ = reinterpret_cast<IfStmt*>(parent_stmt);
+            auto *if_ = reinterpret_cast<IfStmt *>(parent_stmt);
             if (if_->then_body().get() == stmt) {
                 expr = if_->predicate();
             } else {
                 expr = if_->predicate()->r_not().shared_from_this();
             }
         } else if (parent_stmt->type() == StatementType::Switch) {
-            auto *switch_ = reinterpret_cast<SwitchStmt*>(parent_stmt);
+            auto *switch_ = reinterpret_cast<SwitchStmt *>(parent_stmt);
             // figure out which condition it is in. notice that we could be in the default
             // branch as well
             auto const &body = switch_->body();
             bool found = false;
-            for (auto const &[cond, stmt_blk]: body) {
+            for (auto const &[cond, stmt_blk] : body) {
                 if (stmt_blk.get() == stmt) {
                     // it's this condition
-                    expr = cond;
+                    if (cond) expr = switch_->target()->eq(*cond).shared_from_this();
                     found = true;
                     break;
                 }
@@ -61,14 +61,14 @@ public:
             if (!expr) {
                 // it's the default one. we nor them together
                 std::shared_ptr<Var> or_;
-                for (auto const &[cond, stmt_blk]: body) {
+                for (auto const &[cond, stmt_blk] : body) {
                     if (!or_) {
                         or_ = cond;
                     } else if (cond) {
                         or_ = or_->operator||(*cond).shared_from_this();
                     }
                 }
-                expr = or_->r_not().shared_from_this();
+                expr = (switch_->target()->operator!=(*or_)).shared_from_this();
             }
         } else {
             return get_cond(parent_stmt);
@@ -81,14 +81,14 @@ public:
         }
     }
 
-    void add_info(EventTracingStmt* stmt, const std::shared_ptr<Var> &cond) {
+    void add_info(EventTracingStmt *stmt, const std::shared_ptr<Var> &cond) {
         bool combinational = true;
         auto *p = stmt->parent();
 
         while (p && p->ir_node_kind() == IRNodeKind::StmtKind) {
-            auto *s = reinterpret_cast<Stmt*>(p);
+            auto *s = reinterpret_cast<Stmt *>(p);
             if (s->type() == StatementType::Block) {
-                auto *b = reinterpret_cast<StmtBlock*>(s);
+                auto *b = reinterpret_cast<StmtBlock *>(s);
                 if (b->block_type() == StatementBlockType::Sequential) {
                     combinational = false;
                     break;
@@ -112,8 +112,7 @@ public:
     std::vector<EventInfo> info;
 };
 
-std::vector<EventInfo>
-extract_event_fire_condition(Generator *top) {
+std::vector<EventInfo> extract_event_fire_condition(Generator *top) {
     EventVisitor visitor;
     visitor.visit_root(top);
     return visitor.info;
