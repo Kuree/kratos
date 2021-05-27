@@ -28,7 +28,7 @@ enum class StatementType {
 enum class AssignmentType : int { Blocking, NonBlocking, Undefined };
 enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial, Latch };
 enum class BlockEdgeType { Posedge, Negedge };
-enum class AuxiliaryType { EventGathering };
+enum class AuxiliaryType { EventTracing };
 
 class StmtBlock;
 class ScopedStmtBlock;

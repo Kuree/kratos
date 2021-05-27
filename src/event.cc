@@ -19,7 +19,7 @@ std::shared_ptr<EventTracingStmt> Event::fire(
 class EventVisitor : public IRVisitor {
 public:
     void visit(AuxiliaryStmt *stmt) override {
-        if (stmt->aux_type() != AuxiliaryType::EventGathering) return;
+        if (stmt->aux_type() != AuxiliaryType::EventTracing) return;
         auto event = stmt->as<EventTracingStmt>();
         auto expr = get_cond(stmt);
         stmts.emplace(event, expr);
@@ -100,7 +100,7 @@ public:
             auto stmt = gen->get_stmt(i);
             if (stmt->type() == StatementType::Auxiliary) {
                 auto aux = stmt->as<AuxiliaryStmt>();
-                if (aux->aux_type() == AuxiliaryType::EventGathering)
+                if (aux->aux_type() == AuxiliaryType::EventTracing)
                     stmts_to_remove.emplace_back(stmt);
             }
         }
@@ -120,7 +120,7 @@ public:
             auto *stmt = reinterpret_cast<Stmt *>(block->get_child(i));
             if (stmt->type() == StatementType::Assert) {
                 auto aux = stmt->as<AuxiliaryStmt>();
-                if (aux->aux_type() == AuxiliaryType::EventGathering)
+                if (aux->aux_type() == AuxiliaryType::EventTracing)
                     stmts_to_remove.emplace_back(stmt);
             }
         }

@@ -897,6 +897,6 @@ EventActionType operator|=(EventActionType lhs, EventActionType rhs) {
 }
 
 EventTracingStmt::EventTracingStmt(std::string name)
-    : AuxiliaryStmt(AuxiliaryType::EventGathering), event_name_(std::move(name)) {}
+    : AuxiliaryStmt(AuxiliaryType::EventTracing), event_name_(std::move(name)) {}
 
 }  // namespace kratos

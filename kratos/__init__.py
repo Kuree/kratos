@@ -13,7 +13,7 @@ from .debug import enable_runtime_debug
 from .pyast import add_scope_context
 from .sim import Simulator
 
-# directly import from the underlying C++ bindingtest_generator_proper
+# directly import from the underlying C++ binding
 from _kratos.util import is_valid_verilog
 from _kratos.exception import VarException, StmtException
 from _kratos.passes import IRVisitor as IRVisitor
@@ -24,6 +24,7 @@ from _kratos import DebugDataBase
 from .stmts import IfStmt, SwitchStmt, if_, switch_, RawStringStmt
 from _kratos import Interface
 from _kratos import PropertyAction, ParamType
+from _kratos import Event
 
 # FSMs
 from _kratos import FSM, FSMState

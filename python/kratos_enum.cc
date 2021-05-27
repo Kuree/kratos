@@ -84,4 +84,7 @@ void init_enum(py::module &m) {
         .value("Parameter", ParamType::Parameter)
         .value("Enum", ParamType::Enum)
         .value("Integral", ParamType::Integral);
+
+    py::enum_<AuxiliaryType>(m, "AuxiliaryType")
+        .value("Event", AuxiliaryType::EventTracing);
 }
