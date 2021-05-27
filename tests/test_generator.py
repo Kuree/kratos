@@ -2173,8 +2173,8 @@ def test_var_rename():
     mod = Generator("mod")
     a = mod.var("a", 1)
     b = mod.input("b", 1)
-    a.name = "c"
-    b.name = "d"
+    a.rename("c")
+    b.rename("d")
     assert "c" in mod.vars
     assert "a" not in mod.vars
     assert "c" == a.name

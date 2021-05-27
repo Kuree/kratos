@@ -388,7 +388,6 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
                         fmt::format("{0} already exists in {1}", value, gen->instance_name));
                 }
                 var.name = value;
-                gen->reindex_vars();
                 if (gen->debug) {
                     auto fn_ln = get_fn_ln(1);
                     if (fn_ln) {
@@ -396,12 +395,27 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
                     }
                 }
             })
-        .def("rename", [](Var &var, const std::string &name) {
-            // this is for pass usage only. need to reindex the variables
-            // once you're done
-            // maybe refactor how the IR visits vars?
-            var.name = name;
-        })
+        .def("rename", // rename will reindex the ports. cannot be used in a pass
+             [](Var &var, const std::string &value) {
+                 // this is for pass usage only. need to reindex the variables
+                 // once you're done
+                 // maybe refactor how the IR visits vars?
+                 if (var.name == value) return;
+                 auto *gen = var.generator();
+                 if (gen->has_var(value)) {
+                     throw UserException(
+                         fmt::format("{0} already exists in {1}", value, gen->instance_name));
+                 }
+                 var.name = value;
+
+                 gen->reindex_vars();
+                 if (gen->debug) {
+                     auto fn_ln = get_fn_ln(1);
+                     if (fn_ln) {
+                         var.fn_name_ln.emplace_back(*fn_ln);
+                     }
+                 }
+             })
         .def_property(
             "width", [](Var &var) { return var.var_width(); },
             [](Var &var, uint32_t width) {
