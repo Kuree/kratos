@@ -27,4 +27,20 @@ void init_event(py::module &m) {
         }
         return event.fire(fields);
     });
+
+    py::class_<EventInfo>(m, "EventInfo")
+        .def_readonly("name", &EventInfo::name)
+        .def_readonly("transaction", &EventInfo::transaction)
+        .def_readonly("combinational", &EventInfo::combinational)
+        .def_readonly("type", &EventInfo::type)
+        .def_readonly("fields", &EventInfo::fields)
+        .def("__repr__", [](const EventInfo &info) {
+            auto dict = py::dict();
+            dict["name"] = info.name;
+            dict["transaction"] = info.transaction;
+            dict["combinational"] = info.combinational;
+            dict["type"] = info.type;
+            dict["fields"] = info.fields;
+            return py::str(dict);
+        });
 }

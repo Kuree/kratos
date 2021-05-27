@@ -530,7 +530,7 @@ private:
     AuxiliaryType type_;
 };
 
-enum class EventActionType : uint64_t { none = 0, start = 1 << 0, end = 1 << 1 };
+enum class EventActionType : uint64_t { None = 0, Start = 1 << 0, End = 1 << 1 };
 EventActionType operator|=(EventActionType lhs, EventActionType rhs);
 
 class EventTracingStmt : public AuxiliaryStmt {
@@ -541,11 +541,15 @@ public:
     }
     const std::string &event_name() const { return event_name_; }
     const std::string &transaction() const { return transaction_; }
+    const std::map<std::string, std::shared_ptr<Var>> &event_fields() const {
+        return event_fields_;
+    }
+    EventActionType action_type() const { return action_type_; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     inline std::shared_ptr<EventTracingStmt> terminates() {
-        action_type_ |= EventActionType::end;
+        action_type_ |= EventActionType::End;
         return as<EventTracingStmt>();
     }
     inline std::shared_ptr<EventTracingStmt> belongs(const std::string &transaction_name) {
@@ -553,7 +557,7 @@ public:
         return as<EventTracingStmt>();
     }
     inline std::shared_ptr<EventTracingStmt> starts() {
-        action_type_ |= EventActionType::start;
+        action_type_ |= EventActionType::Start;
         return as<EventTracingStmt>();
     }
 
@@ -562,7 +566,7 @@ private:
     std::map<std::string, std::shared_ptr<Var>> event_fields_;
 
     std::string transaction_;
-    EventActionType action_type_ = EventActionType::none;
+    EventActionType action_type_ = EventActionType::None;
 };
 
 }  // namespace kratos

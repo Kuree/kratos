@@ -15,8 +15,17 @@ private:
     std::string event_name_;
 };
 
-std::unordered_map<std::shared_ptr<EventTracingStmt>, std::shared_ptr<Var>>
-extract_event_fire_condition(Generator *top);
+// actual information used for codegen and other debug info
+struct EventInfo {
+    std::string name;
+    std::string transaction;
+    bool combinational;
+    EventActionType type;
+    std::shared_ptr<Var> condition;
+    std::map<std::string, std::shared_ptr<Var>> fields;
+};
+
+std::vector<EventInfo> extract_event_fire_condition(Generator *top);
 
 void remove_event_stmts(Generator *top);
 

@@ -22,7 +22,7 @@ public:
         if (stmt->aux_type() != AuxiliaryType::EventTracing) return;
         auto event = stmt->as<EventTracingStmt>();
         auto expr = get_cond(stmt);
-        stmts.emplace(event, expr);
+        add_info(event.get(), expr);
     }
 
     // NOLINTNEXTLINE
@@ -81,14 +81,42 @@ public:
         }
     }
 
-    std::unordered_map<std::shared_ptr<EventTracingStmt>, std::shared_ptr<Var>> stmts;
+    void add_info(EventTracingStmt* stmt, const std::shared_ptr<Var> &cond) {
+        bool combinational = true;
+        auto *p = stmt->parent();
+
+        while (p && p->ir_node_kind() == IRNodeKind::StmtKind) {
+            auto *s = reinterpret_cast<Stmt*>(p);
+            if (s->type() == StatementType::Block) {
+                auto *b = reinterpret_cast<StmtBlock*>(s);
+                if (b->block_type() == StatementBlockType::Sequential) {
+                    combinational = false;
+                    break;
+                }
+            }
+
+            p = s->parent();
+        }
+
+        EventInfo i;
+        i.name = stmt->event_name();
+        i.transaction = stmt->transaction();
+        i.combinational = combinational;
+        i.type = stmt->action_type();
+        i.condition = cond;
+        i.fields = stmt->event_fields();
+
+        info.emplace_back(i);
+    }
+
+    std::vector<EventInfo> info;
 };
 
-std::unordered_map<std::shared_ptr<EventTracingStmt>, std::shared_ptr<Var>>
+std::vector<EventInfo>
 extract_event_fire_condition(Generator *top) {
     EventVisitor visitor;
     visitor.visit_root(top);
-    return visitor.stmts;
+    return visitor.info;
 }
 
 class EventRemoval : public IRVisitor {
