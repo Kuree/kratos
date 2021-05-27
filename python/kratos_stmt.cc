@@ -174,4 +174,6 @@ void init_stmt(py::module &m) {
         .def("get_iter_var", &ForStmt::get_iter_var)
         .def("add_stmt", &ForStmt::add_stmt)
         .def("get_loop_body", &ForStmt::get_loop_body);
+
+    py::class_<AuxiliaryStmt, std::shared_ptr<AuxiliaryStmt>, Stmt>(m, "AuxiliaryStmt");
 }

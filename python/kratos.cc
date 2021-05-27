@@ -25,6 +25,7 @@ void init_fault(py::module &m);
 void init_formal(py::module &m);
 void init_code_gen(py::module &m);
 void init_context(py::module &m);
+void init_event(py::module &m);
 
 
 PYBIND11_MODULE(_kratos, m) {
@@ -52,4 +53,5 @@ PYBIND11_MODULE(_kratos, m) {
     init_lib(m);
     init_fault(m);
     init_formal(m);
+    init_event(m);
 }

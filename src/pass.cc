@@ -3591,6 +3591,8 @@ void PassManager::register_builtin_passes() {
 
     register_pass("merge_const_port_assignment", &merge_const_port_assignment);
 
+    register_pass("remove_event_stmts", &remove_event_stmts);
+
     // TODO:
     //  add inline pass
 

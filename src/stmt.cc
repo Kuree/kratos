@@ -890,7 +890,7 @@ std::shared_ptr<Stmt> RawStringStmt::clone() const {
 
 AuxiliaryStmt::AuxiliaryStmt(AuxiliaryType type) : Stmt(StatementType::Auxiliary), type_(type) {}
 
-EventGatheringStmt::EventGatheringStmt(std::string name)
+EventTracingStmt::EventTracingStmt(std::string name)
     : AuxiliaryStmt(AuxiliaryType::EventGathering), event_name_(std::move(name)) {}
 
 }  // namespace kratos

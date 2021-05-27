@@ -7,9 +7,9 @@ namespace kratos {
 
 void remove_empty_block(Generator *top);
 
-std::shared_ptr<EventGatheringStmtWrapper> Event::fire(
+std::shared_ptr<EventTracingStmtWrapper> Event::fire(
     const std::map<std::string, const Var *> &fields) {
-    auto stmt = std::make_shared<EventGatheringStmtWrapper>(event_name_);
+    auto stmt = std::make_shared<EventTracingStmtWrapper>(event_name_);
     for (auto const &[name, value] : fields) {
         stmt->add_event_field(name, value);
     }
@@ -20,7 +20,7 @@ class EventVisitor : public IRVisitor {
 public:
     void visit(AuxiliaryStmt *stmt) override {
         if (stmt->aux_type() != AuxiliaryType::EventGathering) return;
-        auto event = stmt->as<EventGatheringStmt>();
+        auto event = stmt->as<EventTracingStmt>();
         auto expr = get_cond(stmt);
         stmts.emplace(event, expr);
     }
@@ -81,10 +81,10 @@ public:
         }
     }
 
-    std::unordered_map<std::shared_ptr<EventGatheringStmt>, std::shared_ptr<Var>> stmts;
+    std::unordered_map<std::shared_ptr<EventTracingStmt>, std::shared_ptr<Var>> stmts;
 };
 
-std::unordered_map<std::shared_ptr<EventGatheringStmt>, std::shared_ptr<Var>>
+std::unordered_map<std::shared_ptr<EventTracingStmt>, std::shared_ptr<Var>>
 extract_event_fire_condition(Generator *top) {
     EventVisitor visitor;
     visitor.visit_root(top);

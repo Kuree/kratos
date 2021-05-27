@@ -530,9 +530,9 @@ private:
     AuxiliaryType type_;
 };
 
-class EventGatheringStmt : public AuxiliaryStmt {
+class EventTracingStmt : public AuxiliaryStmt {
 public:
-    explicit EventGatheringStmt(std::string name);
+    explicit EventTracingStmt(std::string name);
     void add_event_field(const std::string &name, const Var *var) {
         event_fields_.emplace(name, var);
     }
