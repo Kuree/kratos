@@ -530,19 +530,39 @@ private:
     AuxiliaryType type_;
 };
 
+enum class EventActionType : uint64_t { none = 0, start = 1 << 0, end = 1 << 1 };
+EventActionType operator|=(EventActionType lhs, EventActionType rhs);
+
 class EventTracingStmt : public AuxiliaryStmt {
 public:
     explicit EventTracingStmt(std::string name);
-    void add_event_field(const std::string &name, const Var *var) {
+    void add_event_field(const std::string &name, const std::shared_ptr<Var> &var) {
         event_fields_.emplace(name, var);
     }
     const std::string &event_name() const { return event_name_; }
+    const std::string &transaction() const { return transaction_; }
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
+    inline std::shared_ptr<EventTracingStmt> terminates() {
+        action_type_ |= EventActionType::end;
+        return as<EventTracingStmt>();
+    }
+    inline std::shared_ptr<EventTracingStmt> belongs(const std::string &transaction_name) {
+        transaction_ = transaction_name;
+        return as<EventTracingStmt>();
+    }
+    inline std::shared_ptr<EventTracingStmt> starts() {
+        action_type_ |= EventActionType::start;
+        return as<EventTracingStmt>();
+    }
+
 private:
     std::string event_name_;
-    std::map<std::string, const Var *> event_fields_;
+    std::map<std::string, std::shared_ptr<Var>> event_fields_;
+
+    std::string transaction_;
+    EventActionType action_type_ = EventActionType::none;
 };
 
 }  // namespace kratos

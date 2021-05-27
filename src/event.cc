@@ -7,9 +7,9 @@ namespace kratos {
 
 void remove_empty_block(Generator *top);
 
-std::shared_ptr<EventTracingStmtWrapper> Event::fire(
-    const std::map<std::string, const Var *> &fields) {
-    auto stmt = std::make_shared<EventTracingStmtWrapper>(event_name_);
+std::shared_ptr<EventTracingStmt> Event::fire(
+    const std::map<std::string, std::shared_ptr<Var>> &fields) {
+    auto stmt = std::make_shared<EventTracingStmt>(event_name_);
     for (auto const &[name, value] : fields) {
         stmt->add_event_field(name, value);
     }

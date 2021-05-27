@@ -175,5 +175,12 @@ void init_stmt(py::module &m) {
         .def("add_stmt", &ForStmt::add_stmt)
         .def("get_loop_body", &ForStmt::get_loop_body);
 
-    py::class_<AuxiliaryStmt, std::shared_ptr<AuxiliaryStmt>, Stmt>(m, "AuxiliaryStmt");
+    py::class_<AuxiliaryStmt, std::shared_ptr<AuxiliaryStmt>, Stmt>(m, "AuxiliaryStmt")
+        .def("aux", &AuxiliaryStmt::aux_type);
+
+    py::class_<EventTracingStmt, std::shared_ptr<EventTracingStmt>, AuxiliaryStmt>(
+        m, "EventTracingStmt")
+        .def("terminates", &EventTracingStmt::terminates)
+        .def("belongs", &EventTracingStmt::belongs)
+        .def("starts", &EventTracingStmt::starts);
 }
