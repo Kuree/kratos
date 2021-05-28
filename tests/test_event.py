@@ -100,5 +100,24 @@ def test_event_actions():
     assert event2.type == _kratos.EventActionType.End
 
 
+def test_event_debug_fn_ln():
+    mod = Generator("mod", debug=True)
+    event = Event("event")
+    sig = mod.var("sig", 1)
+
+    @always_comb
+    def code():
+        event(sig=sig)
+
+    mod.add_always(code)
+    info = _kratos.extract_event_fire_condition(mod.internal_generator)
+    stmt = info[0].stmt
+    fn_lns = stmt.fn_name_ln
+    assert len(fn_lns) == 1
+    with open(__file__) as f:
+        lines = f.readlines()
+    idx = lines.index("        event(sig=sig)\n")
+
+
 if __name__ == "__main__":
-    test_event_actions()
+    test_event_debug_fn_ln()
