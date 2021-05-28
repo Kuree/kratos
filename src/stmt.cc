@@ -890,13 +890,44 @@ std::shared_ptr<Stmt> RawStringStmt::clone() const {
 
 AuxiliaryStmt::AuxiliaryStmt(AuxiliaryType type) : Stmt(StatementType::Auxiliary), type_(type) {}
 
-EventActionType operator|=(EventActionType lhs, EventActionType rhs) {
-    return static_cast<EventActionType>(
+EventActionType operator|=(EventActionType &lhs, EventActionType rhs) {
+    lhs = static_cast<EventActionType>(
         static_cast<std::underlying_type<EventActionType>::type>(lhs) |
         static_cast<std::underlying_type<EventActionType>::type>(rhs));
+    return lhs;
 }
 
 EventTracingStmt::EventTracingStmt(std::string name)
     : AuxiliaryStmt(AuxiliaryType::EventTracing), event_name_(std::move(name)) {}
+
+std::shared_ptr<EventTracingStmt> EventTracingStmt::terminates() {
+    action_type_ |= EventActionType::End;
+    return as<EventTracingStmt>();
+}
+
+std::shared_ptr<EventTracingStmt> EventTracingStmt::terminates(
+    const std::string &transaction_name) {
+    return belongs(transaction_name)->terminates();
+}
+
+std::shared_ptr<EventTracingStmt> EventTracingStmt::belongs(const std::string &transaction_name) {
+    transaction_ = transaction_name;
+    return as<EventTracingStmt>();
+}
+
+std::shared_ptr<EventTracingStmt> EventTracingStmt::starts() {
+    action_type_ |= EventActionType::Start;
+    return as<EventTracingStmt>();
+}
+
+std::shared_ptr<EventTracingStmt> EventTracingStmt::starts(const std::string &transaction_name) {
+    return belongs(transaction_name)->starts();
+}
+
+std::shared_ptr<EventTracingStmt> EventTracingStmt::matches(const std::string &field_name,
+                                                            const std::shared_ptr<Var> &var) {
+    match_values_.emplace(field_name, var);
+    return as<EventTracingStmt>();
+}
 
 }  // namespace kratos

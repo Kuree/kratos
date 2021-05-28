@@ -70,5 +70,35 @@ def test_event_extraction():
     assert str(ffs[0].condition) == "(!b) && (!a)"
 
 
+def test_event_actions():
+    mod = Generator("mod")
+    event = Event("test1/event1")
+
+    a = mod.var("a", 1)
+    b = mod.var("b", 1)
+
+    @always_comb
+    def code():
+        event(a=a).starts("transaction1").matches(a=a)
+        event(b=b).terminates("transaction1").matches(a=b)
+
+    mod.add_always(code)
+    info = _kratos.extract_event_fire_condition(mod.internal_generator)
+    assert len(info) == 2
+    # check actions
+    event1 = info[0]
+    assert "a" in event1.fields
+    stmt = event1.stmt
+    assert str(stmt.match_values["a"]) == "a"
+    assert event1.transaction == "transaction1"
+    assert event1.type == _kratos.EventActionType.Start
+
+    event2 = info[1]
+    assert "b" in event2.fields
+    stmt = event2.stmt
+    assert str(stmt.match_values["a"]) == "b"
+    assert event2.type == _kratos.EventActionType.End
+
+
 if __name__ == "__main__":
-    test_event_extraction()
+    test_event_actions()

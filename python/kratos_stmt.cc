@@ -180,7 +180,20 @@ void init_stmt(py::module &m) {
 
     py::class_<EventTracingStmt, std::shared_ptr<EventTracingStmt>, AuxiliaryStmt>(
         m, "EventTracingStmt")
-        .def("terminates", &EventTracingStmt::terminates)
+        .def("terminates", py::overload_cast<>(&EventTracingStmt::terminates))
+        .def("terminates", py::overload_cast<const std::string &>(&EventTracingStmt::terminates))
         .def("belongs", &EventTracingStmt::belongs)
-        .def("starts", &EventTracingStmt::starts);
+        .def("starts", py::overload_cast<>(&EventTracingStmt::starts))
+        .def("starts", py::overload_cast<const std::string &>(&EventTracingStmt::starts))
+        .def("matches", &EventTracingStmt::matches)
+        .def("matches",
+             [](std::shared_ptr<EventTracingStmt> &stmt, const py::kwargs &kwargs) {
+                 for (auto const &[n, v] : kwargs) {
+                     auto name = py::cast<std::string>(n);
+                     auto var = py::cast<std::shared_ptr<Var>>(v);
+                     stmt->matches(name, var);
+                 }
+                 return stmt;
+             })
+        .def_property_readonly("match_values", &EventTracingStmt::match_values);
 }
