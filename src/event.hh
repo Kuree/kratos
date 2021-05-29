@@ -5,6 +5,15 @@
 
 namespace kratos {
 
+class Transaction {
+public:
+    // basically a wrapper around string
+    // the tracker stuff is done in the generated SV or done in hgdb
+    std::string name;
+
+    explicit Transaction(std::string name) : name(std::move(name)) {}
+};
+
 class Event {
 public:
     explicit Event(std::string event_name) : event_name_(std::move(event_name)) {}

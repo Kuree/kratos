@@ -526,6 +526,25 @@ class GenVarLocalVisitor(ast.NodeTransformer):
         return self.generic_visit(node)
 
 
+def transform_event(ast_tree, debug, fn, ln):
+    # need to transform transaction @ event syntax into the one that supports fn ln
+    class ChangeMatMult(ast.NodeTransformer):
+        def visit_BinOp(self, node: ast.BinOp):
+            if not isinstance(node.op, ast.MatMult):
+                return node
+            # replace it with a function call that calls belongs() and set filename and line number
+            if debug:
+                args = [node.left, ast.Constant(value=fn), ast.Constant(value=ln + node.lineno - 1)]
+            else:
+                args = [node.left]
+            return ast.Expr(
+                value=ast.Call(func=ast.Attribute(attr="belongs", value=node.right, ctx=ast.Load()), args=args,
+                               ctx=ast.Load(), keywords=[]),
+                lineno=node.lineno)
+    visitor = ChangeMatMult()
+    return visitor.visit(ast_tree)
+
+
 def transform_always_comb_ssa(ast_tree, gen, _locals):
     class SSAScope:
         def __init__(self, var_ref):
@@ -942,6 +961,9 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_
     fn_body = assert_visitor.visit(fn_body)
     exception_visitor = ExceptionNodeVisitor(generator, debug)
     fn_body = exception_visitor.visit(fn_body)
+
+    # transform event
+    transform_event(fn_body, debug, filename, func_ln)
 
     # mark the local variables
     for node, (key, value) in target_nodes.items():

@@ -2,6 +2,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "../src/event.hh"
 #include "../src/except.hh"
 #include "../src/expr.hh"
 #include "../src/generator.hh"
@@ -183,6 +184,15 @@ void init_stmt(py::module &m) {
         .def("terminates", py::overload_cast<>(&EventTracingStmt::terminates))
         .def("terminates", py::overload_cast<const std::string &>(&EventTracingStmt::terminates))
         .def("belongs", &EventTracingStmt::belongs)
+        .def("belongs",
+             [](EventTracingStmt &stmt, const Transaction &t) { return stmt.belongs(t.name); })
+        .def("belongs",
+             [](EventTracingStmt &stmt, const Transaction &t, const std::string &filename,
+                uint64_t ln) {
+                 auto s = stmt.belongs(t.name);
+                 s->fn_name_ln.emplace_back(std::make_pair(filename, ln));
+                 return s;
+             })
         .def("starts", py::overload_cast<>(&EventTracingStmt::starts))
         .def("starts", py::overload_cast<const std::string &>(&EventTracingStmt::starts))
         .def("matches", &EventTracingStmt::matches)

@@ -1,11 +1,12 @@
 import _kratos
-from kratos import Generator, Event, always_comb, always_ff, posedge
+from kratos import Generator, Event, always_comb, always_ff, posedge, Transaction
 
 
 def test_event_extraction():
     mod = Generator("mod")
     event = Event("test1/event1")
     event_ff = Event("test1/event2")
+    t = Transaction("test")
 
     a = mod.var("a", 1)
     b = mod.var("b", 1)
@@ -16,29 +17,29 @@ def test_event_extraction():
     @always_comb
     def if_stmt():
         if a:
-            event({"a": a})
+            t @ event({"a": a})
         else:
             if b:
-                event(b=b)
+                t @ event(b=b)
             else:
-                event(c=c)
+                t @ event(c=c)
 
     @always_comb
     def switch_if():
         # this will be turn into a switch statement
         if d == 0:
-            event(a1=a)
+            t @ event(a1=a)
         elif d == 1:
-            event(a2=a)
+            t @ event(a2=a)
         elif d == 2:
-            event(a3=a)
+            t @ event(a3=a)
         else:
-            event(a4=a)
+            t @ event(a4=a)
 
     @always_ff((posedge, clk))
     def if_seq():
         if a:
-            event_ff(a5=a)
+            t @ event_ff(a5=a)
 
     mod.add_always(if_stmt)
     mod.add_always(switch_if)
@@ -73,14 +74,15 @@ def test_event_extraction():
 def test_event_actions():
     mod = Generator("mod")
     event = Event("test1/event1")
+    t = Transaction("transaction1")
 
     a = mod.var("a", 1)
     b = mod.var("b", 1)
 
     @always_comb
     def code():
-        event(a=a).starts("transaction1").matches(a=a)
-        event(b=b).terminates("transaction1").matches(a=b)
+        t @ event(a=a).matches(a=a).starts()
+        t @ event(b=b).matches(a=b).terminates()
 
     mod.add_always(code)
     info = _kratos.extract_event_fire_condition(mod.internal_generator)
@@ -103,11 +105,12 @@ def test_event_actions():
 def test_event_debug_fn_ln():
     mod = Generator("mod", debug=True)
     event = Event("event")
+    t = Transaction("transaction")
     sig = mod.var("sig", 1)
 
     @always_comb
     def code():
-        event(sig=sig)
+        t @ event(sig=sig)
 
     mod.add_always(code)
     info = _kratos.extract_event_fire_condition(mod.internal_generator)
@@ -116,7 +119,8 @@ def test_event_debug_fn_ln():
     assert len(fn_lns) == 1
     with open(__file__) as f:
         lines = f.readlines()
-    idx = lines.index("        event(sig=sig)\n")
+    idx = lines.index("        t @ event(sig=sig)\n")
+    assert (idx + 1) == fn_lns[0][1]
 
 
 if __name__ == "__main__":

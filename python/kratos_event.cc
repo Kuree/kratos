@@ -46,4 +46,8 @@ void init_event(py::module &m) {
             dict["fields"] = info.fields;
             return py::str(dict);
         });
+
+    py::class_<Transaction>(m, "Transaction")
+        .def("__repr__", [](const Transaction &t) { return t.name; })
+        .def(py::init<std::string>());
 }
