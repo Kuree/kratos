@@ -265,6 +265,22 @@ struct Annotation {
     std::string value;
 };
 
+/**
+ * Used for event-based debugging
+ */
+struct Event {
+    std::string name;
+    std::string transaction;
+    std::string condition;
+    uint64_t action;
+    // fields is serialized into json
+    std::string fields;
+    // array of field names, separated by space
+    std::string matches;
+    // linked with statement
+    std::unique_ptr<uint32_t> breakpoint_id;
+};
+
 auto inline init_debug_db(const std::string &filename) {
     using namespace sqlite_orm;
     auto storage = make_storage(
@@ -297,7 +313,14 @@ auto inline init_debug_db(const std::string &filename) {
                    foreign_key(&GeneratorVariable::instance_id).references(&Instance::id),
                    foreign_key(&GeneratorVariable::variable_id).references(&Variable::id)),
         make_table("annotation", make_column("name", &Annotation::name),
-                   make_column("value", &Annotation::value)));
+                   make_column("value", &Annotation::value)),
+        make_table("event", make_column("name", &Event::name),
+                   make_column("transaction", &Event::transaction),
+                   make_column("condition", &Event::condition),
+                   make_column("action", &Event::action), make_column("fields", &Event::fields),
+                   make_column("matches", &Event::matches),
+                   make_column("breakpoint_id", &Event::breakpoint_id)));
+
     storage.sync_schema();
     return storage;
 }
@@ -370,6 +393,19 @@ inline void store_generator_variable(DebugDatabase &db, const std::string &name,
 
 inline void store_annotation(DebugDatabase &db, const std::string &name, const std::string &value) {
     db.replace(Annotation{.name = name, .value = value});
+}
+
+inline void store_event(DebugDatabase &db, const std::string &name, const std::string &transaction,
+                        const std::string &condition, uint64_t action, const std::string &fields,
+                        const std::string &matches, uint32_t breakpoint_id) {
+    db.replace(Event{.name = name,
+                     .transaction = transaction,
+                     .condition = condition,
+                     .action = action,
+                     .fields = fields,
+                     .matches = matches,
+                     .breakpoint_id = std::make_unique<uint32_t>(breakpoint_id)});
+    // NOLINTNEXTLINE
 }
 
 }  // namespace hgdb
