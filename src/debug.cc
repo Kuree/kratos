@@ -333,6 +333,8 @@ std::string get_trigger_condition(const Stmt *stmt) {
     return "";
 }
 
+void save_events(hgdb::DebugDatabase &db, Generator *top);
+
 void DebugDatabase::save_database(const std::string &filename, bool override) {
     if (override) {
         if (fs::exists(filename)) {
@@ -538,6 +540,8 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             }
         }
     }
+
+    save_events(storage, top_);
 }
 
 void inject_clock_break_points(Generator *top) {

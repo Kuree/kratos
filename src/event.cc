@@ -1,10 +1,11 @@
 #include "event.hh"
 
 #include <algorithm>
-#include <numeric>
 
 #include "except.hh"
+#include "fmt/format.h"
 #include "generator.hh"
+#include "schema.hh"
 
 namespace kratos {
 
@@ -177,6 +178,44 @@ void remove_event_stmts(Generator *top) {
     visitor.visit_root(top);
     // then remove empty block
     remove_empty_block(top);
+}
+
+std::string full_path(Var *var) {
+    if (var->type() == VarType::ConstValue) {
+        auto const &c = var->as<Const>();
+        return fmt::format("{0}", c->value());
+    } else {
+        return var->handle_name();
+    }
+}
+
+std::string fields_to_json(const std::map<std::string, std::shared_ptr<Var>> &vars) {
+    // layman's json serializer
+    std::string result = "{";
+    std::vector<std::string> entries;
+    entries.reserve(vars.size());
+    for (auto const &[name, var] : vars) {
+        entries.emplace_back(fmt::format(R"("{0}": "{1}")", name, full_path(var.get())));
+    }
+    auto content = fmt::format("{0}", fmt::join(entries.begin(), entries.end(), ", "));
+    result.append(content);
+    result.append("}");
+    return result;
+}
+
+void save_events(hgdb::DebugDatabase &db, Generator *top) {
+    // we first extract out every event statement
+    auto infos = extract_event_fire_condition(top);
+    // then for each info we create an entry for the db
+    for (auto const &info : infos) {
+        // need to serialize fields, matches etc
+        auto condition = full_path(info.condition.get());
+        auto fields = fields_to_json(info.fields);
+        auto matches = fields_to_json(info.stmt->match_values());
+        auto action = static_cast<uint32_t>(info.type);
+        hgdb::store_event(db, info.name, info.transaction, condition, action, fields, matches,
+                          info.stmt->stmt_id());
+    }
 }
 
 }  // namespace kratos
