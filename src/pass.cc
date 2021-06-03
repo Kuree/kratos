@@ -1642,7 +1642,7 @@ private:
                     if (node == if_stmt->then_body().get()) {
                         str_values.emplace_back(test->to_string());
                     } else {
-                        str_values.emplace_back(::format("{0} == 0", test->to_string()));
+                        str_values.emplace_back(::format("!({0})", test->to_string()));
                     }
                 }
                 node = parent;
@@ -3303,6 +3303,7 @@ private:
                 if (current_scope != *scope_id) {
                     // copy current scope to the new one
                     auto const& current_mapping = symbol_mappings.at(current_scope);
+                    symbol_mappings[*scope_id] = {};
                     for (auto const& iter : current_mapping) {
                         symbol_mappings[*scope_id].emplace(iter);
                     }
