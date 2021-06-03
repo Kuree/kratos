@@ -2135,7 +2135,7 @@ def test_ssa_transform(check_gold):
     # which corresponds to a = 5
     # notice that a should be pointing to a = b + a, since it's the last
     # time a gets assigned
-    stmt = mod.get_stmt_by_index(12)
+    stmt = mod.get_stmt_by_index(6)
     scope = stmt.scope_context
     is_var, a_mapping = scope["a"]
     assert is_var
@@ -2198,4 +2198,4 @@ def test_merge_const_port_assignment():
 
 if __name__ == "__main__":
     from conftest import check_gold_fn
-    test_wrapper_flatten_generator(check_gold_fn)
+    test_ssa_transform(check_gold_fn)
