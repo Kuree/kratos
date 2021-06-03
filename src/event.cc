@@ -157,11 +157,11 @@ public:
     void visit(CombinationalStmtBlock *block) override { process_block(block); }
 
     static void process_block(StmtBlock *block) {
-        auto stmt_count = block->child_count();
+        auto stmt_count = block->size();
         std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
         for (uint64_t i = 0; i < stmt_count; i++) {
-            auto *stmt = reinterpret_cast<Stmt *>(block->get_child(i));
-            if (stmt->type() == StatementType::Assert) {
+            auto const &stmt = block->get_stmt(i);
+            if (stmt->type() == StatementType::Auxiliary) {
                 auto aux = stmt->as<AuxiliaryStmt>();
                 if (aux->aux_type() == AuxiliaryType::EventTracing)
                     stmts_to_remove.emplace_back(stmt);

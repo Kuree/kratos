@@ -1,5 +1,9 @@
 import _kratos
-from kratos import Generator, Event, always_comb, always_ff, posedge, Transaction
+import sqlite3
+import tempfile
+import os
+
+from kratos import Generator, Event, always_comb, always_ff, posedge, Transaction, verilog
 
 
 def test_event_extraction():
@@ -123,5 +127,38 @@ def test_event_debug_fn_ln():
     assert (idx + 1) == fn_lns[0][1]
 
 
+def test_event_serialization():
+    mod = Generator("mod", debug=True)
+    event = Event("event")
+    t = Transaction("transaction")
+    a = mod.var("a", 8)
+    b = mod.var("b", 1)
+    in_ = mod.input("in", 4)
+    out = mod.output("out", 4)
+
+    # notice that in kratos we only limit
+    @always_ff()
+    def code():
+        if a == 0:
+            out = in_ + 1
+            t @ event(value1=a, value2=b).matches(value2=b).starts()
+        elif a == 1:
+            out = in_ + 2
+            t @ event(value3=a, value4=b).matches(value2=b)
+        else:
+            out = in_
+            t @ event(value1=a, value4=b).matches(value2=b).terminates()
+
+    mod.add_always(code, ssa_transform=True)
+
+    with tempfile.TemporaryDirectory() as temp:
+        db_filename = os.path.join(temp, "debug.db")
+        verilog(mod, insert_debug_info=True, debug_db_filename=db_filename, contains_event=True, ssa_transform=True)
+        with sqlite3.connect(db_filename) as conn:
+            c = conn.cursor()
+            c.execute("SELECT * from breakpoint")
+            result = c.fetchall()
+
+
 if __name__ == "__main__":
-    test_event_debug_fn_ln()
+    test_event_serialization()

@@ -269,15 +269,45 @@ struct Annotation {
  * Used for event-based debugging
  */
 struct Event {
+    /**
+     * Event name, typically in a form of namespace separated by '/', e.g. test/event
+     */
     std::string name;
+    /**
+     * Transaction name, typically in a form of namespace separated by '/', e.g. test/transaction
+     */
     std::string transaction;
+    /**
+     * Enabling/firing condition. This is a C-like expression where the variables can either
+     * be scoped inside the instance referred by the breakpoint id, or full path.
+     */
     std::string condition;
+    /**
+     * Enum flag value.
+     * 0 - None
+     * 1 - Starts the transaction
+     * 2 - Ends the transaction
+     */
     uint64_t action;
-    // fields is serialized into json
+    /**
+     * A json string serialized from a dictionary. The key is field name, and the value
+     * can either be a variable name (scoped by breakpoint id, or full path), or a numeric
+     * constant.
+     */
     std::string fields;
-    // array of field names, separated by space
+    /**
+     * A json string serialized from a dictionary. The format is identical to fields. If the
+     * event action is Start, the inflight transaction will store the current values described by
+     * the matches table. The match values of subsequent events will be used against the start
+     * event's match table. If all values match, the event will be added to the current
+     * transaction. If a field name doesn't exist in previous events within the target transaction
+     * debugger client is free to throw away the event.
+     */
     std::string matches;
-    // linked with statement
+    /**
+     * Links back to the event statement, which can be used for breakpoint in the source
+     * code
+     */
     std::unique_ptr<uint32_t> breakpoint_id;
 };
 
@@ -319,7 +349,8 @@ auto inline init_debug_db(const std::string &filename) {
                    make_column("condition", &Event::condition),
                    make_column("action", &Event::action), make_column("fields", &Event::fields),
                    make_column("matches", &Event::matches),
-                   make_column("breakpoint_id", &Event::breakpoint_id)));
+                   make_column("breakpoint_id", &Event::breakpoint_id),
+                   foreign_key(&Event::breakpoint_id).references(&BreakPoint::id)));
 
     storage.sync_schema();
     return storage;

@@ -39,6 +39,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             ssa_transform: bool = False,
             use_parallel: bool = True,
             track_generated_definition: bool = False,
+            contains_event: bool = False,
             compile_to_verilog: bool = False):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
@@ -107,6 +108,9 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("insert_pipeline_stages")
     if reorder_stmts:
         pass_manager.add_pass("sort_stmts")
+    if contains_event:
+        # need to remove the event statement since it doesn't have codegen
+        pass_manager.add_pass("remove_event_stmts")
 
     code_gen.run_passes()
 

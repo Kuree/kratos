@@ -24,16 +24,16 @@ bool IRNode::has_attribute(const std::string &value_str) const {
 void IRVisitor::visit_root(IRNode *root) {
     // recursively call visits
     root->accept(this);
-    uint64_t child_count = root->child_count();
     level++;
-    std::vector<IRNode *> visits(child_count);
-    for (uint64_t i = 0; i < child_count; i++) {
-        visits[i] = root->get_child(i);
-    }
-    for (auto &child : visits) {
+    uint64_t count = 0;
+    while (count < root->child_count()) {
+        auto *child = root->get_child(count);
         if (visited_.find(child) == visited_.end()) {
             visited_.emplace(child);
             visit_root(child);
+        }
+        if (count < root->child_count() && child == root->get_child(count)) {
+            count++;
         }
     }
     level--;
