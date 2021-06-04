@@ -135,9 +135,10 @@ def test_event_serialization():
     b = mod.var("b", 1)
     in_ = mod.input("in", 4)
     out = mod.output("out", 4)
+    clk = mod.clock("clk")
 
     # notice that in kratos we only limit
-    @always_ff()
+    @always_ff((posedge, clk))
     def code():
         if a == 0:
             out = in_ + 1
@@ -149,11 +150,11 @@ def test_event_serialization():
             out = in_
             t @ event(value1=a, value4=b).matches(value2=b).terminates()
 
-    mod.add_always(code, ssa_transform=True)
+    mod.add_always(code)
 
     with tempfile.TemporaryDirectory() as temp:
         db_filename = os.path.join(temp, "debug.db")
-        verilog(mod, insert_debug_info=True, debug_db_filename=db_filename, contains_event=True, ssa_transform=True)
+        verilog(mod, insert_debug_info=True, debug_db_filename=db_filename, contains_event=True)
         with sqlite3.connect(db_filename) as conn:
             c = conn.cursor()
             c.execute("SELECT * from breakpoint")
