@@ -19,6 +19,7 @@
 #include "syntax.hh"
 #include "tb.hh"
 #include "util.hh"
+#include "event.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -1675,11 +1676,23 @@ private:
     }
 };
 
+
+void set_event_enable_condition(Generator *top, std::map<Stmt*, std::string> &map) {
+    auto info = extract_event_fire_condition(top);
+    for (auto const &e: info) {
+        // we scoped into the current generator
+        auto *gen = e.condition->generator();
+        auto cond = e.condition->handle_name(gen);
+        map.emplace(e.stmt.get(), cond);
+    }
+}
+
 std::map<Stmt*, std::string> compute_enable_condition(Generator* top) {
     // notice that this pass assumes SSA pass has transformed the always_comb block into
     // top-level continuous assignment
     EnableStmtVisitor visitor;
     visitor.visit_root(top);
+    set_event_enable_condition(top, visitor.values);
     return visitor.values;
 }
 

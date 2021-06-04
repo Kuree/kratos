@@ -159,6 +159,10 @@ def test_event_serialization():
             c = conn.cursor()
             c.execute("SELECT * from breakpoint")
             result = c.fetchall()
+            # we have 8 lines
+            assert len(result) == 8
+            event_last = result[-1]
+            assert event_last[-2] == "(!(a == 8'h1)) && (!(a == 8'h0))"
 
 
 if __name__ == "__main__":

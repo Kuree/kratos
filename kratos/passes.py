@@ -118,6 +118,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     # notice the ordering. we need to keep events passes but we don't
     # won't them in the codegen
     post_pass_manager = _kratos.passes.PassManager()
+    post_pass_manager.register_builtin_passes()
     if contains_event:
         # need to remove the event statement since it doesn't have codegen
         post_pass_manager.add_pass("remove_event_stmts")

@@ -80,7 +80,8 @@ by yourself to obtain the verilog code.)pbdoc");
                  &PassManager::register_pass))
         .def("run_passes", &PassManager::run_passes)
         .def("add_pass", &PassManager::add_pass)
-        .def("has_pass", &PassManager::has_pass);
+        .def("has_pass", &PassManager::has_pass)
+        .def("register_builtin_passes", &PassManager::register_builtin_passes);
 
     // trampoline class for ast visitor
     class PyIRVisitor : public IRVisitor {

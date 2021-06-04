@@ -99,6 +99,7 @@ public:
     void visit(FunctionCallStmt *stmt) override { extract_stmt_id(stmt); }
     void visit(ReturnStmt *stmt) override { extract_stmt_id(stmt); }
     void visit(AssertBase *stmt) override { extract_stmt_id(stmt); }
+    void visit(AuxiliaryStmt *stmt) override { extract_stmt_id(stmt); }
 
     const std::map<Stmt *, uint32_t> &map() const { return map_; }
 
