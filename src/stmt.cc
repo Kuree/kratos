@@ -235,16 +235,20 @@ void IfStmt::remove_stmt(const std::shared_ptr<kratos::Stmt> &stmt) {
 }
 
 void IfStmt::set_then(const std::shared_ptr<ScopedStmtBlock> &stmt) {
-    then_body_->clear();
-    for (auto &s : *stmt) {
-        then_body_->add_stmt(s);
+    if (stmt != then_body_) {
+        then_body_->clear();
+        for (auto &s : *stmt) {
+            then_body_->add_stmt(s);
+        }
     }
 }
 
 void IfStmt::set_else(const std::shared_ptr<ScopedStmtBlock> &stmt) {
-    else_body_->clear();
-    for (auto &s : *stmt) {
-        else_body_->add_stmt(s);
+    if (else_body_ != stmt) {
+        else_body_->clear();
+        for (auto &s : *stmt) {
+            else_body_->add_stmt(s);
+        }
     }
 }
 
