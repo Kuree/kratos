@@ -30,7 +30,7 @@ if [[ "$OS" == "linux" ]]; then
 elif [[ "$OS" == "osx" ]]; then
     python --version
 
-    CXX=g++-8 python setup.py bdist_wheel
+    CXX=g++-9 python setup.py bdist_wheel
     pip install dist/*.whl
     pytest -v tests/
 else
