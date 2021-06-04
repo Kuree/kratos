@@ -108,11 +108,20 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("insert_pipeline_stages")
     if reorder_stmts:
         pass_manager.add_pass("sort_stmts")
-    if contains_event:
-        # need to remove the event statement since it doesn't have codegen
-        pass_manager.add_pass("remove_event_stmts")
 
     code_gen.run_passes()
+
+    # debug database
+    if debug_db_filename:
+        dump_debug_database(generator, debug_db_filename)
+
+    # notice the ordering. we need to keep events passes but we don't
+    # won't them in the codegen
+    post_pass_manager = _kratos.passes.PassManager()
+    if contains_event:
+        # need to remove the event statement since it doesn't have codegen
+        post_pass_manager.add_pass("remove_event_stmts")
+    post_pass_manager.run_passes(generator.internal_generator)
 
     if compile_to_verilog:
         assert output_dir is None and filename is not None,\
@@ -172,10 +181,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
                     f.write(s)
             generator.internal_generator.verilog_fn = filename
         r = result[0] if len(result) == 1 else result
-
-    # debug database
-    if debug_db_filename:
-        dump_debug_database(generator, debug_db_filename)
 
     return r
 
