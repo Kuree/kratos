@@ -278,11 +278,6 @@ struct Event {
      */
     std::string transaction;
     /**
-     * Enabling/firing condition. This is a C-like expression where the variables can either
-     * be scoped inside the instance referred by the breakpoint id, or full path.
-     */
-    std::string condition;
-    /**
      * Enum flag value.
      * 0 - None
      * 1 - Starts the transaction
@@ -346,7 +341,6 @@ auto inline init_debug_db(const std::string &filename) {
                    make_column("value", &Annotation::value)),
         make_table("event", make_column("name", &Event::name),
                    make_column("transaction", &Event::transaction),
-                   make_column("condition", &Event::condition),
                    make_column("action", &Event::action), make_column("fields", &Event::fields),
                    make_column("matches", &Event::matches),
                    make_column("breakpoint_id", &Event::breakpoint_id),
@@ -427,11 +421,10 @@ inline void store_annotation(DebugDatabase &db, const std::string &name, const s
 }
 
 inline void store_event(DebugDatabase &db, const std::string &name, const std::string &transaction,
-                        const std::string &condition, uint64_t action, const std::string &fields,
+                        uint64_t action, const std::string &fields,
                         const std::string &matches, uint32_t breakpoint_id) {
     db.replace(Event{.name = name,
                      .transaction = transaction,
-                     .condition = condition,
                      .action = action,
                      .fields = fields,
                      .matches = matches,

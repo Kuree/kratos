@@ -9,6 +9,7 @@
 
 #include "codegen.hh"
 #include "debug.hh"
+#include "event.hh"
 #include "except.hh"
 #include "fmt/format.h"
 #include "fsm.hh"
@@ -19,7 +20,6 @@
 #include "syntax.hh"
 #include "tb.hh"
 #include "util.hh"
-#include "event.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -1036,9 +1036,7 @@ public:
         }
     }
 
-    void visit(AuxiliaryStmt *stmt) override {
-        nodes_.emplace_back(stmt);
-    }
+    void visit(AuxiliaryStmt* stmt) override { nodes_.emplace_back(stmt); }
 
     const std::vector<IRNode*>& nodes() const { return nodes_; }
 
@@ -1618,38 +1616,100 @@ std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_
 class EnableStmtVisitor : public IRVisitor {
 public:
     void visit(AssignStmt* stmt) override {
+        // we're only interested in top level blocking assignment
+        if (stmt->assign_type() != AssignmentType::Blocking ||
+            stmt->parent()->ir_node_kind() != IRNodeKind::GeneratorKind)
+            return;
         auto* left = stmt->left();
-        auto str_value = get_enable_condition(left, stmt);
+        auto str_value = get_ssa_enable_condition(left);
         if (!str_value.empty()) {
             values.emplace(stmt, str_value);
         }
     }
+
+    void visit(ScopedStmtBlock* stmt) override {
+        auto count = stmt->size();
+        auto* gen = stmt->generator_parent();
+        for (auto i = 0u; i < count; i++) {
+            auto const& s = stmt->get_stmt(i);
+            auto cond = get_cond(s.get());
+            if (cond) {
+                values.emplace(s.get(), cond->handle_name(gen));
+            }
+        }
+    }
+
     std::map<Stmt*, std::string> values;
 
 private:
-    static std::string get_enable_condition(Var* target, Stmt* stmt) {
-        std::vector<std::string> str_values;
-        IRNode* node = stmt;
-        while (true) {
-            auto* parent = node->parent();
-            if (parent->ir_node_kind() == IRNodeKind::GeneratorKind) {
-                break;
+    static std::shared_ptr<Var> get_cond(Stmt* stmt) {
+        auto* ir_parent = stmt->parent();
+        if (ir_parent->ir_node_kind() == IRNodeKind::GeneratorKind) {
+            return nullptr;
+        }
+        auto* parent_stmt = reinterpret_cast<Stmt*>(ir_parent);
+        std::shared_ptr<Var> expr;
+        if (parent_stmt->type() == StatementType::If) {
+            // need to figure out which block it belongs to
+            auto* if_ = reinterpret_cast<IfStmt*>(parent_stmt);
+            if (if_->then_body().get() == stmt) {
+                expr = if_->predicate();
             } else {
-                auto* parent_stmt = reinterpret_cast<Stmt*>(parent);
-                if (parent_stmt->type() == StatementType::If) {
-                    auto* if_stmt = reinterpret_cast<IfStmt*>(parent_stmt);
-                    auto const& test = if_stmt->predicate();
-                    // check if it's then or else
-                    if (node == if_stmt->then_body().get()) {
-                        str_values.emplace_back(test->to_string());
-                    } else {
-                        str_values.emplace_back(::format("!({0})", test->to_string()));
+                expr = if_->predicate()->r_not().shared_from_this();
+            }
+        } else if (parent_stmt->type() == StatementType::Switch) {
+            auto* switch_ = reinterpret_cast<SwitchStmt*>(parent_stmt);
+            // figure out which condition it is in. notice that we could be in the default
+            // branch as well
+            auto const& body = switch_->body();
+            bool found = false;
+            for (auto const& [cond, stmt_blk] : body) {
+                if (stmt_blk.get() == stmt) {
+                    // it's this condition
+                    if (cond) expr = switch_->target()->eq(*cond).shared_from_this();
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                throw StmtException("Incorrect statement block stage", {stmt});
+            }
+            if (!expr) {
+                // it's the default one. we nor them together
+                std::shared_ptr<Var> or_;
+                std::vector<std::shared_ptr<Const>> conditions;
+                conditions.reserve(body.size());
+                for (auto const& [cond, stmt_blk] : body) {
+                    if (cond) conditions.emplace_back(cond);
+                }
+                // sort conditions based on the value. it's guarantee to be unique
+                // so no problems of overlap
+                std::sort(
+                    conditions.begin(), conditions.end(),
+                    [](const std::shared_ptr<Const>& left, const std::shared_ptr<Const>& right) {
+                        return left->value() < right->value();
+                    });
+                or_ = conditions[0];
+                if (conditions.size() > 1) {
+                    for (uint64_t i = 1; i < conditions.size(); i++) {
+                        or_ = or_->operator||(*conditions[i]).shared_from_this();
                     }
                 }
-                node = parent;
+                expr = (switch_->target()->operator!=(*or_)).shared_from_this();
             }
+        } else {
+            return get_cond(parent_stmt);
         }
+        auto rest_expr = get_cond(parent_stmt);
+        if (rest_expr) {
+            return expr->operator&&(*rest_expr).shared_from_this();
+        } else {
+            return expr;
+        }
+    }
 
+    static std::string get_ssa_enable_condition(Var* target) {
+        std::vector<std::string> str_values;
         // check attributes
         auto const& attrs = target->get_attributes();
         if (!attrs.empty()) {
@@ -1676,23 +1736,11 @@ private:
     }
 };
 
-
-void set_event_enable_condition(Generator *top, std::map<Stmt*, std::string> &map) {
-    auto info = extract_event_fire_condition(top);
-    for (auto const &e: info) {
-        // we scoped into the current generator
-        auto *gen = e.condition->generator();
-        auto cond = e.condition->handle_name(gen);
-        map.emplace(e.stmt.get(), cond);
-    }
-}
-
 std::map<Stmt*, std::string> compute_enable_condition(Generator* top) {
     // notice that this pass assumes SSA pass has transformed the always_comb block into
     // top-level continuous assignment
     EnableStmtVisitor visitor;
     visitor.visit_root(top);
-    set_event_enable_condition(top, visitor.values);
     return visitor.values;
 }
 

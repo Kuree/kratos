@@ -2,6 +2,7 @@ import _kratos
 import sqlite3
 import tempfile
 import os
+import json
 
 from kratos import Generator, Event, always_comb, always_ff, posedge, Transaction, verilog
 
@@ -51,28 +52,21 @@ def test_event_extraction():
 
     # convert to if to switch
     _kratos.passes.transform_if_to_case(mod.internal_generator)
-    # extract out the enable condition
-    info = _kratos.extract_event_fire_condition(mod.internal_generator)
+    info = _kratos.extract_event_info(mod.internal_generator)
     assert len(info) == 8
-    # check every conditions
     # check seq
     ffs = [i for i in info if not i.combinational]
     assert len(ffs) == 1
-    assert str(ffs[0].condition) == "a"
     assert str(ffs[0].fields["a5"]) == "a"
-    # check switch conditions
+    # check switch
     ffs = [i for i in info if "a4" in i.fields]
     assert len(ffs) == 1
     assert str(ffs[0].fields["a4"]) == "a"
-    assert str(ffs[0].condition) == "d != (2'h0 || 2'h1 || 2'h2)"
-    # check normal switch condition
     ffs = [i for i in info if "a3" in i.fields]
     assert len(ffs) == 1
-    assert str(ffs[0].condition) == "d == 2'h2"
     # check out if statements
     ffs = [i for i in info if "c" in i.fields]
     assert len(ffs) == 1
-    assert str(ffs[0].condition) == "(!b) && (!a)"
 
 
 def test_event_actions():
@@ -89,7 +83,7 @@ def test_event_actions():
         t @ event(b=b).matches(a=b).terminates()
 
     mod.add_always(code)
-    info = _kratos.extract_event_fire_condition(mod.internal_generator)
+    info = _kratos.extract_event_info(mod.internal_generator)
     assert len(info) == 2
     # check actions
     event1 = info[0]
@@ -117,7 +111,7 @@ def test_event_debug_fn_ln():
         t @ event(sig=sig)
 
     mod.add_always(code)
-    info = _kratos.extract_event_fire_condition(mod.internal_generator)
+    info = _kratos.extract_event_info(mod.internal_generator)
     stmt = info[0].stmt
     fn_lns = stmt.fn_name_ln
     assert len(fn_lns) == 1
@@ -163,6 +157,17 @@ def test_event_serialization():
         assert len(result) == 8
         event_last = result[-1]
         assert event_last[-2] == "(!(a == 8'h1)) && (!(a == 8'h0))"
+        # test out the event table
+        c.execute("SELECT * from event")
+        result = c.fetchall()
+        # 3 events
+        assert len(result) == 3
+        assert result[0][0] == "event"
+        # fields
+        fields = json.loads(result[0][3])
+        assert fields["value1"] == "mod.a"
+        matches = json.loads(result[0][4])
+        assert matches["value2"] == "mod.b"
         conn.close()
 
 

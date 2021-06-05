@@ -30,14 +30,13 @@ struct EventInfo {
     std::string transaction;
     bool combinational;
     EventActionType type;
-    std::shared_ptr<Var> condition;
     std::map<std::string, std::shared_ptr<Var>> fields;
     // keep the raw stmt here in case we need to extract more
     // information
     std::shared_ptr<EventTracingStmt> stmt;
 };
 
-std::vector<EventInfo> extract_event_fire_condition(Generator *top);
+std::vector<EventInfo> extract_event_info(Generator *top);
 
 void remove_event_stmts(Generator *top);
 
