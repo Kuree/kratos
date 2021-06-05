@@ -155,14 +155,15 @@ def test_event_serialization():
     with tempfile.TemporaryDirectory() as temp:
         db_filename = os.path.join(temp, "debug.db")
         verilog(mod, insert_debug_info=True, debug_db_filename=db_filename, contains_event=True)
-        with sqlite3.connect(db_filename) as conn:
-            c = conn.cursor()
-            c.execute("SELECT * from breakpoint")
-            result = c.fetchall()
-            # we have 8 lines
-            assert len(result) == 8
-            event_last = result[-1]
-            assert event_last[-2] == "(!(a == 8'h1)) && (!(a == 8'h0))"
+        conn = sqlite3.connect(db_filename)
+        c = conn.cursor()
+        c.execute("SELECT * from breakpoint")
+        result = c.fetchall()
+        # we have 8 lines
+        assert len(result) == 8
+        event_last = result[-1]
+        assert event_last[-2] == "(!(a == 8'h1)) && (!(a == 8'h0))"
+        conn.close()
 
 
 if __name__ == "__main__":
