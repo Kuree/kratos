@@ -896,8 +896,17 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
     // for loop
     if (generator_->debug) stmt->verilog_ln = stream_.line_no();
     auto iter = stmt->get_iter_var();
-    stream_ << indent() << "for (int " << (iter->is_signed() ? " " : "unsigned ")
-            << iter->to_string() << " = ";
+
+    // get var declaration
+    std::vector<std::string> var_decl;
+    if (iter->is_gen_var()) var_decl.emplace_back("genvar");
+    // maybe add support for much bigger number?
+    var_decl.emplace_back("int");
+    if (!iter->is_signed()) var_decl.emplace_back("unsigned");
+    var_decl.emplace_back(iter->to_string());
+    auto var_decl_str = string::join(var_decl.begin(), var_decl.end(), " ");
+
+    stream_ << indent() << "for (" << var_decl_str << " = ";
     stream_ << ::format("{0}", stmt->start()) << "; " << iter->to_string()
             << (stmt->end() > stmt->start() ? " < " : " > ");
     stream_ << ::format("{0}", stmt->end()) << "; " << iter->to_string()

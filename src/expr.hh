@@ -785,10 +785,15 @@ public:
 
     [[nodiscard]] inline int64_t min_value() const { return min_value_; }
     [[nodiscard]] inline int64_t max_value() const { return max_value_; }
+    [[nodiscard]] inline bool is_gen_var() const { return is_gen_var_; }
+
+    inline void set_is_gen_gar() { is_gen_var_ = true; }
 
 private:
     int64_t min_value_;
     int64_t max_value_;
+
+    bool is_gen_var_ = false;
 };
 
 // helper functions
