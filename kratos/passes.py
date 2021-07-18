@@ -40,6 +40,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             use_parallel: bool = True,
             track_generated_definition: bool = False,
             contains_event: bool = False,
+            lift_genvar_instances: bool = False,
             compile_to_verilog: bool = False):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
@@ -104,6 +105,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("uniquify_generators")
     pass_manager.add_pass("create_module_instantiation")
     pass_manager.add_pass("create_interface_instantiation")
+    # genvar instance lifting only happens after the module hash
+    pass_manager.add_pass("lift_genvar_instances")
     if insert_pipeline_stages:
         pass_manager.add_pass("insert_pipeline_stages")
     if reorder_stmts:

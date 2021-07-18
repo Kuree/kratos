@@ -455,6 +455,8 @@ public:
 
     virtual ~InstantiationStmt() = default;
 
+    void set_mapping(Port *port, Var *var) { port_mapping_[port] = var; }
+
 protected:
     std::map<Port *, Var *> port_mapping_;
 
@@ -472,7 +474,7 @@ public:
 
     InstantiationType instantiation_type() const override { return InstantiationType::Module; }
 
-    const Generator *target() { return target_; }
+    const Generator *target() const { return target_; }
 
 private:
     Generator *target_;

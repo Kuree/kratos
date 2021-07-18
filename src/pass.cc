@@ -3539,6 +3539,156 @@ private:
     std::vector<std::string> names_;
 };
 
+class LiftGenVarInstanceVisitor : public IRVisitor {
+public:
+    void visit(Generator* top) override {
+        // we are only interested in generator instances that shares the same name
+        // and has the same hash
+        std::unordered_map<uint64_t, std::vector<ModuleInstantiationStmt*>> generator_map;
+        // we use the hash value. I'm pretty sure that this won't catch all the corner cases
+        // but it's good enough for now
+        auto const* context = top->context();
+        // we assume the module instantiation is done
+        for (auto const& stmt : top->get_all_stmts()) {
+            if (stmt->type() == StatementType::ModuleInstantiation) {
+                auto* inst = reinterpret_cast<ModuleInstantiationStmt*>(stmt.get());
+                auto const* gen = inst->target();
+
+                if (!context->has_hash(gen)) {
+                    throw UserException("Cannot find hash for generator");
+                }
+                auto hash = context->get_hash(gen);
+                generator_map[hash].emplace_back(inst);
+            }
+        }
+
+        // only interested in entries that has more than 1 entries
+        for (auto const& [hash, generators] : generator_map) {
+            if (generators.size() <= 1) continue;
+            std::unordered_map<std::string, PortInfo> port_mapping;
+            bool check = check_child_instance(generators, port_mapping);
+            if (check) {
+                // change it to a loop structure
+                create_gen_var_instance(generators, port_mapping);
+            }
+        }
+    }
+
+private:
+    using PortInfo = std::unordered_map<std::string, std::unordered_set<uint64_t>>;
+    // NOLINTNEXTLINE
+    bool static check_child_instance(const std::vector<ModuleInstantiationStmt*>& generators,
+                                     std::unordered_map<std::string, PortInfo>& port_mapping) {
+        // check if all the ports are connected to the same variable and index
+        for (auto const* inst : generators) {
+            auto const* gen = inst->target();
+            for (auto const& port_name : gen->get_port_names()) {
+                auto const& port = gen->get_port(port_name);
+                // get connected net
+                // we assume the port connections are already checked
+                Var* net;
+                if (port->port_direction() == PortDirection::In) {
+                    auto const& stmt = *port->sources().begin();
+                    net = stmt->right();
+                } else {
+                    auto const& stmt = *port->sinks().begin();
+                    net = stmt->left();
+                }
+                if (net->type() == VarType::Slice) {
+                    auto* slice = reinterpret_cast<VarSlice*>(net);
+                    auto* parent = slice->parent_var;
+                    if (slice->high != slice->low) {
+                        // ranged slice not allowed
+                        return false;
+                    }
+                    port_mapping[port_name][parent->to_string()].emplace(slice->high);
+                } else {
+                    port_mapping[port_name][net->to_string()] = {};
+                }
+            }
+        }
+
+        // make sure all the array match
+        return std::all_of(port_mapping.begin(), port_mapping.end(),
+                           [&generators](auto const& iter) -> bool {
+                               auto const& [port_name, info] = iter;
+                               // has to have one parent
+                               if (info.size() != 1) {
+                                   return false;
+                               }
+                               // if it's array slicing
+                               auto const& links = info.begin()->second;
+                               if (!links.empty()) {
+                                   // has to match with the array size
+                                   if (links.size() != generators.size()) {
+                                       return false;
+                                   }
+                                   for (uint64_t i = 0; i < generators.size(); i++) {
+                                       if (links.find(i) == links.end()) {
+                                           return false;
+                                       }
+                                   }
+                               }
+                               return true;
+                           });
+    }
+
+    static void create_gen_var_instance(
+        const std::vector<ModuleInstantiationStmt*>& generators,
+        const std::unordered_map<std::string, PortInfo>& port_mapping) {
+        auto* gen = generators[0]->generator_parent();
+        // need to allocate a var name
+        auto const new_var = gen->get_unique_variable_name("", "i");
+        // need to create a for loop with genvar loop variable
+        auto for_stmt = std::make_shared<ForStmt>(new_var, 0, generators.size(), 1);
+        // set it to gen var
+        auto const& iter = for_stmt->get_iter_var();
+        iter->set_is_gen_gar();
+        gen->add_stmt(for_stmt);
+        for (auto* inst : generators) {
+            // remove statement first
+            // const cast
+            auto* s = const_cast<ModuleInstantiationStmt*>(inst);
+            gen->remove_stmt(s->shared_from_this());
+            auto const* child = inst->target();
+            // need to rewrite all the connections
+            // first we remove all of the connections
+            // remote_stmt will take care of the connection if it doesn't exist
+            for (auto const& [port_name, info] : port_mapping) {
+                auto port = child->get_port(port_name);
+                // get the target_var
+                auto mapping = *info.begin();
+                auto const& target_name = mapping.first;
+                auto const& target_var_base = gen->get_var(target_name);
+                std::shared_ptr<Var> target_var;
+                if (mapping.second.empty()) {
+                    target_var = target_var_base;
+                } else {
+                    target_var = target_var_base->operator[](iter).shared_from_this();
+                }
+                if (port->port_direction() == PortDirection::In) {
+                    auto const& source_stmt = *port->sources().begin();
+                    gen->remove_stmt(source_stmt);
+                    port->clear_sources(false);
+                    port->add_source(port->assign(target_var));
+                } else {
+                    auto const& sink_stmt = *port->sinks().begin();
+                    gen->remove_stmt(sink_stmt);
+                    port->add_sink(target_var->assign(port));
+                    port->clear_sinks(false);
+                }
+                inst->set_mapping(port.get(), target_var.get());
+            }
+        }
+    }
+};
+
+void lift_genvar_instances(Generator* top) {
+    LiftGenVarInstanceVisitor visitor;
+    // only local to the current generator so we can run it in parallel
+    visitor.visit_generator_root_p(top);
+}
+
 std::vector<std::string> extract_register_names(Generator* top) {
     // first fix the assignment types
     fix_assignment_type(top);
@@ -3654,6 +3804,8 @@ void PassManager::register_builtin_passes() {
     register_pass("merge_const_port_assignment", &merge_const_port_assignment);
 
     register_pass("remove_event_stmts", &remove_event_stmts);
+
+    register_pass("lift_genvar_instances", &lift_genvar_instances);
 
     // TODO:
     //  add inline pass

@@ -65,6 +65,8 @@ void merge_const_port_assignment(Generator *top);
 
 void remove_event_stmts(Generator *top);
 
+void lift_genvar_instances(Generator *top);
+
 std::map<std::string, std::string> generate_verilog(Generator* top);
 // this function outputs every module into a single file in the targeted direction
 // if header filename is not empty,
