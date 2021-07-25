@@ -35,6 +35,7 @@ you:
                 debug_db_filename: str = "",
                 use_parallel: bool = True,
                 track_generated_definition: bool = False,
+                lift_genvar_instances: bool = False,
                 compile_to_verilog: bool = False):
 
 The required argument ``generator`` has to be the top level circuit
@@ -51,6 +52,14 @@ packed struct, ``definition.svh`` will be created in that directory and
 all module files will include that header file. Kratos only override
 the file content if it detects a change. This very useful for incremental
 build for commercial simulators.
+
+There are some experimental features that's turned off by default. However,
+users can turn it on explicitly if needed:
+
+1. `lift_genvar_instances`. If set, the compiler will detect any code structure
+   that can be folded into a genvar instance statement. This is done by
+   detecting if there is any similar generator instantiation that wired to
+   either the same port, or a slice of the port.
 
 .. note::
     Once ``filename`` or ``output_dir`` is specified, the code generator
