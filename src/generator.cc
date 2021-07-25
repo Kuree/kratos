@@ -1129,6 +1129,15 @@ std::shared_ptr<StmtBlock> Generator::get_named_block(const std::string &block_n
     return named_blocks_.at(block_name);
 }
 
+std::optional<std::string> Generator::get_block_name(const Stmt *stmt) const {
+    for (auto const &[name, s] : named_blocks_) {
+        if (s.get() == stmt) {
+            return name;
+        }
+    }
+    return std::nullopt;
+}
+
 void Generator::add_named_block(const std::string &block_name,
                                 const std::shared_ptr<StmtBlock> &block) {
     if (has_named_block(block_name))
@@ -1148,21 +1157,35 @@ std::string Generator::handle_name() const { return handle_name(false); }
 std::string Generator::handle_name(bool ignore_top) const {
     // this is used to identify the generator from the top level
     std::string result = instance_name;
-    auto *parent = parent_generator_;
-    if (ignore_top) {
-        std::vector<std::string> values;
-        values.emplace_back(instance_name);
-        while (parent != nullptr) {
-            values.emplace(values.begin(), parent->instance_name);
-            parent = parent->parent_generator_;
+    auto const *current = this;
+    std::vector<std::string> values;
+    while (current != nullptr) {
+        // need to check if we are in a gen block
+        if (current->parent_generator_ && current->instantiation_stmt_ &&
+            current->instantiation_stmt_->parent()->ir_node_kind() == IRNodeKind::StmtKind) {
+            // need to find out the label
+            // need two parents since the previous parent is a stmt block
+            auto *for_ = reinterpret_cast<ForStmt *>(current->instantiation_stmt_->parent());
+            auto label = current->parent_generator_->get_block_name(for_->get_loop_body().get());
+            // need to find out the index
+            auto index =
+                for_->genvar_index(current->instantiation_stmt_->shared_from_this());
+            if (!label || !index) {
+                throw InternalException("Invalid state of genvar instance array");
+            }
+
+            auto n = ::format("{0}[{1}]", current->instance_name, *index);
+            values.emplace(values.begin(), n);
+            values.emplace(values.begin(), *label);
+        } else {
+            values.emplace(values.begin(), current->instance_name);
         }
-        result = string::join(values.begin() + 1, values.end(), ".");
-    } else {
-        while (parent != nullptr) {
-            result = ::format("{0}.{1}", parent->instance_name, result);
-            parent = parent->parent_generator_;
-        }
+
+        current = current->parent_generator_;
     }
+    auto starting = ignore_top ? 1u : 0u;
+    result = string::join(values.begin() + starting, values.end(), ".");
+
     return result;
 }
 

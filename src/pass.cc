@@ -477,6 +477,7 @@ public:
             for (auto const& st : stmt->connection_stmt()) {
                 st->remove_from_parent();
             }
+            child->set_instantiation_stmt(stmt.get());
         }
     }
 };
@@ -3659,9 +3660,9 @@ private:
             // remove statement first
             // const cast
             auto* s = const_cast<ModuleInstantiationStmt*>(inst);
-            // holding a reference here
-            auto inst_ptr = s->shared_from_this();
+            for_stmt->add_genvar_stmt(s->shared_from_this());
             gen->remove_stmt(s->shared_from_this());
+            s->set_parent(for_stmt.get());
             auto const* child = inst->target();
             // need to rewrite all the connections
             // first we remove all of the connections
@@ -3693,7 +3694,7 @@ private:
             }
             // only need one instance
             if (for_stmt->get_loop_body()->empty()) {
-                for_stmt->get_loop_body()->add_stmt(inst_ptr);
+                for_stmt->get_loop_body()->add_stmt(inst->shared_from_this());
             }
 
             // name all the instance name to inst

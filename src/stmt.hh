@@ -226,6 +226,9 @@ public:
 
     void add_stmt(const std::shared_ptr<Stmt> &stmt);
 
+    std::optional<uint64_t> genvar_index(const std::shared_ptr<Stmt> &stmt);
+    void add_genvar_stmt(const std::shared_ptr<Stmt> &stmt) { gen_var_stmts_.emplace_back(stmt); }
+
     // accessors
     int64_t start() const { return start_; }
     int64_t end() const { return end_; }
@@ -240,6 +243,8 @@ private:
     int64_t end_;
     int64_t step_;
     std::shared_ptr<ScopedStmtBlock> loop_body_;
+    // memory holder for genvar stuff
+    std::vector<std::shared_ptr<Stmt>> gen_var_stmts_;
 };
 
 class StmtBlock : public Stmt {

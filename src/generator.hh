@@ -245,6 +245,7 @@ public:
         return named_blocks_.find(block_name) != named_blocks_.end();
     }
     std::shared_ptr<StmtBlock> get_named_block(const std::string &block_name) const;
+    std::optional<std::string> get_block_name(const Stmt * stmt) const;
     void add_named_block(const std::string &block_name, const std::shared_ptr<StmtBlock> &block);
     std::unordered_set<std::string> named_blocks_labels() const;
     Generator *def_instance() const { return def_instance_; }
@@ -261,6 +262,8 @@ public:
     const std::unordered_set<std::string> &raw_package_imports() const {
         return raw_package_imports_;
     }
+    ModuleInstantiationStmt *instantiation_stmt() const { return instantiation_stmt_; }
+    void set_instantiation_stmt(ModuleInstantiationStmt *stmt) { instantiation_stmt_ = stmt; }
 
     // used for to find out which verilog file it generates to
     std::string verilog_fn;
@@ -317,6 +320,9 @@ private:
 
     // raw imports. only used when interfacing foreign IPs
     std::unordered_set<std::string> raw_package_imports_;
+
+    // used to trace instantiation stmt, if any
+    ModuleInstantiationStmt *instantiation_stmt_ = nullptr;
 
     // helper functions
     void check_param_name_conflict(const std::string &parameter_name);

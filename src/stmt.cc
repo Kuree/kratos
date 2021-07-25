@@ -354,6 +354,15 @@ std::shared_ptr<Stmt> ForStmt::clone() const {
 
 void ForStmt::clear() { loop_body_->clear(); }
 
+std::optional<uint64_t> ForStmt::genvar_index(const std::shared_ptr<Stmt> &stmt) {
+    auto pos = std::find(gen_var_stmts_.begin(), gen_var_stmts_.end(), stmt);
+    if (pos == gen_var_stmts_.end()) {
+        return std::nullopt;
+    } else {
+        return pos - gen_var_stmts_.begin();
+    }
+}
+
 StmtBlock::StmtBlock(StatementBlockType type) : Stmt(StatementType::Block), block_type_(type) {}
 
 void StmtBlock::add_stmt(const std::shared_ptr<Stmt> &stmt) {
