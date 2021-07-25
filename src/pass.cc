@@ -3653,7 +3653,8 @@ private:
         auto const& iter = for_stmt->get_iter_var();
         iter->set_is_gen_gar();
         gen->add_stmt(for_stmt);
-        auto instance_name = find_common_instance_name(generators);
+        auto blk_name = find_common_instance_name(generators);
+        gen->add_named_block(blk_name, for_stmt->get_loop_body());
         for (auto* inst : generators) {
             // remove statement first
             // const cast
@@ -3690,10 +3691,15 @@ private:
                 }
                 inst->set_mapping(port.get(), target_var.get());
             }
-            // only need on instance
+            // only need one instance
             if (for_stmt->get_loop_body()->empty()) {
                 for_stmt->get_loop_body()->add_stmt(inst_ptr);
             }
+
+            // name all the instance name to inst
+            // remove const cast hack
+            auto *target_inst = const_cast<Generator*>(s->target());
+            target_inst->instance_name = "inst";
         }
     }
 
@@ -3716,7 +3722,16 @@ private:
                 gen_inst_name << inst_ref[s];
             }
         }
-        return gen_inst_name.str();
+        auto str = gen_inst_name.str();
+        // remote _ at the end
+        while (str[str.size() - 1] == '_') {
+            str = str.substr(0, str.size() - 1);
+        }
+        // if it's empty, use gen_blk and the definition name
+        if (str.empty()) {
+            str = "genblk_" + generators[0]->target()->name;
+        }
+        return str;
     }
 };
 
