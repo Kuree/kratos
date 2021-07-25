@@ -73,8 +73,7 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
     for (uint64_t i = 1; i < right_wrapped.size(); i++) {
         // compute new indent
         (*this) << endl();
-        auto new_indent = codegen_->indent() + "    ";
-        (*this) << new_indent << right_wrapped[i];
+        (*this) << codegen_->indent() << "    " << right_wrapped[i];
     }
     (*this) << ";" << endl();
     return *this;
@@ -366,17 +365,31 @@ void SystemVerilogCodeGen::generate_functions(kratos::Generator* generator) {
     for (auto const& iter : funcs) stmt_code(iter.second.get());
 }
 
-std::string SystemVerilogCodeGen::indent() {
+std::string_view SystemVerilogCodeGen::indent() {
     if (skip_indent_) {
         skip_indent_ = false;
         return "";
     }
-    std::string result;
-    uint32_t num_indent = indent_ * indent_size;
-    result.resize(num_indent);
-    for (uint32_t i = 0; i < num_indent; i++) result[i] = ' ';
-    return result;
+    if (empty_indent_str_.size() < (indent_ * indent_size)) {
+        // need to expand the string
+        std::string result;
+        uint32_t num_indent = indent_ * indent_size;
+        result.resize(num_indent);
+        for (uint32_t i = 0; i < num_indent; i++) result[i] = ' ';
+        empty_indent_str_ = result;
+        empty_indent_string_view_ = empty_indent_str_;
+    }
+    return empty_indent_string_view_.substr(0, indent_ * indent_size);
 }
+
+std::string_view SystemVerilogCodeGen::pre_indent() {
+    if (indent_ == 0) {
+        return "";
+    } else {
+        return empty_indent_string_view_.substr(0, (indent_ - 1) * indent_size);
+    }
+}
+
 
 void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
     if (node->ir_node_kind() != IRNodeKind::StmtKind)
@@ -1087,7 +1100,7 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
         else
             stream_ << stream_.endl();
     }
-    stream_ << indent() << ");" << stream_.endl() << stream_.endl();
+    stream_ << pre_indent() << ");" << stream_.endl() << stream_.endl();
     indent_--;
 }
 

@@ -64,7 +64,8 @@ public:
 
     uint32_t indent_size = 2;
 
-    std::string indent();
+    std::string_view indent();
+    std::string_view pre_indent();
     void increase_indent() { indent_++; }
     void decrease_indent() { indent_--; }
 
@@ -77,6 +78,9 @@ public:
 
 private:
     uint32_t indent_ = 0;
+    // skip string generation
+    std::string empty_indent_str_;
+    std::string_view empty_indent_string_view_;
     Generator* generator_;
     bool skip_indent_ = false;
     std::unordered_map<StmtBlock*, std::string> label_index_;
