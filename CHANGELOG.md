@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.34] - 2021-07-25
+### Added
+- Event support for debugging. Events are specialized logic that can be used in HGDB
+- Add pass that can automatically lift instance array into genvar construct (#162)
+
+### Changed
+- Indentation is now obtained via string_view. Users should see minor codegen performance
+  improvement
+- Module instance indentation logic is changed. No visible change to the users.
+
+### Fixed
+- Slice detection in port decoupling is now fixed.
+
 ## [0.0.33.1] - 2021-05-14
 ### Added
 - Add clk_en cast
