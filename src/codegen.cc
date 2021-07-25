@@ -899,10 +899,15 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
 
     // get var declaration
     std::vector<std::string> var_decl;
-    if (iter->is_gen_var()) var_decl.emplace_back("genvar");
-    // maybe add support for much bigger number?
-    var_decl.emplace_back("int");
-    if (!iter->is_signed()) var_decl.emplace_back("unsigned");
+    if (iter->is_gen_var()) {
+        // genvar don't have type declaration
+        var_decl.emplace_back("genvar");
+    } else {
+        // maybe add support for much bigger number?
+        var_decl.emplace_back("int");
+        if (!iter->is_signed()) var_decl.emplace_back("unsigned");
+    }
+
     var_decl.emplace_back(iter->to_string());
     auto var_decl_str = string::join(var_decl.begin(), var_decl.end(), " ");
 
@@ -912,9 +917,9 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
     stream_ << ::format("{0}", stmt->end()) << "; " << iter->to_string()
             << (stmt->step() > 0 ? " += " : " -= ");
     stream_ << ::format("{0}", std::abs(stmt->step())) << ") ";
-    indent_++;
+    if (!iter->is_gen_var()) indent_++;
     dispatch_node(stmt->get_loop_body().get());
-    indent_--;
+    if (!iter->is_gen_var()) indent_--;
 }
 
 void SystemVerilogCodeGen::stmt_code(LatchStmtBlock* stmt) { block_code("always_latch", stmt); }
@@ -1082,7 +1087,7 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
         else
             stream_ << stream_.endl();
     }
-    stream_ << ");" << stream_.endl() << stream_.endl();
+    stream_ << indent() << ");" << stream_.endl() << stream_.endl();
     indent_--;
 }
 
@@ -1161,7 +1166,7 @@ public:
             auto p = generator->get_port(port_name);
             if (p->is_interface()) {
                 auto interface_p = p->as<InterfacePort>();
-                const auto *ref = interface_p->interface();
+                const auto* ref = interface_p->interface();
                 auto def = ref->definition();
                 update_interface_definition(def, ref, generator);
             }
@@ -1283,9 +1288,9 @@ std::map<std::string, std::string> extract_interface_info(Generator* top) {
     return result;
 }
 
-void copy_attrs(const Var &src, Var &target) {
-    auto const &attributes = src.get_attributes();
-    for (auto const &attr: attributes) {
+void copy_attrs(const Var& src, Var& target) {
+    auto const& attributes = src.get_attributes();
+    for (auto const& attr : attributes) {
         target.add_attribute(attr);
     }
 }
