@@ -310,8 +310,23 @@ ForStmt::ForStmt(const std::string &iter_var_name, int64_t start, int64_t end, i
 }
 
 void ForStmt::set_parent(IRNode *node) {
-    if (node->ir_node_kind() != IRNodeKind::StmtKind)
-        throw UserException("For loop can only be added to statement body");
+    if (node->ir_node_kind() != IRNodeKind::StmtKind) {
+        // make sure it is genvar and all it's statements is instantiation statement
+        bool all_instantiation = std::all_of(
+            loop_body_->begin(), loop_body_->end(), [](const std::shared_ptr<Stmt> &stmt) {
+                return stmt->type() == StatementType::ModuleInstantiation;
+            });
+        // make sure it's genvar marked
+        bool is_genvar = iter_->is_gen_var();
+        if (!is_genvar || !all_instantiation || node->ir_node_kind() != IRNodeKind::GeneratorKind) {
+            throw UserException("For loop can only be added to statement body");
+        } else {
+            auto *gen = reinterpret_cast<Generator *>(node);
+            iter_->set_generator(gen);
+            Stmt::set_parent(node);
+            return;
+        }
+    }
     auto *stmt = reinterpret_cast<Stmt *>(node);
     auto *gen = stmt->generator_parent();
     if (gen) {
@@ -895,9 +910,9 @@ std::shared_ptr<Stmt> RawStringStmt::clone() const {
 AuxiliaryStmt::AuxiliaryStmt(AuxiliaryType type) : Stmt(StatementType::Auxiliary), type_(type) {}
 
 EventActionType operator|=(EventActionType &lhs, EventActionType rhs) {
-    lhs = static_cast<EventActionType>(
-        static_cast<std::underlying_type<EventActionType>::type>(lhs) |
-        static_cast<std::underlying_type<EventActionType>::type>(rhs));
+    lhs =
+        static_cast<EventActionType>(static_cast<std::underlying_type<EventActionType>::type>(lhs) |
+                                     static_cast<std::underlying_type<EventActionType>::type>(rhs));
     return lhs;
 }
 

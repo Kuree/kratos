@@ -106,7 +106,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     pass_manager.add_pass("create_module_instantiation")
     pass_manager.add_pass("create_interface_instantiation")
     # genvar instance lifting only happens after the module hash
-    pass_manager.add_pass("lift_genvar_instances")
+    if lift_genvar_instances:
+        pass_manager.add_pass("lift_genvar_instances")
     if insert_pipeline_stages:
         pass_manager.add_pass("insert_pipeline_stages")
     if reorder_stmts:

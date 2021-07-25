@@ -767,7 +767,7 @@ private:
                     auto* src = stmt->right();
                     if (correct_src_type(src, generator) ||
                         // here we are okay with input sliced in
-                        (src->type() == VarType::Slice && src->parent() == generator->parent())) {
+                        (src->type() == VarType::Slice && src->generator() == generator->parent())) {
                         // remove it from the parent generator
                         src->generator()->remove_stmt(stmt);
                         return;
@@ -3593,6 +3593,14 @@ private:
                 } else {
                     auto const& stmt = *port->sinks().begin();
                     net = stmt->left();
+                    // if it's a fanout to a sliced net
+                    if (net->sinks().size() == 1) {
+                        auto const &next_stmt = *net->sinks().begin();
+                        auto *n = next_stmt->left();
+                        if (n->type() == VarType::Slice) {
+                            net = n;
+                        }
+                    }
                 }
                 if (net->type() == VarType::Slice) {
                     auto* slice = reinterpret_cast<VarSlice*>(net);
@@ -3645,6 +3653,7 @@ private:
         auto const& iter = for_stmt->get_iter_var();
         iter->set_is_gen_gar();
         gen->add_stmt(for_stmt);
+        auto instance_name = find_common_instance_name(generators);
         for (auto* inst : generators) {
             // remove statement first
             // const cast
@@ -3679,14 +3688,40 @@ private:
                 }
                 inst->set_mapping(port.get(), target_var.get());
             }
+            // only need on instance
+            if (for_stmt->get_loop_body()->empty()) {
+                for_stmt->get_loop_body()->add_stmt(inst->shared_from_this());
+            }
         }
+    }
+
+    static std::string find_common_instance_name(
+        const std::vector<ModuleInstantiationStmt*>& generators) {
+        std::stringstream gen_inst_name;
+        auto const& inst_ref = generators[0]->target()->instance_name;
+        for (uint64_t s = 0; s < inst_ref.size(); s++) {
+            bool diff = false;
+            for (uint64_t i = 1; i < generators.size(); i++) {
+                auto const& c = generators[i]->target()->instance_name[s];
+                if (c != inst_ref[s]) {
+                    diff = true;
+                    break;
+                }
+            }
+            if (diff) {
+                break;
+            } else {
+                gen_inst_name << inst_ref[s];
+            }
+        }
+        return gen_inst_name.str();
     }
 };
 
 void lift_genvar_instances(Generator* top) {
     LiftGenVarInstanceVisitor visitor;
     // only local to the current generator so we can run it in parallel
-    visitor.visit_generator_root_p(top);
+    visitor.visit_generator_root(top);
 }
 
 std::vector<std::string> extract_register_names(Generator* top) {
