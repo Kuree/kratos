@@ -2196,12 +2196,13 @@ def test_merge_const_port_assignment():
     assert ".b(1'h1)" in v
 
 
-def test_gen_inst_lift():
+def test_gen_inst_lift(check_gold):
     num_inst = 4
     parent = Generator("parent")
     clk = parent.clock("clk")
     a_array = parent.var("a", 1, size=4)
     b_array = parent.var("b", 1, size=4)
+    children = []
 
     for i in range(num_inst):
         child = Generator("child")
@@ -2213,12 +2214,30 @@ def test_gen_inst_lift():
                          clk=clk,
                          a=a_array[i],
                          b=b_array[i])
+        children.append(child)
 
+    check_gold(parent, "test_gen_inst_lift", lift_genvar_instances=True)
+    name = children[1].internal_generator.handle_name()
+    assert name == "parent.child.inst[1]"
+
+    # another one that will fail the genvar test
+    Generator.clear_context()
+    num_inst = 4
+    parent = Generator("parent")
+    clk = parent.clock("clk")
+    a_array = parent.var("a", 1, size=2)
+
+    for i in range(2):
+        child = Generator("child")
+        child.clock("clk")
+        child.input("a", 1)
+        parent.add_child(f"child_{i}", child,
+                         clk=clk,
+                         a=a_array[0])
     src = verilog(parent, lift_genvar_instances=True)["parent"]
-    print(src)
+    assert "genvar" not in src
 
 
 if __name__ == "__main__":
     from conftest import check_gold_fn
-    # test_ssa_transform(check_gold_fn)
-    test_gen_inst_lift()
+    test_gen_inst_lift(check_gold_fn)
