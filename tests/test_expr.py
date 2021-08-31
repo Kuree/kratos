@@ -200,5 +200,15 @@ def test_lshift():
     assert str(c) == "a << b"
 
 
+def test_big_num():
+    from kratos import const
+    a = const(2 ** 100, 120)
+    assert a.is_bignum
+    s = str(a)
+    assert s == "120'h10000000000000000000000000"
+    b = const(1, 120)
+    assert not b.is_bignum
+
+
 if __name__ == "__main__":
-    test_packed_unpacked()
+    test_big_num()

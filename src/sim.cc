@@ -204,6 +204,9 @@ std::optional<uint64_t> Simulator::get_value_(const kratos::Var *var) const {
         return param->value();
     } else if (var->type() == VarType::ConstValue) {
         auto const *const_ = reinterpret_cast<const Const *>(var);
+        if (const_->is_bignum())
+            throw InternalException("Big number evaluation not supported. Got " +
+                                    const_->to_string());
         return const_->value();
     } else if (var->type() == VarType::Expression) {
         auto result = eval_expr(var);

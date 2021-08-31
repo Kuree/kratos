@@ -878,6 +878,19 @@ Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
     return *p;
 }
 
+Const &Const::constant(const std::string &hex_value, uint32_t num_bits, bool negative,
+                       uint32_t width, bool is_signed) {
+    auto p = std::make_shared<Const>(std::numeric_limits<uint64_t>::max(), width, is_signed);
+    if (hex_value.find_first_not_of("abcdefABCDEF0123456789") != std::string::npos) {
+        throw std::invalid_argument("Invalid hex value for constant " + hex_value);
+    }
+    p->hex_value_ = hex_value;
+    p->negative_ = negative;
+    p->num_bits_ = num_bits;
+    consts_.emplace(p);
+    return *p;
+}
+
 void Const::set_is_packed(bool value) {
     if (!value) throw UserException("Unable to set const unpacked");
 }
@@ -1189,7 +1202,14 @@ std::string VarExtend::to_string() const {
 }
 
 std::string Const::to_string() const {
-    if (is_signed_ && value_ < 0) {
+    if (num_bits_ != 0) {
+        // very big number
+        if (negative_) {
+            return ::format("-{0}\'h{1}", width(), hex_value_);
+        } else {
+            return ::format("{0}\'h{1}", width(), hex_value_);
+        }
+    } else if (is_signed_ && value_ < 0) {
         return ::format("-{0}\'h{1:X}", width(), -value_);
     } else {
         return ::format("{0}\'h{1:X}", width(), value_);
@@ -1851,7 +1871,7 @@ bool IterVar::safe_to_resize(const Var *var, uint32_t target_size, bool is_signe
     // brute-force to compute every possible combinations using simulator
     static Simulator sim(nullptr);
     // We did some hacks that, assuming the min and max value is at the boundary
-    // maybe use a SMT solver?
+    // maybe use an SMT solver?
     std::queue<const IterVar *> queue;
     for (auto const &v : iters) {
         sim.set_i(v, v->max_value() - 1, false);

@@ -9,6 +9,10 @@
 namespace py = pybind11;
 using std::shared_ptr;
 
+// some IDE uses system header, which might be python2
+extern PyObject *
+_PyLong_Format(PyObject *obj, int base);
+
 std::optional<std::pair<std::string, uint32_t>> get_fn_ln(uint32_t num_frame_back);
 
 // templated function to set up packed struct for both port and var
@@ -395,7 +399,7 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
                     }
                 }
             })
-        .def("rename", // rename will reindex the ports. cannot be used in a pass
+        .def("rename",  // rename will reindex the ports. cannot be used in a pass
              [](Var &var, const std::string &value) {
                  // this is for pass usage only. need to reindex the variables
                  // once you're done
@@ -469,6 +473,38 @@ void init_getitem(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_) {
             py::return_value_policy::reference);
 }
 
+void init_big_int(py::module &m) {
+    m.def(
+        "constant",
+        [](const py::int_ &obj, uint64_t width, bool is_signed) {
+            auto num_bits = _PyLong_NumBits(obj.ptr());
+
+            if (num_bits > width)
+                throw std::invalid_argument(
+                    fmt::format("Width ({0}) too small for constant value", width));
+            if (num_bits <= 64) {
+                auto v = PyLong_AsLongLong(obj.ptr());
+                auto &c = kratos::Const::constant(v, width, is_signed);
+                return c.shared_from_this();
+            }
+            auto *format = _PyLong_Format(obj.ptr(), 16);
+            auto str_value = py::cast<std::string>(format);
+            bool negative = false;
+            if (str_value[0] == '-') {
+                if (!is_signed)
+                    throw std::invalid_argument(
+                        "Constant value is signed but argument says otherwise");
+                negative = true;
+                str_value = str_value.substr(1);
+            }
+            // remove 0x
+            str_value = str_value.substr(2);
+            auto &c = kratos::Const::constant(str_value, num_bits, negative, width, is_signed);
+            return c.shared_from_this();
+        },
+        py::return_value_policy::reference);
+}
+
 // deal with all the expr/var stuff
 void init_expr(py::module &m) {
     using namespace kratos;
@@ -489,6 +525,7 @@ void init_expr(py::module &m) {
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
     const_.def("value", &Const::value).def("set_value", &Const::set_value);
+    const_.def_property_readonly("is_bignum", &Const::is_bignum);
 
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
     slice.def_property_readonly("sliced_by_var", &VarSlice::sliced_by_var)
@@ -603,6 +640,7 @@ void init_expr(py::module &m) {
 
     // constant
     m.def("constant", &constant, py::return_value_policy::reference);
+    init_big_int(m);
 
     m.def("mux", util::mux);
 

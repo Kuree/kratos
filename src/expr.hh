@@ -263,7 +263,6 @@ protected:
     virtual std::shared_ptr<AssignStmt> assign_(const std::shared_ptr<Var> &var,
                                                 AssignmentType type);
 
-
 private:
     std::set<std::shared_ptr<VarCasted>> casted_;
     std::unordered_map<uint32_t, std::shared_ptr<VarExtend>> extended_;
@@ -429,12 +428,15 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     static Const &constant(int64_t value, uint32_t width, bool is_signed);
+    static Const &constant(const std::string &hex_value, uint32_t num_bits, bool negative,
+                           uint32_t width, bool is_signed);
     Const(int64_t value, uint32_t width, bool is_signed);
 
     static Generator *const_gen() { return const_generator_.get(); }
 
     // struct is always packed
     bool is_packed() const override { return true; }
+    bool is_bignum() const { return num_bits_ > 0; }
     void set_is_packed(bool value) override;
 
     enum class ConstantLegal { Legal, Small, Big };
@@ -446,6 +448,10 @@ private:
     // created without a generator holder
     static std::unordered_set<std::shared_ptr<Const>> consts_;
     static std::shared_ptr<Generator> const_generator_;
+    // for very large numbers
+    std::string hex_value_;
+    uint32_t num_bits_ = 0;
+    bool negative_ = false;
 };
 
 // helper function
