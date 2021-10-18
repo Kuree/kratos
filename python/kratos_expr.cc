@@ -10,8 +10,7 @@ namespace py = pybind11;
 using std::shared_ptr;
 
 // some IDE uses system header, which might be python2
-extern PyObject *
-_PyLong_Format(PyObject *obj, int base);
+extern PyObject *_PyLong_Format(PyObject *obj, int base);
 
 std::optional<std::pair<std::string, uint32_t>> get_fn_ln(uint32_t num_frame_back);
 
@@ -551,7 +550,8 @@ void init_expr(py::module &m) {
             [](VarSlice &var, const std::shared_ptr<Var> &slice) -> VarSlice & {
                 return var[slice];
             },
-            py::return_value_policy::reference);
+            py::return_value_policy::reference)
+        .def_readonly("parent_var", &VarSlice::parent_var, py::return_value_policy::reference);
 
     auto var_slice = py::class_<VarVarSlice, ::shared_ptr<VarVarSlice>, VarSlice>(m, "VarVarSlice");
     var_slice.def_property_readonly(
