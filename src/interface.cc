@@ -11,7 +11,7 @@ std::shared_ptr<InterfaceModPortDefinition> InterfaceDefinition::create_modport_
     const std::string& name) {
     if (mod_ports_.find(name) != mod_ports_.end())
         throw UserException(::format("{0} already exists in {1}", name, name_));
-    auto p = std::make_shared<InterfaceModPortDefinition>(this, name);
+    auto p = std::make_shared<InterfaceModPortDefinition>(shared_from_this(), name);
     mod_ports_.emplace(name, p);
     return p;
 }
@@ -88,9 +88,9 @@ bool InterfaceDefinition::has_var(const std::string& name) const {
     return vars_.find(name) != vars_.end();
 }
 
-InterfaceModPortDefinition::InterfaceModPortDefinition(kratos::InterfaceDefinition* def,
-                                                       std::string name)
-    : def_(def), name_(std::move(name)) {}
+InterfaceModPortDefinition::InterfaceModPortDefinition(
+    std::shared_ptr<kratos::InterfaceDefinition> def, std::string name)
+    : def_(std::move(def)), name_(std::move(name)) {}
 
 void InterfaceModPortDefinition::set_output(const std::string& name) {
     if (def_->has_port(name)) {
@@ -168,13 +168,11 @@ Port& InterfaceRef::port(const std::string& name) const {
     return *ports_.at(name);
 }
 
-std::string InterfaceRef::base_name() const {
-    return name();
-}
+std::string InterfaceRef::base_name() const { return name(); }
 
 std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& name) {
     if (mod_ports_.find(name) != mod_ports_.end()) return mod_ports_.at(name);
-    auto *definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
+    auto* definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
     if (definition_->is_modport() || !definition) {
         throw UserException("Cannot create modport from a modport interface");
     }
@@ -206,7 +204,7 @@ std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& n
 }
 
 bool InterfaceRef::has_modport(const std::string& name) {
-    auto *definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
+    auto* definition = dynamic_cast<InterfaceDefinition*>(definition_.get());
     if (definition_->is_modport() || !definition) {
         return false;
     }

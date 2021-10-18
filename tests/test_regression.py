@@ -1,4 +1,4 @@
-from kratos import Generator, verilog, const, always_comb
+from kratos import Generator, verilog, const, always_comb, Interface
 import tempfile
 import os
 import filecmp
@@ -91,5 +91,26 @@ def test_regression_flatten_array_param():
     assert "parameter param = 32'h10" in src
 
 
+def test_regression_interface():
+    class ConfigInterface(Interface):
+        def __init__(self):
+            Interface.__init__(self, "cfg_ifc")
+            # Local variables
+            wr_en = self.var("wr_en", 1)
+            self.master = self.modport("master")
+            self.slave = self.modport("slave")
+            self.master.set_input(wr_en)
+            self.slave.set_input(wr_en)
+
+    class Top(Generator):
+        def __init__(self):
+            super().__init__("top")
+            config = ConfigInterface()
+            self.clk = self.clock("clk")
+            self.ifc = self.interface(config.slave, "ifc_config_slave", is_port=True)
+
+    verilog(Top())
+
+
 if __name__ == "__main__":
-    test_regression_flatten_array_param()
+    test_regression_interface()

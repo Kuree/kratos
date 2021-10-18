@@ -27,7 +27,7 @@ public:
     virtual ~IDefinition() = default;
 };
 
-struct InterfaceDefinition : public IDefinition {
+struct InterfaceDefinition : public IDefinition, std::enable_shared_from_this<InterfaceDefinition> {
 public:
     explicit InterfaceDefinition(std::string name) : name_(std::move(name)) {}
 
@@ -76,7 +76,7 @@ private:
 
 struct InterfaceModPortDefinition : public IDefinition {
 public:
-    InterfaceModPortDefinition(InterfaceDefinition *def, std::string name);
+    InterfaceModPortDefinition(std::shared_ptr<InterfaceDefinition> def, std::string name);
     void set_input(const std::string &name);
     void set_output(const std::string &name);
 
@@ -94,14 +94,14 @@ public:
     [[nodiscard]] const std::set<std::string> &inputs() const { return inputs_; }
     [[nodiscard]] const std::set<std::string> &outputs() const { return outputs_; }
 
-    [[nodiscard]] const InterfaceDefinition *def() const { return def_; }
+    [[nodiscard]] const InterfaceDefinition *def() const { return def_.get(); }
     [[nodiscard]] const std::string &name() const override { return name_; }
     [[nodiscard]] std::string def_name() const override;
 
     [[nodiscard]] bool is_modport() const override { return true; }
 
 private:
-    InterfaceDefinition *def_;
+    std::shared_ptr<InterfaceDefinition> def_;
     std::string name_;
 
     std::set<std::string> inputs_;
@@ -154,7 +154,7 @@ private:
     // only used for modport logic
     std::unordered_map<std::string, std::shared_ptr<ModportPort>> modport_ports_;
 
-    InterfaceRef* interface_parent_ = nullptr;
+    InterfaceRef *interface_parent_ = nullptr;
 };
 
 }  // namespace kratos
