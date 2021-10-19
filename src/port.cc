@@ -40,6 +40,9 @@ Port::Port(kratos::Generator* module, kratos::PortDirection direction, const std
 
 std::shared_ptr<AssignStmt> Port::assign_(const std::shared_ptr<Var>& var,
                                           enum kratos::AssignmentType type) {
+    if (!var) {
+        throw UserException("Trying to assign null to " + to_string());
+    }
     // notice that we have the following rules
     // var <- port. this is considered as a lower cast, hence it's allowed
     // port <- var. this is considered as an upper cast, which needs explicit casting
