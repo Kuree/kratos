@@ -562,7 +562,11 @@ PackedSlice &VarSlice::operator[](const std::string &member_name) {
         throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
     auto p = std::make_shared<PackedSlice>(this, true);
     slices_.emplace_back(p);
-    return p->slice_member(member_name);
+    auto &slice = p->slice_member(member_name);
+    // notice that in case of packed struct array, we need to offset the current slice position
+    slice.var_low_ += var_low_;
+    slice.var_high_ += var_low_;
+    return slice;
 }
 
 VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)

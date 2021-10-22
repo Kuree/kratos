@@ -112,5 +112,24 @@ def test_regression_interface():
     verilog(Top())
 
 
+def test_regression_packed_struct_array():
+    from kratos import PackedStruct
+    struct = PackedStruct("config_data", [("read", 16, False),
+                                          ("data", 16, False)])
+
+    class Parent(Generator):
+        def __init__(self):
+            super().__init__("parent")
+            in_ = self.input("in", 16)
+            out = self.output("out", struct, size=2)
+
+            self.wire(out[0]['read'], in_)
+            self.wire(out[0]['data'], in_)
+            self.wire(out[1]['read'], in_)
+            self.wire(out[1]['data'], in_)
+
+    verilog(Parent(), filename="test.sv")
+
+
 if __name__ == "__main__":
-    test_regression_interface()
+    test_regression_packed_struct_array()
