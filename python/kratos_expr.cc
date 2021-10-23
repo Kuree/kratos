@@ -10,7 +10,9 @@ namespace py = pybind11;
 using std::shared_ptr;
 
 // some IDE uses system header, which might be python2
+#if PY_MAJOR_VERSION == 2
 extern PyObject *_PyLong_Format(PyObject *obj, int base);
+#endif
 
 std::optional<std::pair<std::string, uint32_t>> get_fn_ln(uint32_t num_frame_back);
 
