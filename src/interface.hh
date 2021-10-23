@@ -153,8 +153,6 @@ private:
     std::unordered_map<std::string, std::shared_ptr<InterfaceRef>> mod_ports_;
     // only used for modport logic
     std::unordered_map<std::string, std::shared_ptr<ModportPort>> modport_ports_;
-
-    InterfaceRef *interface_parent_ = nullptr;
 };
 
 }  // namespace kratos

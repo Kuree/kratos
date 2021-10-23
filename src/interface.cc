@@ -199,7 +199,6 @@ std::shared_ptr<InterfaceRef> InterfaceRef::get_modport_ref(const std::string& n
         }
     }
     mod_ports_.emplace(name, new_ref);
-    new_ref->interface_parent_ = this;
     return new_ref;
 }
 

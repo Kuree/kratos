@@ -1241,7 +1241,7 @@ private:
 std::map<std::string, std::string> extract_interface_info(Generator* top) {
     InterfaceVisitor visitor;
     visitor.visit_generator_root_p(top);
-    auto defs = visitor.interfaces();
+    auto const &defs = visitor.interfaces();
     std::map<std::string, std::string> result;
     const std::string indent = "  ";
     for (auto const& [interface_name, def] : defs) {

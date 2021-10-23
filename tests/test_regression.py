@@ -132,4 +132,4 @@ def test_regression_packed_struct_array():
 
 
 if __name__ == "__main__":
-    test_regression_packed_struct_array()
+    test_regression_interface()
