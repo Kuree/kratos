@@ -477,7 +477,7 @@ void init_getitem(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_) {
 void init_big_int(py::module &m) {
     m.def(
         "constant",
-        [](const py::int_ &obj, uint64_t width, bool is_signed) {
+        [](const py::object &obj, uint64_t width, bool is_signed) {
             auto num_bits = _PyLong_NumBits(obj.ptr());
 
             if (num_bits > width)

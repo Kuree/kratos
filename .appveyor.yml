@@ -33,7 +33,8 @@ build_script:
   # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - python setup.py bdist_wheel
   # install the wheel
-  - pip install --find-links=dist kratos
+  - pip install astor
+  - pip install --no-index --find-links=dist kratos
 
 test_script:
   - pytest -v tests/

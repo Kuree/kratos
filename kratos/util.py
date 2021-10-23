@@ -147,6 +147,7 @@ def async_reset(var):
 
 
 def const(value: int, width: int, is_signed: bool = False):
+    assert isinstance(value, int)
     return _kratos.constant(value, width, is_signed)
 
 
