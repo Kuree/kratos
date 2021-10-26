@@ -2238,6 +2238,35 @@ def test_gen_inst_lift(check_gold):
     assert "genvar" not in src
 
 
+def test_add_child_interface_port_wiring(check_gold):
+    from kratos import Interface
+    mod = Generator("mod")
+
+    class ConfigInterface(Interface):
+        def __init__(self):
+            Interface.__init__(self, "Config")
+            self.input("read", 1, 1)
+            self.output("write", 1, 1)
+
+    interface = ConfigInterface()
+    i1 = mod.interface(interface, "bus")
+    # wire local variables to the interface
+    read = mod.var("read", 1)
+    write = mod.var("write", 1)
+    mod.wire(i1.read, read)
+    mod.wire(write, i1.write)
+
+    # create child module and use the interface as port
+    child = Generator("child")
+    i2 = child.interface(interface, "bus2", True)
+    child.wire(i2.write, i2.read)
+
+    # wire the interface using add_child
+    mod.add_child("child", child, bus2=i1)
+    check_gold(mod, "test_add_child_interface_port_wiring",
+               optimize_passthrough=False)
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
     test_gen_inst_lift(check_gold_fn)
