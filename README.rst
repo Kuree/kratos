@@ -9,6 +9,7 @@ differentiates itself from other DSL with the following design
 philosophy:
 
 - Fully debuggable: debug hardware just like debugging Python code!
+  Thanks to `hgdb`_.
 - Highly efficient: Python frontend powered by
   Modern C++ binding. Designed with multi-processing in mind.
 - Human-readable verilog: we know how difficult it is to read machine
@@ -162,35 +163,11 @@ Use an IDE Debugger
 .. image:: https://cdn.jsdelivr.net/gh/Kuree/kratos-vscode@master/images/demo.gif
      :alt: demo
 
-Check out the kratos ecosystem below to see how to use an IDE to debug kratos design
-with ncsim/VCS!
+Thanks to the native support of `hgdb`_, you can debug the generated RTL with a
+professional debugger as if you are debugging Python code. ``gdb``-like console version
+is also available. Check out `hgdb`_ to see how it works!
 
 
-Ecosystem
----------
-
-Kratos has its own ecosystem to program behavioral verilog in Python. Most of them
-are plugins that will help users to debug, prototype, and testing.
-
-`kratos <https://github.com/Kuree/kratos>`__ is a programming model for
-building hardware. The main abstraction in kratos in a ``Generator``.
-``Generator`` can be modified at any time through passes.
-
-`kratos-debug <https://github.com/Kuree/kratos-debug>`__ is a GUI for user to
-view generated verilog. It offers a source viewer to see the line mapping that
-kratos provides.
-
-`kratos-dpi <https://github.com/Kuree/kratos-dpi>`__ is a DPI plugin that
-allows users to run arbitrary Python code to emulate a SystemVerilog function.
-This is extremely helpful for rapid prototyping and testing.
-
-`kratos-runtime <https://github.com/Kuree/kratos-runtime>`__ is a necessary
-component if you want to debug kratos with standard simulators. It supports
-value inspection and breakpoints.
-
-`kratos-vscode <https://github.com/Kuree/kratos-vscode>`__ is a Visual Studio
-Code extension that allows user to debug with Kratos. The simulator has to be
-loaded with ``kratos-runtime``.
 
 .. |Build Status| image:: https://github.com/Kuree/kratos/workflows/Linux%20Wheel%20Test/badge.svg
    :target: https://github.com/Kuree/kratos/actions
@@ -202,3 +179,4 @@ loaded with ``kratos-runtime``.
   :target: https://codecov.io/gh/Kuree/kratos
 .. |Documentation Status| image:: https://readthedocs.org/projects/kratos-doc/badge/?version=latest
    :target: https://kratos-doc.readthedocs.io/en/latest/?badge=latest
+.. _hgdb: https://github.com/Kuree/hgdb
