@@ -166,6 +166,8 @@ class PortProxy:
     def __getitem__(self, key):
         if self.__generator.internal_generator.has_port_bundle(key):
             p = self.__generator.internal_generator.get_bundle_ref(key)
+        elif self.__generator.internal_generator.has_interface(key):
+            p = self.__generator.internal_generator.get_interface(key)
         else:
             p = self.__generator.internal_generator.get_port(key)
         if p is None:
