@@ -47,12 +47,12 @@ public:
                PortType type, bool is_signed);
     Port &port(PortDirection direction, const std::string &port_name, uint32_t width,
                const std::vector<uint32_t> &size, PortType type, bool is_signed);
-    Port &port(const Port &p, bool check_param=true);
-    Port &port(const Port &p, const std::string &port_name, bool check_param=true);
-    Port &port(const PortPackedStruct &p, bool check_param=true);
-    Port &port(const PortPackedStruct &p, const std::string &port_name, bool check_param=true);
+    Port &port(const Port &p, bool check_param = true);
+    Port &port(const Port &p, const std::string &port_name, bool check_param = true);
+    Port &port(const PortPackedStruct &p, bool check_param = true);
+    Port &port(const PortPackedStruct &p, const std::string &port_name, bool check_param = true);
     Port &port(const EnumPort &p, bool);
-    Port &port(const EnumPort &p, const std::string &port_name, bool check_param=true);
+    Port &port(const EnumPort &p, const std::string &port_name, bool check_param = true);
     EnumPort &port(PortDirection direction, const std::string &port_name,
                    const std::shared_ptr<Enum> &def);
     PortPackedStruct &port_packed(PortDirection direction, const std::string &port_name,
@@ -140,6 +140,7 @@ public:
     // interfaces
     std::shared_ptr<InterfaceRef> interface(const std::shared_ptr<IDefinition> &def,
                                             const std::string &interface_name, bool is_port);
+    std::shared_ptr<InterfaceRef> get_interface(const std::string &interface_name) const;
 
     // helper function to initiate the blocks
     std::shared_ptr<SequentialStmtBlock> sequential();
@@ -167,7 +168,7 @@ public:
     // AST stuff
     void accept(IRVisitor *visitor) override;
     uint64_t inline child_count() override {
-        return is_external_? 0: stmts_count() + funcs_.size() + get_child_generator_size();
+        return is_external_ ? 0 : stmts_count() + funcs_.size() + get_child_generator_size();
     }
     IRNode *get_child(uint64_t index) override;
 
@@ -245,7 +246,7 @@ public:
         return named_blocks_.find(block_name) != named_blocks_.end();
     }
     std::shared_ptr<StmtBlock> get_named_block(const std::string &block_name) const;
-    std::optional<std::string> get_block_name(const Stmt * stmt) const;
+    std::optional<std::string> get_block_name(const Stmt *stmt) const;
     void add_named_block(const std::string &block_name, const std::shared_ptr<StmtBlock> &block);
     std::unordered_set<std::string> named_blocks_labels() const;
     Generator *def_instance() const { return def_instance_; }

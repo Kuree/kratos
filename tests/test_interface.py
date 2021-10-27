@@ -135,5 +135,6 @@ def test_port_interface():
 
 
 if __name__ == "__main__":
-    test_port_interface()
+    from conftest import check_gold_fn
+    test_modport_io(check_gold_fn)
 

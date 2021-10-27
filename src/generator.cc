@@ -662,6 +662,11 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
     return ref;
 }
 
+std::shared_ptr<InterfaceRef> Generator::get_interface(const std::string &interface_name) const {
+    return interfaces_.find(interface_name) != interfaces_.end() ? interfaces_.at(interface_name)
+                                                                 : nullptr;
+}
+
 std::shared_ptr<SequentialStmtBlock> Generator::sequential() {
     auto stmt = std::make_shared<SequentialStmtBlock>();
     add_stmt(stmt);
@@ -1168,8 +1173,7 @@ std::string Generator::handle_name(bool ignore_top) const {
             auto *for_ = reinterpret_cast<ForStmt *>(current->instantiation_stmt_->parent());
             auto label = current->parent_generator_->get_block_name(for_->get_loop_body().get());
             // need to find out the index
-            auto index =
-                for_->genvar_index(current->instantiation_stmt_->shared_from_this());
+            auto index = for_->genvar_index(current->instantiation_stmt_->shared_from_this());
             if (!label || !index) {
                 throw InternalException("Invalid state of genvar instance array");
             }

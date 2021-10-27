@@ -77,7 +77,7 @@ public:
     static std::string enum_code(Enum* enum_);
 
 private:
-    uint32_t indent_ = 0;
+    uint64_t indent_ = 0;
     // skip string generation
     std::string empty_indent_str_;
     std::string_view empty_indent_string_view_;

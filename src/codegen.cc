@@ -390,7 +390,6 @@ std::string_view SystemVerilogCodeGen::pre_indent() {
     }
 }
 
-
 void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
     if (node->ir_node_kind() != IRNodeKind::StmtKind)
         throw StmtException(::format("Cannot codegen non-statement node. Got {0}",
@@ -1072,8 +1071,11 @@ void SystemVerilogCodeGen::generate_port_interface(kratos::InstantiationStmt* st
                     auto mod_port_name = internal_def->definition()->name();
                     external_name = external->base_name();
                     // FIXME: this is a little bit hacky here
-                    if (external_name.find('.') == std::string::npos)
-                        external_name = ::format("{0}.{1}", external_name, mod_port_name);
+                    auto potential_name = ::format("{0}.{1}", external_name, mod_port_name);
+                    auto i = external->generator()->get_interface(external_name);
+                    if (i && !i->definition()->is_modport()) {
+                        external_name = potential_name;
+                    }
                 } else {
                     external_name = external->base_name();
                 }
@@ -1241,7 +1243,7 @@ private:
 std::map<std::string, std::string> extract_interface_info(Generator* top) {
     InterfaceVisitor visitor;
     visitor.visit_generator_root_p(top);
-    auto const &defs = visitor.interfaces();
+    auto const& defs = visitor.interfaces();
     std::map<std::string, std::string> result;
     const std::string indent = "  ";
     for (auto const& [interface_name, def] : defs) {

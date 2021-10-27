@@ -130,5 +130,32 @@ def test_regression_packed_struct_array():
     verilog(Parent(), filename="test.sv")
 
 
+def test_regression_modport_interface():
+    from kratos import Interface, verilog, Generator
+
+    class ConfigInterface(Interface):
+        def __init__(self):
+            super(ConfigInterface, self).__init__("config_i")
+
+            a = self.var("a", 1)
+            b = self.var("b", 1)
+
+            m = self.modport("master")
+            m.set_output(a)
+            self.slave = self.modport("slave")
+            self.slave.set_output(b)
+
+    interface = ConfigInterface()
+    child = Generator("child")
+    child_i = child.interface(interface.slave, "p", is_port=True)
+    child.add_stmt(child_i.b.assign(1))
+    parent = Generator("parent")
+    parent_i = parent.interface(interface.slave, "p", is_port=True)
+    parent.add_child("inst", child, p=parent_i)
+
+    v = verilog(parent)["parent"]
+    assert ".p(p)" in v
+
+
 if __name__ == "__main__":
-    test_regression_interface()
+    test_regression_modport_interface()
