@@ -210,5 +210,16 @@ def test_big_num():
     assert not b.is_bignum
 
 
+def test_var_slice_param():
+    mod = Generator("mod")
+    a = mod.parameter("a", initial_value=10)
+    b = mod.var("b", a, size=4)
+    c = b[0]
+    assert c.width == 10
+    a.value = 12
+    assert b.width == 12
+    assert c.width == 12
+
+
 if __name__ == "__main__":
-    test_big_num()
+    test_var_slice_param()

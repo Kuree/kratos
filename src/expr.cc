@@ -202,6 +202,9 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
         // we actually reached the real struct
     }
     slices_.emplace_back(var_slice);
+    if (width_param_) {
+        var_slice->set_width_param(width_param_);
+    }
     return *var_slice;
 }
 
@@ -215,6 +218,9 @@ VarSlice &Var::operator[](const std::shared_ptr<Var> &var) {
     }
     auto var_slice = ::make_shared<VarVarSlice>(this, var.get());
     slices_.emplace_back(var_slice);
+    if (width_param_) {
+        var_slice->set_width_param(width_param_);
+    }
     return *var_slice;
 }
 
