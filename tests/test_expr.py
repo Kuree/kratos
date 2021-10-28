@@ -236,5 +236,15 @@ def test_concat_assign():
         pass
 
 
+def test_resize_const():
+    from kratos import resize
+    a = resize(0, 2)
+    assert str(a) == "2'h0"
+    b = resize(2, 4)
+    assert str(b) == "4'h2"
+    c = resize(-1, 2)
+    assert str(c) == "-2'h1"
+
+
 if __name__ == "__main__":
-    test_concat_assign()
+    test_resize_const()

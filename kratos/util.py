@@ -127,6 +127,8 @@ def signed(var):
 
 
 def resize(var, target_width):
+    if isinstance(var, int):
+        return const(var, target_width, var <= 0)
     return cast(var, VarCastType.Resize, target_width=target_width)
 
 
