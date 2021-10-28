@@ -221,5 +221,20 @@ def test_var_slice_param():
     assert c.width == 12
 
 
+def test_concat_assign():
+    from kratos import concat
+    from _kratos.exception import VarException
+    mod = Generator("mod")
+    a = mod.var("a", 4)
+    b = mod.var("b", 4)
+    c = mod.var("c", 8)
+    concat(a, b).assign(c)
+    try:
+        (a + b).assign(c)
+        assert False
+    except VarException:
+        pass
+
+
 if __name__ == "__main__":
-    test_var_slice_param()
+    test_concat_assign()

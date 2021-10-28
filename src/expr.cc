@@ -814,17 +814,33 @@ std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var, Assignm
     return assign_(var, type);
 }
 
+class AllConcat : public IRVisitor {
+public:
+    void visit(Expr *expr) override {
+        if (expr->op != ExprOp::Concat) {
+            legal = false;
+        }
+    }
+    bool legal = true;
+};
+
 std::shared_ptr<AssignStmt> Var::assign_(const std::shared_ptr<Var> &var, AssignmentType type) {
     if (!var) {
         throw UserException("Trying to assign null to " + to_string());
     }
     // if it's a constant or expression, it can't be assigned to
-    if (type_ == VarType::ConstValue)
+    if (type_ == VarType::ConstValue) {
         throw VarException(::format("Cannot assign {0} to a const {1}", var->to_string(), name),
                            {this, var.get()});
-    else if (type_ == VarType::Expression)
-        throw VarException(::format("Cannot assign {0} to an expression", var->to_string(), name),
-                           {this, var.get()});
+    } else if (type_ == VarType::Expression) {
+        auto all_concat = AllConcat();
+        all_concat.visit_root(this);
+        if (!all_concat.legal)
+            throw VarException(
+                ::format("Cannot assign {0} to an expression", var->to_string(), name),
+                {this, var.get()});
+    }
+
     auto stmt = ::make_shared<AssignStmt>(shared_from_this(), var, type);
 
     return stmt;
