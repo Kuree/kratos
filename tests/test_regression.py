@@ -157,5 +157,30 @@ def test_regression_modport_interface():
     assert ".p(p)" in v
 
 
+def test_regression_wire_merging():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod")
+            self.out_ = self.output("out_", 4)
+
+            self.arr = self.var("arr", 1, size=4)
+            self.add_always(self.init)
+            self.add_always(self.ctrl)
+
+        @always_comb
+        def init(self):
+            for i in range(4):
+                self.arr[i] = 1
+
+        @always_comb
+        def ctrl(self):
+            for i in range(4):
+                self.out_[i] = self.arr[i]
+
+    m = Mod()
+    v = verilog(m)["mod"]
+    assert "out_[3] = arr[3];" in v
+
+
 if __name__ == "__main__":
-    test_regression_modport_interface()
+    test_regression_wire_merging()

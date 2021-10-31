@@ -2040,6 +2040,9 @@ private:
             if (left_parent->type() == VarType::Slice) continue;
             if (right_parent->type() == VarType::Slice) continue;
             if (left_parent->width() != right_parent->width()) continue;
+            if (left_parent->size().size() != right_parent->size().size() ||
+                left_parent->size().front() != right_parent->size().front())
+                continue;
 
             slice_vars[{left_parent, right_parent}].emplace_back(assign_stmt);
         }
@@ -2949,8 +2952,8 @@ private:
                 AssignedVarVisitor a_v;
                 a_v.visit_root(if_->then_body().get());
                 auto vars = a_v.assigned_vars();
-                for (auto const& [var, stmts] : vars) {
-                    check_stmt_block(if_->else_body().get(), var, stmts, false);
+                for (auto const& [v, stmts] : vars) {
+                    check_stmt_block(if_->else_body().get(), v, stmts, false);
                 }
             }
         }
