@@ -486,21 +486,28 @@ void SwitchStmt::set_parent(IRNode *parent) {
 ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
                                              const std::shared_ptr<Stmt> &stmt) {
     stmt->set_parent(this);
-    if (body_.find(switch_case) == body_.end()) {
-        auto block = std::make_shared<ScopedStmtBlock>();
-        block->set_parent(this);
-        body_.emplace(switch_case, block);
+    std::shared_ptr<ScopedStmtBlock> switch_stmt;
+    for (auto const &[c, s] : body_) {
+        if ((!switch_case && !c) || (switch_case && c && c->value() == switch_case->value())) {
+            switch_stmt = s;
+            break;
+        }
+    }
+    if (!switch_stmt) {
+        switch_stmt = std::make_shared<ScopedStmtBlock>();
+        switch_stmt->set_parent(this);
+        body_.emplace(switch_case, switch_stmt);
     }
     if (stmt->type() == StatementType::Block) {
         // merge the block
         auto blk = stmt->as<StmtBlock>();
         for (auto const &s : *blk) {
-            body_[switch_case]->add_stmt(s);
+            switch_stmt->add_stmt(s);
         }
     } else {
-        body_[switch_case]->add_stmt(stmt);
+        switch_stmt->add_stmt(stmt);
     }
-    return *body_[switch_case];
+    return *switch_stmt;
 }
 
 ScopedStmtBlock &SwitchStmt::add_switch_case(const std::shared_ptr<Const> &switch_case,
