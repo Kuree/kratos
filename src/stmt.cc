@@ -544,9 +544,19 @@ IRNode *SwitchStmt::get_child(uint64_t index) {
     if (index == 0) {
         return target_.get();
     } else {
+        // need to make it deterministic
         index--;
+        std::vector<std::pair<uint64_t, IRNode *>> cases;
+        cases.reserve(body_.size());
         for (auto const &iter : body_) {
-            if (index-- == 0) return iter.second.get();
+            cases.emplace_back(std::make_pair(
+                iter.first ? iter.first->value() : std::numeric_limits<uint64_t>::max(),
+                iter.second.get()));
+        }
+        std::sort(cases.begin(), cases.end(),
+                  [](auto const &a, auto const &b) { return a.first < b.first; });
+        if (index < cases.size()) {
+            return cases[index].second;
         }
         return nullptr;
     }
