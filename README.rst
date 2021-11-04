@@ -48,7 +48,7 @@ Docs <https://kratos-doc.readthedocs.io/en/latest/>`__.
 
 Here are some examples to showcase the ability of kratos.
 
-Asnyc Reset Register
+Async Reset Register
 ~~~~~~~~~~~~~~~~~~~~
 
 Python code that parametrizes based on the ``width``. Notice that we
