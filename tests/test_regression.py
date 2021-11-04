@@ -1,6 +1,7 @@
 from kratos import Generator, verilog, const, always_comb, Interface
 import platform
 import pytest
+import os
 
 
 class PassThroughMod(Generator):
@@ -182,5 +183,22 @@ def test_regression_wire_merging():
     assert "out_[3] = arr[3];" in v
 
 
+def test_regression_external_module_wiring():
+    module_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vectors", "module2.sv")
+
+    class Parent(Generator):
+        def __init__(self):
+            super().__init__(f"parent")
+            self.a = self.input("a", 1)
+            self.f = self.output("f", 1)
+            child = self.from_verilog('child', module_path, [], {})
+            self.add_child("child", child)
+            self.wire(child.ports['a'], self.a)
+            self.wire(child.ports['f'], self.f)
+
+    mod = Parent()
+    verilog(mod)
+
+
 if __name__ == "__main__":
-    test_regression_wire_merging()
+    test_regression_external_module_wiring()

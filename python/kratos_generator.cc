@@ -17,7 +17,7 @@ using std::shared_ptr;
 void init_generator(py::module &m) {
     using namespace kratos;
     auto generator = py::class_<Generator, ::shared_ptr<Generator>, IRNode>(m, "Generator");
-    generator.def("from_verilog", &Generator::from_verilog)
+    generator.def("from_verilog", &Generator::from_verilog, py::return_value_policy::reference)
         .def("var", py::overload_cast<const std::string &, uint32_t>(&Generator::var),
              py::return_value_policy::reference)
         .def("var",

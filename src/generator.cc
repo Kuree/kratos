@@ -21,13 +21,13 @@ using std::vector;
 
 namespace kratos {
 
-Generator Generator::from_verilog(Context *context, const std::string &src_file,
-                                  const std::string &top_name,
-                                  const std::vector<std::string> &lib_files,
-                                  const std::map<std::string, PortType> &port_types) {
+Generator &Generator::from_verilog(Context *context, const std::string &src_file,
+                                   const std::string &top_name,
+                                   const std::vector<std::string> &lib_files,
+                                   const std::map<std::string, PortType> &port_types) {
     if (!fs::exists(src_file)) throw UserException(::format("{0} does not exist", src_file));
 
-    Generator mod(context, top_name);
+    auto &mod = context->generator(top_name);
     // the src file will be treated a a lib file as well
     mod.lib_files_.reserve(1 + lib_files.size());
     mod.lib_files_.emplace_back(src_file);

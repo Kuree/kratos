@@ -908,7 +908,6 @@ class Generator(metaclass=GeneratorMeta):
         g.__generator = _kratos.Generator.from_verilog(Generator.__context,
                                                        src_file, top_name,
                                                        lib_files, _port_mapping)
-        Generator.__context.add(g.__generator)
         return g
 
     def __contains__(self, generator: "Generator"):
