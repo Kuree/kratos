@@ -271,7 +271,7 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *ge
                                                                    const std::string &mod_def) {
     std::map<std::string, std::shared_ptr<Port>> result;
     std::unordered_set<std::string> ignore_list = {"logic", "reg", "wire"};
-    std::regex re("(input|output)\\s?([\\w,\\s_$\\[\\]:])+", std::regex::ECMAScript);  // NOLINT
+    std::regex re("(input|output)(\\s|\\[)\\s?([\\w,\\s_$\\[\\]:])+", std::regex::ECMAScript);  // NOLINT
     std::smatch match;
     std::string::const_iterator iter = mod_def.cbegin();
     while (std::regex_search(iter, mod_def.end(), match, re)) {

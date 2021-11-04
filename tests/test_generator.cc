@@ -26,6 +26,9 @@ TEST(generator, load) {  // NOLINT
     EXPECT_EQ(mod.get_port("a")->port_type(), PortType::Clock);
     ASSERT_ANY_THROW(
         Generator::from_verilog(&c, "module1.sv", "module1", {}, {{"aa", PortType::Clock}}));
+    mod = (Generator::from_verilog(&c, "module1.sv", "module4", {}, {}));
+    EXPECT_TRUE(mod.get_port("input_port") != nullptr);
+    EXPECT_TRUE(mod.get_port("output_port") != nullptr);
 }
 
 TEST(generator, port) {  // NOLINT

@@ -15,3 +15,9 @@ module module3(a, b, c, f);
     input a, b, c;
 // Description goes here
 endmodule
+
+module module4(input_port, output_port);
+    input input_port;
+    output output_port;
+// Description goes here
+endmodule
