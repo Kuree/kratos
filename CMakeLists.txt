@@ -31,7 +31,13 @@ endif()
 
 CHECK_CXX_COMPILER_FLAG(-static-libgcc COMPILER_STATIC)
 if (${COMPILER_STATIC})
+    # we also need to hide all symbols, other we will run into cxx string ABI issue
+    # https://stackoverflow.com/a/57077456
     set(STATIC_FLAG "-static-libgcc -static-libstdc++")
+    if(UNIX AND NOT APPLE)
+        # only for Linux
+        set(STATIC_FLAG ${STATIC_FLAG} -Wl,--exclude-libs,ALL)
+    endif()
 else()
     set(STATIC_FLAG "")
 endif()
