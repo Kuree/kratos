@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.35] - 2021-11-08
+### Added
+- Accept `DEBUG` env when building python wheels
+- Add support for child interface wiring in syntax sugar
+- More C++ API exposed to Python
+- Add big num supports to constants
+
+### Changed
+- pybind and google test udpated. Should not affect front end
+- Throws exception is nullptr is used for assignment
+- Case statement now uses the actual constant value
+- Better Verilog port parsing
+
+### Fixed
+- Fix width param calculation
+- Fix interface connect scoping issue
+- Fix wiring merging on different size (#165)
+- Fix return type for imported generator
+- Fix CXX ABI due to linc linking
+
 ## [0.0.34] - 2021-07-25
 ### Added
 - Event support for debugging. Events are specialized logic that can be used in HGDB
