@@ -17,6 +17,13 @@ template <typename T, typename K>
 void def_attributes(T &class_) {
     namespace py = pybind11;
     class_.def("add_attribute", &K::add_attribute)
+        .def("add_attribute",
+             [](K &obj, const std::string &value) {
+                 auto attr = std::make_shared<kratos::Attribute>();
+                 attr->type_str = "Python";
+                 attr->value_str = value;
+                 obj.add_attribute(attr);
+             })
         .def("get_attributes", &K::get_attributes, py::return_value_policy::reference)
         .def("has_attribute", &K::has_attribute)
         .def_property_readonly("attributes", &K::get_attributes, py::return_value_policy::reference)

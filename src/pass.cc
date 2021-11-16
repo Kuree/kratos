@@ -2296,6 +2296,7 @@ static std::shared_ptr<IfStmt> create_if_stmt_wrapper(StmtBlock* block, Port& po
 
 class InsertClockIRVisitor : public IRVisitor {
 public:
+    static constexpr auto dont_touch = "dont_touch";
     explicit InsertClockIRVisitor(Generator* top) : top_(top) {
         // find out the top clock enable signal
         auto ports = top->get_ports(PortType::ClockEnable);
@@ -2313,6 +2314,7 @@ public:
 
     void visit(Generator* gen) override {
         if (!clk_en_) return;
+        if (has_don_touch(gen)) return;
         if (gen->external() || gen->is_stub()) return;
         auto* parent = gen->parent_generator();
         if (!parent || gen == top_) return;
@@ -2344,6 +2346,9 @@ public:
 
     void visit(SequentialStmtBlock* block) override {
         if (!clk_en_) return;
+        if (has_don_touch(block)) return;
+        auto *gen = block->generator_parent();
+        if (has_don_touch(gen)) return;
         auto num_stmts = block->size();
         auto* generator = block->generator_parent();
         auto clk_en = generator->get_port(clk_en_name_);
@@ -2399,6 +2404,13 @@ private:
             }
         }
         return false;
+    }
+
+    static bool has_don_touch(const IRNode *node) {
+        auto const &attrs = node->get_attributes();
+        return std::any_of(attrs.begin(), attrs.end(), [](auto const &a) {
+            return a->value_str == dont_touch;
+        });
     }
 };
 

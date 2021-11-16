@@ -2267,6 +2267,39 @@ def test_add_child_interface_port_wiring(check_gold):
                optimize_passthrough=False)
 
 
+def test_auto_insert_clk_gate_skip():
+    from _kratos.passes import auto_insert_clock_enable
+
+    class Mod(Generator):
+        def __init__(self, add_self, add_always):
+            super(Mod, self).__init__("mod")
+            clk = self.clock("clk")
+            a = self.var("a", 1)
+            self.clock_en("clk_en")
+
+            @always_ff((posedge, clk))
+            def code():
+                a = 1
+
+            b = self.add_always(code)
+            if add_always:
+                b.add_attribute("dont_touch")
+            if add_self:
+                self.add_attribute("dont_touch")
+    m = Mod(False, False)
+    auto_insert_clock_enable(m.internal_generator)
+    src = verilog(m)["mod"]
+    assert "if (clk_en)" in src
+    m = Mod(False, True)
+    auto_insert_clock_enable(m.internal_generator)
+    src = verilog(m)["mod"]
+    assert "if (clk_en)" not in src
+    m = Mod(True, False)
+    auto_insert_clock_enable(m.internal_generator)
+    src = verilog(m)["mod"]
+    assert "if (clk_en)" not in src
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
     test_gen_inst_lift(check_gold_fn)
