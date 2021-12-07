@@ -123,6 +123,8 @@ protected:
 
     void stmt_code(InitialStmtBlock* stmt);
 
+    void stmt_code(FinalStmtBlock *stmt);
+
     void stmt_code(FunctionCallStmt* stmt);
 
     void stmt_code(AssertBase* stmt);

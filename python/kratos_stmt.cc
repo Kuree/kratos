@@ -155,6 +155,9 @@ void init_stmt(py::module &m) {
     py::class_<InitialStmtBlock, std::shared_ptr<InitialStmtBlock>, StmtBlock>(m,  // NOLINT
                                                                                "InitialStmtBlock");
 
+    py::class_<FinalStmtBlock, std::shared_ptr<FinalStmtBlock>, StmtBlock>(m,  // NOLINT
+                                                                           "FinalStmtBlock");
+
     py::class_<CommentStmt, std::shared_ptr<CommentStmt>, Stmt>(m, "CommentStmt")
         .def(py::init<const std::string>());
     // help function

@@ -49,6 +49,7 @@ class StatementBlockType(enum.Enum):
     Sequential = _kratos.StatementBlockType.Sequential
     Initial = _kratos.StatementBlockType.Initial
     Latch = _kratos.StatementBlockType.Latch
+    Final = _kratos.StatementBlockType.Final
 
 
 class CodeBlock:
@@ -62,6 +63,8 @@ class CodeBlock:
             self._block = generator.internal_generator.initial()
         elif block_type == StatementBlockType.Latch:
             self._block = generator.internal_generator.latch()
+        elif block_type == StatementBlockType.Final:
+            self._block = generator.internal_generator.final()
         else:
             self._block = generator.internal_generator.sequential()
 
@@ -127,6 +130,13 @@ class InitialCodeBlock(CodeBlock):
     def __init__(self, generator,
                  debug_frame_depth: int = 4):
         super().__init__(generator, StatementBlockType.Initial,
+                         debug_frame_depth)
+
+
+class FinalCodeBlock(CodeBlock):
+    def __init__(self, generator,
+                 debug_frame_depth: int = 4):
+        super().__init__(generator, StatementBlockType.Final,
                          debug_frame_depth)
 
 
@@ -656,6 +666,12 @@ class Generator(metaclass=GeneratorMeta):
             for stmt in stmts:
                 init.add_stmt(stmt, False)
             node = init
+        elif block_type == CodeBlockType.Final:
+            # final block
+            f = FinalCodeBlock(self)
+            for stmt in stmts:
+                f.add_stmt(stmt, False)
+            node = f
         elif block_type == CodeBlockType.Latch:
             # it's a latch block
             latch = LatchCodeBlock(self)
@@ -1084,4 +1100,8 @@ def always_comb(fn):
 
 
 def initial(fn):
+    return AlwaysWrapper(fn)
+
+
+def final(fn):
     return AlwaysWrapper(fn)

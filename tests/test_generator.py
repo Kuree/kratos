@@ -2300,6 +2300,21 @@ def test_auto_insert_clk_gate_skip():
     assert "if (clk_en)" not in src
 
 
+def test_final_block():
+    from kratos import final
+
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+
+    @final
+    def code():
+        a = 1
+
+    mod.add_always(code)
+    src = verilog(mod)["mod"]
+    assert "final begin\n  a = 1'h1;\nend" in src
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
     test_gen_inst_lift(check_gold_fn)

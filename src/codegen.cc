@@ -484,6 +484,10 @@ void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
             stmt_code(reinterpret_cast<InitialStmtBlock*>(stmt));
             break;
         }
+        case StatementBlockType::Final: {
+            stmt_code(reinterpret_cast<FinalStmtBlock*>(stmt));
+            break;
+        }
         case StatementBlockType::Latch: {
             stmt_code(reinterpret_cast<LatchStmtBlock*>(stmt));
             break;
@@ -552,6 +556,26 @@ void SystemVerilogCodeGen::stmt_code(kratos::InitialStmtBlock* stmt) {
     }
 
     stream_ << "initial begin" << block_label(stmt) << stream_.endl();
+    indent_++;
+
+    for (uint64_t i = 0; i < stmt->size(); i++) {
+        dispatch_node(stmt->get_child(i));
+    }
+
+    indent_--;
+    stream_ << indent() << "end" << block_label(stmt) << stream_.endl();
+}
+
+void SystemVerilogCodeGen::stmt_code(kratos::FinalStmtBlock* stmt) {
+    // comment
+    if (!stmt->comment.empty()) {
+        stream_ << indent() << "// " << strip_newline(stmt->comment) << stream_.endl();
+    }
+    if (generator_->debug) {
+        stmt->verilog_ln = stream_.line_no();
+    }
+
+    stream_ << "final begin" << block_label(stmt) << stream_.endl();
     indent_++;
 
     for (uint64_t i = 0; i < stmt->size(); i++) {

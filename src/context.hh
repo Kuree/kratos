@@ -46,6 +46,7 @@ class FunctionStmtBlock;
 class DPIFunctionStmtBlock;
 class BuiltInFunctionStmtBlock;
 class InitialStmtBlock;
+class FinalStmtBlock;
 class FunctionCallStmt;
 class ReturnStmt;
 class ModuleInstantiationStmt;

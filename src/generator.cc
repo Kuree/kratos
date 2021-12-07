@@ -685,6 +685,12 @@ std::shared_ptr<InitialStmtBlock> Generator::initial() {
     return stmt;
 }
 
+std::shared_ptr<FinalStmtBlock> Generator::final() {
+    auto stmt = std::make_shared<FinalStmtBlock>();
+    add_stmt(stmt);
+    return stmt;
+}
+
 std::shared_ptr<LatchStmtBlock> Generator::latch() {
     auto stmt = std::make_shared<LatchStmtBlock>();
     add_stmt(stmt);

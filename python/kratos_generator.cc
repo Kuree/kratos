@@ -195,6 +195,7 @@ void init_generator(py::module &m) {
         .def("sequential", &Generator::sequential, py::return_value_policy::reference)
         .def("combinational", &Generator::combinational, py::return_value_policy::reference)
         .def("initial", &Generator::initial, py::return_value_policy::reference)
+        .def("final", &Generator::final, py::return_value_policy::reference)
         .def("latch", &Generator::latch, py::return_value_policy::reference)
         .def("add_child_generator",
              py::overload_cast<const std::string &, const std::shared_ptr<Generator> &>(

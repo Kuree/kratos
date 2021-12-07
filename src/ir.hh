@@ -96,6 +96,7 @@ public:
     virtual inline void visit(LatchStmtBlock *) {}
     virtual inline void visit(FunctionStmtBlock *) {}
     virtual inline void visit(InitialStmtBlock *) {}
+    virtual inline void visit(FinalStmtBlock *) {}
     virtual inline void visit(FunctionCallStmt *) {}
     virtual inline void visit(ReturnStmt *) {}
     virtual inline void visit(ModuleInstantiationStmt *) {}

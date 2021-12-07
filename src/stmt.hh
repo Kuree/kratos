@@ -26,7 +26,7 @@ enum class StatementType {
 };
 
 enum class AssignmentType : int { Blocking, NonBlocking, Undefined };
-enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial, Latch };
+enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial, Latch, Final };
 enum class BlockEdgeType { Posedge, Negedge };
 enum class AuxiliaryType { EventTracing };
 
@@ -374,6 +374,13 @@ protected:
 class InitialStmtBlock : public StmtBlock {
 public:
     InitialStmtBlock() : StmtBlock(StatementBlockType::Initial) {}
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
+};
+
+class FinalStmtBlock: public StmtBlock {
+public:
+    FinalStmtBlock(): StmtBlock(StatementBlockType::Final) {}
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 };

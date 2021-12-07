@@ -1,5 +1,5 @@
 from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
-    initial, CombinationalCodeBlock, SequentialCodeBlock, \
+    initial, final, CombinationalCodeBlock, SequentialCodeBlock, \
     set_global_debug, enum, always_comb, always_ff, always_latch, has_enum
 
 from .passes import Attribute, verilog, clear_context
@@ -39,7 +39,7 @@ negedge = BlockEdgeType.Negedge
 
 __all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType",
            "verilog", "const", "is_valid_verilog", "VarException",
-           "StmtException", "IRVisitor", "FSM", "FSMState", "initial",
+           "StmtException", "IRVisitor", "FSM", "FSMState", "initial", "final",
            "Sequence", "TestBench", "assert_", "delay", "enable_runtime_debug",
            "enum", "clear_context", "always_comb", "always_ff", "always_latch",
            "has_enum"]
