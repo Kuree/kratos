@@ -1,6 +1,6 @@
 import _kratos
-from .generator import Generator, transform_stmt_block, CodeBlockType, \
-    InitialCodeBlock, VarProxy
+from .generator import Generator, transform_stmt_block, \
+    InitialCodeBlock, VarProxy, StatementBlockType
 from _kratos import get_fn_ln
 
 
@@ -75,13 +75,13 @@ class TestBench:
 
     def add_always(self, fn, comment=""):
         block_type, raw_sensitives, stmts = transform_stmt_block(self, fn)
-        if block_type != CodeBlockType.Initial:
+        if block_type != StatementBlockType.Initial:
             raise NotImplementedError(
                 "Only initial supported in test bench")
-        if block_type == CodeBlockType.Combinational:
+        if block_type == StatementBlockType.Combinational:
             node = None
             pass
-        elif block_type == CodeBlockType.Initial:
+        elif block_type == StatementBlockType.Initial:
             # it's a initial block
             init = InitialCodeBlock(self)
             for stmt in stmts:

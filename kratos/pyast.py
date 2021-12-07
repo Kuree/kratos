@@ -8,7 +8,7 @@ import textwrap
 
 import _kratos
 import astor
-from _kratos import get_frame_local
+from _kratos import get_frame_local, StatementBlockType
 
 from .util import print_src
 
@@ -991,14 +991,6 @@ def inject_import_code(code_src):
     return "\n".join([line1, line2, code_src])
 
 
-class CodeBlockType(enum.Enum):
-    Sequential = enum.auto()
-    Combinational = enum.auto()
-    Initial = enum.auto()
-    Latch = enum.auto()
-    Final = enum.auto()
-
-
 class AlwaysWrapper:
     def __init__(self, fn):
         self.fn = fn
@@ -1070,7 +1062,7 @@ def transform_stmt_block(generator, fn, unroll_for=False, apply_ssa=False, fn_ln
     # creating the scope here
     scope = Scope(generator, filename, ln, store_local)
 
-    apply_ssa = blk_type == CodeBlockType.Combinational and apply_ssa
+    apply_ssa = blk_type == StatementBlockType.Combinational and apply_ssa
 
     _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
                                                fn_name, scope,
@@ -1170,7 +1162,7 @@ def extract_arg_name_order_from_fn(fn):
 
 def extract_sensitivity_from_dec(deco_list, fn_name):
     if len(deco_list) == 0:
-        return CodeBlockType.Combinational, []
+        return StatementBlockType.Combinational, []
     else:
         assert len(deco_list) == 1, "{0} is not called with multiple decorators blocks".format(fn_name)
         call_obj = deco_list[0]
@@ -1180,16 +1172,16 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
             assert isinstance(call_obj, ast.Name), "Unrecognized  function decorator {0}".format(call_obj)
             call_name = call_obj.id
         if call_name == "always_comb":
-            return CodeBlockType.Combinational, []
+            return StatementBlockType.Combinational, []
         elif call_name == "initial":
-            return CodeBlockType.Initial, []
+            return StatementBlockType.Initial, []
         elif call_name == "always_latch":
-            return CodeBlockType.Latch, []
+            return StatementBlockType.Latch, []
         elif call_name == "final":
-            return CodeBlockType.Final, []
+            return StatementBlockType.Final, []
         else:
             assert call_name == "always_ff", "Unrecognized function decorator {0}".format(call_name)
-        blk_type = CodeBlockType.Sequential
+        blk_type = StatementBlockType.Sequential
         raw_sensitivity = call_obj.args
         result = []
         # TODO: fix me. the frame num calculation is a hack

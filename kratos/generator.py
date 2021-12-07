@@ -1,5 +1,5 @@
 import enum
-from .pyast import transform_stmt_block, CodeBlockType, add_scope_context, \
+from .pyast import transform_stmt_block, add_scope_context, \
     get_frame_local, AlwaysWrapper
 from .util import clog2, max_value, cast, VarCastType
 from .stmts import if_, switch_, IfStmt, SwitchStmt
@@ -7,7 +7,7 @@ from .ports import PortBundle
 from .fsm import FSM
 from .interface import InterfaceWrapper
 import _kratos
-from _kratos import get_fn_ln
+from _kratos import get_fn_ln, StatementBlockType, BlockEdgeType, PortType, PortDirection
 from typing import List, Dict, Union, Tuple
 
 __GLOBAL_DEBUG = False
@@ -21,35 +21,6 @@ def set_global_debug(value: bool):
 
 def get_global_debug():
     return __GLOBAL_DEBUG
-
-
-# this is a wrapper python class to interface with the underlying python
-# binding
-class PortDirection(enum.Enum):
-    In = _kratos.PortDirection.In
-    Out = _kratos.PortDirection.Out
-    InOut = _kratos.PortDirection.InOut
-
-
-class PortType(enum.Enum):
-    Data = _kratos.PortType.Data
-    Clock = _kratos.PortType.Clock
-    AsyncReset = _kratos.PortType.AsyncReset
-    ClockEnable = _kratos.PortType.ClockEnable
-    Reset = _kratos.PortType.Reset
-
-
-class BlockEdgeType(enum.Enum):
-    Posedge = _kratos.BlockEdgeType.Posedge
-    Negedge = _kratos.BlockEdgeType.Negedge
-
-
-class StatementBlockType(enum.Enum):
-    Combinational = _kratos.StatementBlockType.Combinational
-    Sequential = _kratos.StatementBlockType.Sequential
-    Initial = _kratos.StatementBlockType.Initial
-    Latch = _kratos.StatementBlockType.Latch
-    Final = _kratos.StatementBlockType.Final
 
 
 class CodeBlock:
@@ -116,7 +87,7 @@ class SequentialCodeBlock(CodeBlock):
         for cond, var in sensitivity_list:
             assert isinstance(cond, BlockEdgeType)
             assert isinstance(var, _kratos.Var)
-            self._block.add_condition([cond.value, var])
+            self._block.add_condition([cond, var])
 
 
 class CombinationalCodeBlock(CodeBlock):
@@ -469,10 +440,10 @@ class Generator(metaclass=GeneratorMeta):
              explicit_array: bool = False) -> _kratos.Port:
         size, params = self.__filter_size(size)
         if isinstance(width, _kratos.Enum):
-            p = self.__generator.port(direction.value, name, width)
+            p = self.__generator.port(direction, name, width)
         else:
-            p = self.__generator.port(direction.value, name, width, size,
-                                      port_type.value, is_signed)
+            p = self.__generator.port(direction, name, width, size,
+                                      port_type, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         p.is_packed = packed
@@ -500,13 +471,13 @@ class Generator(metaclass=GeneratorMeta):
               explicit_array: bool = False) -> _kratos.Port:
         size, params = self.__filter_size(size)
         if isinstance(width, _kratos.Enum):
-            p = self.__generator.port(PortDirection.In.value, name, width)
+            p = self.__generator.port(PortDirection.In, name, width)
         elif isinstance(width, _kratos.PackedStruct):
-            p = self.__generator.port_packed(PortDirection.In.value, name,
+            p = self.__generator.port_packed(PortDirection.In, name,
                                              width, size)
         else:
-            p = self.__generator.port(PortDirection.In.value, name, width, size,
-                                      port_type.value, is_signed)
+            p = self.__generator.port(PortDirection.In, name, width, size,
+                                      port_type, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         if not isinstance(width, _kratos.PackedStruct):
@@ -517,16 +488,16 @@ class Generator(metaclass=GeneratorMeta):
 
     def clock(self, name, is_input=True):
         direction = PortDirection.In if is_input else PortDirection.Out
-        p = self.__generator.port(direction.value, name, 1, 1,
-                                  PortType.Clock.value, False)
+        p = self.__generator.port(direction, name, 1, 1,
+                                  PortType.Clock, False)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         return p
 
     def clock_en(self, name, is_input=True):
         direction = PortDirection.In if is_input else PortDirection.Out
-        p = self.__generator.port(direction.value, name, 1, 1,
-                                  PortType.ClockEnable.value, False)
+        p = self.__generator.port(direction, name, 1, 1,
+                                  PortType.ClockEnable, False)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         return p
@@ -534,8 +505,7 @@ class Generator(metaclass=GeneratorMeta):
     def reset(self, name, is_input=True, is_async=True, active_high=None):
         direction = PortDirection.In if is_input else PortDirection.Out
         reset = PortType.AsyncReset if is_async else PortType.Reset
-        p = self.__generator.port(direction.value, name, 1, 1, reset.value,
-                                  False)
+        p = self.__generator.port(direction, name, 1, 1, reset, False)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         if active_high is not None:
@@ -550,14 +520,13 @@ class Generator(metaclass=GeneratorMeta):
                explicit_array: bool = False) -> _kratos.Port:
         size, params = self.__filter_size(size)
         if isinstance(width, _kratos.Enum):
-            p = self.__generator.port(PortDirection.Out.value, name, width)
+            p = self.__generator.port(PortDirection.Out, name, width)
         elif isinstance(width, _kratos.PackedStruct):
-            p = self.__generator.port_packed(PortDirection.Out.value, name,
+            p = self.__generator.port_packed(PortDirection.Out, name,
                                              width, size)
         else:
-            p = self.__generator.port(PortDirection.Out.value, name, width,
-                                      size,
-                                      port_type.value, is_signed)
+            p = self.__generator.port(PortDirection.Out, name, width,
+                                      size, port_type, is_signed)
         if self.debug:
             p.add_fn_ln(get_fn_ln())
         if not isinstance(width, _kratos.PackedStruct):
@@ -651,28 +620,28 @@ class Generator(metaclass=GeneratorMeta):
                                                                  fn_ln=fn_ln, kargs=kargs,
                                                                  apply_ssa=ssa_transform)
         if sensitivity:
-            # override the block type and sensivitives
-            block_type = CodeBlockType.Sequential
+            # override the block type and sensitives
+            block_type = StatementBlockType.Sequential
             raw_sensitives = sensitivity
-        if block_type == CodeBlockType.Combinational:
+        if block_type == StatementBlockType.Combinational:
             # it's a combinational block
             comb = CombinationalCodeBlock(self)
             for stmt in stmts:
                 comb.add_stmt(stmt, False)
             node = comb
-        elif block_type == CodeBlockType.Initial:
+        elif block_type == StatementBlockType.Initial:
             # it's a initial block
             init = InitialCodeBlock(self)
             for stmt in stmts:
                 init.add_stmt(stmt, False)
             node = init
-        elif block_type == CodeBlockType.Final:
+        elif block_type == StatementBlockType.Final:
             # final block
             f = FinalCodeBlock(self)
             for stmt in stmts:
                 f.add_stmt(stmt, False)
             node = f
-        elif block_type == CodeBlockType.Latch:
+        elif block_type == StatementBlockType.Latch:
             # it's a latch block
             latch = LatchCodeBlock(self)
             for stmt in stmts:
@@ -681,7 +650,7 @@ class Generator(metaclass=GeneratorMeta):
         else:
             sensitivity_list = []
             for edge, var_name in raw_sensitives:
-                edge = BlockEdgeType[edge]
+                edge = getattr(BlockEdgeType, edge)
                 if isinstance(var_name, str):
                     var = self.internal_generator.get_var(var_name)
                 else:
@@ -920,7 +889,7 @@ class Generator(metaclass=GeneratorMeta):
         g = Generator("")
         _port_mapping = {}
         for name, _type in port_mapping.items():
-            _port_mapping[name] = _type.value
+            _port_mapping[name] = _type
         g.__generator = _kratos.Generator.from_verilog(Generator.__context,
                                                        src_file, top_name,
                                                        lib_files, _port_mapping)
@@ -987,7 +956,7 @@ class Generator(metaclass=GeneratorMeta):
     # so that we can produce a readable verilog
     def __get_port_name_type(self, port, port_type):
         if port is None:
-            clock_names = self.__generator.get_ports(port_type.value)
+            clock_names = self.__generator.get_ports(port_type)
             assert len(clock_names) > 0, str(port_type) + " signal not found"
             port = clock_names[0]
         if isinstance(port, str):

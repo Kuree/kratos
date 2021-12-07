@@ -7,12 +7,12 @@ class Simulator:
     def __init__(self, generator: Generator):
         self._sim = _Simulator(generator.internal_generator)
         # get the clock and reset
-        clks = generator.internal_generator.get_ports(PortType.Clock.value)
+        clks = generator.internal_generator.get_ports(PortType.Clock)
         if len(clks) == 1:
             self._clk = generator.ports[clks[0]]
         else:
             self._clk = None
-        resets = generator.internal_generator.get_ports(PortType.AsyncReset.value)
+        resets = generator.internal_generator.get_ports(PortType.AsyncReset)
         if len(resets) == 1:
             self._reset = generator.ports[resets[0]]
         else:
