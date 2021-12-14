@@ -621,9 +621,11 @@ void init_expr(py::module &m) {
     setup_getitem(var_packed);
 
     // struct info for packed
-    auto struct_ = py::class_<PackedStruct>(m, "PackedStruct");
-    struct_.def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t, bool>>>())
+    auto struct_ = py::class_<PackedStruct, std::shared_ptr<PackedStruct>>(m, "PackedStruct");
+    struct_.def(py::init<std::string,
+                         std::vector<std::tuple<std::string, uint32_t, bool>>>())
         .def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t>>>())
+        .def(py::init<std::string>())
         .def_readwrite("struct_name", &PackedStruct::struct_name)
         .def_readonly("attributes", &PackedStruct::attributes)
         .def_readwrite("external", &PackedStruct::external);

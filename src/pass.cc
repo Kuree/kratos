@@ -768,7 +768,8 @@ private:
                     auto* src = stmt->right();
                     if (correct_src_type(src, generator) ||
                         // here we are okay with input sliced in
-                        (src->type() == VarType::Slice && src->generator() == generator->parent())) {
+                        (src->type() == VarType::Slice &&
+                         src->generator() == generator->parent())) {
                         // remove it from the parent generator
                         src->generator()->remove_stmt(stmt);
                         return;
@@ -1752,7 +1753,7 @@ public:
         for (auto const& var_name : var_names) {
             auto var = generator->get_var(var_name);
             if (var->is_struct()) {
-                PackedStruct struct_def("", std::vector<std::tuple<std::string, uint32_t>>());
+                std::shared_ptr<PackedStruct> struct_def;
                 if (var->type() == VarType::PortIO) {
                     auto ptr = var->as<PortPackedStruct>();
                     struct_def = ptr->packed_struct();
@@ -1760,35 +1761,27 @@ public:
                     auto ptr = var->as<VarPackedStruct>();
                     struct_def = ptr->packed_struct();
                 }
-                if (struct_def.external) continue;
-                if (structs_.find(struct_def.struct_name) != structs_.end()) {
+                if (struct_def->external) continue;
+                if (structs_.find(struct_def->struct_name) != structs_.end()) {
                     // do some checking
-                    auto struct_ = structs_.at(struct_def.struct_name);
-                    if (struct_.attributes.size() != struct_def.attributes.size())
+                    auto struct_ = structs_.at(struct_def->struct_name);
+                    if (!struct_def->same(*struct_)) {
                         throw VarException(::format("redefinition of different packed struct {0}",
-                                                    struct_def.struct_name),
-                                           {var.get(), struct_ports_.at(struct_def.struct_name)});
-                    for (uint64_t i = 0; i < struct_def.attributes.size(); i++) {
-                        auto const& [name1, width1, signed_1] = struct_.attributes[i];
-                        auto const& [name2, width2, signed_2] = struct_def.attributes[i];
-                        if (name1 != name2 || width1 != width2 || signed_1 != signed_2)
-                            throw VarException(
-                                ::format("redefinition of different packed struct {0}",
-                                         struct_def.struct_name),
-                                {var.get(), struct_ports_.at(struct_def.struct_name)});
+                                                    struct_def->struct_name),
+                                           {var.get(), struct_ports_.at(struct_def->struct_name)});
                     }
                 } else {
-                    structs_.emplace(struct_def.struct_name, struct_def);
-                    struct_ports_.emplace(struct_def.struct_name, var.get());
+                    structs_.emplace(struct_def->struct_name, struct_def);
+                    struct_ports_.emplace(struct_def->struct_name, var.get());
                 }
             }
         }
     }
 
-    const std::map<std::string, PackedStruct>& structs() const { return structs_; }
+    const std::map<std::string, std::shared_ptr<PackedStruct>>& structs() const { return structs_; }
 
 private:
-    std::map<std::string, PackedStruct> structs_;
+    std::map<std::string, std::shared_ptr<PackedStruct>> structs_;
     std::map<std::string, Var*> struct_ports_;
 };
 
@@ -1806,13 +1799,17 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
         std::string entry;
         entry.append("typedef struct packed {\n");
 
-        for (auto const& [attribute_name, width, is_signed] : struct_.attributes) {
-            std::vector<std::string> str = {"    logic"};
-            if (width > 1) str.emplace_back(::format("[{0}:0]", width - 1));
-            if (is_signed) str.emplace_back("signed");
-            str.emplace_back(attribute_name);
-            auto entry_str = string::join(str.begin(), str.end(), " ");
-            entry.append(entry_str + ";\n");
+        for (auto const& def : struct_->attributes) {
+            if (!def->struct_) {
+                std::vector<std::string> str = {"    logic"};
+                if (def->width > 1) str.emplace_back(::format("[{0}:0]", def->width - 1));
+                if (def->signed_) str.emplace_back("signed");
+                str.emplace_back(def->name);
+                auto entry_str = string::join(str.begin(), str.end(), " ");
+                entry.append(entry_str + ";\n");
+            } else {
+                entry.append(struct_->struct_name + " " + def->name + ";\n");
+            }
         }
         entry.append(::format("}} {0};\n", name));
         result.emplace(name, entry);
@@ -2347,7 +2344,7 @@ public:
     void visit(SequentialStmtBlock* block) override {
         if (!clk_en_) return;
         if (has_don_touch(block)) return;
-        auto *gen = block->generator_parent();
+        auto* gen = block->generator_parent();
         if (has_don_touch(gen)) return;
         auto num_stmts = block->size();
         auto* generator = block->generator_parent();
@@ -2406,11 +2403,10 @@ private:
         return false;
     }
 
-    static bool has_don_touch(const IRNode *node) {
-        auto const &attrs = node->get_attributes();
-        return std::any_of(attrs.begin(), attrs.end(), [](auto const &a) {
-            return a->value_str == dont_touch;
-        });
+    static bool has_don_touch(const IRNode* node) {
+        auto const& attrs = node->get_attributes();
+        return std::any_of(attrs.begin(), attrs.end(),
+                           [](auto const& a) { return a->value_str == dont_touch; });
     }
 };
 
@@ -2653,7 +2649,7 @@ void merge_bundle_mapping(
             auto port = ref_generator->get_port(real_name);
             def.emplace_back(std::make_tuple(var_name, port->width(), port->is_signed()));
         }
-        PackedStruct struct_(bundle_name, def);
+        auto struct_ = std::make_shared<PackedStruct>(bundle_name, def);
         for (auto const& [entry_name, generator] : generators) {
             auto* p = dynamic_cast<Generator*>(generator->parent());
             // move sources around the ports
@@ -3611,8 +3607,8 @@ private:
                     net = stmt->left();
                     // if it's a fanout to a sliced net
                     if (net->sinks().size() == 1) {
-                        auto const &next_stmt = *net->sinks().begin();
-                        auto *n = next_stmt->left();
+                        auto const& next_stmt = *net->sinks().begin();
+                        auto* n = next_stmt->left();
                         if (n->type() == VarType::Slice) {
                             net = n;
                         }
@@ -3714,7 +3710,7 @@ private:
 
             // name all the instance name to inst
             // remove const cast hack
-            auto *target_inst = const_cast<Generator*>(s->target());
+            auto* target_inst = const_cast<Generator*>(s->target());
             target_inst->instance_name = "inst";
         }
     }

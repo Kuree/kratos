@@ -166,7 +166,7 @@ Port &Generator::port(const PortPackedStruct &port, const std::string &port_name
         throw VarException(::format("{0} already exists in {1}", port_name, name),
                            {vars_.at(port_name).get()});
     auto p = std::make_shared<PortPackedStruct>(this, port.port_direction(), port_name,
-                                                port.packed_struct(), port.size());
+                                                port.packed_struct());
     vars_.emplace(port_name, p);
     ports_.emplace(port_name);
 
@@ -932,17 +932,18 @@ void Generator::accept(IRVisitor *visitor) {
 }
 
 PortPackedStruct &Generator::port_packed(PortDirection direction, const std::string &port_name,
-                                         const PackedStruct &packed_struct_) {
+                                         const std::shared_ptr<PackedStruct> &packed_struct_) {
     return port_packed(direction, port_name, packed_struct_, 1);
 }
 
 PortPackedStruct &Generator::port_packed(PortDirection direction, const std::string &port_name,
-                                         const PackedStruct &packed_struct_, uint32_t size) {
+                                         const std::shared_ptr<PackedStruct> &packed_struct_,
+                                         uint32_t size) {
     return port_packed(direction, port_name, packed_struct_, std::vector<uint32_t>{size});
 }
 
 PortPackedStruct &Generator::port_packed(PortDirection direction, const std::string &port_name,
-                                         const PackedStruct &packed_struct_,
+                                         const std::shared_ptr<PackedStruct> &packed_struct_,
                                          const std::vector<uint32_t> &size) {
     if (ports_.find(port_name) != ports_.end())
         throw VarException(::format("{0} already exists in {1}", port_name, name),
@@ -954,17 +955,18 @@ PortPackedStruct &Generator::port_packed(PortDirection direction, const std::str
 }
 
 VarPackedStruct &Generator::var_packed(const std::string &var_name,
-                                       const kratos::PackedStruct &packed_struct_) {
+                                       const std::shared_ptr<PackedStruct> &packed_struct_) {
     return var_packed(var_name, packed_struct_, std::vector<uint32_t>{1});
 }
 
 VarPackedStruct &Generator::var_packed(const std::string &var_name,
-                                       const PackedStruct &packed_struct_, uint32_t size) {
+                                       const std::shared_ptr<PackedStruct> &packed_struct_,
+                                       uint32_t size) {
     return var_packed(var_name, packed_struct_, std::vector<uint32_t>{size});
 }
 
 VarPackedStruct &Generator::var_packed(const std::string &var_name,
-                                       const PackedStruct &packed_struct_,
+                                       const std::shared_ptr<PackedStruct> &packed_struct_,
                                        const std::vector<uint32_t> &size) {
     if (vars_.find(var_name) != vars_.end())
         throw VarException(::format("{0} already exists in {1}", var_name, name),

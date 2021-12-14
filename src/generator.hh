@@ -18,10 +18,10 @@ public:
     std::string instance_name;
     int generator_id = -1;
 
-    static Generator& from_verilog(
-        Context *context, const std::string &src_file, const std::string &top_name,
-        const std::vector<std::string> &lib_files,
-        const std::map<std::string, PortType> &port_types);
+    static Generator &from_verilog(Context *context, const std::string &src_file,
+                                   const std::string &top_name,
+                                   const std::vector<std::string> &lib_files,
+                                   const std::map<std::string, PortType> &port_types);
 
     Generator(Context *context, const std::string &name);
 
@@ -56,16 +56,19 @@ public:
     EnumPort &port(PortDirection direction, const std::string &port_name,
                    const std::shared_ptr<Enum> &def);
     PortPackedStruct &port_packed(PortDirection direction, const std::string &port_name,
-                                  const PackedStruct &packed_struct_);
+                                  const std::shared_ptr<PackedStruct> &packed_struct_);
     PortPackedStruct &port_packed(PortDirection direction, const std::string &port_name,
-                                  const PackedStruct &packed_struct_, uint32_t size);
+                                  const std::shared_ptr<PackedStruct> &packed_struct_,
+                                  uint32_t size);
     PortPackedStruct &port_packed(PortDirection direction, const std::string &port_name,
-                                  const PackedStruct &packed_struct_,
+                                  const std::shared_ptr<PackedStruct> &packed_struct_,
                                   const std::vector<uint32_t> &size);
-    VarPackedStruct &var_packed(const std::string &var_name, const PackedStruct &packed_struct_);
-    VarPackedStruct &var_packed(const std::string &var_name, const PackedStruct &packed_struct_,
-                                uint32_t size);
-    VarPackedStruct &var_packed(const std::string &var_name, const PackedStruct &packed_struct_,
+    VarPackedStruct &var_packed(const std::string &var_name,
+                                const std::shared_ptr<PackedStruct> &packed_struct_);
+    VarPackedStruct &var_packed(const std::string &var_name,
+                                const std::shared_ptr<PackedStruct> &packed_struct_, uint32_t size);
+    VarPackedStruct &var_packed(const std::string &var_name,
+                                const std::shared_ptr<PackedStruct> &packed_struct_,
                                 const std::vector<uint32_t> &size);
     Param &parameter(const std::string &parameter_name);
     Param &parameter(const std::string &parameter_name, uint32_t width);

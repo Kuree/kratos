@@ -157,20 +157,22 @@ std::shared_ptr<AssignStmt> EnumPort::assign_(const std::shared_ptr<Var>& var,
 }
 
 PortPackedStruct::PortPackedStruct(Generator* module, PortDirection direction,
-                                   const std::string& name, PackedStruct packed_struct_)
+                                   const std::string& name,
+                                   std::shared_ptr<PackedStruct> packed_struct_)
     : Port(module, direction, name, 1, 1, PortType::Data, false),
       struct_(std::move(packed_struct_)) {
     setup_size();
 }
 
 PortPackedStruct::PortPackedStruct(Generator* m, PortDirection direction, const std::string& name,
-                                   PackedStruct packed_struct_, uint32_t size)
+                                   std::shared_ptr<PackedStruct> packed_struct_, uint32_t size)
     : Port(m, direction, name, 1, size, PortType::Data, false), struct_(std::move(packed_struct_)) {
     setup_size();
 }
 
 PortPackedStruct::PortPackedStruct(Generator* m, PortDirection direction, const std::string& name,
-                                   PackedStruct packed_struct_, const std::vector<uint32_t>& size)
+                                   std::shared_ptr<PackedStruct> packed_struct_,
+                                   const std::vector<uint32_t>& size)
     : Port(m, direction, name, 1, size, PortType::Data, false), struct_(std::move(packed_struct_)) {
     setup_size();
 }
@@ -181,11 +183,7 @@ void PortPackedStruct::set_port_type(PortType) {
 
 void PortPackedStruct::setup_size() {
     // compute the width
-    uint32_t width = 0;
-    for (auto const& def : struct_.attributes) {
-        width += std::get<1>(def);
-    }
-    var_width_ = width;
+    var_width_ = struct_->bitwidth();
 }
 
 PackedSlice& PortPackedStruct::operator[](const std::string& member_name) {
@@ -199,10 +197,19 @@ PackedSlice& PortPackedStruct::operator[](const std::string& member_name) {
 
 std::set<std::string> PortPackedStruct::member_names() const {
     std::set<std::string> result;
-    for (const auto& def : struct_.attributes) {
-        result.emplace(std::get<0>(def));
+    for (const auto& def : struct_->attributes) {
+        result.emplace(def->name);
     }
     return result;
+}
+
+PackedStructFieldDef* PortPackedStruct::get_definition(const std::string& name) const {
+    for (auto const &def : struct_->attributes) {
+        if (name == def->name) {
+            return def.get();
+        }
+    }
+    return nullptr;
 }
 
 void PortPackedStruct::set_is_packed(bool value) {

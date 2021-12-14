@@ -563,16 +563,34 @@ std::vector<std::pair<uint32_t, uint32_t>> VarSlice::get_slice_index() const {
 }
 
 PackedSlice &VarSlice::operator[](const std::string &member_name) {
-    auto const *root = get_var_root_parent();
-    if (!root->is_packed() || width() != var_width())
-        throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
-    auto p = std::make_shared<PackedSlice>(this, true);
-    slices_.emplace_back(p);
-    auto &slice = p->slice_member(member_name);
-    // notice that in case of packed struct array, we need to offset the current slice position
-    slice.var_low_ += var_low_;
-    slice.var_high_ += var_low_;
-    return slice;
+    if (parent_var->is_struct()) {
+        // struct of struct
+        auto const &packed = reinterpret_cast<PackedInterface *>(parent_var);
+        auto *def = packed->get_definition(member_name);
+        if (!def)
+            throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
+        auto p = std::make_shared<PackedSlice>(this, true, def);
+        slices_.emplace_back(p);
+        auto &slice = p->slice_member(member_name);
+        return slice;
+    } else {
+        if (!parent_var->is_packed() || width() != var_width())
+            throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
+        auto *root = get_var_root_parent();
+        if (!root->is_struct())
+            throw UserException(::format("Invalid member access{0}.{1}", to_string(), member_name));
+        auto const &packed = reinterpret_cast<PackedInterface *>(parent_var);
+        auto *def = packed->get_definition(member_name);
+        if (!def)
+            throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
+        auto p = std::make_shared<PackedSlice>(this, true, def);
+        slices_.emplace_back(p);
+        auto &slice = p->slice_member(member_name);
+        // notice that in case of packed struct array, we need to offset the current slice position
+        slice.var_low_ += var_low_;
+        slice.var_high_ += var_low_;
+        return slice;
+    }
 }
 
 VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
@@ -701,7 +719,7 @@ Expr::Expr(ExprOp op, Var *left, Var *right)
         var_width_ = left->var_width();
 
     if (right != nullptr)
-        is_signed_ = left->is_signed() & right->is_signed();
+        is_signed_ = left->is_signed() && right->is_signed();
     else
         is_signed_ = left->is_signed();
     type_ = VarType::Expression;
@@ -1619,49 +1637,95 @@ std::string ConditionalExpr::handle_name(kratos::Generator *scope) const {
                     right->handle_name(scope));
 }
 
+uint32_t PackedStructFieldDef::bitwidth() const {
+    if (struct_) {
+        return struct_->bitwidth();
+    } else {
+        return width;
+    }
+}
+
+bool PackedStructFieldDef::same(const PackedStructFieldDef &def) {
+    if (struct_ && def.struct_) {
+        return struct_->same(*def.struct_);
+    } else if (!struct_ && !def.struct_) {
+        return name == def.name && width == def.width && signed_ == def.signed_;
+    }
+    return false;
+}
+
 PackedStruct::PackedStruct(std::string struct_name,
-                           std::vector<std::tuple<std::string, uint32_t, bool>> attributes)
-    : struct_name(std::move(struct_name)), attributes(std::move(attributes)) {}
+                           const std::vector<std::tuple<std::string, uint32_t, bool>> &attributes)
+    : struct_name(std::move(struct_name)) {
+    for (auto const &[name, size, signed_] : attributes) {
+        auto def = std::make_shared<PackedStructFieldDef>();
+        def->signed_ = signed_;
+        def->name = name;
+        def->width = size;
+        this->attributes.emplace_back(def);
+    }
+}
 
 PackedStruct::PackedStruct(std::string struct_name,
                            const std::vector<std::tuple<std::string, uint32_t>> &attributes)
     : struct_name(std::move(struct_name)) {
     for (auto const &[name, size] : attributes) {
-        this->attributes.emplace_back(std::make_tuple(name, size, false));
+        auto def = std::make_shared<PackedStructFieldDef>();
+        def->signed_ = false;
+        def->name = name;
+        def->width = size;
+        this->attributes.emplace_back(def);
     }
 }
 
+uint32_t PackedStruct::bitwidth() const {
+    uint32_t result = 0;
+    for (auto const &def : attributes) {
+        result += def->bitwidth();
+    }
+    return result;
+}
+
+bool PackedStruct::same(const PackedStruct &def) {
+    if (attributes.size() != def.attributes.size()) return false;
+    for (auto i = 0u; i < attributes.size(); i++) {
+        if (!attributes[i]->same(*def.attributes[i])) return false;
+    }
+    return true;
+}
+
 PackedSlice::PackedSlice(PortPackedStruct *parent, const std::string &member_name)
-    : VarSlice(parent, 0, 0), member_name_(member_name) {
+    : VarSlice(parent, 0, 0) {
     auto const &struct_ = parent->packed_struct();
-    set_up(struct_, member_name);
+    set_up(*struct_, member_name);
 }
 
 PackedSlice::PackedSlice(kratos::VarPackedStruct *parent, const std::string &member_name)
-    : VarSlice(parent, 0, 0), member_name_(member_name) {
+    : VarSlice(parent, 0, 0) {
     auto const &struct_ = parent->packed_struct();
-    set_up(struct_, member_name);
+    set_up(*struct_, member_name);
 }
 
-PackedSlice::PackedSlice(VarSlice *slice, bool is_root)
-    : VarSlice(slice, 0, 0), is_root_(is_root) {}
+PackedSlice::PackedSlice(VarSlice *slice, bool is_root, PackedStructFieldDef *def)
+    : VarSlice(slice, 0, 0), def_(def), is_root_(is_root) {}
 
 void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string &member_name) {
     // compute the high and low
     uint32_t low_ = 0;
     bool found = false;
-    for (auto const &[name, width, is_signed] : struct_.attributes) {
-        if (name == member_name) {
+    for (auto const &def : struct_.attributes) {
+        if (def->name == member_name) {
             found = true;
-            high = width + low_ - 1;
+            high = def->bitwidth() + low_ - 1;
             low = low_;
-            is_signed_ = is_signed;
+            is_signed_ = def->signed_;
             var_high_ = high;
             var_low_ = low;
             var_width_ = var_high_ - var_low_ + 1;
+            def_ = def.get();
             break;
         } else {
-            low_ += width;
+            low_ += def->bitwidth();
         }
     }
 
@@ -1675,27 +1739,26 @@ shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
     if (is_root_) return var;
     if (var->type() == VarType::PortIO) {
         auto v = var->as<PortPackedStruct>();
-        return v->operator[](member_name_).shared_from_this();
+        return v->operator[](def_->name).shared_from_this();
     } else {
         auto v = var->as<VarPackedStruct>();
-        return v->operator[](member_name_).shared_from_this();
+        return v->operator[](def_->name).shared_from_this();
     }
 }
 
 PackedSlice &PackedSlice::slice_member(const std::string &member_name) {
-    if (!is_root_) throw UserException("Only struct array can slice member at the end");
+    if (!is_root_) throw UserException("Invalid slice access");
     auto *root = get_var_root_parent();
     std::shared_ptr<PackedSlice> p;
     if (root->type() == VarType::PortIO) {
         auto v = root->as<PortPackedStruct>();
-        p = ::make_shared<PackedSlice>(this, false);
-        p->set_up(v->packed_struct(), member_name);
+        p = ::make_shared<PackedSlice>(this, false, nullptr);
+        p->set_up(*v->packed_struct(), member_name);
     } else {
         auto v = root->as<VarPackedStruct>();
-        p = ::make_shared<PackedSlice>(this, false);
-        p->set_up(v->packed_struct(), member_name);
+        p = ::make_shared<PackedSlice>(this, false, nullptr);
+        p->set_up(*v->packed_struct(), member_name);
     }
-    p->member_name_ = member_name;
     slices_.emplace_back(p);
     return *p;
 }
@@ -1704,7 +1767,7 @@ std::string PackedSlice::to_string() const {
     if (is_root_) {
         return parent_var->to_string();
     } else {
-        return ::format("{0}.{1}", parent_var->to_string(), member_name_);
+        return ::format("{0}.{1}", parent_var->to_string(), def_->name);
     }
 }
 
@@ -1717,18 +1780,20 @@ PackedSlice &VarPackedStruct::operator[](const std::string &member_name) {
     return *ptr;
 }
 
-VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_)
+VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name,
+                                 std::shared_ptr<PackedStruct> packed_struct_)
     : Var(m, name, 1, 1, false), struct_(std::move(packed_struct_)) {
     compute_width();
 }
 
-VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_,
-                                 uint32_t size)
+VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name,
+                                 std::shared_ptr<PackedStruct> packed_struct_, uint32_t size)
     : Var(m, name, 1, size, false), struct_(std::move(packed_struct_)) {
     compute_width();
 }
 
-VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name, PackedStruct packed_struct_,
+VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name,
+                                 std::shared_ptr<PackedStruct> packed_struct_,
                                  const std::vector<uint32_t> &size)
     : Var(m, name, 1, size, false), struct_(std::move(packed_struct_)) {
     compute_width();
@@ -1736,19 +1801,24 @@ VarPackedStruct::VarPackedStruct(Generator *m, const std::string &name, PackedSt
 
 void VarPackedStruct::compute_width() {
     // compute the width
-    uint32_t width = 0;
-    for (auto const &def : struct_.attributes) {
-        width += std::get<1>(def);
-    }
-    var_width_ = width;
+    var_width_ = struct_->bitwidth();
 }
 
 std::set<std::string> VarPackedStruct::member_names() const {
     std::set<std::string> result;
-    for (auto const &def : struct_.attributes) {
-        result.emplace(std::get<0>(def));
+    for (auto const &def : struct_->attributes) {
+        result.emplace(def->name);
     }
     return result;
+}
+
+PackedStructFieldDef *VarPackedStruct::get_definition(const std::string &name) const {
+    for (auto const &def : struct_->attributes) {
+        if (name == def->name) {
+            return def.get();
+        }
+    }
+    return nullptr;
 }
 
 void VarPackedStruct::set_is_packed(bool value) {

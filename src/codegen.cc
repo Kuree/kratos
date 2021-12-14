@@ -98,7 +98,7 @@ std::string Stream::get_var_decl(kratos::Var* var) {
     std::string type;
     if (var->is_struct()) {
         auto v = var->as<VarPackedStruct>();
-        type = v->packed_struct().struct_name;
+        type = v->packed_struct()->struct_name;
     } else if (var->is_enum()) {
         auto* v = dynamic_cast<EnumType*>(var);
         if (!v) throw InternalException("Unable to resolve var to enum type");
@@ -988,7 +988,7 @@ std::string SystemVerilogCodeGen::get_port_str(Port* port) {
         strs.emplace_back(p->to_string());
     } else {
         auto* ptr = reinterpret_cast<PortPackedStruct*>(port);
-        strs.emplace_back(ptr->packed_struct().struct_name);
+        strs.emplace_back(ptr->packed_struct()->struct_name);
     }
     if (port->is_signed()) strs.emplace_back("signed");
     if ((port->size().front() > 1 || port->size().size() > 1 || port->explicit_array() ||

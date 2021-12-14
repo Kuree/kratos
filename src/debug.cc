@@ -424,12 +424,12 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                     add_context_gen(new_name);
                 }
             } else if (var_->is_struct()) {
-                // it's an packed array
+                // it's a packed array
                 if (var_->type() == VarType::PortIO) {
                     auto *p = reinterpret_cast<PortPackedStruct *>(var_);
                     auto const &def = p->packed_struct();
-                    for (auto const &iter : def.attributes) {
-                        auto const &attr_name = std::get<0>(iter);
+                    for (auto const &iter : def->attributes) {
+                        auto const &attr_name = iter->name;
                         // we need to store lots of them
                         std::string new_name = ::format("{0}.{1}", name_, attr_name);
                         v.value = ::format("{0}.{1}", var_->name, attr_name);
@@ -448,8 +448,8 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
                 } else if (var_->type() == VarType::Base) {
                     auto *p = reinterpret_cast<VarPackedStruct *>(var_);
                     auto const &def = p->packed_struct();
-                    for (auto const &iter : def.attributes) {
-                        auto const &attr_name = std::get<0>(iter);
+                    for (auto const &iter : def->attributes) {
+                        auto const &attr_name = iter->name;
                         // we need to store lots of them
                         std::string new_name = ::format("{0}.{1}", name_, attr_name);
                         v.value = ::format("{0}.{1}", var_->name, attr_name);

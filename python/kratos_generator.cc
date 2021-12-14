@@ -153,26 +153,31 @@ void init_generator(py::module &m) {
                  return interfaces.at(name);
              })
         .def("port_packed",
-             py::overload_cast<PortDirection, const std::string &, const PackedStruct &>(
-                 &Generator::port_packed),
+             py::overload_cast<PortDirection, const std::string &,
+                               const std::shared_ptr<PackedStruct> &>(&Generator::port_packed),
              py::return_value_policy::reference)
         .def("port_packed",
-             py::overload_cast<PortDirection, const std::string &, const PackedStruct &, uint32_t>(
+             py::overload_cast<PortDirection, const std::string &,
+                               const std::shared_ptr<PackedStruct> &, uint32_t>(
                  &Generator::port_packed),
              py::return_value_policy::reference)
-        .def("port_packed",
-             py::overload_cast<PortDirection, const std::string &, const PackedStruct &,
-                               const std::vector<uint32_t> &>(&Generator::port_packed),
-             py::return_value_policy::reference)
+        .def(
+            "port_packed",
+            py::overload_cast<PortDirection, const std::string &,
+                              const std::shared_ptr<PackedStruct> &, const std::vector<uint32_t> &>(
+                &Generator::port_packed),
+            py::return_value_policy::reference)
         .def("var_packed",
-             py::overload_cast<const std::string &, const PackedStruct &>(&Generator::var_packed),
-             py::return_value_policy::reference)
-        .def("var_packed",
-             py::overload_cast<const std::string &, const PackedStruct &, uint32_t>(
+             py::overload_cast<const std::string &, const std::shared_ptr<PackedStruct> &>(
                  &Generator::var_packed),
              py::return_value_policy::reference)
+        .def(
+            "var_packed",
+            py::overload_cast<const std::string &, const std::shared_ptr<PackedStruct> &, uint32_t>(
+                &Generator::var_packed),
+            py::return_value_policy::reference)
         .def("var_packed",
-             py::overload_cast<const std::string &, const PackedStruct &,
+             py::overload_cast<const std::string &, const std::shared_ptr<PackedStruct> &,
                                const std::vector<uint32_t> &>(&Generator::var_packed),
              py::return_value_policy::reference)
         .def("enum", &Generator::enum_, py::return_value_policy::reference)

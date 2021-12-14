@@ -78,15 +78,16 @@ private:
 struct PortPackedStruct : public Port, public PackedInterface {
 public:
     PortPackedStruct(Generator *module, PortDirection direction, const std::string &name,
-                     PackedStruct packed_struct_);
+                     std::shared_ptr<PackedStruct> packed_struct_);
     PortPackedStruct(Generator *m, PortDirection direction, const std::string &name,
-                     PackedStruct packed_struct_, uint32_t size);
+                     std::shared_ptr<PackedStruct> packed_struct_, uint32_t size);
     PortPackedStruct(Generator *m, PortDirection direction, const std::string &name,
-                     PackedStruct packed_struct_, const std::vector<uint32_t> &size);
+                     std::shared_ptr<PackedStruct> packed_struct_,
+                     const std::vector<uint32_t> &size);
 
     void set_port_type(PortType type) override;
 
-    const PackedStruct &packed_struct() const { return struct_; }
+    const std::shared_ptr<PackedStruct> &packed_struct() const { return struct_; }
 
     PackedSlice &operator[](const std::string &member_name);
 
@@ -99,13 +100,14 @@ public:
     bool is_struct() const override { return true; }
 
     std::set<std::string> member_names() const override;
+    [[nodiscard]] PackedStructFieldDef *get_definition(const std::string &name) const override;
 
     // struct is always packed
     bool is_packed() const override { return true; }
     void set_is_packed(bool value) override;
 
 private:
-    PackedStruct struct_;
+    std::shared_ptr<PackedStruct> struct_;
 
     void setup_size();
 };
@@ -162,6 +164,10 @@ public:
     [[nodiscard]] const std::string &def_name() const { return definition_.get_name(); }
 
     [[nodiscard]] std::set<std::string> member_names() const override;
+    [[nodiscard]] PackedStructFieldDef *get_definition(const std::string &) const override {
+        // not supported
+        return nullptr;
+    }
 
 private:
     Generator *generator;
