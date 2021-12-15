@@ -100,7 +100,8 @@ public:
     bool is_struct() const override { return true; }
 
     std::set<std::string> member_names() const override;
-    [[nodiscard]] PackedStructFieldDef *get_definition(const std::string &name) const override;
+    [[nodiscard]] const PackedStructFieldDef *get_definition(
+        const std::string &name) const override;
 
     // struct is always packed
     bool is_packed() const override { return true; }

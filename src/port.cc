@@ -198,15 +198,15 @@ PackedSlice& PortPackedStruct::operator[](const std::string& member_name) {
 std::set<std::string> PortPackedStruct::member_names() const {
     std::set<std::string> result;
     for (const auto& def : struct_->attributes) {
-        result.emplace(def->name);
+        result.emplace(def.name);
     }
     return result;
 }
 
-PackedStructFieldDef* PortPackedStruct::get_definition(const std::string& name) const {
-    for (auto const &def : struct_->attributes) {
-        if (name == def->name) {
-            return def.get();
+const PackedStructFieldDef* PortPackedStruct::get_definition(const std::string& name) const {
+    for (auto const& def : struct_->attributes) {
+        if (name == def.name) {
+            return &def;
         }
     }
     return nullptr;

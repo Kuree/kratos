@@ -519,7 +519,7 @@ struct PackedStructFieldDef {
     uint32_t width;
     bool signed_;
 
-    std::shared_ptr<PackedStruct> struct_;
+    PackedStruct *struct_;
 
     uint32_t bitwidth() const;
 
@@ -529,7 +529,7 @@ struct PackedStructFieldDef {
 struct PackedStruct {
 public:
     std::string struct_name;
-    std::vector<std::shared_ptr<PackedStructFieldDef>> attributes;
+    std::vector<PackedStructFieldDef> attributes;
     bool external = false;
 
     PackedStruct(std::string struct_name,
@@ -537,7 +537,7 @@ public:
     PackedStruct(std::string struct_name,
                  const std::vector<std::tuple<std::string, uint32_t>> &attributes);
 
-    PackedStruct(std::string struct_name): struct_name(std::move(struct_name)) {}
+    PackedStruct(std::string struct_name) : struct_name(std::move(struct_name)) {}
 
     [[nodiscard]] uint32_t bitwidth() const;
     [[nodiscard]] bool same(const PackedStruct &def);
@@ -549,7 +549,7 @@ public:
     PackedSlice(VarPackedStruct *parent, const std::string &member_name);
 
     // this is used for packed struct array
-    PackedSlice(VarSlice *slice, bool is_root, PackedStructFieldDef *def);
+    PackedSlice(VarSlice *slice, bool is_root, const PackedStructFieldDef *def);
 
     PackedSlice &slice_member(const std::string &member_name);
 
@@ -559,18 +559,19 @@ public:
 
     bool is_struct() const override { return def_->struct_ != nullptr; }
 
-    [[nodiscard]] PackedStructFieldDef *def() const { return def_; }
+    [[nodiscard]] const PackedStructFieldDef *def() const { return def_; }
 
 private:
     void set_up(const PackedStruct &struct_, const std::string &member_name);
-    PackedStructFieldDef *def_ = nullptr;
+    const PackedStructFieldDef *def_ = nullptr;
 
     bool is_root_ = false;
 };
 
 struct PackedInterface {
     [[nodiscard]] virtual std::set<std::string> member_names() const = 0;
-    [[nodiscard]] virtual PackedStructFieldDef *get_definition(const std::string &name) const = 0;
+    [[nodiscard]] virtual const PackedStructFieldDef *get_definition(
+        const std::string &name) const = 0;
     virtual ~PackedInterface() = default;
 };
 
@@ -597,7 +598,8 @@ public:
     VarSlice inline &operator[](uint32_t idx) override { return Var::operator[](idx); }
 
     std::set<std::string> member_names() const override;
-    [[nodiscard]] PackedStructFieldDef *get_definition(const std::string &name) const override;
+    [[nodiscard]] const PackedStructFieldDef *get_definition(
+        const std::string &name) const override;
 
     // struct is always packed
     bool is_packed() const override { return true; }

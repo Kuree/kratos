@@ -630,25 +630,25 @@ void init_expr(py::module &m) {
         .def_readwrite("external", &PackedStruct::external)
         .def("add_attribute",
              [](PackedStruct &struct_, const std::string &name, uint32_t width) {
-                 auto attr = std::make_shared<PackedStructFieldDef>();
-                 attr->name = name;
-                 attr->width = width;
-                 attr->signed_ = false;
+                 auto attr = PackedStructFieldDef();
+                 attr.name = name;
+                 attr.width = width;
+                 attr.signed_ = false;
                  struct_.attributes.emplace_back(attr);
              })
         .def("add_attribute",
              [](PackedStruct &struct_, const std::string &name, uint32_t width, bool signed_) {
-                 auto attr = std::make_shared<PackedStructFieldDef>();
-                 attr->name = name;
-                 attr->width = width;
-                 attr->signed_ = signed_;
+                 auto attr = PackedStructFieldDef();
+                 attr.name = name;
+                 attr.width = width;
+                 attr.signed_ = signed_;
                  struct_.attributes.emplace_back(attr);
              })
         .def("add_attribute", [](PackedStruct &struct_, const std::string &name,
                                  const std::shared_ptr<PackedStruct> &s) {
-            auto attr = std::make_shared<PackedStructFieldDef>();
-            attr->name = name;
-            attr->struct_ = s;
+            auto attr = PackedStructFieldDef();
+            attr.name = name;
+            attr.struct_ = s.get();
             struct_.attributes.emplace_back(attr);
         });
 

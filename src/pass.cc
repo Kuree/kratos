@@ -1762,18 +1762,7 @@ public:
                     struct_def = ptr->packed_struct();
                 }
                 if (struct_def->external) continue;
-                if (structs_.find(struct_def->struct_name) != structs_.end()) {
-                    // do some checking
-                    auto struct_ = structs_.at(struct_def->struct_name);
-                    if (!struct_def->same(*struct_)) {
-                        throw VarException(::format("redefinition of different packed struct {0}",
-                                                    struct_def->struct_name),
-                                           {var.get(), struct_ports_.at(struct_def->struct_name)});
-                    }
-                } else {
-                    structs_.emplace(struct_def->struct_name, struct_def);
-                    struct_ports_.emplace(struct_def->struct_name, var.get());
-                }
+                process_struct_(struct_def.get(), var.get());
             }
         }
     }
@@ -1783,6 +1772,28 @@ public:
 private:
     std::map<std::string, std::shared_ptr<PackedStruct>> structs_;
     std::map<std::string, Var*> struct_ports_;
+
+    void process_struct_(PackedStruct* struct_def, Var* var) {
+        if (structs_.find(struct_def->struct_name) != structs_.end()) {
+            // do some checking
+            auto struct_ = structs_.at(struct_def->struct_name);
+            if (!struct_def->same(*struct_)) {
+                throw VarException(::format("redefinition of different packed struct {0}",
+                                            struct_def->struct_name),
+                                   {var, struct_ports_.at(struct_def->struct_name)});
+            }
+        } else {
+            structs_.emplace(struct_def->struct_name, struct_def);
+            struct_ports_.emplace(struct_def->struct_name, var);
+
+            // check if there is any struct inside attributes
+            for (auto const &attr: struct_def->attributes) {
+                if (attr.struct_) {
+                    process_struct_(attr.struct_, var);
+                }
+            }
+        }
+    }
 };
 
 std::map<std::string, std::string> extract_struct_info(Generator* top) {
@@ -1800,15 +1811,15 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
         entry.append("typedef struct packed {\n");
 
         for (auto const& def : struct_->attributes) {
-            if (!def->struct_) {
+            if (!def.struct_) {
                 std::vector<std::string> str = {"    logic"};
-                if (def->width > 1) str.emplace_back(::format("[{0}:0]", def->width - 1));
-                if (def->signed_) str.emplace_back("signed");
-                str.emplace_back(def->name);
+                if (def.width > 1) str.emplace_back(::format("[{0}:0]", def.width - 1));
+                if (def.signed_) str.emplace_back("signed");
+                str.emplace_back(def.name);
                 auto entry_str = string::join(str.begin(), str.end(), " ");
                 entry.append(entry_str + ";\n");
             } else {
-                entry.append(struct_->struct_name + " " + def->name + ";\n");
+                entry.append(struct_->struct_name + " " + def.name + ";\n");
             }
         }
         entry.append(::format("}} {0};\n", name));

@@ -569,7 +569,7 @@ PackedSlice &VarSlice::operator[](const std::string &member_name) {
     auto *root = get_var_root_parent();
     if (!root->is_struct())
         throw UserException(::format("Invalid member access{0}.{1}", to_string(), member_name));
-    PackedStructFieldDef *def;
+    const PackedStructFieldDef *def;
     if (is_struct()) {
         auto *packed = dynamic_cast<PackedSlice *>(this);
         def = packed->def();
@@ -1655,10 +1655,10 @@ PackedStruct::PackedStruct(std::string struct_name,
                            const std::vector<std::tuple<std::string, uint32_t, bool>> &attributes)
     : struct_name(std::move(struct_name)) {
     for (auto const &[name, size, signed_] : attributes) {
-        auto def = std::make_shared<PackedStructFieldDef>();
-        def->signed_ = signed_;
-        def->name = name;
-        def->width = size;
+        auto def = PackedStructFieldDef();
+        def.signed_ = signed_;
+        def.name = name;
+        def.width = size;
         this->attributes.emplace_back(def);
     }
 }
@@ -1667,10 +1667,10 @@ PackedStruct::PackedStruct(std::string struct_name,
                            const std::vector<std::tuple<std::string, uint32_t>> &attributes)
     : struct_name(std::move(struct_name)) {
     for (auto const &[name, size] : attributes) {
-        auto def = std::make_shared<PackedStructFieldDef>();
-        def->signed_ = false;
-        def->name = name;
-        def->width = size;
+        auto def = PackedStructFieldDef();
+        def.signed_ = false;
+        def.name = name;
+        def.width = size;
         this->attributes.emplace_back(def);
     }
 }
@@ -1678,7 +1678,7 @@ PackedStruct::PackedStruct(std::string struct_name,
 uint32_t PackedStruct::bitwidth() const {
     uint32_t result = 0;
     for (auto const &def : attributes) {
-        result += def->bitwidth();
+        result += def.bitwidth();
     }
     return result;
 }
@@ -1686,7 +1686,7 @@ uint32_t PackedStruct::bitwidth() const {
 bool PackedStruct::same(const PackedStruct &def) {
     if (attributes.size() != def.attributes.size()) return false;
     for (auto i = 0u; i < attributes.size(); i++) {
-        if (!attributes[i]->same(*def.attributes[i])) return false;
+        if (!attributes[i].same(def.attributes[i])) return false;
     }
     return true;
 }
@@ -1703,7 +1703,7 @@ PackedSlice::PackedSlice(kratos::VarPackedStruct *parent, const std::string &mem
     set_up(*struct_, member_name);
 }
 
-PackedSlice::PackedSlice(VarSlice *slice, bool is_root, PackedStructFieldDef *def)
+PackedSlice::PackedSlice(VarSlice *slice, bool is_root, const PackedStructFieldDef *def)
     : VarSlice(slice, 0, 0), def_(def), is_root_(is_root) {}
 
 void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string &member_name) {
@@ -1711,18 +1711,18 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
     uint32_t low_ = 0;
     bool found = false;
     for (auto const &def : struct_.attributes) {
-        if (def->name == member_name) {
+        if (def.name == member_name) {
             found = true;
-            high = def->bitwidth() + low_ - 1;
+            high = def.bitwidth() + low_ - 1;
             low = low_;
-            is_signed_ = def->signed_;
+            is_signed_ = def.signed_;
             var_high_ = high;
             var_low_ = low;
             var_width_ = var_high_ - var_low_ + 1;
-            def_ = def.get();
+            def_ = &def;
             break;
         } else {
-            low_ += def->bitwidth();
+            low_ += def.bitwidth();
         }
     }
 
@@ -1746,7 +1746,7 @@ shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
 PackedSlice &PackedSlice::slice_member(const std::string &member_name) {
     PackedStruct *struct_;
     if (is_struct()) {
-        struct_ = def_->struct_.get();
+        struct_ = def_->struct_;
     } else {
         auto *root = get_var_root_parent();
         if (root->type() == VarType::PortIO) {
@@ -1807,15 +1807,15 @@ void VarPackedStruct::compute_width() {
 std::set<std::string> VarPackedStruct::member_names() const {
     std::set<std::string> result;
     for (auto const &def : struct_->attributes) {
-        result.emplace(def->name);
+        result.emplace(def.name);
     }
     return result;
 }
 
-PackedStructFieldDef *VarPackedStruct::get_definition(const std::string &name) const {
+const PackedStructFieldDef *VarPackedStruct::get_definition(const std::string &name) const {
     for (auto const &def : struct_->attributes) {
-        if (name == def->name) {
-            return def.get();
+        if (name == def.name) {
+            return &def;
         }
     }
     return nullptr;
