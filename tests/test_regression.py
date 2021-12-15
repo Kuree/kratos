@@ -201,4 +201,4 @@ def test_regression_external_module_wiring():
 
 
 if __name__ == "__main__":
-    test_regression_external_module_wiring()
+    test_regression_packed_struct_array()
