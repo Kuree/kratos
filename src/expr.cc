@@ -563,12 +563,13 @@ std::vector<std::pair<uint32_t, uint32_t>> VarSlice::get_slice_index() const {
 }
 
 PackedSlice &VarSlice::operator[](const std::string &member_name) {
+    if (!parent_var) throw InternalException("Invalid var slice");
     if (!parent_var->is_packed() || width() != var_width())
         throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
     auto *root = get_var_root_parent();
     if (!root->is_struct())
         throw UserException(::format("Invalid member access{0}.{1}", to_string(), member_name));
-    auto const *packed = dynamic_cast<PackedInterface *>(parent_var);
+    auto const *packed = dynamic_cast<PackedInterface *>(root);
     if (!packed)
         throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
     auto *def = packed->get_definition(member_name);
