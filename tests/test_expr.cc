@@ -192,12 +192,11 @@ TEST(expr, packed_struct_array) {  // NOLINT
 }
 
 TEST(expr, struct_of_struct) {  // NOLINT
-    auto struct1 = std::make_shared<PackedStruct>("data1", std::vector<std::tuple<std::string, uint32_t, bool>>{
-                                                              {"value1", 1, false}, {"value2", 2, false}});
+    auto struct1 = PackedStruct("data1", {{"value1", 1, false}, {"value2", 2, false}});
     auto struct2 = std::make_shared<PackedStruct>("data2");
-    auto attr = std::make_shared<PackedStructFieldDef>();
-    attr->name = "value";
-    attr->struct_ = struct1;
+    auto attr = PackedStructFieldDef();
+    attr.name = "value";
+    attr.struct_ = &struct1;
     struct2->attributes.emplace_back(attr);
 
     Context c;

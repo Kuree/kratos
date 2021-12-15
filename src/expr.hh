@@ -523,7 +523,7 @@ struct PackedStructFieldDef {
 
     [[nodiscard]] uint32_t bitwidth() const;
 
-    [[nodiscard]] bool same(const PackedStructFieldDef &def);
+    [[nodiscard]] bool same(const PackedStructFieldDef &def) const;
 };
 
 struct PackedStruct {
@@ -540,7 +540,7 @@ public:
     PackedStruct(std::string struct_name) : struct_name(std::move(struct_name)) {}
 
     [[nodiscard]] uint32_t bitwidth() const;
-    [[nodiscard]] bool same(const PackedStruct &def);
+    [[nodiscard]] bool same(const PackedStruct &def) const;
 };
 
 struct PackedSlice : public VarSlice {

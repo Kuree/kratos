@@ -1776,7 +1776,7 @@ private:
     void process_struct_(PackedStruct* struct_def, Var* var) {
         if (structs_.find(struct_def->struct_name) != structs_.end()) {
             // do some checking
-            auto struct_ = structs_.at(struct_def->struct_name);
+            auto const *struct_ = structs_.at(struct_def->struct_name);
             if (!struct_def->same(*struct_)) {
                 throw VarException(::format("redefinition of different packed struct {0}",
                                             struct_def->struct_name),

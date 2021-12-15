@@ -1642,7 +1642,7 @@ uint32_t PackedStructFieldDef::bitwidth() const {
     }
 }
 
-bool PackedStructFieldDef::same(const PackedStructFieldDef &def) {
+bool PackedStructFieldDef::same(const PackedStructFieldDef &def) const {
     if (struct_ && def.struct_) {
         return struct_->same(*def.struct_);
     } else if (!struct_ && !def.struct_) {
@@ -1683,7 +1683,7 @@ uint32_t PackedStruct::bitwidth() const {
     return result;
 }
 
-bool PackedStruct::same(const PackedStruct &def) {
+bool PackedStruct::same(const PackedStruct &def) const {
     if (attributes.size() != def.attributes.size()) return false;
     for (auto i = 0u; i < attributes.size(); i++) {
         if (!attributes[i].same(def.attributes[i])) return false;
