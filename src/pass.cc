@@ -1767,10 +1767,10 @@ public:
         }
     }
 
-    const std::map<std::string, std::shared_ptr<PackedStruct>>& structs() const { return structs_; }
+    const std::map<std::string, const PackedStruct*>& structs() const { return structs_; }
 
 private:
-    std::map<std::string, std::shared_ptr<PackedStruct>> structs_;
+    std::map<std::string, const PackedStruct *> structs_;
     std::map<std::string, Var*> struct_ports_;
 
     void process_struct_(PackedStruct* struct_def, Var* var) {

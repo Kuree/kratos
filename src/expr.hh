@@ -521,7 +521,7 @@ struct PackedStructFieldDef {
 
     PackedStruct *struct_;
 
-    uint32_t bitwidth() const;
+    [[nodiscard]] uint32_t bitwidth() const;
 
     [[nodiscard]] bool same(const PackedStructFieldDef &def);
 };
