@@ -622,13 +622,35 @@ void init_expr(py::module &m) {
 
     // struct info for packed
     auto struct_ = py::class_<PackedStruct, std::shared_ptr<PackedStruct>>(m, "PackedStruct");
-    struct_.def(py::init<std::string,
-                         std::vector<std::tuple<std::string, uint32_t, bool>>>())
+    struct_.def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t, bool>>>())
         .def(py::init<std::string, std::vector<std::tuple<std::string, uint32_t>>>())
         .def(py::init<std::string>())
         .def_readwrite("struct_name", &PackedStruct::struct_name)
         .def_readonly("attributes", &PackedStruct::attributes)
-        .def_readwrite("external", &PackedStruct::external);
+        .def_readwrite("external", &PackedStruct::external)
+        .def("add_attribute",
+             [](PackedStruct &struct_, const std::string &name, uint32_t width) {
+                 auto attr = std::make_shared<PackedStructFieldDef>();
+                 attr->name = name;
+                 attr->width = width;
+                 attr->signed_ = false;
+                 struct_.attributes.emplace_back(attr);
+             })
+        .def("add_attribute",
+             [](PackedStruct &struct_, const std::string &name, uint32_t width, bool signed_) {
+                 auto attr = std::make_shared<PackedStructFieldDef>();
+                 attr->name = name;
+                 attr->width = width;
+                 attr->signed_ = signed_;
+                 struct_.attributes.emplace_back(attr);
+             })
+        .def("add_attribute", [](PackedStruct &struct_, const std::string &name,
+                                 const std::shared_ptr<PackedStruct> &s) {
+            auto attr = std::make_shared<PackedStructFieldDef>();
+            attr->name = name;
+            attr->struct_ = s;
+            struct_.attributes.emplace_back(attr);
+        });
 
     auto port_packed_slice =
         py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>(m, "PackedSlice");
