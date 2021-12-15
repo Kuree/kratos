@@ -569,10 +569,17 @@ PackedSlice &VarSlice::operator[](const std::string &member_name) {
     auto *root = get_var_root_parent();
     if (!root->is_struct())
         throw UserException(::format("Invalid member access{0}.{1}", to_string(), member_name));
-    auto const *packed = dynamic_cast<PackedInterface *>(root);
-    if (!packed)
-        throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
-    auto *def = packed->get_definition(member_name);
+    PackedStructFieldDef *def;
+    if (is_struct()) {
+        auto *packed = dynamic_cast<PackedSlice *>(this);
+        def = packed->def();
+    } else {
+        auto *packed = dynamic_cast<PackedInterface *>(root);
+        if (!packed)
+            throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
+        def = packed->get_definition(member_name);
+    }
+
     if (!def) throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
     auto p = std::make_shared<PackedSlice>(this, true, def);
     slices_.emplace_back(p);
@@ -1738,17 +1745,21 @@ shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
 
 PackedSlice &PackedSlice::slice_member(const std::string &member_name) {
     if (!is_root_) throw UserException("Invalid slice access");
-    auto *root = get_var_root_parent();
-    std::shared_ptr<PackedSlice> p;
-    if (root->type() == VarType::PortIO) {
-        auto v = root->as<PortPackedStruct>();
-        p = ::make_shared<PackedSlice>(this, false, nullptr);
-        p->set_up(*v->packed_struct(), member_name);
+    PackedStruct *struct_;
+    if (is_struct()) {
+        struct_ = def_->struct_.get();
     } else {
-        auto v = root->as<VarPackedStruct>();
-        p = ::make_shared<PackedSlice>(this, false, nullptr);
-        p->set_up(*v->packed_struct(), member_name);
+        auto *root = get_var_root_parent();
+        if (root->type() == VarType::PortIO) {
+            auto v = root->as<PortPackedStruct>();
+            struct_ = v->packed_struct().get();
+        } else {
+            auto v = root->as<VarPackedStruct>();
+            struct_ = v->packed_struct().get();
+        }
     }
+    std::shared_ptr<PackedSlice> p = ::make_shared<PackedSlice>(this, false, nullptr);
+    p->set_up(*struct_, member_name);
     slices_.emplace_back(p);
     return *p;
 }

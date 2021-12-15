@@ -559,6 +559,8 @@ public:
 
     bool is_struct() const override { return def_->struct_ != nullptr; }
 
+    [[nodiscard]] PackedStructFieldDef *def() const { return def_; }
+
 private:
     void set_up(const PackedStruct &struct_, const std::string &member_name);
     PackedStructFieldDef *def_ = nullptr;

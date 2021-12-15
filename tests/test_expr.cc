@@ -173,23 +173,42 @@ TEST(expr, packed_struct_array) {  // NOLINT
     auto var_ = std::make_shared<VarPackedStruct>(&mod, "in", struct_, 5);
     auto &var = *var_;
 
-    //EXPECT_THROW(var["value1"], UserException);
+    EXPECT_THROW(var["value1"], UserException);
 
     auto &slice = var[1];
 
     auto &s = slice["value2"];
-    //EXPECT_EQ(s.to_string(), "in[1].value2");
-    (void)(s);
+    EXPECT_EQ(s.to_string(), "in[1].value2");
 
     auto port_ = std::make_shared<PortPackedStruct>(&mod, PortDirection::In, "out", struct_,
                                                     std::vector<uint32_t>{4, 5});
     auto &port = *port_;
 
-    //EXPECT_THROW(port["value1"], UserException);
-    //EXPECT_THROW(port[1]["value1"], UserException);
+    EXPECT_THROW(port["value1"], UserException);
+    EXPECT_THROW(port[1]["value1"], UserException);
 
     auto &s_p = port[1][2]["value1"];
     EXPECT_EQ(s_p.to_string(), "out[1][2].value1");
+}
+
+TEST(expr, struct_of_struct) {  // NOLINT
+    auto struct1 = std::make_shared<PackedStruct>("data1", std::vector<std::tuple<std::string, uint32_t, bool>>{
+                                                              {"value1", 1, false}, {"value2", 2, false}});
+    auto struct2 = std::make_shared<PackedStruct>("data2");
+    auto attr = std::make_shared<PackedStructFieldDef>();
+    attr->name = "value";
+    attr->struct_ = struct1;
+    struct2->attributes.emplace_back(attr);
+
+    Context c;
+    auto mod = c.generator("mod");
+
+    auto var_ = std::make_shared<VarPackedStruct>(&mod, "in", struct2);
+    auto &var = *var_;
+
+    auto &slice = var["value"]["value1"];
+    auto str = slice.to_string();
+    EXPECT_EQ(str, "in.value.value1");
 }
 
 TEST(expr, array_slice) {  // NOLINT
