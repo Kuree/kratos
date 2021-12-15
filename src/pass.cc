@@ -1819,7 +1819,7 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
                 auto entry_str = string::join(str.begin(), str.end(), " ");
                 entry.append(entry_str + ";\n");
             } else {
-                entry.append(struct_->struct_name + " " + def.name + ";\n");
+                entry.append(def.struct_->struct_name + " " + def.name + ";\n");
             }
         }
         entry.append(::format("}} {0};\n", name));
