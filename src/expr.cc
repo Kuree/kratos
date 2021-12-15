@@ -1744,7 +1744,6 @@ shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
 }
 
 PackedSlice &PackedSlice::slice_member(const std::string &member_name) {
-    if (!is_root_) throw UserException("Invalid slice access");
     PackedStruct *struct_;
     if (is_struct()) {
         struct_ = def_->struct_.get();

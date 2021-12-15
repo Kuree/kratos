@@ -2315,6 +2315,19 @@ def test_final_block():
     assert "final begin\n  a = 1'h1;\nend" in src
 
 
+def test_struct_of_struct():
+    mod = Generator("mod")
+    struct1 = PackedStruct("struct1")
+    struct1.add_attribute("value1", 32)
+    struct2 = PackedStruct("struct2")
+    struct2.add_attribute("value2", struct1)
+    v = mod.var("v", struct2)
+    mod.add_stmt(v["value2"]["value1"].assign(1))
+
+    src = verilog(mod)[1]["struct2"]
+    print(src)
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
-    test_gen_inst_lift(check_gold_fn)
+    test_struct_of_struct()

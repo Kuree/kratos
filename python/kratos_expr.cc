@@ -652,8 +652,11 @@ void init_expr(py::module &m) {
             struct_.attributes.emplace_back(attr);
         });
 
-    auto port_packed_slice =
-        py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>(m, "PackedSlice");
+    auto packed_slice = py::class_<PackedSlice, ::shared_ptr<PackedSlice>, Var>(m, "PackedSlice");
+    packed_slice.def(
+        "__getitem__",
+        [](PackedSlice &p, const std::string &mem) -> PackedSlice & { return p.slice_member(mem); },
+        py::return_value_policy::reference);
 
     // ternary op
     auto ternary_exp =
