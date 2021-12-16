@@ -18,12 +18,9 @@ std::optional<std::pair<std::string, uint32_t>> get_fn_ln(uint32_t num_frame_bac
 
 // templated function to set up packed struct for both port and var
 template <class T, class K>
-void setup_getitem(py::class_<T, ::shared_ptr<T>, K> &class_) {
+void setup_getitem(py::class_<T, ::shared_ptr<T>, K> &class_, bool add_str = true) {
     using namespace kratos;
     class_
-        .def(
-            "__getitem__", [](T & var, const std::string &name) -> auto & { return var[name]; },
-            py::return_value_policy::reference)
         .def(
             "__getitem__",
             [](T & var, uint32_t index) -> auto & { return var.Var::operator[](index); },
@@ -38,6 +35,12 @@ void setup_getitem(py::class_<T, ::shared_ptr<T>, K> &class_) {
                 return var.Var::operator[](slice);
             },
             py::return_value_policy::reference);
+
+    if (add_str) {
+        class_.def(
+            "__getitem__", [](T & var, const std::string &name) -> auto & { return var[name]; },
+            py::return_value_policy::reference);
+    }
 }
 
 void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_) {
@@ -657,6 +660,7 @@ void init_expr(py::module &m) {
         "__getitem__",
         [](PackedSlice &p, const std::string &mem) -> PackedSlice & { return p.slice_member(mem); },
         py::return_value_policy::reference);
+    setup_getitem(packed_slice, false);
 
     // ternary op
     auto ternary_exp =

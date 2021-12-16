@@ -200,5 +200,33 @@ def test_regression_external_module_wiring():
     verilog(mod)
 
 
+def test_regression_struct_struct_access():
+    from kratos import PackedStruct
+
+    class StructTest(Generator):
+        def __init__(self):
+            super().__init__("struct_test")
+            self.wr_tr_struct = PackedStruct("wr_tr_struct", [("wr_en", 1), ("wr_addr", 16)])
+            self.rd_tr_struct = PackedStruct("rd_tr_struct", [("rd_en", 1), ("rd_addr", 16)])
+            self.tr_struct = PackedStruct("tr_struct")
+            self.tr_struct.add_attribute("wr_tr", self.wr_tr_struct)
+            self.tr_struct.add_attribute("rd_tr", self.rd_tr_struct)
+
+            self.in_ = self.input("in_", self.tr_struct)
+            self.out_ = self.output("out_", 1)
+
+            self.add_always(self.comb)
+
+        @always_comb
+        def comb(self):
+            if self.in_["wr_tr"]["wr_addr"][4, 0] == 0:
+                self.out_ = 1
+            else:
+                self.out_ = 0
+
+    mod = StructTest()
+    verilog(mod)
+
+
 if __name__ == "__main__":
-    test_regression_packed_struct_array()
+    test_regression_struct_struct_access()
