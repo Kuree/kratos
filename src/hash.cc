@@ -384,7 +384,7 @@ void hash_generators_context(Context* context, Generator* root, HashStrategy str
     // if it's parallel, do level sort
 
     if (strategy == HashStrategy::SequentialHash) {
-        auto const& sequence = g.get_sorted_generators();
+        auto const& sequence = g.get_sorted_nodes();
         std::vector<Generator*> list;
         // reserve for list
         list.reserve(sequence.size());
@@ -415,7 +415,7 @@ void hash_generators_context(Context* context, Generator* root, HashStrategy str
         uint32_t num_cpus = get_num_cpus();
         cxxpool::thread_pool pool{num_cpus};
 
-        auto levels = g.get_leveled_generators();
+        auto levels = g.get_leveled_nodes();
         // we proceed in a reversed order
         for (int i = static_cast<int>(levels.size() - 1); i >= 0; i--) {
             auto list = levels[i];

@@ -49,7 +49,7 @@ void IRVisitor::visit_generator_root(Generator *generator) {
 
 void IRVisitor::visit_generator_root_p(kratos::Generator *generator) {
     GeneratorGraph graph(generator);
-    auto levels = graph.get_leveled_generators();
+    auto levels = graph.get_leveled_nodes();
     uint32_t num_cpus = get_num_cpus();
     cxxpool::thread_pool pool{num_cpus};
     for (int i = static_cast<int>(levels.size() - 1); i >= 0; i--) {

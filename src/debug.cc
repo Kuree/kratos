@@ -240,7 +240,7 @@ void mock_hierarchy(Generator *top, const std::string &top_name) {
 void DebugDatabase::compute_generators(Generator *top) {
     top_ = top;
     GeneratorGraph g(top);
-    auto generators = g.get_sorted_generators();
+    auto generators = g.get_sorted_nodes();
     for (auto *gen : generators) {
         generators_.emplace(gen);
     }

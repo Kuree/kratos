@@ -149,7 +149,7 @@ std::unordered_set<Stmt *> FaultAnalyzer::compute_coverage(uint32_t index) {
             auto *state = run->get_state(i);
             // given the state, we need to go through each generators
             GeneratorGraph g(generator_);
-            auto generators = g.get_sorted_generators();
+            auto generators = g.get_sorted_nodes();
             for (auto const &gen : generators) {
                 // need to calculate the sequential or combination block
                 auto stmts = gen->get_all_stmts();

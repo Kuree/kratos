@@ -19,8 +19,8 @@ public:
     explicit GeneratorGraph(Generator *);
     GeneratorNode *add_node(Generator *generator);
     GeneratorNode *get_node(Generator *generator);
-    std::vector<Generator *> get_sorted_generators();
-    std::vector<std::vector<Generator *>> get_leveled_generators();
+    std::vector<Generator *> get_sorted_nodes();
+    std::vector<std::vector<Generator *>> get_leveled_nodes();
 
 private:
     std::unordered_map<Generator *, GeneratorNode> nodes_;

@@ -99,7 +99,7 @@ std::queue<GeneratorNode *> GeneratorGraph::topological_sort() {
     return queue;
 }
 
-std::vector<Generator *> GeneratorGraph::get_sorted_generators() {
+std::vector<Generator *> GeneratorGraph::get_sorted_nodes() {
     auto queue = topological_sort();
     std::vector<Generator *> result;
     result.reserve(queue.size());
@@ -110,7 +110,7 @@ std::vector<Generator *> GeneratorGraph::get_sorted_generators() {
     return result;
 }
 
-std::vector<std::vector<Generator *>> GeneratorGraph::get_leveled_generators() {
+std::vector<std::vector<Generator *>> GeneratorGraph::get_leveled_nodes() {
     // this is a modified breath-first search
     std::queue<std::pair<Generator *, uint32_t>> queue;
     std::unordered_map<GeneratorNode *, uint32_t> level_index;
