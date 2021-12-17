@@ -87,8 +87,6 @@ public:
 
     void set_port_type(PortType type) override;
 
-    const std::shared_ptr<PackedStruct> &packed_struct() const { return struct_; }
-
     PackedSlice &operator[](const std::string &member_name);
 
     // necessary to make pybind happy due to complex inheritance
@@ -102,6 +100,7 @@ public:
     std::set<std::string> member_names() const override;
     [[nodiscard]] const PackedStructFieldDef *get_definition(
         const std::string &name) const override;
+    [[nodiscard]] std::shared_ptr<PackedStruct> packed_struct() const override { return struct_; }
 
     // struct is always packed
     bool is_packed() const override { return true; }
@@ -169,6 +168,7 @@ public:
         // not supported
         return nullptr;
     }
+    [[nodiscard]] std::shared_ptr<PackedStruct> packed_struct() const override { return nullptr; }
 
 private:
     Generator *generator;

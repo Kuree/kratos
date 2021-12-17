@@ -194,17 +194,25 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     // create a new one
     // notice that slice is not part of generator's variables. It's handled by the parent (var)
     // itself
-    // depends on the root variable, if it is actually a struct, we need to return to the
-    // actual trampoline class as proxy
-    auto *var_root = get_var_root_parent();
     std::shared_ptr<VarSlice> var_slice = ::make_shared<VarSlice>(this, high, low);
-    if (var_root->is_struct() && var_slice->width() == var_slice->var_width()) {
-        // we actually reached the real struct
-    }
-    slices_.emplace_back(var_slice);
     if (width_param_) {
         var_slice->set_width_param(width_param_);
     }
+    // depends on the root variable, if it is actually a struct, we need to return to the
+    // actual trampoline class as proxy
+    if (get_var_root_parent()->is_struct() && var_slice->width() == var_slice->var_width()) {
+        // we actually reached the real struct
+        auto *s = dynamic_cast<PackedInterface *>(get_var_root_parent());
+        auto packed_slice = std::make_shared<PackedSlice>(var_slice.get(), var_slice->width() - 1,
+                                                          0, s->packed_struct().get());
+        slices_.emplace_back(packed_slice);
+        // this is a hack here, but we store the parent into the child
+        packed_slice->slices_.emplace_back(var_slice);
+        var_slice = packed_slice;
+    } else {
+        slices_.emplace_back(var_slice);
+    }
+
     return *var_slice;
 }
 
@@ -572,7 +580,7 @@ PackedSlice &VarSlice::operator[](const std::string &member_name) {
     const PackedStructFieldDef *def;
     if (is_struct()) {
         auto *packed = dynamic_cast<PackedSlice *>(this);
-        def = packed->def();
+        return packed->slice_member(member_name);
     } else {
         auto *packed = dynamic_cast<PackedInterface *>(root);
         if (!packed)
@@ -581,13 +589,9 @@ PackedSlice &VarSlice::operator[](const std::string &member_name) {
     }
 
     if (!def) throw UserException(::format("Unable to access {0}.{1}", to_string(), member_name));
-    auto p = std::make_shared<PackedSlice>(this, true, def);
+    auto p = std::make_shared<PackedSlice>(this, def, member_name);
     slices_.emplace_back(p);
-    auto &slice = p->slice_member(member_name);
-    // notice that in case of packed struct array, we need to offset the current slice position
-    slice.var_low_ += var_low_;
-    slice.var_high_ += var_low_;
-    return slice;
+    return *p;
 }
 
 VarVarSlice::VarVarSlice(kratos::Var *parent, kratos::Var *slice)
@@ -1703,8 +1707,17 @@ PackedSlice::PackedSlice(kratos::VarPackedStruct *parent, const std::string &mem
     set_up(*struct_, member_name);
 }
 
-PackedSlice::PackedSlice(VarSlice *slice, bool is_root, const PackedStructFieldDef *def)
-    : VarSlice(slice, 0, 0), def_(def), is_root_(is_root) {}
+PackedSlice::PackedSlice(Var *parent, uint32_t high, uint32_t low, const PackedStruct *struct_)
+    : VarSlice(parent, high, low), original_struct_(struct_) {}
+
+PackedSlice::PackedSlice(Var *parent, const PackedStructFieldDef *def,
+                         const std::string &member_name)
+    : VarSlice(parent, 0, 0), def_(def) {
+    if (!def->struct_) {
+        throw InternalException("Invalid member access " + def->name);
+    }
+    set_up(*def->struct_, member_name);
+}
 
 void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string &member_name) {
     // compute the high and low
@@ -1716,8 +1729,8 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
             high = def.bitwidth() + low_ - 1;
             low = low_;
             is_signed_ = def.signed_;
-            var_high_ = high;
-            var_low_ = low;
+            var_high_ = high + parent_var->var_low();
+            var_low_ = low + parent_var->var_low();
             var_width_ = var_high_ - var_low_ + 1;
             def_ = &def;
             break;
@@ -1733,7 +1746,6 @@ void PackedSlice::set_up(const kratos::PackedStruct &struct_, const std::string 
 }
 
 shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
-    if (is_root_) return var;
     if (var->type() == VarType::PortIO) {
         auto v = var->as<PortPackedStruct>();
         return v->operator[](def_->name).shared_from_this();
@@ -1744,8 +1756,10 @@ shared_ptr<Var> PackedSlice::slice_var(std::shared_ptr<Var> var) {
 }
 
 PackedSlice &PackedSlice::slice_member(const std::string &member_name) {
-    PackedStruct *struct_;
-    if (is_struct()) {
+    const PackedStruct *struct_;
+    if (original_struct_) {
+        struct_ = original_struct_;
+    } else if (is_struct()) {
         struct_ = def_->struct_;
     } else {
         auto *root = get_var_root_parent();
@@ -1757,14 +1771,14 @@ PackedSlice &PackedSlice::slice_member(const std::string &member_name) {
             struct_ = v->packed_struct().get();
         }
     }
-    std::shared_ptr<PackedSlice> p = ::make_shared<PackedSlice>(this, false, nullptr);
+    std::shared_ptr<PackedSlice> p = ::make_shared<PackedSlice>(this);
     p->set_up(*struct_, member_name);
     slices_.emplace_back(p);
     return *p;
 }
 
 std::string PackedSlice::to_string() const {
-    if (is_root_) {
+    if (original_struct_) {
         return parent_var->to_string();
     } else {
         return ::format("{0}.{1}", parent_var->to_string(), def_->name);

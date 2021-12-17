@@ -2322,8 +2322,9 @@ def test_struct_of_struct(check_gold):
     struct2 = PackedStruct("struct2")
     struct2.add_attribute("value2", struct1)
     v = mod.var("v", struct2)
+    v_array = mod.var("v_array", struct2, size=4)
     mod.add_stmt(v["value2"]["value1"].assign(1))
-
+    mod.add_stmt(v_array[0]["value2"]["value1"].assign(1))
     check_gold(mod, "test_struct_of_struct")
 
 

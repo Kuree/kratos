@@ -335,6 +335,7 @@ private:
     uint32_t target_width_ = 0;
 };
 
+struct PackedStruct;
 struct VarSlice : public Var {
 public:
     Var *parent_var = nullptr;
@@ -379,11 +380,15 @@ public:
 
     virtual bool sliced_by_var() const { return false; }
 
+    bool is_struct() const override { return struct_ != nullptr; }
+
 protected:
     uint32_t var_high_ = 0;
     uint32_t var_low_ = 0;
 
     std::pair<uint32_t, uint32_t> op_;
+
+    const PackedStruct *struct_ = nullptr;
 };
 
 struct VarVarSlice : public VarSlice {
@@ -549,7 +554,9 @@ public:
     PackedSlice(VarPackedStruct *parent, const std::string &member_name);
 
     // this is used for packed struct array
-    PackedSlice(VarSlice *slice, bool is_root, const PackedStructFieldDef *def);
+    PackedSlice(Var *parent, uint32_t high, uint32_t low, const PackedStruct *struct_);
+    PackedSlice(Var *parent, const PackedStructFieldDef *def, const std::string &member_name);
+    PackedSlice(Var *parent) : VarSlice(parent, 0, 0) {}
 
     PackedSlice &slice_member(const std::string &member_name);
 
@@ -557,21 +564,21 @@ public:
 
     std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override;
 
-    bool is_struct() const override { return def_->struct_ != nullptr; }
+    bool is_struct() const override { return original_struct_ || (def_ && def_->struct_ != nullptr); }
 
     [[nodiscard]] const PackedStructFieldDef *def() const { return def_; }
 
 private:
     void set_up(const PackedStruct &struct_, const std::string &member_name);
     const PackedStructFieldDef *def_ = nullptr;
-
-    bool is_root_ = false;
+    const PackedStruct *original_struct_ = nullptr;
 };
 
 struct PackedInterface {
     [[nodiscard]] virtual std::set<std::string> member_names() const = 0;
     [[nodiscard]] virtual const PackedStructFieldDef *get_definition(
         const std::string &name) const = 0;
+    [[nodiscard]] virtual std::shared_ptr<PackedStruct> packed_struct() const = 0;
     virtual ~PackedInterface() = default;
 };
 
@@ -587,8 +594,6 @@ public:
 
     bool is_struct() const override { return true; }
 
-    const std::shared_ptr<PackedStruct> &packed_struct() const { return struct_; }
-
     PackedSlice &operator[](const std::string &member_name);
 
     // necessary to make pybind happy due to complex inheritance
@@ -600,6 +605,7 @@ public:
     std::set<std::string> member_names() const override;
     [[nodiscard]] const PackedStructFieldDef *get_definition(
         const std::string &name) const override;
+    [[nodiscard]] std::shared_ptr<PackedStruct> packed_struct() const override { return struct_; }
 
     // struct is always packed
     bool is_packed() const override { return true; }

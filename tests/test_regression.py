@@ -229,4 +229,4 @@ def test_regression_struct_struct_access():
 
 
 if __name__ == "__main__":
-    test_regression_struct_struct_access()
+    test_regression_packed_struct_array()

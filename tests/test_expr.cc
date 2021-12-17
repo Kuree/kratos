@@ -155,7 +155,7 @@ TEST(expr, port_packed) {  // NOLINT
                                                    {"value1", 1, false}, {"value2", 2, false}});
     auto port = PortPackedStruct(&mod, PortDirection::In, "in", struct_);
 
-    auto slice1 = PackedSlice(&port, "value2");
+    auto slice1 = PackedSlice(&port, std::string{"value2"});
     auto &slice2 = port["value2"];
 
     EXPECT_EQ(slice1.to_string(), "in.value2");
