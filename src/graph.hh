@@ -48,5 +48,22 @@ private:
     void add_stmt_child(Stmt* stmt);
 };
 
+class PackedStruct;
+struct PackedStructNode {
+    PackedStructNode *parent = nullptr;
+    const PackedStruct *struct_;
+    std::set<PackedStructNode*> children;
+};
+
+class PackedStructGraph {
+public:
+    PackedStructNode * add_node(PackedStruct *s);
+    PackedStructNode *get_node(PackedStruct *value);
+    std::vector<const PackedStruct*> get_structs();
+
+private:
+    std::unordered_map<std::string, PackedStructNode> nodes_;
+};
+
 }  // namespace kratos
 #endif  // KRATOS_GRAPH_HH

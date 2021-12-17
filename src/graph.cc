@@ -175,4 +175,58 @@ void StatementGraph::build_graph() {
     for (auto const &stmt : stmts) add_stmt_child(stmt.get());
 }
 
+PackedStructNode *PackedStructGraph::add_node(PackedStruct *s) {
+    if (nodes_.find(s->struct_name) != nodes_.end()) {
+        throw InternalException(::format("{0} already in graph", s->struct_name));
+    }
+
+    PackedStructNode node;
+    node.struct_ = s;
+    nodes_.emplace(s->struct_name, node);
+    return &nodes_.at(s->struct_name);
+}
+
+PackedStructNode *PackedStructGraph::get_node(PackedStruct *value) {
+    if (nodes_.find(value->struct_name) == nodes_.end()) {
+        throw InternalException(::format("Unable to find {0} in graph", value->struct_name));
+    }
+    return &nodes_.at(value->struct_name);
+}
+
+void topological_sort_helper(PackedStructGraph *g, PackedStructNode *node,
+                             std::unordered_set<PackedStructNode *> &visited,
+                             std::queue<PackedStructNode *> &queue) {
+    // mark it as visited
+    visited.emplace(node);
+
+    // visit all the child node
+    for (auto const &child : node->children) {
+        if (visited.find(child) == visited.end()) {
+            // visit it
+            topological_sort_helper(g, child, visited, queue);
+        }
+    }
+    queue.push(node);
+}
+
+std::vector<const PackedStruct *> PackedStructGraph::get_structs() {
+    // leaf nodes need to be returned first
+    std::unordered_set<PackedStructNode *> visited;
+    std::queue<PackedStructNode *> queue;
+    for (auto &iter : nodes_) {
+        auto *node = &iter.second;
+        if (visited.find(node) == visited.end()) {
+            // visit it
+            topological_sort_helper(this, node, visited, queue);
+        }
+    }
+    std::vector<const PackedStruct *> result;
+    result.reserve(queue.size());
+    while (!queue.empty()) {
+        result.emplace_back(queue.front()->struct_);
+        queue.pop();
+    }
+    return result;
+}
+
 }  // namespace kratos
