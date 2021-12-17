@@ -48,7 +48,7 @@ private:
     void add_stmt_child(Stmt* stmt);
 };
 
-class PackedStruct;
+struct PackedStruct;
 struct PackedStructNode {
     PackedStructNode *parent = nullptr;
     const PackedStruct *struct_;
