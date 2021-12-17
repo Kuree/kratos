@@ -1767,16 +1767,23 @@ public:
         }
     }
 
-    const std::map<std::string, const PackedStruct*>& structs() const { return structs_; }
+    [[nodiscard]] std::vector<const PackedStruct*> structs() const {
+        PackedStructGraph g;
+        for (auto const& [_, s] : structs_) {
+            add_struct(&g, s, nullptr);
+        }
+
+        return g.get_structs();
+    }
 
 private:
-    std::map<std::string, const PackedStruct *> structs_;
+    std::map<std::string, const PackedStruct*> structs_;
     std::map<std::string, Var*> struct_ports_;
 
     void process_struct_(PackedStruct* struct_def, Var* var) {
         if (structs_.find(struct_def->struct_name) != structs_.end()) {
             // do some checking
-            auto const *struct_ = structs_.at(struct_def->struct_name);
+            auto const* struct_ = structs_.at(struct_def->struct_name);
             if (!struct_def->same(*struct_)) {
                 throw VarException(::format("redefinition of different packed struct {0}",
                                             struct_def->struct_name),
@@ -1787,10 +1794,28 @@ private:
             struct_ports_.emplace(struct_def->struct_name, var);
 
             // check if there is any struct inside attributes
-            for (auto const &attr: struct_def->attributes) {
+            for (auto const& attr : struct_def->attributes) {
                 if (attr.struct_) {
                     process_struct_(attr.struct_, var);
                 }
+            }
+        }
+    }
+
+    static void add_struct(PackedStructGraph* g, const PackedStruct* s,
+                           const PackedStruct* parent) {
+        if (g->has_node(s)) return;
+        auto* n = g->get_node(s);
+        if (parent) {
+            auto* parent_node = g->get_node(parent);
+            n->parent = parent_node;
+            parent_node->children.emplace(n);
+        }
+
+        // look for child definition
+        for (auto const& attr : s->attributes) {
+            if (attr.struct_) {
+                add_struct(g, attr.struct_, s);
             }
         }
     }
@@ -1802,8 +1827,9 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
 
     // convert the definition into
     std::map<std::string, std::string> result;
-    auto const& structs = visitor.structs();
-    for (auto const& [name, struct_] : structs) {
+    auto const structs = visitor.structs();
+    for (uint32_t i = 0; i < structs.size(); i++) {
+        auto const *struct_ = structs[i];
         // TODO:
         //  Use Stream class in the codegen instead to track the debugging info
         //  Share the same code gen logic with Stream
@@ -1822,7 +1848,10 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
                 entry.append(def.struct_->struct_name + " " + def.name + ";\n");
             }
         }
-        entry.append(::format("}} {0};\n", name));
+        entry.append(::format("}} {0};\n", struct_->struct_name));
+        // this is a hack to ensure ordering. refactoring this requires refactoring
+        // code from the caller site
+        auto name = fmt::format("{0:032d}", i);
         result.emplace(name, entry);
     }
     return result;

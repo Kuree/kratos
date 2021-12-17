@@ -57,9 +57,10 @@ struct PackedStructNode {
 
 class PackedStructGraph {
 public:
-    PackedStructNode * add_node(PackedStruct *s);
-    PackedStructNode *get_node(PackedStruct *value);
+    PackedStructNode * add_node(const PackedStruct *s);
+    PackedStructNode *get_node(const PackedStruct *value);
     std::vector<const PackedStruct*> get_structs();
+    [[nodiscard]] bool has_node(const PackedStruct *s) const;
 
 private:
     std::unordered_map<std::string, PackedStructNode> nodes_;

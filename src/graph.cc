@@ -175,7 +175,7 @@ void StatementGraph::build_graph() {
     for (auto const &stmt : stmts) add_stmt_child(stmt.get());
 }
 
-PackedStructNode *PackedStructGraph::add_node(PackedStruct *s) {
+PackedStructNode *PackedStructGraph::add_node(const PackedStruct *s) {
     if (nodes_.find(s->struct_name) != nodes_.end()) {
         throw InternalException(::format("{0} already in graph", s->struct_name));
     }
@@ -186,9 +186,9 @@ PackedStructNode *PackedStructGraph::add_node(PackedStruct *s) {
     return &nodes_.at(s->struct_name);
 }
 
-PackedStructNode *PackedStructGraph::get_node(PackedStruct *value) {
+PackedStructNode *PackedStructGraph::get_node(const PackedStruct *value) {
     if (nodes_.find(value->struct_name) == nodes_.end()) {
-        throw InternalException(::format("Unable to find {0} in graph", value->struct_name));
+        add_node(value);
     }
     return &nodes_.at(value->struct_name);
 }
@@ -227,6 +227,10 @@ std::vector<const PackedStruct *> PackedStructGraph::get_structs() {
         queue.pop();
     }
     return result;
+}
+
+bool PackedStructGraph::has_node(const PackedStruct *s) const {
+    return nodes_.find(s->struct_name) != nodes_.end();
 }
 
 }  // namespace kratos
