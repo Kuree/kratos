@@ -187,6 +187,7 @@ PackedStructNode *PackedStructGraph::add_node(const PackedStruct *s) {
 }
 
 PackedStructNode *PackedStructGraph::get_node(const PackedStruct *value) {
+    if (!value) return nullptr;
     if (nodes_.find(value->struct_name) == nodes_.end()) {
         add_node(value);
     }
@@ -226,6 +227,7 @@ std::vector<const PackedStruct *> PackedStructGraph::get_structs() {
         result.emplace_back(queue.front()->struct_);
         queue.pop();
     }
+    std::reverse(result.begin(), result.end());
     return result;
 }
 

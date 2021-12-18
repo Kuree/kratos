@@ -1770,7 +1770,7 @@ public:
     [[nodiscard]] std::vector<const PackedStruct*> structs() const {
         PackedStructGraph g;
         for (auto const& [_, s] : structs_) {
-            add_struct(&g, s, nullptr);
+            add_struct(&g, nullptr, s);
         }
 
         return g.get_structs();
@@ -1804,18 +1804,17 @@ private:
 
     static void add_struct(PackedStructGraph* g, const PackedStruct* s,
                            const PackedStruct* parent) {
-        if (g->has_node(s)) return;
+        auto* parent_node = g->get_node(parent);
         auto* n = g->get_node(s);
-        if (parent) {
-            auto* parent_node = g->get_node(parent);
+        if (n) {
             n->parent = parent_node;
             parent_node->children.emplace(n);
         }
 
         // look for child definition
-        for (auto const& attr : s->attributes) {
+        for (auto const& attr : parent->attributes) {
             if (attr.struct_) {
-                add_struct(g, attr.struct_, s);
+                add_struct(g, parent, attr.struct_);
             }
         }
     }
