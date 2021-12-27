@@ -29,6 +29,8 @@ namespace kratos {
 std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_info_gen(
     Generator* top);
 
+std::optional<std::pair<std::string, std::string>> get_target_var_name(const Var* var);
+
 class AssignmentTypeVisitor : public IRVisitor {
 public:
     explicit AssignmentTypeVisitor(AssignmentType type, bool check_type = true)
@@ -3460,20 +3462,6 @@ private:
         blk->clear();
         // clear will reset the parents
         for (auto* stmt : stmts) stmt->set_parent(gen);
-    }
-
-    static std::optional<std::pair<std::string, std::string>> get_target_var_name(const Var* var) {
-        auto const& attrs = var->get_attributes();
-        for (auto const& attr : attrs) {
-            auto const& value_str = attr->value_str;
-            if (value_str.rfind("ssa=") == 0) {
-                auto pos = value_str.rfind(':');
-                auto scope_name = value_str.substr(4, pos - 4);
-                auto var_name = value_str.substr(pos + 1);
-                return std::make_pair(scope_name, var_name);
-            }
-        }
-        return std::nullopt;
     }
 
     static std::optional<uint64_t> get_target_scope(const Var* var) {

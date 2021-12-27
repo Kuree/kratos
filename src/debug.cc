@@ -334,6 +334,20 @@ std::string get_trigger_condition(const Stmt *stmt) {
     return "";
 }
 
+std::optional<std::pair<std::string, std::string>> get_target_var_name(const Var *var) {
+    auto const &attrs = var->get_attributes();
+    for (auto const &attr : attrs) {
+        auto const &value_str = attr->value_str;
+        if (value_str.rfind("ssa=") == 0) {
+            auto pos = value_str.rfind(':');
+            auto scope_name = value_str.substr(4, pos - 4);
+            auto var_name = value_str.substr(pos + 1);
+            return std::make_pair(scope_name, var_name);
+        }
+    }
+    return std::nullopt;
+}
+
 void save_events(hgdb::DebugDatabase &db, Generator *top);
 
 class AssignVisitor : public IRVisitor {
@@ -341,9 +355,47 @@ public:
     AssignVisitor(hgdb::DebugDatabase &db) : db_(db) {}
 
     void visit(AssignStmt *stmt) override {
-        // need to figure out the left and right variables
+        // need to figure out the left variables
         // notice that if the left is sliced by variable, we need to populate multiple
         // additional conditions
+        auto const &left = stmt->left();
+        auto stmt_id = stmt->stmt_id();
+        bool sliced_by_var = false;
+
+        if (left->type() == VarType::Slice) {
+            auto const &slice = left->as<VarSlice>();
+            if (slice->sliced_by_var()) {
+                sliced_by_var = true;
+            }
+        }
+
+        if (sliced_by_var) {
+            // need to create duplicated statement with different condition based on the
+            // select var
+            auto const &var_var_slice = left->as<VarVarSlice>();
+            // for now, we only support one-level of slicing
+            auto const &size = var_var_slice->size().back();
+            auto select_name = var_var_slice->sliced_var()->to_string();
+            auto base_name = var_var_slice->parent_var->to_string();
+            for (auto i = 0u; i < size; i++) {
+                auto transformed_name = fmt::format("{0}[{1}]", base_name, i);
+                auto cond = fmt::format("{0} == {1}", select_name, i);
+                // the usage is setting var[10] as a watch point
+                hgdb::store_assignment(db_, transformed_name, transformed_name, stmt_id, cond);
+            }
+        } else {
+            // need to compute the SSA transform to figure out the original variable mapping
+            // if any
+            auto mapping = get_target_var_name(left);
+            if (mapping) {
+                auto const &[transformed_name, var_name] = *mapping;
+                hgdb::store_assignment(db_, var_name, transformed_name, stmt_id);
+            } else {
+                // no SSA, just use the default name for mapping
+                auto name = left->to_string();
+                hgdb::store_assignment(db_, name, name, stmt_id);
+            }
+        }
     }
 
 private:
