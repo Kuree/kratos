@@ -336,6 +336,25 @@ std::string get_trigger_condition(const Stmt *stmt) {
 
 void save_events(hgdb::DebugDatabase &db, Generator *top);
 
+class AssignVisitor : public IRVisitor {
+public:
+    AssignVisitor(hgdb::DebugDatabase &db) : db_(db) {}
+
+    void visit(AssignStmt *stmt) override {
+        // need to figure out the left and right variables
+        // notice that if the left is sliced by variable, we need to populate multiple
+        // additional conditions
+    }
+
+private:
+    hgdb::DebugDatabase &db_;
+};
+
+void save_assignment(hgdb::DebugDatabase &db, Generator *top) {
+    AssignVisitor v(db);
+    v.visit_root(top);
+}
+
 void DebugDatabase::save_database(const std::string &filename, bool override) {
     if (override) {
         if (fs::exists(filename)) {
@@ -543,6 +562,8 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     }
 
     save_events(storage, top_);
+
+    save_assignment(storage, top_);
 }
 
 void inject_clock_break_points(Generator *top) {
