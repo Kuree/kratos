@@ -352,9 +352,13 @@ void save_events(hgdb::DebugDatabase &db, Generator *top);
 
 class AssignVisitor : public IRVisitor {
 public:
-    AssignVisitor(hgdb::DebugDatabase &db) : db_(db) {}
+    AssignVisitor(hgdb::DebugDatabase &db,
+                  const std::map<Stmt *, std::pair<std::string, uint32_t>> &breakpoints)
+        : db_(db), breakpoints_(breakpoints) {}
 
     void visit(AssignStmt *stmt) override {
+        // some assignments may not be assigned properly
+        if (breakpoints_.find(stmt) == breakpoints_.end()) return;
         // need to figure out the left variables
         // notice that if the left is sliced by variable, we need to populate multiple
         // additional conditions
@@ -400,10 +404,12 @@ public:
 
 private:
     hgdb::DebugDatabase &db_;
+    const std::map<Stmt *, std::pair<std::string, uint32_t>> &breakpoints_;
 };
 
-void save_assignment(hgdb::DebugDatabase &db, Generator *top) {
-    AssignVisitor v(db);
+void save_assignment(hgdb::DebugDatabase &db, Generator *top,
+                     const std::map<Stmt *, std::pair<std::string, uint32_t>> &breakpoints) {
+    AssignVisitor v(db, breakpoints);
     v.visit_root(top);
 }
 
@@ -615,7 +621,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
 
     save_events(storage, top_);
 
-    save_assignment(storage, top_);
+    save_assignment(storage, top_, stmt_mapping_);
 }
 
 void inject_clock_break_points(Generator *top) {
