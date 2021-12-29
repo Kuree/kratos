@@ -392,7 +392,8 @@ public:
             // if any
             auto mapping = get_target_var_name(left);
             if (mapping) {
-                auto const &[transformed_name, var_name] = *mapping;
+                auto const &[var_name, _] = *mapping;
+                auto transformed_name = left->to_string();
                 hgdb::store_assignment(db_, var_name, transformed_name, stmt_id);
             } else {
                 // no SSA, just use the default name for mapping

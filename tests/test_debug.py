@@ -439,6 +439,14 @@ def test_ssa_debug():
         c.execute("SELECT * FROM context_variable WHERE context_variable.name = 'i'")
         result = c.fetchall()
         assert len(result) == loop_size
+        # check the assignment
+        c.execute("SELECT * FROM assignment WHERE assignment.name = 'a'")
+        result = c.fetchall()
+        assert result[0][1] == "a_0"
+        assert len(result) == (loop_size + 2)
+        c.execute("SELECT * FROM assignment WHERE assignment.name = 'b'")
+        result = c.fetchall()
+        assert len(result) == 2
         conn.close()
 
 
