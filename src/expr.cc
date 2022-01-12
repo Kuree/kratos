@@ -25,8 +25,9 @@ using std::vector;
 namespace kratos {
 
 bool is_relational_op(ExprOp op) {
-    static std::unordered_set<ExprOp> ops = {ExprOp::LessThan, ExprOp::GreaterThan,
-                                             ExprOp::LessEqThan, ExprOp::GreaterEqThan, ExprOp::Eq};
+    static std::unordered_set<ExprOp> ops = {ExprOp::LessThan,   ExprOp::GreaterThan,
+                                             ExprOp::LessEqThan, ExprOp::GreaterEqThan,
+                                             ExprOp::Eq,         ExprOp::Neq};
     return ops.find(op) != ops.end();
 }
 
