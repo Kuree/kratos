@@ -378,7 +378,7 @@ public:
             // select var
             auto const &var_var_slice = left->as<VarVarSlice>();
             // for now, we only support one-level of slicing
-            auto const &size = var_var_slice->size().back();
+            auto const &size = var_var_slice->parent_var->size().front();
             auto select_name = var_var_slice->sliced_var()->to_string();
             auto base_name = var_var_slice->parent_var->to_string();
             for (auto i = 0u; i < size; i++) {
