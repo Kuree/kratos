@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.36] - 2022-01-16
+### Added
+- Add hgdb data breakpoint support
+- Add support for skipping auto clock gating (#168)
+- Improve packed struct (may not be backwards compatible)
+
+### Fixed
+- Fix new width calculation
+
 ## [0.0.35] - 2021-11-08
 ### Added
 - Accept `DEBUG` env when building python wheels
