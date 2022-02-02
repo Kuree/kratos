@@ -250,6 +250,16 @@ void FSM::generate_state_transition(
     if (!moore_) func_def = get_func_def();
     auto case_state_comb = std::make_shared<SwitchStmt>(current_state.shared_from_this());
     auto states = get_all_child_states(false);
+
+    auto add_debug_info_to_stmt = [this](std::shared_ptr<FunctionCallStmt>& func_stmt,
+                                         const FSMState* state) {
+        if (generator_->debug) {
+            if (func_stmt) {
+                add_debug_info(state, func_stmt);
+                func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
+            }
+        }
+    };
     for (auto const& state : states) {
         auto const& state_name = state_name_mapping.at(state);
         // a list of if statements
@@ -261,6 +271,7 @@ void FSM::generate_state_transition(
         for (auto const& iter : transitions) vars.emplace_back(iter.first);
         // slide through condition
         bool has_slide_through = false;
+        bool has_default = false;
         if (vars.size() != 1 || vars[0] != nullptr) {
             std::sort(vars.begin(), vars.end(), [=](const auto& lhs, const auto& rhs) {
                 return transitions.at(lhs)->name() < transitions.at(rhs)->name();
@@ -270,13 +281,18 @@ void FSM::generate_state_transition(
         }
         for (auto const& cond : vars) {
             auto* next_fsm_state = transitions.at(cond);
-            if (!cond) {
+            if (!cond && (vars.size() == 1)) {
                 // direct transition
                 auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
                                                 state_name_mapping);
                 case_state_comb->add_switch_case(enum_def.get_enum(state_name), stmt);
                 break;
+            } else if (!cond) {
+                // we have a default case here
+                has_default = true;
+                continue;
             }
+
             if (!if_) {
                 if_ = std::make_shared<IfStmt>(cond->shared_from_this());
                 auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
@@ -289,12 +305,7 @@ void FSM::generate_state_transition(
                     if_->add_then_stmt(func_stmt);
                 }
                 top_if = if_;
-                if (generator_->debug) {
-                    if (func_stmt) {
-                        add_debug_info(state, func_stmt);
-                        func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
-                    }
-                }
+                add_debug_info_to_stmt(func_stmt, state);
             } else {
                 auto new_if = std::make_shared<IfStmt>(cond->shared_from_this());
                 auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
@@ -306,15 +317,24 @@ void FSM::generate_state_transition(
                     get_func_call_stmt(func_def, next_fsm_state, func_stmt);
                     new_if->add_then_stmt(func_stmt);
                 }
-                if (generator_->debug) {
-                    if (func_stmt) {
-                        add_debug_info(state, func_stmt);
-                        func_stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
-                    }
-                }
+                add_debug_info_to_stmt(func_stmt, state);
                 if_->add_else_stmt(new_if);
                 if_ = new_if;
             }
+        }
+
+        if (has_default) {
+            auto* next_fsm_state = transitions.at(nullptr);
+            auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
+                                            state_name_mapping);
+            if_->add_else_stmt(stmt);
+            // mealy machine need to add extra state transition outputs
+            std::shared_ptr<FunctionCallStmt> func_stmt = nullptr;
+            if (!moore_) {
+                get_func_call_stmt(func_def, next_fsm_state, func_stmt);
+                if_->add_then_stmt(func_stmt);
+            }
+            add_debug_info_to_stmt(func_stmt, state);
         }
 
         if (!has_slide_through) {
