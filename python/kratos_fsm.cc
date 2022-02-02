@@ -1,6 +1,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
 #include "../src/fsm.hh"
 #include "../src/generator.hh"
 
@@ -29,6 +30,11 @@ void init_fsm(py::module &m) {
                                const std::pair<std::string, uint32_t> &>(&FSM::set_start_state))
         .def("output", py::overload_cast<const std::string &>(&FSM::output))
         .def("output", py::overload_cast<const std::shared_ptr<Var> &>(&FSM::output))
+        .def("output",
+             py::overload_cast<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &>(
+                 &FSM::output))
+        .def("output",
+             py::overload_cast<const std::string &, const std::shared_ptr<Var> &>(&FSM::output))
         .def("fsm_name", &FSM::fsm_name)
         .def("outputs", &FSM::outputs)
         .def("dot_graph", py::overload_cast<>(&FSM::dot_graph))

@@ -940,6 +940,26 @@ def test_fsm_mealy(check_gold):
     check_gold(mod, "test_fsm_mealy", optimize_if=False)
 
 
+def test_fsm_default_output():
+    mod = Generator("mod", debug=True)
+    out_ = mod.output("out", 2)
+    in_ = mod.input("in", 2)
+    # fsm requires a clk and async rst
+    mod.clock("clk")
+    mod.reset("rst")
+    fsm = mod.add_fsm("Color")
+    fsm.output(out_, const(2, 2))
+    # add states
+    red = fsm.add_state("Red")
+    blue = fsm.add_state("Blue")
+    red.next(blue, in_ == 0)
+    blue.next(red, in_ == 1)
+    blue.output(out_, 1)
+    fsm.set_start_state("Red")
+    src = verilog(mod)["mod"]
+    assert "out = 2'h2;" in src
+
+
 def test_function(check_gold):
     from kratos.func import function
 

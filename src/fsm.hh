@@ -25,9 +25,11 @@ public:
     // specify the state machine outputs and inputs
     void output(const std::string &var_name);
     void output(const std::shared_ptr<Var> &var);
+    void output(const std::string &var_name, const std::shared_ptr<Var> &default_);
+    void output(const std::shared_ptr<Var> &var, const std::shared_ptr<Var> &default_);
 
     const std::string &fsm_name() const { return fsm_name_; }
-    const std::unordered_set<Var *> &outputs() const { return outputs_; }
+    const std::unordered_map<Var *, Var *> &outputs() const { return outputs_; }
     const std::map<std::string, std::shared_ptr<FSMState>> &states() const { return states_; }
 
     void realize();
@@ -59,7 +61,7 @@ public:
 private:
     std::string fsm_name_;
     Generator *generator_;
-    std::unordered_set<Var *> outputs_;
+    std::unordered_map<Var *, Var*> outputs_;
     std::shared_ptr<Var> clk_ = nullptr;
     std::shared_ptr<Var> reset_ = nullptr;
     std::map<std::string, std::shared_ptr<FSMState>> states_;

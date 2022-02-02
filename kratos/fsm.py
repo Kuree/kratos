@@ -8,8 +8,8 @@ class FSM:
         self.__fsm = fsm
         self.__states = {}
 
-    def output(self, var):
-        self.__fsm.output(var)
+    def output(self, var, default=None):
+        self.__fsm.output(var, default)
 
     def add_state(self, name):
         if self.__generator.debug:

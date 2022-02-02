@@ -221,7 +221,7 @@ std::shared_ptr<FunctionStmtBlock> FSM::get_func_def() {
     std::unordered_map<std::string, Var*> name_mapping;
     name_mapping.reserve(outputs_.size());
     // add outputs
-    for (auto const& var : outputs_) {
+    for (auto const& [var, _] : outputs_) {
         auto var_name = var->to_string() + "_value";
         func->input(var_name, var->width(), var->is_signed());
         name_mapping.emplace(var_name, var);
@@ -449,12 +449,16 @@ void FSM::generate_output(Enum& enum_def, EnumVar& current_state,
     output_comb->add_stmt(output_case_comb);
 }
 
-void FSM::output(const std::string& var_name) {
+void FSM::output(const std::string& var_name) { output(var_name, nullptr); }
+
+void FSM::output(const std::string& var_name, const std::shared_ptr<Var>& default_) {
     auto var = generator_->get_var(var_name);
-    output(var);
+    output(var, default_);
 }
 
-void FSM::output(const std::shared_ptr<Var>& var) {
+void FSM::output(const std::shared_ptr<Var>& var) { output(var, nullptr); }
+
+void FSM::output(const std::shared_ptr<Var>& var, const std::shared_ptr<Var>& default_) {
     if (!var) throw UserException(::format("var not found in {0}", generator_->instance_name));
     // very strict checking of ownership
     if (var->parent() != generator_) {
@@ -462,7 +466,7 @@ void FSM::output(const std::shared_ptr<Var>& var) {
             throw VarException("FSM output has to be scoped inside the top-level of generator",
                                {var.get()});
     }
-    outputs_.emplace(var.get());
+    outputs_.emplace(var.get(), default_.get());
 }
 
 std::shared_ptr<FSMState> FSM::add_state(const std::string& name) {
@@ -581,7 +585,7 @@ std::string FSM::output_table() {
     // sort the outputs
     std::vector<Var*> outputs;
     outputs.reserve(outputs_.size());
-    for (auto const& var : outputs_) outputs.emplace_back(var);
+    for (auto const& iter : outputs_) outputs.emplace_back(iter.first);
     std::sort(outputs.begin(), outputs.end(),
               [](const auto& lhs, const auto& rhs) { return lhs->to_string() < rhs->to_string(); });
     // write the header
@@ -731,9 +735,14 @@ void FSMState::output(const std::shared_ptr<Var>& output_var, const std::shared_
 
 void FSMState::check_outputs() {
     auto outputs = parent_->outputs();
-    for (auto const& output : outputs) {
+    for (auto const& [output, default_] : outputs) {
         if (output_values_.find(output) == output_values_.end()) {
-            throw VarException(::format("{0} not specified", output->to_string()), {output});
+            if (!default_) {
+                throw VarException(::format("{0} not specified", output->to_string()), {output});
+            } else {
+                // insert it to the output values
+                output_values_.emplace(output, default_);
+            }
         }
     }
     // the other way, this is to ensure a bijection
