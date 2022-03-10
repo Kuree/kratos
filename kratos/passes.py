@@ -112,6 +112,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("insert_pipeline_stages")
     if reorder_stmts:
         pass_manager.add_pass("sort_stmts")
+    # legality fix at the very end
+    pass_manager.add_pass("port_legality_fix")
 
     code_gen.run_passes()
 

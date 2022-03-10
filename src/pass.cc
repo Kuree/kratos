@@ -1830,7 +1830,7 @@ std::map<std::string, std::string> extract_struct_info(Generator* top) {
     std::map<std::string, std::string> result;
     auto const structs = visitor.structs();
     for (uint32_t i = 0; i < structs.size(); i++) {
-        auto const *struct_ = structs[i];
+        auto const* struct_ = structs[i];
         // TODO:
         //  Use Stream class in the codegen instead to track the debugging info
         //  Share the same code gen logic with Stream
@@ -3780,6 +3780,37 @@ void lift_genvar_instances(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
+class PortLegalityFixVisitor : public IRVisitor {
+public:
+    void visit(Generator* gen) override {
+        auto const *parent_gen = gen->parent_generator();
+        auto port_names = gen->get_port_names();
+        for (auto const& port_name : port_names) {
+            auto const& port = gen->get_port(port_name);
+            if (port->port_direction() != PortDirection::In) continue;
+            auto const& sinks = port->sinks();
+            for (auto const& stmt : sinks) {
+                if (stmt->generator_parent() != parent_gen) continue;
+                // if we have any sinks that's in the parent scope, it's an illegal assignment
+                // we have to figure out the source
+                auto const& sources = port->sources();
+                if (sources.empty()) continue;
+                auto const& src = (*sources.begin())->right()->shared_from_this();
+                if (src->generator() != parent_gen) throw InternalException("Invalid src generator");
+                // replace the source with this src
+                stmt->right() = src.get();
+            }
+        }
+    }
+};
+
+void port_legality_fix(Generator* top) {
+    // notice that we're only interested in input ports since the output ports are handled
+    // properly in the decouple fix
+    PortLegalityFixVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
 std::vector<std::string> extract_register_names(Generator* top) {
     // first fix the assignment types
     fix_assignment_type(top);
@@ -3917,6 +3948,8 @@ void PassManager::register_builtin_passes() {
     register_pass("auto_insert_sync_reset", &auto_insert_sync_reset);
 
     register_pass("ssa_transform_fix", &ssa_transform_fix);
+
+    register_pass("port_legality_fix", &port_legality_fix);
 }
 
 }  // namespace kratos

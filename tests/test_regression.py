@@ -261,7 +261,8 @@ def test_regression_decouple_wire():
 
     mod = Parent()
     src = verilog(mod)["parent"]
-    print(src)
+    assert "assign d = child_inst_b ? c: c;" in src
+    assert "c = a_in;" in src
 
 
 if __name__ == "__main__":
