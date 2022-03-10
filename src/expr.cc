@@ -1388,6 +1388,18 @@ void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_va
         auto concat = expr->as<VarConcat>();
         concat->replace_var(target->shared_from_this(), new_var->shared_from_this());
     }
+    // need to deal with ternary op as well
+    if (expr->op == ExprOp::Conditional) {
+        auto ternary = expr->as<ConditionalExpr>();
+        auto *cond = ternary->condition;
+        if (cond->type() == VarType::Expression) {
+            change_var_expr(cond->as<Expr>(), target, new_var);
+        } else if (cond == target) {
+            ternary->condition = new_var;
+        } else if (cond->type() == VarType::Slice) {
+            set_slice_var_parent(cond, target, new_var, false);
+        }
+    }
 }
 
 void change_cast_parent(const std::shared_ptr<VarCasted> &var, Var *target, Var *new_var);

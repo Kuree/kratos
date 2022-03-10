@@ -228,5 +228,41 @@ def test_regression_struct_struct_access():
     verilog(mod)
 
 
+def test_regression_decouple_wire():
+    # test reported from Jake Ke
+    from kratos import ternary
+
+    class Child(Generator):
+        def __init__(self):
+            super().__init__("child")
+            self._a = self.input("a", 1)
+            self._b = self.output("b", 1)
+            self.wire(self._b, 1)
+
+    class Parent(Generator):
+        def __init__(self):
+            super().__init__("parent")
+            self._a_in = self.input("a_in", 1)
+
+            child_inst = Child()
+            self.add_child("child_inst", child_inst, a=self._a_in)
+
+            self._c = self.var("c", 1)
+            self.add_code(self.some_comb)
+
+            self._d = self.var("d", 1)
+            # self.wire(self._d, self._c + self["child_inst"].ports.b) # this is OK for some reason
+            # I would like to get the generated wire, child_inst_b
+            self.wire(self._d, ternary(self["child_inst"].ports.b, self._c, self._c))
+
+        @always_comb
+        def some_comb(self):
+            self._c = self["child_inst"].ports.a # I would like to get a_in
+
+    mod = Parent()
+    src = verilog(mod)["parent"]
+    print(src)
+
+
 if __name__ == "__main__":
-    test_regression_packed_struct_array()
+    test_regression_decouple_wire()
