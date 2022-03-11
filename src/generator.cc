@@ -1,6 +1,5 @@
 #include "generator.hh"
 
-#include <fstream>
 #include <iostream>
 #include <streambuf>
 #include <unordered_set>
@@ -28,7 +27,7 @@ Generator &Generator::from_verilog(Context *context, const std::string &src_file
     if (!fs::exists(src_file)) throw UserException(::format("{0} does not exist", src_file));
 
     auto &mod = context->generator(top_name);
-    // the src file will be treated a a lib file as well
+    // the src file will be treated a lib file as well
     mod.lib_files_.reserve(1 + lib_files.size());
     mod.lib_files_.emplace_back(src_file);
 
@@ -518,9 +517,9 @@ void Generator::rename_child_generator(const std::shared_ptr<Generator> &child,
 std::vector<std::string> Generator::get_vars() {
     std::vector<std::string> result;
     result.reserve(vars_.size());
-    for (auto const &[name, ptr] : vars_) {
+    for (auto const &[name_, ptr] : vars_) {
         if (ptr->type() == VarType::Base) {
-            result.emplace_back(name);
+            result.emplace_back(name_);
         }
     }
     std::sort(result.begin(), result.end());
@@ -530,7 +529,7 @@ std::vector<std::string> Generator::get_vars() {
 std::vector<std::string> Generator::get_all_var_names() {
     std::vector<std::string> result;
     result.reserve(vars_.size());
-    for (auto const &[name, ptr] : vars_) result.emplace_back(name);
+    for (auto const &[name_, ptr] : vars_) result.emplace_back(name_);
     std::sort(result.begin(), result.end());
     return result;
 }
@@ -736,7 +735,7 @@ std::pair<bool, bool> correct_port_direction(Port *port1, Port *port2, Generator
     } else {
         if (parent1 == top && top->has_child_generator(parent2->shared_from_this())) {
             check_direction(port1, port2, true);
-            return {(!(port1->port_direction() == PortDirection::In)), true};
+            return {port1->port_direction() != PortDirection::In, true};
         } else if (parent2 == top && top->has_child_generator(parent1->shared_from_this())) {
             check_direction(port1, port2, true);
             return {(port1->port_direction() == PortDirection::In), true};
@@ -1076,14 +1075,14 @@ std::shared_ptr<PortBundleRef> Generator::add_bundle_port_def(const std::string 
     auto definition = def.definition();
     auto ref = std::make_shared<PortBundleRef>(this, def);
     auto const &debug_info = def.debug_info();
-    for (auto const &[name, bundle] : definition) {
+    for (auto const &[name_, bundle] : definition) {
         auto const &[width, size, is_signed, direction, port_type] = bundle;
-        auto var_name = get_unique_variable_name(port_name, name);
+        auto var_name = get_unique_variable_name(port_name, name_);
         auto &p = port(direction, var_name, width, size, port_type, is_signed);
         // add to the ref mapping as well
-        ref->add_name_mapping(name, var_name);
-        if (debug && debug_info.find(name) != debug_info.end()) {
-            p.fn_name_ln.emplace_back(debug_info.at(name));
+        ref->add_name_mapping(name_, var_name);
+        if (debug && debug_info.find(name_) != debug_info.end()) {
+            p.fn_name_ln.emplace_back(debug_info.at(name_));
         }
     }
     // add to the bundle mapping
@@ -1143,9 +1142,9 @@ std::shared_ptr<StmtBlock> Generator::get_named_block(const std::string &block_n
 }
 
 std::optional<std::string> Generator::get_block_name(const Stmt *stmt) const {
-    for (auto const &[name, s] : named_blocks_) {
+    for (auto const &[name_, s] : named_blocks_) {
         if (s.get() == stmt) {
-            return name;
+            return name_;
         }
     }
     return std::nullopt;
