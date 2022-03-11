@@ -3823,7 +3823,13 @@ public:
                         }
                     }
                 } else {
-                    stmt->right() = src.get();
+                    auto *right = stmt->right();
+                    if (right->type() == VarType::Expression) {
+                        auto expr = right->as<Expr>();
+                        change_var_expr(expr, port.get(), src.get(), false);
+                    } else {
+                        stmt->right() = src.get();
+                    }
                 }
             }
         }

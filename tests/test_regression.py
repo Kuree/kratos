@@ -256,6 +256,8 @@ def test_regression_decouple_wire():
             self.wire(self._d, ternary(self["child_inst"].ports.b, self._c, self._c))
             self._e = self.var("e", 1)
             self.add_always(self.if_comb)
+            self._f = self.var("f", 1)
+            self.wire(self._f, self["child_inst"].ports.a == 0)
 
         @always_comb
         def some_comb(self):
@@ -273,6 +275,7 @@ def test_regression_decouple_wire():
     assert "assign d = child_inst_b ? c: c;" in src
     assert "c = a_in;" in src
     assert "if (a_in) begin" in src
+    assert "assign f = a_in == 1'h0;" in src
 
 
 if __name__ == "__main__":
