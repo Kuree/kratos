@@ -187,7 +187,7 @@ IfStmt::IfStmt(std::shared_ptr<Var> predicate)
     // just to add the sinks
     predicate_stmt_ =
         predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
-    predicate_stmt_->set_parent(nullptr);
+    predicate_stmt_->set_parent(this);
 }
 
 void IfStmt::set_predicate(const std::shared_ptr<Var> &var) {
@@ -196,7 +196,7 @@ void IfStmt::set_predicate(const std::shared_ptr<Var> &var) {
     predicate_ = var;
     predicate_stmt_ =
         predicate_->generator()->get_auxiliary_var(predicate_->width())->assign(predicate_);
-    predicate_stmt_->set_parent(nullptr);
+    predicate_stmt_->set_parent(this);
 }
 
 void IfStmt::add_then_stmt(const std::shared_ptr<Stmt> &stmt) {
@@ -256,7 +256,7 @@ void IfStmt::set_parent(IRNode *node) {
     Stmt::set_parent(node);
     then_body_->set_parent(this);
     else_body_->set_parent(this);
-    predicate_stmt_->set_parent(nullptr);
+    predicate_stmt_->set_parent(this);
 }
 
 IRNode *IfStmt::get_child(uint64_t index) {
@@ -473,7 +473,14 @@ SwitchStmt::SwitchStmt(Var &target)
 
     // just to add the sinks
     target_stmt_ = target.generator()->get_auxiliary_var(target.width())->assign(target);
-    target_stmt_->set_parent(nullptr);
+    target_stmt_->set_parent(this);
+}
+
+void SwitchStmt::set_target(const std::shared_ptr<Var> &target) {
+    target_stmt_->clear();
+    target_ = target;
+    target_stmt_ = target->generator()->get_auxiliary_var(target->width())->assign(target);
+    target_stmt_->set_parent(this);
 }
 
 void SwitchStmt::set_parent(IRNode *parent) {

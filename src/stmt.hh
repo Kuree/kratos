@@ -182,6 +182,7 @@ public:
     void remove_stmt(const std::shared_ptr<Stmt> &stmt) override;
 
     std::shared_ptr<Var> target() const { return target_; }
+    void set_target(const std::shared_ptr<Var> &target);
 
     const std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> &body() const {
         return body_;

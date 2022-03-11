@@ -3780,15 +3780,17 @@ void lift_genvar_instances(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
+void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var, bool move_link);
+
 class PortLegalityFixVisitor : public IRVisitor {
 public:
     void visit(Generator* gen) override {
-        auto const *parent_gen = gen->parent_generator();
+        auto const* parent_gen = gen->parent_generator();
         auto port_names = gen->get_port_names();
         for (auto const& port_name : port_names) {
             auto const& port = gen->get_port(port_name);
             if (port->port_direction() != PortDirection::In) continue;
-            auto const& sinks = port->sinks();
+            auto sinks = std::unordered_set(port->sinks().begin(), port->sinks().end());
             for (auto const& stmt : sinks) {
                 if (stmt->generator_parent() != parent_gen) continue;
                 // if we have any sinks that's in the parent scope, it's an illegal assignment
@@ -3796,9 +3798,33 @@ public:
                 auto const& sources = port->sources();
                 if (sources.empty()) continue;
                 auto const& src = (*sources.begin())->right()->shared_from_this();
-                if (src->generator() != parent_gen) throw InternalException("Invalid src generator");
+                if (src->generator() != parent_gen)
+                    throw InternalException("Invalid src generator");
                 // replace the source with this src
-                stmt->right() = src.get();
+                // depends on the context, it could be an auxiliary stmt
+                if (port->generator()->is_auxiliary_var(stmt->left()->shared_from_this())) {
+                    auto* parent_stmt = reinterpret_cast<Stmt*>(stmt->parent());
+                    if (parent_stmt->type() == StatementType::If) {
+                        auto if_ = parent_stmt->as<IfStmt>();
+                        if (if_->predicate()->type() == VarType::Expression) {
+                            auto expr = if_->predicate()->as<Expr>();
+                            change_var_expr(expr, port.get(), src.get(), false);
+                        } else {
+                            if_->set_predicate(src);
+                        }
+                    } else {
+                        // case statement
+                        auto case_ = parent_stmt->as<SwitchStmt>();
+                        if (case_->target()->type() == VarType::Expression) {
+                            auto expr = case_->target()->as<Expr>();
+                            change_var_expr(expr, port.get(), src.get(), false);
+                        } else {
+                            case_->set_target(src);
+                        }
+                    }
+                } else {
+                    stmt->right() = src.get();
+                }
             }
         }
     }

@@ -254,15 +254,25 @@ def test_regression_decouple_wire():
             # self.wire(self._d, self._c + self["child_inst"].ports.b) # this is OK for some reason
             # I would like to get the generated wire, child_inst_b
             self.wire(self._d, ternary(self["child_inst"].ports.b, self._c, self._c))
+            self._e = self.var("e", 1)
+            self.add_always(self.if_comb)
 
         @always_comb
         def some_comb(self):
             self._c = self["child_inst"].ports.a # I would like to get a_in
 
+        @always_comb
+        def if_comb(self):
+            if self["child_inst"].ports.a:
+                self._e = 1
+            else:
+                self._e = 0
+
     mod = Parent()
     src = verilog(mod)["parent"]
     assert "assign d = child_inst_b ? c: c;" in src
     assert "c = a_in;" in src
+    assert "if (a_in) begin" in src
 
 
 if __name__ == "__main__":

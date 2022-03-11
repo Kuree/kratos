@@ -1210,4 +1210,9 @@ std::shared_ptr<Var> Generator::get_auxiliary_var(uint32_t width, bool signed_) 
     return v;
 }
 
+bool Generator::is_auxiliary_var(const std::shared_ptr<Var> &var) {
+    return auxiliary_vars_.find(var->width()) != auxiliary_vars_.end() &&
+           auxiliary_vars_.at(var->width()) == var;
+}
+
 }  // namespace kratos

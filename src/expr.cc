@@ -1358,22 +1358,23 @@ void set_slice_var_parent(Var *&var, Var *target, Var *new_var, bool check_targe
     var = new_var_ptr.get();
 }
 
-void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var) {
+void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var,
+                     bool move_linked = true) {
     if (!new_var || !target) throw InternalException("Variable is NULL");
     if (expr->left->type() == VarType::Expression) {
-        change_var_expr(expr->left->as<Expr>(), target, new_var);
+        change_var_expr(expr->left->as<Expr>(), target, new_var, move_linked);
     }
     if (expr->right && expr->right->type() == VarType::Expression) {
-        change_var_expr(expr->right->as<Expr>(), target, new_var);
+        change_var_expr(expr->right->as<Expr>(), target, new_var, move_linked);
     }
 
     if (expr->left == target) {
         expr->left = new_var;
-        expr->left->move_linked_to(new_var);
+        if (move_linked) expr->left->move_linked_to(new_var);
     }
     if (expr->right && expr->right == target) {
         expr->right = new_var;
-        expr->right->move_linked_to(new_var);
+        if (move_linked) expr->right->move_linked_to(new_var);
     }
 
     // need to change the parent as well
