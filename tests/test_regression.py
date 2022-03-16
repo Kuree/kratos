@@ -271,7 +271,7 @@ def test_regression_decouple_wire():
                 self._e = 0
 
     mod = Parent()
-    src = verilog(mod)["parent"]
+    src = verilog(mod, fix_port_legality=True)["parent"]
     assert "assign d = child_inst_b ? c: c;" in src
     assert "c = a_in;" in src
     assert "if (a_in) begin" in src

@@ -41,6 +41,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             track_generated_definition: bool = False,
             contains_event: bool = False,
             lift_genvar_instances: bool = False,
+            fix_port_legality: bool = False,
             compile_to_verilog: bool = False):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
@@ -113,7 +114,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
     if reorder_stmts:
         pass_manager.add_pass("sort_stmts")
     # legality fix at the very end
-    pass_manager.add_pass("port_legality_fix")
+    if fix_port_legality:
+        pass_manager.add_pass("port_legality_fix")
 
     code_gen.run_passes()
 
