@@ -96,7 +96,7 @@ void FSM::realize() {
     auto states = get_all_child_states(false);
     uint64_t num_states = states.size();
     if (!num_states) throw UserException(::format("FSM {0} is empty", fsm_name()));
-    uint32_t width = std::ceil(std::log2(num_states));
+    uint32_t width = std::max<uint32_t>(1u, std::ceil(std::log2(num_states)));
     // define a enum type
     std::map<std::string, uint64_t> raw_def;
     uint64_t count = 0;
