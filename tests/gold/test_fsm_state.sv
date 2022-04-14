@@ -35,6 +35,7 @@ always_comb begin
           Color_next_state = Red;
         end
       end
+    default: begin end
   endcase
 end
 always_comb begin
@@ -45,6 +46,7 @@ always_comb begin
     Red: begin :Color_Red_Output
         out = 2'h2;
       end :Color_Red_Output
+    default: begin end
   endcase
 end
 

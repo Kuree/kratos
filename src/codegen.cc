@@ -886,16 +886,16 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
     }
     std::sort(conds.begin(), conds.end(),
               [](const auto& lhs, const auto& rhs) { return lhs->value() < rhs->value(); });
-    if (body.find(nullptr) != body.end()) conds.emplace_back(nullptr);
+    conds.emplace_back(nullptr);
 
     for (auto& cond : conds) {
-        const auto& stmt_blk = body.at(cond);
+        const auto& stmt_blk = (body.find(cond) != body.end())? body.at(cond): nullptr;
         stream_ << indent() << (cond ? cond->to_string() : "default") << ": ";
-        if (stmt_blk->empty() && cond) {
+        if (stmt_blk && stmt_blk->empty() && cond) {
             throw VarException(
                 ::format("Switch statement condition {0} is empty!", cond->to_string()),
                 {stmt, cond.get()});
-        } else if (stmt_blk->empty() && !cond) {
+        } else if (!stmt_blk || (stmt_blk->empty() && !cond)) {
             //  empty default case
             stream_ << "begin end" << stream_.endl();
         } else {

@@ -44,6 +44,7 @@ always_comb begin
           Color_output (2'h2);
         end
       end
+    default: begin end
   endcase
 end
 endmodule   // mod
