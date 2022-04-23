@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
 LABEL description="Latest Kratos build"
 LABEL maintainer="keyi@cs.stanford.edu"
