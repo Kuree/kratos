@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.37] - 2022-04-22
+### Added
+- Add default output value for FSM
+- Add pass to fix port legality (off by default)
+
+### Changed
+- Unique case now has default to handle x warning in simulator
+- Update hgdb schema
+
+### Fixed
+- Minor fix on variable shadowing
+- Fix size-1 FSM
+- Fix decouple ports missing ternary op cond
+- Fix decouple ports missing ternary op cond
+
 ## [0.0.36] - 2022-01-16
 ### Added
 - Add hgdb data breakpoint support
