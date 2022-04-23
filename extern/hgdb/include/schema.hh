@@ -212,6 +212,13 @@ struct ContextVariable {
      * Variable ID associated with the context variable
      */
     std::unique_ptr<uint32_t> variable_id;
+
+    /**
+     * Context variable type. By default it's 0
+     * 0: normal
+     * 1: Last cycle
+     */
+    uint32_t type = 0;
 };
 
 /**
@@ -358,6 +365,7 @@ auto inline init_debug_db(const std::string &filename) {
         make_table("context_variable", make_column("name", &ContextVariable::name),
                    make_column("breakpoint_id", &ContextVariable::breakpoint_id),
                    make_column("variable_id", &ContextVariable::variable_id),
+                   make_column("type", &ContextVariable::type),
                    foreign_key(&ContextVariable::breakpoint_id).references(&BreakPoint::id),
                    foreign_key(&ContextVariable::variable_id).references(&Variable::id)),
         make_table("generator_variable", make_column("name", &GeneratorVariable::name),
@@ -435,10 +443,12 @@ inline void store_variable(DebugDatabase &db, uint32_t id, const std::string &va
 }
 
 inline void store_context_variable(DebugDatabase &db, const std::string &name,
-                                   uint32_t breakpoint_id, uint32_t variable_id) {
+                                   uint32_t breakpoint_id, uint32_t variable_id,
+                                   bool delay_mode = false) {
     db.replace(ContextVariable{.name = name,
                                .breakpoint_id = std::make_unique<uint32_t>(breakpoint_id),
-                               .variable_id = std::make_unique<uint32_t>(variable_id)});
+                               .variable_id = std::make_unique<uint32_t>(variable_id),
+                               .type = static_cast<uint32_t>(delay_mode)});
     // NOLINTNEXTLINE
 }
 
