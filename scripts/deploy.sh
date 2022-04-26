@@ -6,7 +6,7 @@ if [[ "$OS" == "linux" ]]; then
         docker cp ~/.pypirc manylinux:/home/
         docker exec -i manylinux bash -c 'cd /kratos && for PYBIN in cp36 cp37; do /opt/python/${PYBIN}-${PYBIN}m/bin/python setup.py bdist_wheel; done'
         # python 3.8+ has different names now
-        docker exec -i manylinux bash -c 'cd /kratos && for PYBIN in cp38 cp39; do /opt/python/${PYBIN}-${PYBIN}/bin/python setup.py bdist_wheel; done'
+        docker exec -i manylinux bash -c 'cd /kratos && for PYBIN in cp38 cp39 cp310; do /opt/python/${PYBIN}-${PYBIN}/bin/python setup.py bdist_wheel; done'
         docker exec -i manylinux bash -c 'cd /kratos && for WHEEL in dist/*.whl; do auditwheel repair "${WHEEL}"; done'
         docker exec -i manylinux bash -c 'cd /kratos && twine upload --config-file /home/.pypirc --skip-existing wheelhouse/*'
         # upload the src
@@ -14,7 +14,7 @@ if [[ "$OS" == "linux" ]]; then
     fi
 elif [[ "$OS" == "osx" ]]; then
     export PATH=$HOME/miniconda/bin:$PATH
-    for PYTHON_VERSION in 3.6 3.8 3.9
+    for PYTHON_VERSION in 3.6 3.8 3.9 3.10
     do
         conda create -q -n env$PYTHON_VERSION python=$PYTHON_VERSION
         source activate env$PYTHON_VERSION
