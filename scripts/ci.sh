@@ -5,7 +5,7 @@ if [[ "$OS" == "linux" ]]; then
     if [[ "$BUILD_WHEEL" == true ]]; then
         docker pull keyiz/manylinux_2_24
         docker pull keyiz/kratos:test
-        docker run -d --name manylinux --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos keyiz/manylinux bash
+        docker run -d --name manylinux --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos keyiz/manylinux_2_24 bash
         docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/kratos:test bash
 
         docker exec -i manylinux bash -c 'cd kratos && python setup.py bdist_wheel'
