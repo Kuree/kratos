@@ -3,14 +3,14 @@ set -e
 
 if [[ "$OS" == "linux" ]]; then
     if [[ "$BUILD_WHEEL" == true ]]; then
-        docker pull keyiz/manylinux_2_24
+        docker pull keyiz/manylinux2010
         docker pull keyiz/kratos:test
-        docker run -d --name manylinux --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos keyiz/manylinux_2_24 bash
+        docker run -d --name manylinux --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos keyiz/manylinux2010 bash
         docker run -d --name manylinux-test --rm -it --mount type=bind,source="$(pwd)"/../kratos,target=/kratos  keyiz/kratos:test bash
 
         docker exec -i manylinux bash -c 'cd kratos && python setup.py bdist_wheel'
         docker exec -i manylinux bash -c 'cd kratos && auditwheel show dist/*'
-        docker exec -i manylinux bash -c 'cd kratos && auditwheel repair dist/*'
+        docker exec -i manylinux bash -c 'cd kratos && auditwheel repair --plat manylinux2010_x86_64 dist/*'
         docker exec -i manylinux-test bash -c 'cd kratos && pip install pytest wheelhouse/* && pytest -v tests/'
     elif [[ "$BUILD_WHEEL" == false ]]; then
         docker pull keyiz/kratos:test
