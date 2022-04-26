@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minor fix on variable shadowing
 - Fix size-1 FSM
 - Fix decouple ports missing ternary op cond
-- Fix decouple ports missing ternary op cond
 
 ## [0.0.36] - 2022-01-16
 ### Added
