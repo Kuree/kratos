@@ -456,7 +456,9 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("set_generator", &Var::set_generator)
         .def("set_size_param", &Var::set_size_param)
         .def_property("raw_type_param", &Var::get_raw_type_param, &Var::set_raw_type_param)
-        .def("__len__", [](const Var &var) { return var.size()[0]; });
+        .def("__len__", [](const Var &var) { return var.size()[0]; })
+        .def_property_readonly("sources", &Var::sources)
+        .def_property_readonly("sinks", &Var::sinks);
 
     def_attributes<py::class_<Var, ::shared_ptr<Var>>, Var>(class_);
 }
