@@ -1,5 +1,5 @@
 from kratos import Generator, signed, unsigned, verilog
-from kratos.util import reduce_or, Const, const
+from kratos.util import reduce_or, Const, const, countones
 import _kratos.exception
 
 
@@ -246,5 +246,12 @@ def test_resize_const():
     assert str(c) == "-2'h1"
 
 
+def test_bit_task():
+    mod = Generator("mod")
+    a = mod.var("a", 10)
+    b = countones(a)
+    assert str(b) == "$countones (a)"
+
+
 if __name__ == "__main__":
-    test_resize_const()
+    test_bit_task()

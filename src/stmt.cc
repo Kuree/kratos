@@ -735,7 +735,8 @@ BuiltInFunctionStmtBlock::BuiltInFunctionStmtBlock(Generator *parent,
     if (known_functions_.empty()) {
         // initialize
         // all the known functions should be synthesizable
-        known_functions_ = {{"clog2", 32}};
+        known_functions_ = {
+            {"clog2", 32}, {"countones", 1}, {"onehot", 1}, {"onehot0", 1}, {"isunknown", 1}};
     }
     if (known_functions_.find(function_name) == known_functions_.end()) {
         std::string known_functions;

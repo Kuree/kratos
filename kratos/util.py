@@ -60,6 +60,25 @@ def clog2(x: Union[int, _kratos.Var]) -> Union[int, _kratos.Var]:
         return int(math.ceil(math.log2(x)))
 
 
+def __bit_task(name: str):
+    class _BitTask:
+        def __init__(self):
+            self.name = name
+
+        def __call__(self, var):
+            from kratos.func import get_built_in
+            fn = get_built_in(var.generator, self.name)
+            return fn(var)
+
+    return _BitTask()
+
+
+countones = __bit_task("countones")
+onehot = __bit_task("onehot")
+onehot0 = __bit_task("onehot0")
+isunknown = __bit_task("isunknown")
+
+
 def flog2(x: int) -> int:
     if x == 0:
         return 0
