@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.38] - 2022-06-03
+### Added
+- Expose connection info to Python
+- Add bit counting logic tasks
+
 ## [0.0.37] - 2022-04-22
 ### Added
 - Add default output value for FSM
