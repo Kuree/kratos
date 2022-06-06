@@ -448,7 +448,8 @@ uint32_t num_size_decrease(Var *var) {
 }
 
 VarSlice::VarSlice(Var *parent, uint32_t high, uint32_t low)
-    : Var(parent->generator(), "", parent->var_width(), 1, parent->is_signed(), VarType::Slice),
+    // variable slice is always unsigned based on the spec
+    : Var(parent->generator(), "", parent->var_width(), 1, false, VarType::Slice),
       parent_var(parent),
       low(low),
       high(high),

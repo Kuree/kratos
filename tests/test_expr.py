@@ -253,5 +253,15 @@ def test_bit_task():
     assert str(b) == "$countones (a)"
 
 
+def test_slice_signed():
+    from kratos import signed
+    mod = Generator("mod")
+    a = mod.var("a", width=15, size=5, explicit_array=True, is_signed=True)
+    assert a.signed
+    assert not a[0].signed
+    s = signed(a[1])
+    assert str(s) == "signed'(a[1])"
+
+
 if __name__ == "__main__":
-    test_bit_task()
+    test_slice_signed()
