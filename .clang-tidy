@@ -186,5 +186,7 @@ CheckOptions:
     value:           '0'
   - key:             bugprone-easily-swappable-parameters.MinimumLength
     value:           '4'
+  - key:             readability-function-cognitive-complexity.Threshold
+    value:           30
 ...
 
