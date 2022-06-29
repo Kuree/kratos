@@ -416,13 +416,12 @@ void FSM::generate_output(Enum& enum_def, EnumVar& current_state,
 
         std::vector<std::shared_ptr<Stmt>> stmts;
         auto const& output_values = state->output_values();
+        auto const& output_ordering = state->output_ordering();
         stmts.reserve(output_values.size());
         // sort the names
         std::vector<Var*> vars;
         vars.reserve(output_values.size());
-        for (auto const& iter : output_values) vars.emplace_back(iter.first);
-        std::sort(vars.begin(), vars.end(),
-                  [](auto& lhs, auto& rhs) { return lhs->name < rhs->name; });
+        for (auto* iter : output_ordering) vars.emplace_back(iter);
         for (auto const& output_var : vars) {
             auto* value = output_values.at(output_var);
             if (value && value != output_var) {
@@ -713,6 +712,7 @@ void FSMState::output(const std::shared_ptr<Var>& output_var,
         throw VarException(::format("{0} already has specified output"),
                            {output_values_.at(output)});
     }
+    output_ordering_.emplace_back(output);
     output_values_.emplace(output, value);
 }
 
@@ -741,7 +741,7 @@ void FSMState::check_outputs() {
                 throw VarException(::format("{0} not specified", output->to_string()), {output});
             } else {
                 // insert it to the output values
-                output_values_.emplace(output, default_);
+                this->output(output->shared_from_this(), default_->shared_from_this());
             }
         }
     }

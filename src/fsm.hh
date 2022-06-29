@@ -113,6 +113,7 @@ public:
     const inline std::string &name() const { return name_; }
     const inline std::map<Var *, FSMState *> &transitions() { return transitions_; }
     const inline std::map<Var *, Var *> &output_values() const { return output_values_; }
+    const inline auto &output_ordering() const { return output_ordering_; }
     std::string handle_name() const;
 
     // debug info
@@ -131,6 +132,7 @@ private:
     FSM *parent_;
     std::map<Var *, FSMState *> transitions_;
     std::map<Var *, Var *> output_values_;
+    std::vector<Var *> output_ordering_;
 
     std::unordered_map<FSMState *, std::pair<std::string, uint32_t>> next_state_fn_ln_;
     std::unordered_map<Var *, std::pair<std::string, uint32_t>> output_fn_ln_;
