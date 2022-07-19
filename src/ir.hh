@@ -106,6 +106,7 @@ public:
 
     // generator specific traversal
     virtual void visit(Generator *) {}
+    virtual void visit_external(Generator *) {}
 
     virtual ~IRVisitor() = default;
 

@@ -927,7 +927,11 @@ std::shared_ptr<Generator> Generator::clone() {
 }
 
 void Generator::accept(IRVisitor *visitor) {
-    if (!external()) visitor->visit(this);
+    if (!external()) {
+        visitor->visit(this);
+    } else {
+        visitor->visit_external(this);
+    }
 }
 
 PortPackedStruct &Generator::port_packed(PortDirection direction, const std::string &port_name,

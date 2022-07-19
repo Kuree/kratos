@@ -2348,6 +2348,27 @@ def test_struct_of_struct(check_gold):
     check_gold(mod, "test_struct_of_struct")
 
 
+def test_external_visit():
+    from kratos import IRVisitor
+    p = Generator("parent")
+    c = Generator("Child")
+    c.external = True
+    p.add_child("inst", c)
+
+    class ExternalVisitor(IRVisitor):
+        def __init__(self):
+            super(ExternalVisitor, self).__init__()
+            self.value = False
+
+        def visit(self, node):
+            if node.name == "Child":
+                self.value = True
+
+    v = ExternalVisitor()
+    v.visit_root(p.internal_generator)
+    assert v.value
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
     test_struct_of_struct(check_gold_fn)
