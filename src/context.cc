@@ -65,15 +65,17 @@ void Context::change_generator_name(Generator *generator, const std::string &new
         throw UserException(::format("{0}'s context is different", old_name));
     // remove it from the list
     auto shared_ptr = generator->shared_from_this();
-    if (modules_.find(generator->name) == modules_.end())
-        throw UserException(::format("cannot find generator {0} in context", old_name));
+    if (modules_.find(generator->name) == modules_.end()) {
+        // this only happens if the context is cleared or switched
+        modules_[generator->name] = {shared_ptr};
+    }
     auto &list = modules_.at(generator->name);
     auto pos = std::find(list.begin(), list.end(), shared_ptr);
-    if (pos == list.end())
-        throw UserException(::format("unable to find generator {0} in context", old_name));
-    // we need to erase it
-    list.erase(pos);
-    // change it's name and put it to a new list
+    if (pos != list.end()) {
+        // we need to erase it
+        list.erase(pos);
+    }
+    // change its name and put it to a new list
     generator->name = new_name;
     modules_[new_name].emplace(shared_ptr);
     // change the cloned names as well
