@@ -327,7 +327,7 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
                     flip = False
 
                 if isinstance(op, ast.Eq):
-                    func_name = "__eq__"
+                    func_name = "eq"
                 elif isinstance(op, ast.NotEq):
                     func_name = "__ne__"
                 elif isinstance(op, ast.Lt) and not flip:

@@ -83,7 +83,7 @@ class UartRx(UartBase):
                 self._rx_dv = 0
                 self._clock_count = 0
                 self._bit_index = 0
-                if self.rx_data == 0:
+                if self._rx_data == 0:
                     self._sm_main = state.START_BIT
                 else:
                     self._sm_main = state.IDLE
