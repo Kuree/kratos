@@ -1,3 +1,4 @@
+import kratos
 from kratos import Generator, verilog, const, always_comb, Interface
 import platform
 import pytest
@@ -301,5 +302,25 @@ def test_one_state_fsm():
     verilog(mod)
 
 
+def test_and():
+    mod = Generator("gen", debug=True)
+    a = mod.var("a", 4)
+    b = mod.var("b", 10)
+    c = mod.var("c", 1)
+
+    @always_comb
+    def code():
+        c = 1
+        for i in range(4):
+            if (i < a) and (b == const(1, 10)):
+                c = 0
+
+    mod.add_code(code)
+
+    src = verilog(mod)["gen"]
+    # notice the flipping
+    assert "(a >= 4'h1) && (b == 10'h1)" in src
+
+
 if __name__ == "__main__":
-    test_one_state_fsm()
+    test_and()

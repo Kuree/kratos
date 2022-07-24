@@ -293,39 +293,80 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
         self.key_pair = []
 
     def __change_if_predicate(self, node):
-        if isinstance(node, ast.UnaryOp):
-            # notice that if the user uses `not var`, due to Python
-            # implementation, it will return True/False, we need to
-            # change that into r_not call
-            if isinstance(node.op, ast.Not):
-                target = node.operand
-                target_src = astor.to_source(target)
-                target_eval = eval(target_src, self.local)
-                if isinstance(target_eval, _kratos.Var):
-                    return ast.Call(func=ast.Attribute(value=target, attr="r_not", ctx=ast.Load()),
-                                    args=[], keywords=[], ctx=ast.Load())
-            else:
-                return node
-        elif not isinstance(node, ast.Compare):
-            return node
-        op = node.ops[0]
-        if not isinstance(op, ast.Eq):
-            return node
-        left = node.left
-        left_src = astor.to_source(left)
-        try:
-            left_val = eval(left_src, self.local)
-        except _kratos.exception.VarException:
-            left_val = None
+        class IfPredicateOpTransformer(ast.NodeTransformer):
+            def __init__(self, local):
+                self.local = local
 
-        if isinstance(left_val, _kratos.Var):
-            # change it into a function all
-            return ast.Call(func=ast.Attribute(value=left,
-                                               attr="eq",
-                                               ctx=ast.Load()),
-                            args=node.comparators,
-                            keywords=[],
-                            ctx=ast.Load)
+            def visit_UnaryOp(self, n: ast.UnaryOp):
+                # notice that if the user uses `not var`, due to Python
+                # implementation, it will return True/False, we need to
+                # change that into r_not call
+                if isinstance(n.op, ast.Not):
+                    target = n.operand
+                    target_src = astor.to_source(target)
+                    target_eval = eval(target_src, self.local)
+                    if isinstance(target_eval, _kratos.Var):
+                        return ast.Call(func=ast.Attribute(value=target, attr="r_not", ctx=ast.Load()),
+                                        args=[], keywords=[], ctx=ast.Load())
+                else:
+                    return n
+
+            def visit_Compare(self, n: ast.Compare):
+                op = n.ops[0]
+
+                left = n.left
+                left_src = astor.to_source(left)
+                try:
+                    left_val = eval(left_src, self.local)
+                except _kratos.exception.VarException:
+                    left_val = None
+
+                if not isinstance(left_val, _kratos.Var):
+                    flip = True
+                else:
+                    flip = False
+
+                if isinstance(op, ast.Eq):
+                    func_name = "__eq__"
+                elif isinstance(op, ast.NotEq):
+                    func_name = "__ne__"
+                elif isinstance(op, ast.Lt) and not flip:
+                    func_name = "__lt__"
+                elif isinstance(op, ast.Lt) and flip:
+                    func_name = "__ge__"
+                elif isinstance(op, ast.Gt) and not flip:
+                    func_name = "__gt__"
+                elif isinstance(op, ast.Gt) and flip:
+                    func_name = "__le__"
+                elif isinstance(op, ast.LtE) and not flip:
+                    func_name = "__le__"
+                elif isinstance(op, ast.LtE) and flip:
+                    func_name = "__gt__"
+                elif isinstance(op, ast.GtE) and not flip:
+                    func_name = "__ge__"
+                elif isinstance(op, ast.GtE) and flip:
+                    func_name = "__lt__"
+                else:
+                    return n
+
+                if flip:
+                    assert len(n.comparators) == 1
+                    value = n.comparators[0]
+                    args = [n.left]
+                else:
+                    value = n.left
+                    args = n.comparators
+                return ast.Call(func=ast.Attribute(value=value,
+                                                   attr=func_name,
+                                                   ctx=ast.Load()),
+                                args=args,
+                                keywords=[],
+                                ctx=ast.Load,
+                                lineno=n.lineno,
+                                col_offset=n.col_offset)
+
+        t = IfPredicateOpTransformer(self.local)
+        node = t.visit(node)
         return node
 
     def visit_If(self, node: ast.If):
@@ -364,7 +405,7 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
             # need to convert the logical operators to either reduced function calls, or
             # expression or
             if_test = LogicOperatorVisitor(self.local, self.global_, self.filename, self.scope_ln)
-            predicate = if_test.visit(node.test)
+            predicate = if_test.visit(predicate)
 
         expression = node.body
         else_expression = node.orelse
