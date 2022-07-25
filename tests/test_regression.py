@@ -319,7 +319,7 @@ def test_and():
 
     src = verilog(mod)["gen"]
     # notice the flipping
-    assert "(a >= 4'h1) && (b == 10'h1)" in src
+    assert "(a > 4'h1) && (b == 10'h1)" in src
 
 
 if __name__ == "__main__":

@@ -322,10 +322,7 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
                 except _kratos.exception.VarException:
                     left_val = None
 
-                if not isinstance(left_val, _kratos.Var):
-                    flip = True
-                else:
-                    flip = False
+                flip = not isinstance(left_val, _kratos.Var)
 
                 if isinstance(op, ast.Eq):
                     func_name = "eq"
@@ -334,19 +331,19 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
                 elif isinstance(op, ast.Lt) and not flip:
                     func_name = "__lt__"
                 elif isinstance(op, ast.Lt) and flip:
-                    func_name = "__ge__"
+                    func_name = "__gt__"
                 elif isinstance(op, ast.Gt) and not flip:
                     func_name = "__gt__"
                 elif isinstance(op, ast.Gt) and flip:
-                    func_name = "__le__"
+                    func_name = "__lt__"
                 elif isinstance(op, ast.LtE) and not flip:
                     func_name = "__le__"
                 elif isinstance(op, ast.LtE) and flip:
-                    func_name = "__gt__"
+                    func_name = "__ge__"
                 elif isinstance(op, ast.GtE) and not flip:
                     func_name = "__ge__"
                 elif isinstance(op, ast.GtE) and flip:
-                    func_name = "__lt__"
+                    func_name = "__le__"
                 else:
                     return n
 
