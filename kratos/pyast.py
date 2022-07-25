@@ -294,8 +294,9 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
 
     def __change_if_predicate(self, node):
         class IfPredicateOpTransformer(ast.NodeTransformer):
-            def __init__(self, local):
+            def __init__(self, local, global_):
                 self.local = local
+                self.global_ = global_
 
             def visit_UnaryOp(self, n: ast.UnaryOp):
                 # notice that if the user uses `not var`, due to Python
@@ -304,7 +305,7 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
                 if isinstance(n.op, ast.Not):
                     target = n.operand
                     target_src = astor.to_source(target)
-                    target_eval = eval(target_src, self.local)
+                    target_eval = eval(target_src, self.local, self.global_)
                     if isinstance(target_eval, _kratos.Var):
                         return ast.Call(func=ast.Attribute(value=target, attr="r_not", ctx=ast.Load()),
                                         args=[], keywords=[], ctx=ast.Load())
@@ -317,7 +318,7 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
                 left = n.left
                 left_src = astor.to_source(left)
                 try:
-                    left_val = eval(left_src, self.local)
+                    left_val = eval(left_src, self.local, self.global_)
                 except _kratos.exception.VarException:
                     left_val = None
 
@@ -365,7 +366,7 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
                                 lineno=n.lineno,
                                 col_offset=n.col_offset)
 
-        t = IfPredicateOpTransformer(self.local)
+        t = IfPredicateOpTransformer(self.local, self.global_)
         node = t.visit(node)
         return node
 
