@@ -324,6 +324,18 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
 
                 flip = not isinstance(left_val, _kratos.Var)
 
+                right = n.comparators
+                assert len(right) == 1, "Only size 1 comparators supported"
+                right_src = astor.to_source(right[0])
+                try:
+                    right_val = eval(right_src, self.local, self.global_)
+                except _kratos.exception.VarException:
+                    right_val = None
+
+                if not isinstance(right_val, _kratos.Var) and flip:
+                    # none of our business
+                    return n
+
                 if isinstance(op, ast.Eq):
                     func_name = "eq"
                 elif isinstance(op, ast.NotEq):

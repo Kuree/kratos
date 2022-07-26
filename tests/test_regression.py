@@ -322,5 +322,22 @@ def test_and():
     assert "(a > 4'h1) && (b == 10'h1)" in src
 
 
+def test_static_if():
+    mod = Generator("gen")
+    a = mod.output("a", 1)
+    b = 1
+
+    @always_comb
+    def code():
+        if b == 1:
+            a = 1
+        else:
+            a = 0
+
+    mod.add_always(code)
+    src = verilog(mod)["gen"]
+    assert "a = 1'h1" in src
+
+
 if __name__ == "__main__":
-    test_and()
+    test_static_if()
