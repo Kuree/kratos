@@ -111,7 +111,7 @@ public:
     void check_outputs();
 
     const inline std::string &name() const { return name_; }
-    const inline std::map<Var *, FSMState *> &transitions() { return transitions_; }
+    const inline std::vector<std::pair<Var *, FSMState *>> &transitions() { return transitions_; }
     const inline std::map<Var *, Var *> &output_values() const { return output_values_; }
     const inline auto &output_ordering() const { return output_ordering_; }
     std::string handle_name() const;
@@ -130,7 +130,7 @@ public:
 private:
     std::string name_;
     FSM *parent_;
-    std::map<Var *, FSMState *> transitions_;
+    std::vector<std::pair<Var *, FSMState *>> transitions_;
     std::map<Var *, Var *> output_values_;
     std::vector<Var *> output_ordering_;
 

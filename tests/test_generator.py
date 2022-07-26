@@ -2370,5 +2370,5 @@ def test_external_visit():
 
 
 if __name__ == "__main__":
-    from conftest import check_gold_fn
-    test_struct_of_struct(check_gold_fn)
+    from conftest import check_gold_fn, check_file_fn
+    test_fsm_mealy(check_gold_fn)

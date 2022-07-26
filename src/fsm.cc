@@ -265,23 +265,15 @@ void FSM::generate_state_transition(
         // a list of if statements
         std::shared_ptr<IfStmt> if_ = nullptr;
         std::shared_ptr<IfStmt> top_if = nullptr;
-        std::vector<Var*> vars;
         auto transitions = state->transitions();
-        vars.reserve(transitions.size());
-        for (auto const& iter : transitions) vars.emplace_back(iter.first);
         // slide through condition
         bool has_slide_through = false;
-        bool has_default = false;
-        if (vars.size() != 1 || vars[0] != nullptr) {
-            std::sort(vars.begin(), vars.end(), [=](const auto& lhs, const auto& rhs) {
-                return transitions.at(lhs)->name() < transitions.at(rhs)->name();
-            });
-        } else {
+        if (transitions.size() == 1 && transitions[0].first == nullptr) {
             has_slide_through = true;
         }
-        for (auto const& cond : vars) {
-            auto* next_fsm_state = transitions.at(cond);
-            if (!cond && (vars.size() == 1)) {
+        std::optional<std::pair<Var *, FSMState *>> default_state;
+        for (auto const& [cond, next_fsm_state] : transitions) {
+            if (!cond && (transitions.size() == 1)) {
                 // direct transition
                 auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
                                                 state_name_mapping);
@@ -289,7 +281,7 @@ void FSM::generate_state_transition(
                 break;
             } else if (!cond) {
                 // we have a default case here
-                has_default = true;
+                default_state= std::make_pair(cond, next_fsm_state);
                 continue;
             }
 
@@ -323,8 +315,8 @@ void FSM::generate_state_transition(
             }
         }
 
-        if (has_default) {
-            auto* next_fsm_state = transitions.at(nullptr);
+        if (default_state) {
+            auto* next_fsm_state = default_state->second;
             auto stmt = get_next_state_stmt(enum_def, next_state, state, next_fsm_state,
                                             state_name_mapping);
             if_->add_else_stmt(stmt);
@@ -545,17 +537,10 @@ std::string FSM::dot_graph() {
     stream << ::endl;
     // state transition
     for (auto const& state : states) {
-        auto transitions = state->transitions();
+        auto const &transitions = state->transitions();
         auto state_name = state->handle_name();
         // deterministic sorting
-        std::vector<Var*> conds;
-        conds.reserve(transitions.size());
-        for (auto const& iter : transitions) conds.emplace_back(iter.first);
-        std::sort(conds.begin(), conds.end(), [](auto const& lhs, auto const& rhs) {
-            return lhs->to_string() < rhs->to_string();
-        });
-        for (auto const& cond : conds) {
-            auto* next_state = transitions.at(cond);
+        for (auto [cond, next_state] : transitions) {
             if (cond) {
                 stream << indent
                        << ::format("{0}    ->  {1} [ label = \"{2}\" ];", state_name,
@@ -680,21 +665,28 @@ void FSMState::next(const std::shared_ptr<FSMState>& next_state, const std::shar
                                      parent->fsm_name()));
     }
 
+    auto find_match = [this](Var *ptr) -> bool {
+        auto it = std::find_if(transitions_.begin(), transitions_.end(), [ptr](auto const &pair) {
+            return pair.first == ptr;
+        });
+        return it != transitions_.end();
+    };
+
     if (!cond) {
-        transitions_.emplace(nullptr, state_ptr);
+        transitions_.emplace_back(std::make_pair(nullptr, state_ptr));
     } else {
-        if (transitions_.find(nullptr) != transitions_.end()) {
+        if (find_match(nullptr)) {
             // we have a slide through
             throw UserException("Unconditional transition has been assign to " + name_);
         }
         auto* ptr = cond.get();
         if (cond->width() != 1) throw VarException("Condition has to be a boolean value", {ptr});
 
-        if (transitions_.find(ptr) != transitions_.end()) {
+        if (find_match(ptr)) {
             throw ::runtime_error(::format("{0} has been added to FSM {1}-{2} already",
                                            ptr->to_string(), parent_->fsm_name(), name_));
         }
-        transitions_.emplace(ptr, state_ptr);
+        transitions_.emplace_back(std::make_pair(ptr, state_ptr));
     }
 }
 
