@@ -34,7 +34,7 @@ public:
     virtual IRNode *get_child(uint64_t) { return nullptr; }
     // the caller is responsible to check the return value; if it's larger than count + 1
     // it means its not found. default implementation is linear search
-    virtual uint64_t index_of(IRNode *node);
+    virtual uint64_t index_of(const IRNode *node);
 
     IRNode *ast_node() { return this; }
 

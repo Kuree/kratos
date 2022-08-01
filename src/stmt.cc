@@ -42,6 +42,18 @@ Generator *Stmt::generator_parent() const {
     return dynamic_cast<Generator *>(p);
 }
 
+Stmt *Stmt::pre_stmt() const {
+    if (!parent_ || parent_->ir_node_kind() != IRNodeKind::StmtKind) return nullptr;
+    auto *stmt_parent = reinterpret_cast<Stmt*>(parent_);
+    if (stmt_parent->type_ != StatementType::Block) return nullptr;
+    auto const &block = stmt_parent->as<StmtBlock>();
+    auto index = block->index_of(this);
+    if (index != 0 && index < block->size()) {
+        return (*block)[index - 1].get();
+    }
+    return nullptr;
+}
+
 void Stmt::set_scope_context(const std::map<std::string, std::pair<bool, std::string>> &context) {
     scope_context_ = context;
 }

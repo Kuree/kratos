@@ -7,7 +7,7 @@
 
 namespace kratos {
 
-uint64_t IRNode::index_of(kratos::IRNode *node) {
+uint64_t IRNode::index_of(const kratos::IRNode *node) {
     uint64_t index;
     for (index = 0; index < child_count(); index++) {
         auto *n = get_child(index);

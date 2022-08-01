@@ -45,6 +45,7 @@ public:
     IRNode *parent() override;
     virtual void set_parent(IRNode *parent) { parent_ = parent; }
     Generator *generator_parent() const;
+    Stmt *pre_stmt() const;
 
     void accept(IRVisitor *) override {}
     uint64_t child_count() override { return 0; }

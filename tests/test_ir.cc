@@ -54,7 +54,7 @@ TEST(ir, attribute) {  // NOLINT
     class TestAttribute {
     public:
         explicit TestAttribute(int value) : value_(value) {}
-        int value() { return value_; }
+        [[nodiscard]] int value() const { return value_; }
 
     private:
         int value_;
@@ -68,4 +68,20 @@ TEST(ir, attribute) {  // NOLINT
     var1.add_attribute(attr);
     EXPECT_EQ(var1.get_attributes().size(), 1);
     EXPECT_EQ(reinterpret_cast<TestAttribute*>(var1.get_attributes()[0]->get())->value(), 42);
+}
+
+TEST(ir, pre_stmt) {
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &var1 = mod.var("a", 1);
+    auto &var2 = mod.var("b", 1);
+
+    auto const &block = mod.combinational();
+    auto stmt1 = var1.assign(var2);
+    block->add_stmt(stmt1);
+    auto stmt2 = var1.assign(constant(1, 1));
+    block->add_stmt(stmt2);
+
+    EXPECT_EQ(stmt2->pre_stmt(), stmt1.get());
+    EXPECT_EQ(stmt1->pre_stmt(), nullptr);
 }
