@@ -9,18 +9,7 @@ namespace py = pybind11;
 
 void init_debug(py::module &m) {
     using namespace kratos;
-    m.def("inject_debug_break_points", &inject_debug_break_points)
-        .def("extract_debug_break_points", &extract_debug_break_points)
-        .def("inject_clock_break_points",
-             py::overload_cast<Generator *>(&inject_clock_break_points))
-        .def("inject_clock_break_points",
-             py::overload_cast<Generator *, const std::string &>(&inject_clock_break_points))
-        .def("inject_clock_break_points",
-             py::overload_cast<Generator *, const std::shared_ptr<Port> &>(
-                 &inject_clock_break_points))
-        .def("inject_assert_fail_exception", &inject_assert_fail_exception)
-        .def("inject_instance_ids", &inject_instance_ids)
-        .def("mock_hierarchy", &mock_hierarchy);
+    m.def("mock_hierarchy", &mock_hierarchy);
 
     py::class_<DebugDatabase>(m, "DebugDataBase")
         .def(py::init<>())

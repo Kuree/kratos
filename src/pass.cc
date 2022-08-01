@@ -3931,8 +3931,6 @@ void PassManager::register_builtin_passes() {
 
     register_pass("inject_instance_ids", &inject_instance_ids);
 
-    register_pass("inject_clock_break_points", &inject_clock_break_points);
-
     register_pass("inject_assert_fail_exception", &inject_assert_fail_exception);
 
     register_pass("insert_verilator_public", &insert_verilator_public);
@@ -3948,8 +3946,6 @@ void PassManager::register_builtin_passes() {
     register_pass("check_combinational_loop", &check_combinational_loop);
 
     register_pass("check_flip_flop_always_ff", &check_flip_flop_always_ff);
-
-    register_pass("convert_continuous_stmt", &convert_continuous_stmt);
 
     register_pass("propagate_scope_variable", &propagate_scope_variable);
 

@@ -10,6 +10,7 @@
 #include "schema.hh"
 #include "tb.hh"
 #include "util.hh"
+#include "json.hh"
 
 using fmt::format;
 
@@ -623,44 +624,6 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     save_events(storage, top_);
 
     save_assignment(storage, top_, stmt_mapping_);
-}
-
-void inject_clock_break_points(Generator *top) {
-    // trying to find the clock automatically
-    auto const &port_names = top->get_port_names();
-    for (auto const &port_name : port_names) {
-        auto const &port = top->get_port(port_name);
-        if (port && port->port_type() == PortType::Clock) {
-            inject_clock_break_points(top, port);
-            return;
-        }
-    }
-    // don't do anything
-}
-void inject_clock_break_points(Generator *top, const std::string &clk_name) {
-    auto port = top->get_port(clk_name);
-    if (port) {
-        inject_clock_break_points(top, port);
-    } else {
-        throw UserException(::format("{0} is not a clock port", clk_name));
-    }
-}
-void inject_clock_break_points(Generator *top, const std::shared_ptr<Port> &port) {
-    if (!port) {
-        // find the clock
-        inject_clock_break_points(top);
-    } else {
-        // we use negative edge to jump to clock because most of the designs are
-        // on posedge
-        auto seq = top->sequential();
-        seq->add_condition({BlockEdgeType::Negedge, port});
-        // inject a breakpoint_clock call
-        // create the function in the generator
-        top->dpi_function(break_point_clock_func_name);
-        auto &var = top->call(break_point_clock_func_name, {}, false);
-        auto stmt = std::make_shared<FunctionCallStmt>(var.as<FunctionCallVar>());
-        seq->add_stmt(stmt);
-    }
 }
 
 class AssertVisitor : public IRVisitor {
