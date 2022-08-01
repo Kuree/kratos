@@ -74,9 +74,6 @@ public:
             auto id = context_->max_instance_id()++;
             mutex_.unlock();
             gen->generator_id = id;
-            // create a parameter
-            auto &p = gen->parameter(break_point_param_name, 32);
-            p.set_value(id);
         }
     }
 
@@ -624,45 +621,6 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     save_events(storage, top_);
 
     save_assignment(storage, top_, stmt_mapping_);
-}
-
-class AssertVisitor : public IRVisitor {
-public:
-    void visit(AssertBase *base) override {
-        if (base->assert_type() == AssertType::AssertValue) {
-            auto *stmt = reinterpret_cast<AssertValueStmt *>(base);
-            // create a function call
-            auto *gen = base->generator_parent();
-            if (!gen->has_function(exception_func_name)) {
-                auto func = gen->dpi_function(exception_func_name);
-                func->input(break_point_instance_id_arg, var_size_, false);
-                func->input(var_name_, var_size_, false);
-                func->set_port_ordering({{break_point_instance_id_arg, 0}, {var_name_, 1}});
-            }
-            // get the stmt from the assert
-            auto id = stmt->stmt_id();
-            auto &id_const = constant(id, var_size_);
-            auto instance_id = gen->get_param(break_point_param_name);
-            if (!instance_id) {
-                throw UserException("Cannot find " + std::string(break_point_param_name));
-            }
-            auto &var = gen->call(exception_func_name,
-                                  {{break_point_instance_id_arg, instance_id},
-                                   {var_name_, id_const.shared_from_this()}},
-                                  false);
-            auto st = std::make_shared<FunctionCallStmt>(var.as<FunctionCallVar>());
-            stmt->set_else(st);
-        }
-    }
-
-private:
-    const std::string var_name_ = break_point_func_arg;
-    const uint32_t var_size_ = 32;
-};
-
-void inject_assert_fail_exception(Generator *top) {
-    AssertVisitor visitor;
-    visitor.visit_root(top);
 }
 
 // TODO: implement transformer visitor

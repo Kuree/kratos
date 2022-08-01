@@ -3931,8 +3931,6 @@ void PassManager::register_builtin_passes() {
 
     register_pass("inject_instance_ids", &inject_instance_ids);
 
-    register_pass("inject_assert_fail_exception", &inject_assert_fail_exception);
-
     register_pass("insert_verilator_public", &insert_verilator_public);
 
     register_pass("remove_assertion", &remove_assertion);

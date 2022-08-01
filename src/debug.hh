@@ -6,15 +6,10 @@
 namespace kratos {
 
 constexpr char break_point_func_name[] = "breakpoint_trace";
-constexpr char exception_func_name[] = "exception";
-constexpr char break_point_func_arg[] = "stmt_id";
-constexpr char break_point_param_name[] = "KRATOS_INSTANCE_ID";
-constexpr char break_point_instance_id_arg[] = "instance_id";
 
 void inject_debug_break_points(Generator *top);
 void inject_instance_ids(Generator *top);
 std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top);
-void inject_assert_fail_exception(Generator *top);
 void remove_assertion(Generator *top);
 void propagate_scope_variable(Generator *top);
 std::unordered_map<Var *, std::unordered_set<Var *>> find_driver_signal(Generator *top);

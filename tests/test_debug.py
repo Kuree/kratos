@@ -4,6 +4,7 @@ import _kratos
 import sqlite3
 import tempfile
 import os
+import pytest
 
 
 def test_db_dump():
@@ -168,6 +169,7 @@ def test_clock_interaction():
                 debug_db_filename=debug_db)
 
 
+@pytest.mark.skip(reason="DPI-based assertion no longer supported")
 def test_assert():
     from kratos import assert_
     mod = Generator("mod", True)
@@ -368,10 +370,6 @@ def test_multiple_instance():
     with tempfile.TemporaryDirectory() as temp:
         filename = os.path.join(temp, "test.sv")
         verilog(top, filename=filename, insert_debug_info=True, debug_fn_ln=True)
-        # check the id and line info
-        with open(filename) as f:
-            content = f.read()
-            assert ".KRATOS_INSTANCE_ID(32'h2))" in content
         # make sure that the line is mapped correctly
         with open(__file__) as f:
             lines = f.readlines()

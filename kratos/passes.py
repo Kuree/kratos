@@ -97,7 +97,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("propagate_scope_variable")
         pass_manager.add_pass("inject_instance_ids")
         pass_manager.add_pass("inject_debug_break_points")
-        pass_manager.add_pass("inject_assert_fail_exception")
     if use_parallel:
         pass_manager.add_pass("hash_generators_parallel")
     else:
