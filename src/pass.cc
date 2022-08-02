@@ -1643,7 +1643,7 @@ public:
         }
     }
 
-    std::map<Stmt*, std::string> values;
+    std::unordered_map<Stmt*, std::string> values;
 
 private:
     static std::shared_ptr<Var> get_cond(Stmt* stmt) {
@@ -1740,7 +1740,7 @@ private:
     }
 };
 
-std::map<Stmt*, std::string> compute_enable_condition(Generator* top) {
+std::unordered_map<Stmt*, std::string> compute_enable_condition(Generator* top) {
     // notice that this pass assumes SSA pass has transformed the always_comb block into
     // top-level continuous assignment
     EnableStmtVisitor visitor;

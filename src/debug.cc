@@ -447,8 +447,9 @@ private:
 class StmtScopeVisitor : public IRVisitor {
 public:
     StmtScopeVisitor(hgdb::json::Module &module,
-                     const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln)
-        : module_(module), stmt_fn_ln_(stmt_fn_ln) {}
+                     const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln,
+                     const std::unordered_map<Stmt *, std::string> &enable_conditions)
+        : module_(module), stmt_fn_ln_(stmt_fn_ln), enable_conditions_(enable_conditions) {}
     void visit(AssignStmt *stmt) override { handle_stmt(stmt); }
     void visit(ScopedStmtBlock *stmt) override { handle_stmt(stmt); }
     void visit(IfStmt *stmt) override { handle_stmt(stmt); }
@@ -506,7 +507,7 @@ private:
             auto const &[rtl, value] = value_pair;
             // we don't put line number down for static variables
             // since we can't obtain them from Python
-            add_variable<true>(parent_scope, name, value, rtl, 0);
+            add_variable<true>(parent_scope, name, value, rtl);
         }
         // add itself
         auto *stmt_scope = add_stmt(parent_scope, stmt, filename, ln);
@@ -517,14 +518,14 @@ private:
 
     template <bool is_assign>
     static hgdb::json::VarStmt *add_variable(hgdb::json::Scope<> *scope, const std::string &name,
-                                             const std::string &value, bool rtl, uint32_t ln) {
+                                             const std::string &value, bool rtl) {
         using namespace hgdb::json;
         Variable v{.name = name, .value = value, .rtl = rtl, .id = std::nullopt};
-        return scope->template create_scope<VarStmt>(v, ln, is_assign);
+        return scope->template create_scope<VarStmt>(v, 0, is_assign);
     }
 
-    static hgdb::json::Scope<> *add_stmt(hgdb::json::Scope<> *scope, Stmt *stmt,
-                                         const std::string &filename, uint32_t ln) {
+    hgdb::json::Scope<> *add_stmt(hgdb::json::Scope<> *scope, Stmt *stmt,
+                                  const std::string &filename, uint32_t ln) {
         hgdb::json::Scope<> *res = nullptr;
         if (stmt->type() == StatementType::Assign) {
             auto *assign = reinterpret_cast<AssignStmt *>(stmt);
@@ -534,12 +535,21 @@ private:
             for (auto const &v : vars) {
                 auto *s = scope->create_scope<hgdb::json::VarStmt>(v, ln, false);
                 s->filename = filename;
+
+                if (enable_conditions_.find(stmt) != enable_conditions_.end()) {
+                    s->condition = enable_conditions_.at(stmt);
+                }
             }
         } else {
             res = scope->create_scope<hgdb::json::Scope<>>();
             res->line_num = ln;
             res->filename = filename;
+
+            if (enable_conditions_.find(stmt) != enable_conditions_.end()) {
+                res->condition = enable_conditions_.at(stmt);
+            }
         }
+
         return res;
     }
 
@@ -554,6 +564,7 @@ private:
     hgdb::json::Module &module_;
     std::unordered_map<const Stmt *, hgdb::json::Scope<> *> stmt_scope_mapping_;
     const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln_;
+    const std::unordered_map<Stmt *, std::string> &enable_conditions_;
 };
 
 void DebugDatabase::save_database(const std::string &filename, bool override) {
@@ -611,7 +622,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
         if (gen_mod_map.find(gen) == gen_mod_map.end()) continue;
         visited_gens.emplace(gen);
         auto *mod = gen_mod_map.at(gen);
-        StmtScopeVisitor v(*mod, stmt_mapping_);
+        StmtScopeVisitor v(*mod, stmt_mapping_, breakpoint_conditions);
         v.visit_content(gen);
     }
 
