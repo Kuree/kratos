@@ -504,7 +504,9 @@ private:
         //  for now we flatten everything
         for (auto const &[name, value_pair] : stmt->scope_context()) {
             auto const &[rtl, value] = value_pair;
-            add_variable<false>(parent_scope, name, value, rtl, ln);
+            // we don't put line number down for static variables
+            // since we can't obtain them from Python
+            add_variable<true>(parent_scope, name, value, rtl, 0);
         }
         // add itself
         auto *stmt_scope = add_stmt(parent_scope, stmt, filename, ln);
@@ -514,11 +516,11 @@ private:
     }
 
     template <bool is_assign>
-    static void add_variable(hgdb::json::Scope<> *scope, const std::string &name,
-                             const std::string &value, bool rtl, uint32_t ln) {
+    static hgdb::json::VarStmt *add_variable(hgdb::json::Scope<> *scope, const std::string &name,
+                                             const std::string &value, bool rtl, uint32_t ln) {
         using namespace hgdb::json;
         Variable v{.name = name, .value = value, .rtl = rtl, .id = std::nullopt};
-        scope->template create_scope<VarStmt>(v, ln, is_assign);
+        return scope->template create_scope<VarStmt>(v, ln, is_assign);
     }
 
     static hgdb::json::Scope<> *add_stmt(hgdb::json::Scope<> *scope, Stmt *stmt,
@@ -602,9 +604,12 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
     }
 
     // now deal with scopes
+    std::unordered_set<Generator *> visited_gens;
     for (auto &[stmt, id] : break_points_) {
         auto *gen = stmt->generator_parent();
+        if (!gen || visited_gens.find(gen) != visited_gens.end()) continue;
         if (gen_mod_map.find(gen) == gen_mod_map.end()) continue;
+        visited_gens.emplace(gen);
         auto *mod = gen_mod_map.at(gen);
         StmtScopeVisitor v(*mod, stmt_mapping_);
         v.visit_content(gen);
