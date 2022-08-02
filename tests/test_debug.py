@@ -117,7 +117,31 @@ def test_seq_debug():
         verilog(mod, filename=filename, insert_debug_info=True,
                 debug_db_filename=debug_db)
         with open(debug_db) as f:
-            print(f.read())
+            db = json.load(f)
+    # it should have two scopes
+    mod_db = db["table"][0]
+    assert mod_db["name"] == mod.name
+    scopes = mod_db["scope"]
+    assert len(scopes) == 2
+    for i in range(2):
+        code = scopes[i]
+        decl = code["scope"][0]
+        assert decl["type"] == "decl"
+        var = db["variables"][-1]
+        # this one is i, which should be compressed
+        assert var["id"] == decl["variable"]
+        assert var["name"] == "i"
+        assert var["value"] == "3"
+        if_stmt = code["scope"][1]
+        assert len(if_stmt["scope"]) == 2
+        for stmt in if_stmt["scope"]:
+            assert len(stmt["scope"]) == 2
+            # two assignments
+            for a in stmt["scope"]:
+                assert a["type"] == "assign"
+    # test out gen var
+    assert len(mod_db["variables"]) == 1
+    assert mod_db["variables"][0]["name"] == "self.in_"
 
 
 def test_context():
