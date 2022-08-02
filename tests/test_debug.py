@@ -263,20 +263,18 @@ def test_wire():
         filename = os.path.join(temp, "test.sv")
         verilog(mod, filename=filename, insert_debug_info=True,
                 debug_db_filename=debug_db)
-        conn = sqlite3.connect(debug_db)
-        c = conn.cursor()
-        c.execute("SELECT * FROM breakpoint")
-        assert len(c.fetchall()) == 1
-        c.execute("""SELECT variable.value FROM variable, context_variable
-                     WHERE context_variable.name = ? AND context_variable.variable_id = variable.id""", "a")
-        v = int(c.fetchone()[0])
-        assert v == a
-        conn.close()
+        with open(debug_db) as f:
+            db = json.load(f)
+        assign = db["table"][0]["scope"][0]["scope"][-1]
+        assert assign["type"] == "assign"
+        assert assign["variable"]["name"] == "out"
+        line = get_line_num("mod.wire(out_, in_)")
+        assert assign["line"] == line
 
 
-def test_inst_id():
-    def create_mod():
-        m = Generator("mod", True)
+def test_multiple_definitions():
+    def create_mod(idx):
+        m = Generator("mod" + str(idx), True)
         in_ = m.input("in", 1)
         out = m.output("out", 1)
         comb = m.combinational()
@@ -285,7 +283,7 @@ def test_inst_id():
     mod = Generator("parent", True)
     input_ = mod.input("in", 1)
     output = mod.output("out", 1)
-    mods = [create_mod() for _ in range(2)]
+    mods = [create_mod(i) for i in range(2)]
     expr = None
     for i, m_ in enumerate(mods):
         mod.add_child("mod{0}".format(i), m_)
@@ -300,12 +298,9 @@ def test_inst_id():
         debug_db = os.path.join(temp, "debug.db")
         verilog(mod, insert_debug_info=True, debug_db_filename=debug_db,
                 optimize_passthrough=False)
-        conn = sqlite3.connect(debug_db)
-        c = conn.cursor()
-        c.execute("SELECT * FROM instance")
-        res = c.fetchall()
-        assert len(res) == 3
-        conn.close()
+        with open(debug_db) as f:
+            db = json.load(f)
+        assert len(db["table"]) == 3
 
 
 def test_empty():
@@ -495,4 +490,4 @@ def test_ssa_debug():
 
 
 if __name__ == "__main__":
-    test_context()
+    test_nested_scope()

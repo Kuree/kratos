@@ -489,7 +489,7 @@ class AssignNodeVisitor(ast.NodeTransformer):
             if "value=" in var_name:
                 name = var_name.replace("value=", "")
                 value = getattr(node, var_name)
-                key = ast.keyword(arg=ast.Name(id=name), value=ast.Num(value))
+                key = ast.keyword(arg=name, value=ast.Num(value))
                 keywords.append(key)
         new_node = ast.Expr(
             value=ast.Call(func=ast.Attribute(
@@ -583,6 +583,12 @@ class GenVarLocalVisitor(ast.NodeTransformer):
             insert_keywords = False
             if attr.attr == "assign" and isinstance(attr.value, ast.Name) and attr.value.id == self.scope_name:
                 insert_keywords = True
+            # make sure we haven't inserted that keyword yet
+            if insert_keywords:
+                for entry in node.keywords:
+                    if entry.arg == self.key:
+                        insert_keywords = False
+                        break
             if insert_keywords:
                 keyword = ast.keyword(arg=self.key,
                                       value=ast.Str(s=self.value))
