@@ -5,6 +5,16 @@ import sqlite3
 import tempfile
 import os
 import pytest
+import json
+
+
+def get_line_num(txt):
+    with open(__file__) as f:
+        lines = f.readlines()
+    for i, line in enumerate(lines):
+        if line.strip() == txt:
+            return i + 1
+    return 0
 
 
 def test_db_dump():
@@ -17,7 +27,20 @@ def test_db_dump():
         # hashing and generate verilog
         verilog(mod, insert_debug_info=True, debug_db_filename=debug_db)
         with open(debug_db) as f:
-            print(f.read())
+            db = json.load(f)
+    assert db["generator"] == "kratos"
+    assert db["top"] == mod.name
+    mod_def = db["table"][0]
+    assert mod_def["name"] == mod.name
+    assert len(mod_def["scope"]) == 1
+    comb = mod_def["scope"][0]
+    assert comb["filename"] == __file__
+    assert len(comb["scope"]) == 1
+    assign = comb["scope"][0]
+    ref_line = get_line_num('comb.add_stmt(mod.var("a", 1).assign(mod.var("b", 1)))')
+    assert assign["line"] == ref_line
+    var = assign["variable"]
+    assert var["name"] == "a"
 
 
 def test_debug_mock():

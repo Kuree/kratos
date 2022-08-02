@@ -484,6 +484,13 @@ private:
             scope->filename = filename;
             parent_scope = scope;
             stmt_scope_mapping_.emplace(stmt, scope);
+
+            if (stmt->type() != StatementType::Assign) {
+                // only top level assign, i.e. continuous assignment can
+                // have useful scope
+                return;
+            }
+
         } else {
             auto *parent_stmt = reinterpret_cast<Stmt *>(parent);
             if (stmt_scope_mapping_.find(parent_stmt) == stmt_scope_mapping_.end()) {
