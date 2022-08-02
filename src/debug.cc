@@ -517,10 +517,17 @@ private:
     }
 
     template <bool is_assign>
-    static hgdb::json::VarStmt *add_variable(hgdb::json::Scope<> *scope, const std::string &name,
-                                             const std::string &value, bool rtl) {
+    hgdb::json::VarStmt *add_variable(hgdb::json::Scope<> *scope, const std::string &name,
+                                      const std::string &value, bool rtl) {
         using namespace hgdb::json;
+        // depends on whether we have already declared it or not
         Variable v{.name = name, .value = value, .rtl = rtl, .id = std::nullopt};
+        auto stmt = VarStmt(v, 0, is_assign);
+        if (SymbolTable::has_same_var(scope, stmt)) {
+            // we don't add it since it has already been declared
+            return nullptr;
+        }
+
         return scope->template create_scope<VarStmt>(v, 0, is_assign);
     }
 
