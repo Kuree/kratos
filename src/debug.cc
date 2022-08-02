@@ -374,7 +374,7 @@ std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::st
             std::string new_name = name;
             hgdb::json::Variable v;
             for (auto const &s : slice) new_name = ::format("{0}.{1}", new_name, s);
-            std::string value = var->name;
+            std::string value = var->to_string();
             for (auto const &s : slice) value = ::format("{0}[{1}]", value, s);
             v.value = value;
             v.name = new_name;
@@ -391,7 +391,7 @@ std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::st
                 // we need to store lots of them
                 std::string new_name = ::format("{0}.{1}", name, attr_name);
                 hgdb::json::Variable v;
-                v.value = ::format("{0}.{1}", var->name, attr_name);
+                v.value = ::format("{0}.{1}", var->to_string(), attr_name);
                 v.name = new_name;
                 v.rtl = true;
                 result.emplace_back(v);
@@ -404,7 +404,7 @@ std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::st
                 // we need to store lots of them
                 std::string new_name = ::format("{0}.{1}", name, attr_name);
                 hgdb::json::Variable v;
-                v.value = ::format("{0}.{1}", var->name, attr_name);
+                v.value = ::format("{0}.{1}", var->to_string(), attr_name);
                 v.name = new_name;
                 v.rtl = true;
                 result.emplace_back(v);
@@ -413,7 +413,7 @@ std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::st
     } else {
         // the normal one
         hgdb::json::Variable v;
-        v.value = var->name;
+        v.value = var->to_string();
         v.name = name;
         v.rtl = true;
         result.emplace_back(v);
@@ -446,10 +446,13 @@ private:
 
 class StmtScopeVisitor : public IRVisitor {
 public:
-    StmtScopeVisitor(hgdb::json::Module &module,
+    StmtScopeVisitor(hgdb::json::Module &module, const Generator *gen,
                      const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln,
                      const std::unordered_map<Stmt *, std::string> &enable_conditions)
-        : module_(module), stmt_fn_ln_(stmt_fn_ln), enable_conditions_(enable_conditions) {}
+        : module_(module),
+          gen_(gen),
+          stmt_fn_ln_(stmt_fn_ln),
+          enable_conditions_(enable_conditions) {}
     void visit(AssignStmt *stmt) override { handle_stmt(stmt); }
     void visit(ScopedStmtBlock *stmt) override { handle_stmt(stmt); }
     void visit(IfStmt *stmt) override { handle_stmt(stmt); }
@@ -522,13 +525,26 @@ private:
         using namespace hgdb::json;
         // depends on whether we have already declared it or not
         Variable v{.name = name, .value = value, .rtl = rtl, .id = std::nullopt};
-        auto stmt = VarStmt(v, 0, is_assign);
+        // if this is a generator variable, and we happen to know where it's declared, we're good
+        uint64_t ln = 0;
+        if (rtl) {
+            auto const &vars = gen_->vars();
+            if (vars.find(value) != vars.end()) {
+                auto const &var = vars.at(value);
+                if (!var->fn_name_ln.empty()) {
+                    auto [_, ln_] = var->fn_name_ln[0];
+                    ln = ln_;
+                }
+            }
+        }
+
+        auto stmt = VarStmt(v, ln, is_assign);
         if (SymbolTable::has_same_var(scope, stmt)) {
             // we don't add it since it has already been declared
             return nullptr;
         }
 
-        return scope->template create_scope<VarStmt>(v, 0, is_assign);
+        return scope->template create_scope<VarStmt>(v, ln, is_assign);
     }
 
     hgdb::json::Scope<> *add_stmt(hgdb::json::Scope<> *scope, Stmt *stmt,
@@ -549,7 +565,7 @@ private:
             }
         } else {
             res = scope->create_scope<hgdb::json::Scope<>>();
-            res->line_num = ln;
+            if (ln > 0) res->line_num = ln;
             res->filename = filename;
 
             if (enable_conditions_.find(stmt) != enable_conditions_.end()) {
@@ -569,6 +585,7 @@ private:
     }
 
     hgdb::json::Module &module_;
+    const Generator *gen_;
     std::unordered_map<const Stmt *, hgdb::json::Scope<> *> stmt_scope_mapping_;
     const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln_;
     const std::unordered_map<Stmt *, std::string> &enable_conditions_;
@@ -629,7 +646,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
         if (gen_mod_map.find(gen) == gen_mod_map.end()) continue;
         visited_gens.emplace(gen);
         auto *mod = gen_mod_map.at(gen);
-        StmtScopeVisitor v(*mod, stmt_mapping_, breakpoint_conditions);
+        StmtScopeVisitor v(*mod, gen, stmt_mapping_, breakpoint_conditions);
         v.visit_content(gen);
     }
 
