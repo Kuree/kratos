@@ -23,9 +23,6 @@ void insert_verilator_public(Generator *top);
 
 class DebugDatabase {
 public:
-    using ConnectionMap =
-        std::map<std::pair<std::string, std::string>, std::pair<std::string, std::string>>;
-
     DebugDatabase() = default;
 
     void set_break_points(Generator *top);
@@ -34,17 +31,14 @@ public:
     void set_variable_mapping(const std::map<Generator *, std::map<std::string, Var *>> &mapping);
     void set_variable_mapping(
         const std::map<Generator *, std::map<std::string, std::string>> &mapping);
-    void set_stmt_context(Generator *top);
 
     void save_database(const std::string &filename, bool override);
     void save_database(const std::string &filename) { save_database(filename, true); }
 
 private:
     std::map<Stmt *, uint32_t> break_points_;
-    std::unordered_map<Generator *, std::set<uint32_t>> generator_break_points_;
     std::map<Stmt *, std::pair<std::string, uint32_t>> stmt_mapping_;
-    std::unordered_map<std::string, std::pair<Generator *, std::map<std::string, std::string>>>
-        variable_mapping_;
+    std::unordered_map<const Generator *, std::map<std::string, std::string>> variable_mapping_;
     std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
     std::unordered_set<Generator *> generators_;
 

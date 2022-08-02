@@ -24,7 +24,6 @@ void init_debug(py::module &m) {
              py::overload_cast<const std::map<Generator *, std::map<std::string, std::string>> &>(
                  &DebugDatabase::set_variable_mapping),
              py::arg("mapping"))
-        .def("set_stmt_context", &DebugDatabase::set_stmt_context, py::arg("top"))
         // dump the database file
         .def("save_database",
              py::overload_cast<const std::string &, bool>(&DebugDatabase::save_database),

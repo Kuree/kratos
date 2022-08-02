@@ -345,7 +345,7 @@ std::map<std::string, std::shared_ptr<Port>> get_port_from_mod_def(Generator *ge
 }
 
 
-std::vector<std::vector<uint32_t>> get_flatten_slices(Var *var) {
+std::vector<std::vector<uint32_t>> get_flatten_slices(const Var *var) {
     uint32_t num_slices = var->width() / var->var_width();
     std::vector<std::vector<uint32_t>> result;
     result.reserve(num_slices);

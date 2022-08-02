@@ -60,7 +60,6 @@ def dump_debug_database(generator: Generator, filename: str):
     # store the string values
     db.set_variable_mapping(str_table)
     # insert other metadata information
-    db.set_stmt_context(generator.internal_generator)
     db.save_database(filename)
 
 

@@ -6,11 +6,11 @@
 #include "fmt/format.h"
 #include "generator.hh"
 #include "graph.hh"
+#include "json.hh"
 #include "pass.hh"
 #include "schema.hh"
 #include "tb.hh"
 #include "util.hh"
-#include "json.hh"
 
 using fmt::format;
 
@@ -259,8 +259,6 @@ void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {
             if (fn_ext == ext) {
                 // this is the one we need
                 stmt_mapping_.emplace(stmt, std::make_pair(fn, ln));
-                auto *gen = stmt->generator_parent();
-                generator_break_points_[gen].emplace(id);
                 break;
             }
         }
@@ -272,13 +270,8 @@ void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {
 void DebugDatabase::set_variable_mapping(
     const std::map<Generator *, std::map<std::string, Var *>> &mapping) {
     for (auto const &[gen, map] : mapping) {
-        auto handle_name = gen->handle_name();
-
-        variable_mapping_.emplace(handle_name,
-                                  std::make_pair(gen, std::map<std::string, std::string>()));
-
         for (auto const &[front_var_name, var] : map) {
-            variable_mapping_[handle_name].second.emplace(front_var_name, var->to_string());
+            variable_mapping_[gen].emplace(front_var_name, var->to_string());
         }
     }
 }
@@ -286,50 +279,10 @@ void DebugDatabase::set_variable_mapping(
 void DebugDatabase::set_variable_mapping(
     const std::map<Generator *, std::map<std::string, std::string>> &mapping) {
     for (auto const &[gen, map] : mapping) {
-        auto handle_name = gen->handle_name();
-
-        variable_mapping_.emplace(handle_name,
-                                  std::make_pair(gen, std::map<std::string, std::string>()));
-
         for (auto const &[front_var_name, var_name] : map) {
-            variable_mapping_[handle_name].second.emplace(front_var_name, var_name);
+            variable_mapping_[gen].emplace(front_var_name, var_name);
         }
     }
-}
-
-class StmtContextVisitor : public IRVisitor {
-public:
-    void visit(IfStmt *stmt) override { add_content(stmt); }
-
-    void visit(AssignStmt *stmt) override { add_content(stmt); }
-
-    const std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> &stmt_context()
-        const {
-        return stmt_context_;
-    }
-
-private:
-    void add_content(Stmt *stmt) {
-        if (!stmt->scope_context().empty()) {
-            stmt_context_.emplace(stmt, stmt->scope_context());
-        }
-    }
-    std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
-};
-
-void DebugDatabase::set_stmt_context(kratos::Generator *top) {
-    StmtContextVisitor visitor;
-    visitor.visit_root(top);
-    stmt_context_ = visitor.stmt_context();
-}
-
-std::string get_trigger_condition(const Stmt *stmt) {
-    for (auto const &attr : stmt->get_attributes()) {
-        if (attr->type_str == "ssa-trigger") {
-            return attr->value_str;
-        }
-    }
-    return "";
 }
 
 std::optional<std::pair<std::string, std::string>> get_target_var_name(const Var *var) {
@@ -412,215 +365,251 @@ void save_assignment(hgdb::DebugDatabase &db, Generator *top,
     v.visit_root(top);
 }
 
+std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::string &name) {
+    std::vector<hgdb::json::Variable> result;
+    if (var->size().size() > 1 || var->size().front() > 1) {
+        // it's an array. need to flatten it
+        auto slices = get_flatten_slices(var);
+        for (auto const &slice : slices) {
+            std::string new_name = name;
+            hgdb::json::Variable v;
+            for (auto const &s : slice) new_name = ::format("{0}.{1}", new_name, s);
+            std::string value = var->name;
+            for (auto const &s : slice) value = ::format("{0}[{1}]", value, s);
+            v.value = value;
+            v.name = new_name;
+            v.rtl = true;
+            result.emplace_back(v);
+        }
+    } else if (var->is_struct()) {
+        // it's a packed array
+        if (var->type() == VarType::PortIO) {
+            auto const *p = reinterpret_cast<const PortPackedStruct *>(var);
+            auto const &def = p->packed_struct();
+            for (auto const &iter : def->attributes) {
+                auto const &attr_name = iter.name;
+                // we need to store lots of them
+                std::string new_name = ::format("{0}.{1}", name, attr_name);
+                hgdb::json::Variable v;
+                v.value = ::format("{0}.{1}", var->name, attr_name);
+                v.name = new_name;
+                v.rtl = true;
+                result.emplace_back(v);
+            }
+        } else if (var->type() == VarType::Base) {
+            auto const *p = reinterpret_cast<const VarPackedStruct *>(var);
+            auto const &def = p->packed_struct();
+            for (auto const &iter : def->attributes) {
+                auto const &attr_name = iter.name;
+                // we need to store lots of them
+                std::string new_name = ::format("{0}.{1}", name, attr_name);
+                hgdb::json::Variable v;
+                v.value = ::format("{0}.{1}", var->name, attr_name);
+                v.name = new_name;
+                v.rtl = true;
+                result.emplace_back(v);
+            }
+        }
+    } else {
+        // the normal one
+        hgdb::json::Variable v;
+        v.value = var->name;
+        v.name = name;
+        v.rtl = true;
+        result.emplace_back(v);
+    }
+    return result;
+}
+
+void add_generator_static_value(hgdb::json::Module &m, const std::string &name,
+                                const std::string &value) {
+    hgdb::json::Variable v{.name = name, .value = value, .rtl = false, .id = std::nullopt};
+    m.add_variable(v);
+}
+
+class StmtFileNameVisitor : public IRVisitor {
+public:
+    StmtFileNameVisitor(const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln)
+        : stmt_fn_ln_(stmt_fn_ln) {}
+    void visit(AssignStmt *stmt) override {
+        if (stmt_fn_ln_.find(stmt) != stmt_fn_ln_.end()) {
+            std::tie(filename, ln) = stmt_fn_ln_.at(stmt);
+        }
+    }
+
+    std::string filename;
+    uint32_t ln = 0;
+
+private:
+    const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln_;
+};
+
+class StmtScopeVisitor : public IRVisitor {
+public:
+    StmtScopeVisitor(hgdb::json::Module &module,
+                     const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln)
+        : module_(module), stmt_fn_ln_(stmt_fn_ln) {}
+    void visit(AssignStmt *stmt) override { handle_stmt(stmt); }
+    void visit(ScopedStmtBlock *stmt) override { handle_stmt(stmt); }
+    void visit(IfStmt *stmt) override { handle_stmt(stmt); }
+    void visit(SwitchStmt *stmt) override { handle_stmt(stmt); }
+    void visit(FunctionCallStmt *stmt) override { handle_stmt(stmt); }
+    void visit(ReturnStmt *stmt) override { handle_stmt(stmt); }
+    void visit(AssertBase *stmt) override { handle_stmt(stmt); }
+    void visit(AuxiliaryStmt *stmt) override { handle_stmt(stmt); }
+    void visit(CombinationalStmtBlock *stmt) override { handle_stmt(stmt); }
+    void visit(SequentialStmtBlock *stmt) override { handle_stmt(stmt); }
+    void visit(LatchStmtBlock *stmt) override { handle_stmt(stmt); }
+
+private:
+    void handle_stmt(Stmt *stmt) {
+        std::string filename;
+        uint32_t ln = 0;
+        if (stmt_fn_ln_.find(stmt) != stmt_fn_ln_.end()) {
+            std::tie(filename, ln) = stmt_fn_ln_.at(stmt);
+        }
+
+        using namespace hgdb::json;
+        auto *parent = stmt->parent();
+        hgdb::json::Scope<> *parent_scope;
+        if (parent->ir_node_kind() == IRNodeKind::GeneratorKind) {
+            // this is top level
+            auto *scope = module_.create_scope<Scope<>>();
+            if (filename.empty()) {
+                StmtFileNameVisitor v(stmt_fn_ln_);
+                v.visit_root(stmt);
+                filename = v.filename;
+                ln = v.ln;
+            }
+            scope->filename = filename;
+            parent_scope = scope;
+            stmt_scope_mapping_.emplace(stmt, scope);
+        } else {
+            auto *parent_stmt = reinterpret_cast<Stmt *>(parent);
+            if (stmt_scope_mapping_.find(parent_stmt) == stmt_scope_mapping_.end()) {
+                throw InternalException("Scope not properly created");
+            }
+            parent_scope = stmt_scope_mapping_.at(parent_stmt);
+        }
+
+        // store all the context variables
+        // TODO: use stack address as a way to determine the actual scope
+        //  for now we flatten everything
+        for (auto const &[name, value_pair] : stmt->scope_context()) {
+            auto const &[rtl, value] = value_pair;
+            add_variable<false>(parent_scope, name, value, rtl, ln);
+        }
+        // add itself
+        auto *stmt_scope = add_stmt(parent_scope, stmt, filename, ln);
+        if (stmt_scope) {
+            stmt_scope_mapping_.emplace(stmt, stmt_scope);
+        }
+    }
+
+    template <bool is_assign>
+    static void add_variable(hgdb::json::Scope<> *scope, const std::string &name,
+                             const std::string &value, bool rtl, uint32_t ln) {
+        using namespace hgdb::json;
+        Variable v{.name = name, .value = value, .rtl = rtl, .id = std::nullopt};
+        scope->template create_scope<VarStmt>(v, ln, is_assign);
+    }
+
+    static hgdb::json::Scope<> *add_stmt(hgdb::json::Scope<> *scope, Stmt *stmt,
+                                         const std::string &filename, uint32_t ln) {
+        hgdb::json::Scope<> *res = nullptr;
+        if (stmt->type() == StatementType::Assign) {
+            auto *assign = reinterpret_cast<AssignStmt *>(stmt);
+            auto const *left = assign->left();
+            auto front_name = get_front_name(left);
+            auto const &vars = create_variables(left, front_name);
+            for (auto const &v : vars) {
+                auto *s = scope->create_scope<hgdb::json::VarStmt>(v, ln, false);
+                s->filename = filename;
+            }
+        } else {
+            res = scope->create_scope<hgdb::json::Scope<>>();
+            res->line_num = ln;
+            res->filename = filename;
+        }
+        return res;
+    }
+
+    static std::string get_front_name(const Var *var) {
+        auto mapping = get_target_var_name(var);
+        if (mapping) {
+            return mapping->first;
+        }
+        return var->to_string();
+    }
+
+    hgdb::json::Module &module_;
+    std::unordered_map<const Stmt *, hgdb::json::Scope<> *> stmt_scope_mapping_;
+    const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln_;
+};
+
 void DebugDatabase::save_database(const std::string &filename, bool override) {
     if (override) {
         if (fs::exists(filename)) {
             fs::remove(filename);
         }
     }
-    auto storage = hgdb::init_debug_db(filename);
 
     // compute breakpoint conditions
     auto breakpoint_conditions = compute_enable_condition(top_);
-    // insert tables
+    auto table = hgdb::json::SymbolTable("kratos");
 
-    // insert generator ids
-    std::unordered_map<const Generator *, uint32_t> gen_id_map;
-    std::unordered_map<std::string, uint32_t> handle_id_map;
-    for (auto const &gen : generators_) {
-        if (gen->generator_id < 0) {
-            // assign a new ID
-            gen->generator_id = gen->context()->max_instance_id()++;
-        }
-        int id = gen->generator_id;
-        gen_id_map.emplace(gen, id);
-        handle_id_map.emplace(gen->handle_name(), id);
-        hgdb::store_instance(storage, gen->generator_id, gen->handle_name());
+    std::unordered_map<Generator *, hgdb::json::Module *> gen_mod_map;
+
+    // first pass to create modules
+    for (auto *gen : generators_) {
+        auto *mod = table.add_module(gen->name);
+        gen_mod_map.emplace(gen, mod);
     }
-
-    // break points
-    for (auto const &[stmt, id] : break_points_) {
-        if (stmt_mapping_.find(stmt) != stmt_mapping_.end()) {
-            auto const &[fn, ln] = stmt_mapping_.at(stmt);
-            auto const *gen = stmt->generator_parent();
-            auto instance_id = gen_id_map.at(gen);
-            std::string condition;
-            if (breakpoint_conditions.find(stmt) != breakpoint_conditions.end())
-                condition = breakpoint_conditions.at(stmt);
-            auto trigger_str = get_trigger_condition(stmt);
-            // we don't support column breakpoint since there is normally no such usage in
-            // Python
-            hgdb::store_breakpoint(storage, id, instance_id, fn, ln, 0, condition, trigger_str);
+    // second pass to add instances
+    for (auto *gen : generators_) {
+        auto *mod = gen_mod_map.at(gen);
+        auto children = gen->get_child_generators();
+        for (auto const &child : children) {
+            if (gen_mod_map.find(child.get()) == gen_mod_map.end()) continue;
+            auto *child_mod = gen_mod_map.at(child.get());
+            mod->add_instance(child->instance_name, child_mod);
         }
     }
 
-    // variables
-    int variable_count = 0;
-    std::unordered_set<Var *> var_id_set;
-    std::map<std::tuple<const int, std::string, std::string>, int> var_id_mapping;
-    std::unordered_map<Generator *, std::map<std::string, std::string>> self_context_mapping;
-    // function to create variable and flatten the hierarchy
-    // NOLINTNEXTLINE
-    auto create_variable = [&](Var *var_, const int handle_id_, const std::string &name_,
-                               const std::string &value_, bool is_context_, uint32_t breakpoint_id_,
-                               bool gen_var = false) {
-        hgdb::Variable v;
-        v.is_rtl = var_ != nullptr;
-
-        auto add_context_gen = [&](const std::string &name) {
-            if (is_context_) {
-                // create context mapping as well
-                hgdb::store_context_variable(storage, name, breakpoint_id_, v.id);
-            }
-            if (gen_var) {
-                hgdb::store_generator_variable(storage, name, handle_id_, v.id);
-            }
-        };
-
-        if (var_) {
-            // it is an variable
-            if (var_->size().size() > 1 || var_->size().front() > 1) {
-                // it's an array. need to flatten it
-                auto slices = get_flatten_slices(var_);
-                for (auto const &slice : slices) {
-                    std::string new_name = name_;
-                    for (auto const &s : slice) new_name = ::format("{0}.{1}", new_name, s);
-                    std::string value = var_->name;
-                    for (auto const &s : slice) value = ::format("{0}[{1}]", value, s);
-                    v.value = value;
-                    if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
-                        var_id_mapping.end()) {
-                        v.id = variable_count++;
-                        hgdb::store_variable(storage, v.id, v.value);
-                        var_id_mapping.emplace(
-                            std::make_pair(std::make_tuple(handle_id_, new_name, v.value), v.id));
-                    } else {
-                        v.id = var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
-                    }
-                    add_context_gen(new_name);
-                }
-            } else if (var_->is_struct()) {
-                // it's a packed array
-                if (var_->type() == VarType::PortIO) {
-                    auto *p = reinterpret_cast<PortPackedStruct *>(var_);
-                    auto const &def = p->packed_struct();
-                    for (auto const &iter : def->attributes) {
-                        auto const &attr_name = iter.name;
-                        // we need to store lots of them
-                        std::string new_name = ::format("{0}.{1}", name_, attr_name);
-                        v.value = ::format("{0}.{1}", var_->name, attr_name);
-                        if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
-                            var_id_mapping.end()) {
-                            v.id = variable_count++;
-                            hgdb::store_variable(storage, v.id, v.value);
-                            var_id_mapping.emplace(std::make_pair(
-                                std::make_tuple(handle_id_, new_name, v.value), v.id));
-                        } else {
-                            v.id =
-                                var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
-                        }
-                        add_context_gen(new_name);
-                    }
-                } else if (var_->type() == VarType::Base) {
-                    auto *p = reinterpret_cast<VarPackedStruct *>(var_);
-                    auto const &def = p->packed_struct();
-                    for (auto const &iter : def->attributes) {
-                        auto const &attr_name = iter.name;
-                        // we need to store lots of them
-                        std::string new_name = ::format("{0}.{1}", name_, attr_name);
-                        v.value = ::format("{0}.{1}", var_->name, attr_name);
-                        if (var_id_mapping.find(std::make_tuple(handle_id_, new_name, v.value)) ==
-                            var_id_mapping.end()) {
-                            v.id = variable_count++;
-                            hgdb::store_variable(storage, v.id, v.value);
-                            var_id_mapping.emplace(std::make_pair(
-                                std::make_tuple(handle_id_, new_name, v.value), v.id));
-                        } else {
-                            v.id =
-                                var_id_mapping.at(std::make_tuple(handle_id_, new_name, v.value));
-                        }
-                        add_context_gen(new_name);
-                    }
-                }
-            } else {
-                // the normal one
-                v.value = var_->name;
-                if (var_id_mapping.find(std::make_tuple(handle_id_, name_, v.value)) ==
-                    var_id_mapping.end()) {
-                    v.id = variable_count++;
-                    hgdb::store_variable(storage, v.id, v.value);
-                    var_id_mapping.emplace(
-                        std::make_pair(std::make_tuple(handle_id_, name_, v.value), v.id));
-                } else {
-                    v.id = var_id_mapping.at(std::make_tuple(handle_id_, name_, v.value));
-                }
-                add_context_gen(name_);
-            }
-            var_id_set.emplace(var_);
-        } else {
-            // directly store it
-            if (name_.empty()) {
-                throw UserException(::format("Non-variable cannot have empty name in database"));
-            }
-            v.value = value_;
-            v.id = variable_count++;
-            hgdb::store_variable(storage, v.id, v.value, false);
-            add_context_gen(name_);
-        }
-    };
-    for (auto const &[handle_name, gen_map] : variable_mapping_) {
-        auto const &[gen, vars] = gen_map;
-        if (gen_id_map.find(gen) == gen_id_map.end())
-            throw InternalException(::format("Unable to find generator {0}", gen->handle_name()));
-        self_context_mapping.emplace(gen, vars);
-        auto id = gen_id_map.at(gen);
-        // this will be generator instance values (RTL correspondence)
-        auto all_vars = gen->get_all_var_names();
-        for (auto const &var_name : all_vars) {
-            auto var = gen->get_var(var_name);
+    // now add generator variables
+    for (auto *gen : generators_) {
+        if (variable_mapping_.find(gen) == variable_mapping_.end()) continue;
+        auto *mod = gen_mod_map.at(gen);
+        auto const &var_names = variable_mapping_.at(gen);
+        for (auto const &[front_name, back_name] : var_names) {
+            auto var = gen->get_var(back_name);
             if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
-                create_variable(var.get(), id, var_name, var_name, false, 0, true);
+                auto vars = create_variables(var.get(), front_name);
+                for (auto const &v : vars) {
+                    mod->add_variable(v);
+                }
+            } else if (!var) {
+                add_generator_static_value(*mod, front_name, back_name);
             }
         }
     }
 
-    // local context variables
-    for (auto const &[stmt, id] : break_points_) {
-        // use breakpoint as an index since we can only get context as we hit potential breakpoints
-        auto const &gen = stmt->generator_parent();
-        auto handle_name = gen->handle_name();
-        if (stmt_context_.find(stmt) == stmt_context_.end()) continue;
-        if (stmt_mapping_.find(stmt) == stmt_mapping_.end()) continue;
-        if (handle_id_map.find(handle_name) == handle_id_map.end())
-            throw InternalException(::format("Unable to find {0} in handle id map", handle_name));
-
-        auto const &self_vars = self_context_mapping.at(gen);
-        auto instance_id = handle_id_map.at(handle_name);
-        auto values = stmt_context_.at(stmt);
-
-        for (auto const &[key, entry] : values) {
-            auto const &[is_var, value] = entry;
-            auto *gen_var = is_var ? gen->get_var(value).get() : nullptr;
-            create_variable(gen_var, instance_id, key, value, true, id);
-        }
-
-        // self/this instance
-        for (auto const &[front_var, var] : self_vars) {
-            Var *gen_var = gen->get_var(var).get();
-            if (!gen_var) {
-                gen_var = gen->get_param(var).get();
-            }
-            if (!gen_var) {
-                create_variable(nullptr, instance_id, front_var, var, true, id);
-            } else {
-                create_variable(gen_var, instance_id, front_var, var, true, id);
-            }
-        }
+    // now deal with scopes
+    for (auto &[stmt, id] : break_points_) {
+        auto *gen = stmt->generator_parent();
+        if (gen_mod_map.find(gen) == gen_mod_map.end()) continue;
+        auto *mod = gen_mod_map.at(gen);
+        StmtScopeVisitor v(*mod, stmt_mapping_);
+        v.visit_content(gen);
     }
 
-    save_events(storage, top_);
+    // compress the table
+    table.compress();
 
-    save_assignment(storage, top_, stmt_mapping_);
+    std::ofstream stream;
+    stream.open(filename);
+    stream << table.output();
+    stream.close();
 }
 
 // TODO: implement transformer visitor
@@ -661,37 +650,6 @@ void remove_assertion(Generator *top) {
     visitor.visit_root(top);
     // then remove empty block
     remove_empty_block(top);
-}
-
-class ContinuousAssignVisitor : public IRVisitor {
-public:
-    void visit(Generator *top) override {
-        std::vector<std::shared_ptr<Stmt>> assignments;
-        uint32_t stmt_count = top->stmts_count();
-        assignments.reserve(stmt_count);
-
-        for (uint32_t i = 0; i < stmt_count; i++) {
-            auto stmt = top->get_stmt(i);
-            if (stmt->parent() == top && stmt->type() == StatementType::Assign) {
-                assignments.emplace_back(stmt);
-            }
-        }
-
-        if (!assignments.empty()) {
-            for (auto const &stmt : assignments) {
-                top->remove_stmt(stmt);
-                auto comb = top->combinational();
-                comb->add_stmt(stmt);
-            }
-        }
-    }
-};
-
-void convert_continuous_stmt(Generator *top) {
-    // this will change any top level assignment into
-    // this has to be done after port decoupling
-    ContinuousAssignVisitor visitor;
-    visitor.visit_generator_root_p(top);
 }
 
 }  // namespace kratos
