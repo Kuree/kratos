@@ -147,7 +147,7 @@ def test_seq_debug():
 def test_context():
     class Mod(Generator):
         def __init__(self, width):
-            super().__init__("mod", True)
+            super().__init__("mod", debug=True)
             in_ = self.input("in", width)
             out = self.output("out", width)
             sel = self.input("sel", width)
@@ -164,18 +164,25 @@ def test_context():
                         out[i] = 1
             self.add_always(code)
 
-    mod = Mod(4)
+    w = 4
+    mod = Mod(w)
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         filename = os.path.join(temp, "test.sv")
         verilog(mod, filename=filename, insert_debug_info=True,
                 debug_db_filename=debug_db)
-        conn = sqlite3.connect(debug_db)
-        c = conn.cursor()
-        c.execute("SELECT * FROM context_variable")
-        variables = c.fetchall()
-        assert len(variables) > 20
-        conn.close()
+        with open(debug_db) as f:
+            db = json.load(f)
+        mod_db = db["table"][0]
+        code = mod_db["scope"][-1]
+        else_blk = code["scope"][-1]["scope"][-1]["scope"]
+        assert len(else_blk) == (w * 2)
+        values = set()
+        for entry in else_blk:
+            if entry["type"] == "decl" and entry["variable"]["name"] == "i":
+                values.add(int(entry["variable"]["value"]))
+        for i in range(w):
+            assert i in values
 
 
 def test_clock_interaction():
@@ -488,4 +495,4 @@ def test_ssa_debug():
 
 
 if __name__ == "__main__":
-    test_seq_debug()
+    test_context()

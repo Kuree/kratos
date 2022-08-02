@@ -510,7 +510,10 @@ private:
             auto const &[rtl, value] = value_pair;
             // we don't put line number down for static variables
             // since we can't obtain them from Python
-            add_variable<true>(parent_scope, name, value, rtl);
+            auto *var_stmt = add_variable<true>(parent_scope, name, value, rtl);
+            if (var_stmt && enable_conditions_.find(stmt) != enable_conditions_.end()) {
+                var_stmt->condition = enable_conditions_.at(stmt);
+            }
         }
         // add itself
         auto *stmt_scope = add_stmt(parent_scope, stmt, filename, ln);
@@ -652,6 +655,9 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
 
     // compress the table
     table.compress();
+
+    // setting attributes
+    table.disable_reorder();
 
     std::ofstream stream;
     stream.open(filename);
