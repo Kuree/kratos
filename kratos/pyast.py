@@ -100,6 +100,11 @@ class StaticElaborationNodeForVisitor(ast.NodeTransformer):
                     return self.value
             return node
 
+        def visit_Assign(self, node):
+            # a little hacky to pass information around, but it works well
+            setattr(node, "value=" + self.target.id, self.value)
+            return self.generic_visit(node)
+
     class HasVar(ast.NodeVisitor):
         def __init__(self, target):
             self.has_target = False
@@ -477,6 +482,15 @@ class AssignNodeVisitor(ast.NodeTransformer):
         args = node.targets[:] + [node.value]
         if self.debug:
             args.append(ast.Constant(value=node.lineno))
+        # loop through the attributes
+        variables = dir(node)
+        keywords = []
+        for var_name in variables:
+            if "value=" in var_name:
+                name = var_name.replace("value=", "")
+                value = getattr(node, var_name)
+                key = ast.keyword(arg=ast.Name(id=name), value=ast.Num(value))
+                keywords.append(key)
         new_node = ast.Expr(
             value=ast.Call(func=ast.Attribute(
                 value=ast.Name(id="scope",
@@ -484,7 +498,7 @@ class AssignNodeVisitor(ast.NodeTransformer):
                 attr="assign",
                 ctx=ast.Load()),
                 args=args,
-                keywords=[],
+                keywords=keywords,
                 lineno=node.lineno))
         self.target_node[node] = new_node
         return new_node
