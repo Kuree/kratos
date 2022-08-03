@@ -27,8 +27,6 @@ def test_db_dump():
         # hashing and generate verilog
         verilog(mod, insert_debug_info=True, debug_db_filename=debug_db)
         with open(debug_db) as f:
-            print(f.read())
-        with open(debug_db) as f:
             db = json.load(f)
     assert db["generator"] == "kratos"
     assert db["top"] == mod.name
@@ -125,13 +123,18 @@ def test_seq_debug():
     assert mod_db["name"] == mod.name
     scopes = mod_db["scope"]
     assert len(scopes) == 2
+    variables = {}
+    for v in db["variables"]:
+        variables[v["id"]] = v
     for i in range(2):
         code = scopes[i]
         decl = code["scope"][0]
         assert decl["type"] == "decl"
         var = db["variables"][-1]
         # this one is i, which should be compressed
-        assert var["id"] == decl["variable"]
+        v_id = decl["variable"]
+        assert v_id in variables
+        var = variables[v_id]
         assert var["name"] == "i"
         assert var["value"] == "3"
         if_stmt = code["scope"][1]
