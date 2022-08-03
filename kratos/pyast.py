@@ -102,8 +102,9 @@ class StaticElaborationNodeForVisitor(ast.NodeTransformer):
             return node
 
         def visit_Assign(self, node):
-            # a little hacky to pass information around, but it works well
-            setattr(node, "value=" + self.target.id, self.value)
+            if not isinstance(self.value, ast.Subscript):
+                # a little hacky to pass information around, but it works well
+                setattr(node, "value=" + self.target.id, self.value)
             return self.generic_visit(node)
 
     class HasVar(ast.NodeVisitor):

@@ -460,7 +460,7 @@ def test_ssa_debug():
         if a == 1:
             b = 1
         else:
-            b = 0
+            b = 0   # test_ssa_debug
 
     mod.add_always(logic1, ssa_transform=True)
     mod.add_always(logic2)
@@ -469,12 +469,9 @@ def test_ssa_debug():
         debug_db = os.path.join(temp, "debug.db")
         verilog(mod, insert_debug_info=True, debug_db_filename=debug_db, ssa_transform=True)
         with open(debug_db) as f:
-            print(f.read())
-        with open(debug_db) as f:
             db = json.load(f)
     mod_db = db["table"][0]
     logic1_db = mod_db["scope"][0]["scope"]
-    print(len(logic1_db))
     assert len(logic1_db) == (4 + 2 * (loop_size + 1))
     # a_0 = 0
     # 4x (a_i + i)
@@ -489,6 +486,13 @@ def test_ssa_debug():
         else:
             assert name == "a"
             assert value == "a_{0}".format(idx)
+    # enable conditions
+    line = get_line_num("b = 0   # test_ssa_debug")
+    logic2_db = mod_db["scope"][1]["scope"]
+    last_assign = logic2_db[-1]["scope"][-1]["scope"][0]
+    assert last_assign["type"] == "assign"
+    assert last_assign["condition"] == "!(a == 4'h1)"
+    assert last_assign["line"] == line
 
 
 if __name__ == "__main__":

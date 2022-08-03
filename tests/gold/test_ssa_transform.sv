@@ -20,18 +20,20 @@ logic [3:0] c_0;
 assign a = a_6;
 assign b = b_4;
 assign c = c_0;
-assign a_0 = 4'h1;
-assign a_1 = 4'h2;
-assign a_2 = b + a_1;
-assign a_3 = (a_1 == 4'h2) ? a_2: a_1;
-assign b_0 = 4'h2;
-assign b_1 = 4'h3;
-assign b_2 = 4'h4;
-assign a_4 = 4'h5;
-assign b_3 = (a_3 == 4'h4) ? b_1: b_2;
-assign a_5 = (a_3 == 4'h4) ? a_3: a_4;
-assign b_4 = (a_3 == 4'h3) ? b_0: b_3;
-assign a_6 = (a_3 == 4'h3) ? a_3: a_5;
-assign c_0 = a_6;
+always_comb begin
+  a_0 = 4'h1;
+  a_1 = 4'h2;
+  a_2 = b + a_1;
+  a_3 = (a_1 == 4'h2) ? a_2: a_1;
+  b_0 = 4'h2;
+  b_1 = 4'h3;
+  b_2 = 4'h4;
+  a_4 = 4'h5;
+  b_3 = (a_3 == 4'h4) ? b_1: b_2;
+  a_5 = (a_3 == 4'h4) ? a_3: a_4;
+  b_4 = (a_3 == 4'h3) ? b_0: b_3;
+  a_6 = (a_3 == 4'h3) ? a_3: a_5;
+  c_0 = a_6;
+end
 endmodule   // mod
 

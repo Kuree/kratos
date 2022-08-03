@@ -1621,9 +1621,7 @@ class EnableStmtVisitor : public IRVisitor {
 public:
     void visit(AssignStmt* stmt) override {
         // we're only interested in top level blocking assignment
-        if (stmt->assign_type() != AssignmentType::Blocking ||
-            stmt->parent()->ir_node_kind() != IRNodeKind::GeneratorKind)
-            return;
+        if (stmt->assign_type() != AssignmentType::Blocking) return;
         auto* left = stmt->left();
         auto str_value = get_ssa_enable_condition(left);
         if (!str_value.empty()) {

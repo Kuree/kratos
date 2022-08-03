@@ -2155,12 +2155,12 @@ def test_ssa_transform(check_gold):
     # which corresponds to a = 5
     # notice that a should be pointing to a = b + a, since it's the last
     # time a gets assigned
-    stmt = mod.get_stmt_by_index(6)
+    stmt = mod.get_stmt_by_index(3)[3]
     scope = stmt.scope_context
     is_var, a_mapping = scope["a"]
     assert is_var
     # this is assign a_2 = b + a_1;
-    stmt = mod.get_stmt_by_index(5)
+    stmt = mod.get_stmt_by_index(3)[2]
     assert str(a_mapping) == str(stmt.left)
 
     # test enable table extraction
@@ -2371,4 +2371,4 @@ def test_external_visit():
 
 if __name__ == "__main__":
     from conftest import check_gold_fn, check_file_fn
-    test_fsm_mealy(check_gold_fn)
+    test_ssa_transform(check_gold_fn)
