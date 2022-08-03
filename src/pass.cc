@@ -3381,24 +3381,18 @@ class SSATransformFixVisitor : public IRVisitor {
 public:
     void visit(Generator* gen) override {
         auto stmts = gen->get_all_stmts();
-        std::set<std::shared_ptr<Stmt>> remove_stmts;
         for (auto const& stmt : stmts) {
             if (stmt->type() == StatementType::Block && stmt->has_attribute("ssa")) {
                 auto blk_stmt = stmt->as<StmtBlock>();
                 if (blk_stmt->block_type() == StatementBlockType::Combinational) {
-                    process_always_comb(blk_stmt, gen);
-                    remove_stmts.emplace(stmt);
+                    process_always_comb(blk_stmt);
                 }
             }
-        }
-        // clean the unused always_comb
-        for (auto const& stmt : remove_stmts) {
-            gen->remove_stmt(stmt);
         }
     }
 
 private:
-    static void process_always_comb(const std::shared_ptr<StmtBlock>& blk, Generator* gen) {
+    static void process_always_comb(const std::shared_ptr<StmtBlock>& blk) {
         // also need to fix the scope variables
         // we assume that every statement here has been SSA transformed
         using SymbolMapping = std::unordered_map<std::string, std::string>;
@@ -3452,16 +3446,7 @@ private:
             trigger_attribute->type_str = "ssa-trigger";
             trigger_attribute->value_str = trigger_str;
             stmt->add_attribute(trigger_attribute);
-
-            // move the assignment to the global scope
-            gen->add_stmt(stmt);
-            stmts.emplace(stmt.get());
         }
-
-        // clear out the always_comb
-        blk->clear();
-        // clear will reset the parents
-        for (auto* stmt : stmts) stmt->set_parent(gen);
     }
 
     static std::optional<uint64_t> get_target_scope(const Var* var) {
@@ -3780,7 +3765,7 @@ void lift_genvar_instances(Generator* top) {
     visitor.visit_generator_root(top);
 }
 
-void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_var, bool move_link);
+void change_var_expr(const std::shared_ptr<Expr>& expr, Var* target, Var* new_var, bool move_link);
 
 class PortLegalityFixVisitor : public IRVisitor {
 public:
@@ -3823,7 +3808,7 @@ public:
                         }
                     }
                 } else {
-                    auto *right = stmt->right();
+                    auto* right = stmt->right();
                     if (right->type() == VarType::Expression) {
                         auto expr = right->as<Expr>();
                         change_var_expr(expr, port.get(), src.get(), false);

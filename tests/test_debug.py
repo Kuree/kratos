@@ -357,22 +357,31 @@ def test_array_packed():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         verilog(mod, debug_db_filename=debug_db, insert_debug_info=True)
-        conn = sqlite3.connect(debug_db)
-        c = conn.cursor()
-        c.execute("SELECT variable.value, generator_variable.name FROM variable, generator_variable WHERE variable.id = generator_variable.variable_id")
-        vars_ = c.fetchall()
-        c.execute("SELECT variable.value, context_variable.name FROM variable, context_variable WHERE variable.id = context_variable.variable_id")
-        vars_ += c.fetchall()
-        correct_struct, correct_array, correct_self = False, False, False
-        for value, name in vars_:
-            if value == "a[1][3]" and name == "aa.1.3":
-                correct_array = True
-            if value == "s.read" and name == "ss.read":
-                correct_struct = True
-            if "self.sss" in name:
-                correct_self = True
-        assert correct_array and correct_struct, correct_self
-        conn.close()
+        with open(debug_db) as f:
+            db = json.load(f)
+    mod_db = db["table"][0]
+    mod_variables = mod_db["variables"]
+    assert len(mod_variables) == 2
+    assert mod_variables[0]["name"] == "self.sss.read"
+    assert mod_variables[1]["name"] == "self.sss.data"
+    assert mod_variables[0]["value"] == "s.read"
+    assert mod_variables[1]["value"] == "s.data"
+
+    first_assign = mod_db["scope"][0]
+    names = set()
+    values = set()
+    for entry in first_assign["scope"]:
+        if entry["type"] == "assign":
+            var = entry["variable"]
+            names.add(var["name"])
+            values.add(var["value"])
+
+    for i in range(4):
+        for j in range(2):
+            name = "a.{0}.{1}".format(j, i)
+            value = "a[{0}][{1}]".format(j, i)
+            assert name in names
+            assert value in values
 
 
 def test_multiple_instance():
@@ -432,13 +441,6 @@ def test_multiple_instance():
         assert count == num_instance * (num_instance + 3) / 2
 
 
-def get_line(line):
-    with open(__file__) as f:
-        lines = f.readlines()
-        lines = [l.rstrip() for l in lines]
-    return lines.index(line) + 1
-
-
 def test_ssa_debug():
     mod = Generator("mod", debug=True)
     a = mod.var("a", 4)
@@ -466,28 +468,28 @@ def test_ssa_debug():
     with tempfile.TemporaryDirectory() as temp:
         debug_db = os.path.join(temp, "debug.db")
         verilog(mod, insert_debug_info=True, debug_db_filename=debug_db, ssa_transform=True)
-        # assert the line number tracking
-        conn = sqlite3.connect(debug_db)
-        c = conn.cursor()
-        idx = get_line("                a = a + i")
-        c.execute("SELECT * FROM breakpoint WHERE line_num=?", (idx,))
-        result = c.fetchall()
-        assert len(result) == loop_size
-        assert "a_4" in result[0][-1]
-        # check the context variable
-        c.execute("SELECT * FROM context_variable WHERE context_variable.name = 'i'")
-        result = c.fetchall()
-        assert len(result) == loop_size
-        # check the assignment
-        c.execute("SELECT * FROM assignment WHERE assignment.name = 'a'")
-        result = c.fetchall()
-        assert result[0][1] == "a_0"
-        assert len(result) == (loop_size + 2)
-        c.execute("SELECT * FROM assignment WHERE assignment.name = 'b'")
-        result = c.fetchall()
-        assert len(result) == 2
-        conn.close()
+        with open(debug_db) as f:
+            print(f.read())
+        with open(debug_db) as f:
+            db = json.load(f)
+    mod_db = db["table"][0]
+    logic1_db = mod_db["scope"][0]["scope"]
+    print(len(logic1_db))
+    assert len(logic1_db) == (4 + 2 * (loop_size + 1))
+    # a_0 = 0
+    # 4x (a_i + i)
+    idx = 0
+    for entry in logic1_db[4:13]:
+        var = entry["variable"]
+        name = var["name"]
+        value = var["value"]
+        if name == "i":
+            assert value == str(idx)
+            idx += 1
+        else:
+            assert name == "a"
+            assert value == "a_{0}".format(idx)
 
 
 if __name__ == "__main__":
-    test_nested_scope()
+    test_ssa_debug()

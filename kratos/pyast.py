@@ -10,6 +10,7 @@ import _kratos
 import astor
 from _kratos import get_frame_local, StatementBlockType
 
+import kratos
 from .util import print_src
 
 
@@ -775,7 +776,9 @@ def transform_always_comb_ssa(ast_tree, gen, _locals):
 
     # need to add all the wires for each ref
     for v1, v2 in ssa.var_ref.items():
-        gen.wire(gen.vars[v1], gen.vars[v2], no_fn_ln=True)
+        # we ignore this final assignment since it's not considered in the source mapping
+        debug_attr = kratos.Attribute.create("debug-ignore")
+        gen.wire(gen.vars[v1], gen.vars[v2], no_fn_ln=True, attributes=debug_attr)
     return ast_tree
 
 

@@ -469,6 +469,9 @@ private:
     void handle_stmt(Stmt *stmt) {
         std::string filename;
         uint32_t ln = 0;
+
+        if (stmt->has_attribute("debug-ignore")) return;
+
         if (stmt_fn_ln_.find(stmt) != stmt_fn_ln_.end()) {
             std::tie(filename, ln) = stmt_fn_ln_.at(stmt);
         }
