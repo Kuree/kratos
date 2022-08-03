@@ -87,7 +87,6 @@ set(CMAKE_REQUIRED_LIBRARIES "")
 add_subdirectory(extern/googletest/)
 add_subdirectory(extern/fmt)
 add_subdirectory(extern/pybind11)
-add_subdirectory(extern/sqlite)
 
 
 ############# Tests #############

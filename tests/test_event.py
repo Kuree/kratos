@@ -3,6 +3,7 @@ import sqlite3
 import tempfile
 import os
 import json
+import pytest
 
 from kratos import Generator, Event, always_comb, always_ff, posedge, Transaction, verilog
 
@@ -121,6 +122,7 @@ def test_event_debug_fn_ln():
     assert (idx + 1) == fn_lns[0][1]
 
 
+@pytest.mark.skip("Event currently not working with hgdb")
 def test_event_serialization():
     mod = Generator("mod", debug=True)
     event = Event("event")

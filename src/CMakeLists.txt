@@ -8,16 +8,14 @@ add_library(kratos port.cc port.hh generator.cc generator.hh
 target_include_directories(kratos PUBLIC
         ../extern/fmt/include
         ../extern/cxxpool/src
-        ../extern/sqlite_orm/include
-        ../extern/sqlite/include
         ../extern/hgdb/include)
 if (WIN32 OR MINGW OR APPLE)
-   target_link_libraries(kratos fmt sqlite3)
+   target_link_libraries(kratos fmt)
 else()
     if (${INCLUDE_FILESYSTEM})
-        target_link_libraries(kratos fmt sqlite3 stdc++fs)
+        target_link_libraries(kratos fmt stdc++fs)
     else()
-        target_link_libraries(kratos fmt sqlite3)
+        target_link_libraries(kratos fmt)
     endif()
 endif()
 

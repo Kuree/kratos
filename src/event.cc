@@ -5,7 +5,6 @@
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
-#include "schema.hh"
 
 namespace kratos {
 
@@ -132,20 +131,6 @@ std::string fields_to_json(const std::map<std::string, std::shared_ptr<Var>> &va
     result.append(content);
     result.append("}");
     return result;
-}
-
-void save_events(hgdb::DebugDatabase &db, Generator *top) {
-    // we first extract out every event statement
-    auto infos = extract_event_info(top);
-    // then for each info we create an entry for the db
-    for (auto const &info : infos) {
-        // need to serialize fields, matches etc
-        auto fields = fields_to_json(info.fields);
-        auto matches = fields_to_json(info.stmt->match_values());
-        auto action = static_cast<uint32_t>(info.type);
-        hgdb::store_event(db, info.name, info.transaction, action, fields, matches,
-                          info.stmt->stmt_id());
-    }
 }
 
 }  // namespace kratos

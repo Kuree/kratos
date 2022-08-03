@@ -8,7 +8,6 @@
 #include "graph.hh"
 #include "json.hh"
 #include "pass.hh"
-#include "schema.hh"
 #include "tb.hh"
 #include "util.hh"
 
@@ -299,71 +298,6 @@ std::optional<std::pair<std::string, std::string>> get_target_var_name(const Var
     return std::nullopt;
 }
 
-void save_events(hgdb::DebugDatabase &db, Generator *top);
-
-class AssignVisitor : public IRVisitor {
-public:
-    AssignVisitor(hgdb::DebugDatabase &db,
-                  const std::map<Stmt *, std::pair<std::string, uint32_t>> &breakpoints)
-        : db_(db), breakpoints_(breakpoints) {}
-
-    void visit(AssignStmt *stmt) override {
-        // some assignments may not be assigned properly
-        if (breakpoints_.find(stmt) == breakpoints_.end()) return;
-        // need to figure out the left variables
-        // notice that if the left is sliced by variable, we need to populate multiple
-        // additional conditions
-        auto const &left = stmt->left();
-        auto stmt_id = stmt->stmt_id();
-        bool sliced_by_var = false;
-
-        if (left->type() == VarType::Slice) {
-            auto const &slice = left->as<VarSlice>();
-            if (slice->sliced_by_var()) {
-                sliced_by_var = true;
-            }
-        }
-
-        if (sliced_by_var) {
-            // need to create duplicated statement with different condition based on the
-            // select var
-            auto const &var_var_slice = left->as<VarVarSlice>();
-            // for now, we only support one-level of slicing
-            auto const &size = var_var_slice->parent_var->size().front();
-            auto select_name = var_var_slice->sliced_var()->to_string();
-            auto base_name = var_var_slice->parent_var->to_string();
-            for (auto i = 0u; i < size; i++) {
-                auto transformed_name = fmt::format("{0}[{1}]", base_name, i);
-                auto cond = fmt::format("{0} == {1}", select_name, i);
-                // the usage is setting var[10] as a watch point
-                hgdb::store_assignment(db_, transformed_name, transformed_name, stmt_id, cond);
-            }
-        } else {
-            // need to compute the SSA transform to figure out the original variable mapping
-            // if any
-            auto mapping = get_target_var_name(left);
-            if (mapping) {
-                auto const &[var_name, _] = *mapping;
-                auto transformed_name = left->to_string();
-                hgdb::store_assignment(db_, var_name, transformed_name, stmt_id);
-            } else {
-                // no SSA, just use the default name for mapping
-                auto name = left->to_string();
-                hgdb::store_assignment(db_, name, name, stmt_id);
-            }
-        }
-    }
-
-private:
-    hgdb::DebugDatabase &db_;
-    const std::map<Stmt *, std::pair<std::string, uint32_t>> &breakpoints_;
-};
-
-void save_assignment(hgdb::DebugDatabase &db, Generator *top,
-                     const std::map<Stmt *, std::pair<std::string, uint32_t>> &breakpoints) {
-    AssignVisitor v(db, breakpoints);
-    v.visit_root(top);
-}
 
 std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::string &name) {
     std::vector<hgdb::json::Variable> result;
