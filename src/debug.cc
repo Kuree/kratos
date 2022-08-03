@@ -298,9 +298,11 @@ std::optional<std::pair<std::string, std::string>> get_target_var_name(const Var
     return std::nullopt;
 }
 
+using VarCondition = std::pair<hgdb::json::Variable, std::string>;
 
-std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::string &name) {
-    std::vector<hgdb::json::Variable> result;
+std::vector<VarCondition> create_variables(const Var *var, const std::string &name) {
+    std::vector<VarCondition> result;
+    const static std::string empty;
     if (var->size().size() > 1 || var->size().front() > 1) {
         // it's an array. need to flatten it
         auto slices = get_flatten_slices(var);
@@ -313,7 +315,7 @@ std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::st
             v.value = value;
             v.name = new_name;
             v.rtl = true;
-            result.emplace_back(v);
+            result.emplace_back(std::make_pair(v, empty));
         }
     } else if (var->is_struct()) {
         // it's a packed array
@@ -328,7 +330,7 @@ std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::st
                 v.value = ::format("{0}.{1}", var->to_string(), attr_name);
                 v.name = new_name;
                 v.rtl = true;
-                result.emplace_back(v);
+                result.emplace_back(std::make_pair(v, empty));
             }
         } else if (var->type() == VarType::Base) {
             auto const *p = reinterpret_cast<const VarPackedStruct *>(var);
@@ -341,8 +343,30 @@ std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::st
                 v.value = ::format("{0}.{1}", var->to_string(), attr_name);
                 v.name = new_name;
                 v.rtl = true;
-                result.emplace_back(v);
+                result.emplace_back(std::make_pair(v, empty));
             }
+        }
+    } else if (var->type() == VarType::Slice &&
+               reinterpret_cast<const VarSlice *>(var)->sliced_by_var()) {
+        auto const *var_var_slice = reinterpret_cast<const VarVarSlice *>(var);
+        // for now, we flatten out the access and only one-level of slicing
+        auto const &size = var_var_slice->parent_var->size().front();
+        auto select_name = var_var_slice->sliced_var()->to_string();
+        auto base_name = var_var_slice->parent_var->to_string();
+        // need to get the actual name. notice that we might get to_string() name,
+        // in this case it might be wrong
+        auto names = string::get_tokens(name, "[].");
+        auto const &new_name = names[0];
+        for (auto i = 0u; i < size; i++) {
+            auto transformed_name = fmt::format("{0}[{1}]", base_name, i);
+            auto new_name_transformed = fmt::format("{0}.{1}", new_name, i);
+            auto cond = fmt::format("{0} == {1}", select_name, i);
+            // the usage is setting var[10] as a watch point
+            hgdb::json::Variable v;
+            v.name = new_name_transformed;
+            v.value = transformed_name;
+            v.rtl = true;
+            result.emplace_back(std::make_pair(v, cond));
         }
     } else {
         // the normal one
@@ -350,7 +374,7 @@ std::vector<hgdb::json::Variable> create_variables(const Var *var, const std::st
         v.value = var->to_string();
         v.name = name;
         v.rtl = true;
-        result.emplace_back(v);
+        result.emplace_back(std::make_pair(v, empty));
     }
     return result;
 }
@@ -363,7 +387,7 @@ void add_generator_static_value(hgdb::json::Module &m, const std::string &name,
 
 class StmtFileNameVisitor : public IRVisitor {
 public:
-    StmtFileNameVisitor(const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln)
+    explicit StmtFileNameVisitor(const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln)
         : stmt_fn_ln_(stmt_fn_ln) {}
     void visit(AssignStmt *stmt) override {
         if (stmt_fn_ln_.find(stmt) != stmt_fn_ln_.end()) {
@@ -495,12 +519,17 @@ private:
             auto const *left = assign->left();
             auto front_name = get_front_name(left);
             auto const &vars = create_variables(left, front_name);
-            for (auto const &v : vars) {
+            for (auto const &[v, cond] : vars) {
                 auto *s = scope->create_scope<hgdb::json::VarStmt>(v, ln, false);
                 s->filename = filename;
-
+                s->condition = cond;
                 if (enable_conditions_.find(stmt) != enable_conditions_.end()) {
-                    s->condition = enable_conditions_.at(stmt);
+                    auto const &stmt_cond = enable_conditions_.at(stmt);
+                    if (s->condition.empty()) {
+                        s->condition = stmt_cond;
+                    } else if (!stmt_cond.empty()) {
+                        s->condition = fmt::format("({0}) && ({1})", s->condition, stmt_cond);
+                    }
                 }
             }
         } else {
@@ -570,7 +599,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
             if (var && (var->type() == VarType::Base || var->type() == VarType::PortIO)) {
                 auto vars = create_variables(var.get(), front_name);
                 for (auto const &v : vars) {
-                    mod->add_variable(v);
+                    mod->add_variable(v.first);
                 }
             } else if (!var) {
                 add_generator_static_value(*mod, front_name, back_name);

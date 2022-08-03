@@ -500,5 +500,26 @@ def test_ssa_debug():
     assert last_assign["line"] == line
 
 
+def test_assign_slice():
+    mod = Generator("mod", debug=True)
+    a = mod.var("a", 16, size=[2])
+    b = mod.input("b", 1)
+    c = mod.input("c", 16)
+    mod.wire(c, a[b])
+
+    with tempfile.TemporaryDirectory() as temp:
+        debug_db = os.path.join(temp, "debug.db")
+        verilog(mod, insert_debug_info=True, debug_db_filename=debug_db)
+        with open(debug_db) as f:
+            db = json.load(f)
+    mod_db = db["table"][0]
+    assert mod_db["name"] == "mod"
+    assigns = mod_db["scope"][0]["scope"][3:]
+    assert len(assigns) == 2
+    for i in range(2):
+        assert assigns[i]["variable"]["name"] == "a.{0}".format(i)
+        assert assigns[i]["variable"]["value"] == "a[{0}]".format(i)
+
+
 if __name__ == "__main__":
-    test_ssa_debug()
+    test_assign_slice()
