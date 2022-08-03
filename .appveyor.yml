@@ -38,7 +38,7 @@ build_script:
   - pip install --no-index --find-links=dist kratos
 
 test_script:
-  - pytest -v tests/
+  - pytest -v tests/ -s
 
 artifacts:
   - path: dist\*

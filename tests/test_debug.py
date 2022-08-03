@@ -27,6 +27,8 @@ def test_db_dump():
         # hashing and generate verilog
         verilog(mod, insert_debug_info=True, debug_db_filename=debug_db)
         with open(debug_db) as f:
+            print(f.read())
+        with open(debug_db) as f:
             db = json.load(f)
     assert db["generator"] == "kratos"
     assert db["top"] == mod.name
