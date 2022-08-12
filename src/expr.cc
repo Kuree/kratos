@@ -1659,6 +1659,20 @@ std::string ConditionalExpr::handle_name(kratos::Generator *scope) const {
                     right->handle_name(scope));
 }
 
+std::shared_ptr<ConditionalExpr> ConditionalExpr::create(const std::shared_ptr<Var> &condition,
+                                                         int64_t left,
+                                                         const std::shared_ptr<Var> &right) {
+    auto left_const = Const::constant(left, right->width(), right->is_signed()).shared_from_this();
+    return std::make_shared<ConditionalExpr>(condition, left_const, right);
+}
+
+std::shared_ptr<ConditionalExpr> ConditionalExpr::create(const std::shared_ptr<Var> &condition,
+                                                         const std::shared_ptr<Var> &left,
+                                                         int64_t right) {
+    auto right_const = Const::constant(right, left->width(), left->is_signed()).shared_from_this();
+    return std::make_shared<ConditionalExpr>(condition, left, right_const);
+}
+
 uint32_t PackedStructFieldDef::bitwidth() const {
     if (struct_) {
         return struct_->bitwidth();
@@ -2174,6 +2188,18 @@ std::string InterfaceVar::base_name() const { return interface_->base_name(); }
 std::shared_ptr<Expr> util::mux(Var &cond, Var &left, Var &right) {
     auto expr = std::make_shared<ConditionalExpr>(cond.shared_from_this(), left.shared_from_this(),
                                                   right.shared_from_this());
+    cond.generator()->add_expr(expr);
+    return expr;
+}
+
+std::shared_ptr<Expr> util::mux(Var &cond, int64_t left, Var &right) {
+    auto expr = ConditionalExpr::create(cond.shared_from_this(), left, right.shared_from_this());
+    cond.generator()->add_expr(expr);
+    return expr;
+}
+
+std::shared_ptr<Expr> util::mux(Var &cond, Var &left, int64_t right) {
+    auto expr = ConditionalExpr::create(cond.shared_from_this(), left.shared_from_this(), right);
     cond.generator()->add_expr(expr);
     return expr;
 }

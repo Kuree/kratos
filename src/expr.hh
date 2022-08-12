@@ -564,7 +564,9 @@ public:
 
     std::shared_ptr<Var> slice_var(std::shared_ptr<Var> var) override;
 
-    bool is_struct() const override { return original_struct_ || (def_ && def_->struct_ != nullptr); }
+    bool is_struct() const override {
+        return original_struct_ || (def_ && def_->struct_ != nullptr);
+    }
 
     [[nodiscard]] const PackedStructFieldDef *def() const { return def_; }
 
@@ -705,6 +707,10 @@ struct ConditionalExpr : public Expr {
     std::string to_string() const override;
     std::string handle_name(bool ignore_top) const override;
     std::string handle_name(Generator *scope) const override;
+    static std::shared_ptr<ConditionalExpr> create(const std::shared_ptr<Var> &condition,
+                                                   int64_t left, const std::shared_ptr<Var> &right);
+    static std::shared_ptr<ConditionalExpr> create(const std::shared_ptr<Var> &condition,
+                                                   const std::shared_ptr<Var> &left, int64_t right);
 
     Var *condition;
 };
@@ -840,6 +846,8 @@ private:
 // helper functions
 namespace util {
 std::shared_ptr<Expr> mux(Var &cond, Var &left, Var &right);
+std::shared_ptr<Expr> mux(Var &cond, int64_t left, Var &right);
+std::shared_ptr<Expr> mux(Var &cond, Var &left, int64_t right);
 }
 
 }  // namespace kratos

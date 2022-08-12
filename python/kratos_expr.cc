@@ -667,8 +667,15 @@ void init_expr(py::module &m) {
     // ternary op
     auto ternary_exp =
         py::class_<ConditionalExpr, ::shared_ptr<ConditionalExpr>, Expr>(m, "ConditionalExpr");
-    ternary_exp.def(py::init<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &,
-                             const std::shared_ptr<Var> &>());
+    ternary_exp
+        .def(py::init<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &,
+                      const std::shared_ptr<Var> &>())
+        .def(py::init(
+            py::overload_cast<const std::shared_ptr<Var> &, int64_t, const std::shared_ptr<Var> &>(
+                &ConditionalExpr::create)))
+        .def(py::init(
+            py::overload_cast<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &, int64_t>(
+                &ConditionalExpr::create)));
     // function call expr
     auto call_Var =
         py::class_<FunctionCallVar, ::shared_ptr<FunctionCallVar>, Var>(m, "FunctionCallVar");
@@ -677,7 +684,9 @@ void init_expr(py::module &m) {
     m.def("constant", &constant, py::return_value_policy::reference);
     init_big_int(m);
 
-    m.def("mux", util::mux);
+    m.def("mux", py::overload_cast<Var &, Var &, Var &>(util::mux))
+        .def("mux", py::overload_cast<Var &, int64_t, Var &>(util::mux))
+        .def("mux", py::overload_cast<Var &, Var &, int64_t>(util::mux));
 
     py::class_<EnumVar, ::shared_ptr<EnumVar>, Var>(m, "EnumVar")
         .def("enum_type", &EnumVar::enum_type);

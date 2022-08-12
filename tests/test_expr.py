@@ -1,3 +1,4 @@
+import kratos
 from kratos import Generator, signed, unsigned, verilog
 from kratos.util import reduce_or, Const, const, countones
 import _kratos.exception
@@ -263,5 +264,15 @@ def test_slice_signed():
     assert str(s) == "signed'(a[1])"
 
 
+def test_infer_const():
+    mod = Generator("mod")
+    a = mod.var("a", 4)
+    b = mod.var("b", 1)
+    expr = a == 1
+    assert str(expr) == "a == 4'h1"
+    expr = kratos.mux(b, 0, a)
+    assert str(expr) == "b ? 4'h0: a"
+
+
 if __name__ == "__main__":
-    test_slice_signed()
+    test_infer_const()
