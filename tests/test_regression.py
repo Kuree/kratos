@@ -339,5 +339,45 @@ def test_static_if():
     assert "a = 1'h1" in src
 
 
+def test_flush_skip(check_gold):
+    # bug report from Jake Ke
+    from kratos import posedge, negedge, always_ff
+
+    class BugExample(Generator):
+        def __init__(self):
+            super().__init__("parent", debug=True)
+            self._clk = self.clock("clk")
+            self._rst_n = self.reset("rst_n")
+
+            self._flush = self.input("flush", 1)
+            self.add_attribute("sync-reset=flush")
+
+            self._a = self.var("a", 1)
+            self._b = self.var("b", 1)
+            self.add_code(self.regb)
+            self.add_code(self.rega)
+
+            kratos.passes.auto_insert_sync_reset(self.internal_generator)
+
+        @always_ff((posedge, "clk"), (negedge, "rst_n"))
+        def rega(self):
+            if ~self._rst_n:
+                self._a = 0
+            elif self._flush:
+                self._a = 1
+            else:
+                self._a = ~self._a
+
+        @always_ff((posedge, "clk"), (negedge, "rst_n"))
+        def regb(self):
+            if ~self._rst_n:
+                self._b = 0
+            else:
+                self._b = ~self._b
+
+    check_gold(BugExample(), "test_flush_skip")
+
+
 if __name__ == "__main__":
-    test_static_if()
+    from conftest import check_gold_fn
+    test_flush_skip(check_gold_fn)

@@ -2501,16 +2501,16 @@ public:
         } else {
             // create a synchronous reset port
             port = &generator->port(PortDirection::In, reset_name_, 1, PortType::Reset);
-            // look through each sequential block
-            auto stmts_count = generator->stmts_count();
-            for (uint64_t i = 0; i < stmts_count; i++) {
-                auto stmt = generator->get_stmt(i);
-                if (stmt->type() == StatementType::Block) {
-                    auto blk = stmt->as<StmtBlock>();
-                    if (blk->block_type() == StatementBlockType::Sequential) {
-                        auto seq = blk->as<SequentialStmtBlock>();
-                        inject_reset_logic(seq.get(), port);
-                    }
+        }
+        // look through each sequential block
+        auto stmts_count = generator->stmts_count();
+        for (uint64_t i = 0; i < stmts_count; i++) {
+            auto stmt = generator->get_stmt(i);
+            if (stmt->type() == StatementType::Block) {
+                auto blk = stmt->as<StmtBlock>();
+                if (blk->block_type() == StatementBlockType::Sequential) {
+                    auto seq = blk->as<SequentialStmtBlock>();
+                    inject_reset_logic(seq.get(), port);
                 }
             }
         }
@@ -2572,6 +2572,9 @@ private:
                     sync_reset->set_else(body);
                     if_then->then_body()->clear();
                     if_then->add_then_stmt(sync_reset);
+                    return;
+                } else if (has_port_type(target.get(), PortType::Reset)) {
+                    // already has a sync reset
                     return;
                 }
             }
