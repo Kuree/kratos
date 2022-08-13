@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.39] - 2022-08-13
+### Added
+- Infer const from python int for ternary
+
+### Changed
+- relax shifted width checking
+- Use JSON-based symbol table instead
+- Use ordering of the user insteadf of ptr addr when constructing FSM
+- Clear context for to_magma to avoid conflict
+
+### Fixed
+- Use global for evaluation
+- Fix predicate transform where and is not append properly
+- Fix var slice signed type
+
 ## [0.0.38] - 2022-06-03
 ### Added
 - Expose connection info to Python
