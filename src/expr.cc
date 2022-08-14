@@ -37,7 +37,7 @@ bool is_reduction_op(ExprOp op) {
 }
 
 bool is_expand_op(ExprOp op) {
-    static std::unordered_set<ExprOp> ops = {ExprOp::Concat, ExprOp::Extend};
+    static std::unordered_set<ExprOp> ops = {ExprOp::Concat, ExprOp::Extend, ExprOp::Duplicate};
     return ops.find(op) != ops.end();
 }
 
@@ -168,6 +168,18 @@ Expr &Var::pow(const Var &var) const {
     return generator()->expr(ExprOp::Power, const_cast<Var *>(this), const_cast<Var *>(&var));
 }
 
+Expr &Var::duplicate(uint32_t count) const {
+    auto expr = std::make_shared<VarDuplicated>(const_cast<Var *>(this), count);
+    generator()->add_expr(expr);
+    return *expr;
+}
+
+Expr &Var::duplicate(const std::shared_ptr<Const> &count) const {
+    auto expr = std::make_shared<VarDuplicated>(const_cast<Var *>(this), count);
+    generator()->add_expr(expr);
+    return *expr;
+}
+
 VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
     auto const [high, low] = slice;
     if (low > high) {
@@ -245,7 +257,7 @@ VarConcat &Var::concat(Var &var) {
         }
     }
     auto concat_ptr = std::make_shared<VarConcat>(shared_from_this(), ptr->shared_from_this());
-    concat_vars_.emplace(concat_ptr);
+    concat_vars_.emplace_back(concat_ptr);
     return *concat_ptr;
 }
 
@@ -1257,6 +1269,40 @@ std::string VarExtend::to_string() const {
     return ::format("{0}'({1})", width(), parent_->to_string());
 }
 
+VarDuplicated::VarDuplicated(Var *var, uint32_t count) : Expr(ExprOp::Duplicate, var, nullptr) {
+    auto &c = Const::constant(static_cast<int64_t>(count), 32, false);
+    right = &c;
+    // compute width
+    var_width_ = count * var->width();
+}
+
+VarDuplicated::VarDuplicated(Var *var, const std::shared_ptr<Const> &count)
+    : Expr(ExprOp::Duplicate, var, nullptr) {
+    right = count.get();
+    // compute width
+    var_width_ = static_cast<uint32_t>(count->value()) * var->width();
+}
+
+uint32_t VarDuplicated::width() const {
+    auto count = right->as<Const>();
+    return static_cast<uint32_t>(count->value()) * left->width();
+}
+
+void VarDuplicated::add_sink(const std::shared_ptr<AssignStmt> &stmt) { left->add_sink(stmt); }
+
+void VarDuplicated::add_source(const std::shared_ptr<AssignStmt> &stmt) { left->add_source(stmt); }
+
+std::string VarDuplicated::to_string() const {
+    if (left->type() == VarType::Expression) {
+        auto expr = left->as<Expr>();
+        if (expr->op == ExprOp::Concat) {
+            return fmt::format("{{{0}{1}}}", right->to_string(), left->to_string());
+        }
+    }
+
+    return fmt::format("{{{0}{{{1}}}}}", right->to_string(), left->to_string());
+}
+
 std::string Const::to_string() const {
     if (num_bits_ != 0) {
         // very big number
@@ -1560,7 +1606,7 @@ void Var::move_linked_to(kratos::Var *new_var) {
         concat->replace_var(shared_from_this(), new_var->shared_from_this());
     }
     new_var->concat_vars_ =
-        std::unordered_set<std::shared_ptr<VarConcat>>(concat_vars_.begin(), concat_vars_.end());
+        std::vector<std::shared_ptr<VarConcat>>(concat_vars_.begin(), concat_vars_.end());
     concat_vars_.clear();
 
     // casted

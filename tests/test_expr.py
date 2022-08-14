@@ -274,5 +274,15 @@ def test_infer_const():
     assert str(expr) == "b ? 4'h0: a"
 
 
+def test_duplicate():
+    mod = Generator("mod")
+    a = mod.var("a", 4)
+    b = mod.param("p", value=4)
+    c = a.duplicate(2)
+    d = a.duplicate(b)
+    assert str(c) == "{32'h2{a}}"
+    assert str(d) == "{p{a}}"
+
+
 if __name__ == "__main__":
-    test_infer_const()
+    test_duplicate()

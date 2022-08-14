@@ -386,6 +386,15 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("type", &Var::type)
         .def("concat", &Var::concat, py::return_value_policy::reference, py::arg("var"))
         .def("extend", &Var::extend, py::return_value_policy::reference, py::arg("width"))
+        .def(
+            "duplicate", [](const Var &v, uint32_t count) -> Expr & { return v.duplicate(count); },
+            py::return_value_policy::reference, py::arg("count"))
+        .def(
+            "duplicate",
+            [](const Var &v, const std::shared_ptr<Const> &count) -> Expr & {
+                return v.duplicate(count);
+            },
+            py::return_value_policy::reference, py::arg("count"))
         .def_property(
             "name", [](const Var &var) { return var.name; },
             [](Var &var, const std::string &value) {
@@ -567,7 +576,7 @@ void init_expr(py::module &m) {
 
     auto concat = py::class_<VarConcat, ::shared_ptr<VarConcat>, Var>(m, "VarConcat");
 
-    auto param = py::class_<Param, ::shared_ptr<Param>, Var>(m, "Param");
+    auto param = py::class_<Param, ::shared_ptr<Param>, Const>(m, "Param");
     param
         .def_property("value", &Param::value,
                       [](Param &param, const py::object &value) {

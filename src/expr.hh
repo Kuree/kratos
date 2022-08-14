@@ -54,7 +54,8 @@ enum class ExprOp : uint64_t {
 
     // special
     Concat,
-    Extend
+    Extend,
+    Duplicate,
 };
 
 bool is_relational_op(ExprOp op);
@@ -127,6 +128,8 @@ public:
     virtual VarExtend &extend(uint32_t width);
     // power
     Expr &pow(const Var &var) const;
+    Expr &duplicate(const std::shared_ptr<Const> &count) const;
+    Expr &duplicate(uint32_t count) const;
 
     std::shared_ptr<Var> cast(VarCastType cast_type);
 
@@ -158,7 +161,7 @@ public:
     virtual void move_linked_to(Var *new_var);
     virtual void add_sink(const std::shared_ptr<AssignStmt> &stmt) { sinks_.emplace(stmt); }
     virtual void add_source(const std::shared_ptr<AssignStmt> &stmt) { sources_.emplace(stmt); }
-    void add_concat_var(const std::shared_ptr<VarConcat> &var) { concat_vars_.emplace(var); }
+    void add_concat_var(const std::shared_ptr<VarConcat> &var) { concat_vars_.emplace_back(var); }
 
     template <typename T>
     std::shared_ptr<T> as() {
@@ -240,7 +243,7 @@ protected:
 
     VarType type_ = VarType::Base;
 
-    std::unordered_set<std::shared_ptr<VarConcat>> concat_vars_;
+    std::vector<std::shared_ptr<VarConcat>> concat_vars_;
 
     std::vector<std::shared_ptr<VarSlice>> slices_;
 
@@ -698,6 +701,19 @@ private:
     Var *parent_;
 };
 
+struct VarDuplicated : public Expr {
+public:
+    VarDuplicated(Var *var, uint32_t count);
+    VarDuplicated(Var *var, const std::shared_ptr<Const> &count);
+
+    uint32_t width() const override;
+
+    void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+
+    std::string to_string() const override;
+};
+
 struct ConditionalExpr : public Expr {
     ConditionalExpr(const std::shared_ptr<Var> &condition, const std::shared_ptr<Var> &left,
                     const std::shared_ptr<Var> &right);
@@ -848,7 +864,7 @@ namespace util {
 std::shared_ptr<Expr> mux(Var &cond, Var &left, Var &right);
 std::shared_ptr<Expr> mux(Var &cond, int64_t left, Var &right);
 std::shared_ptr<Expr> mux(Var &cond, Var &left, int64_t right);
-}
+}  // namespace util
 
 }  // namespace kratos
 #endif  // KRATOS_EXPR_HH

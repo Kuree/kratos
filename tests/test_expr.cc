@@ -469,3 +469,19 @@ TEST(expr, large_width) {  // NOLINT
 
     EXPECT_NO_THROW(a + Const(1, 1024, false));
 }
+
+TEST(expr, duplicate) {
+    Context context;
+    auto &mod = context.generator("mod");
+    auto &a = mod.var("a", 10);
+    auto &b = mod.var("b", 10);
+    auto &c = a.duplicate(4);
+    auto &d = a.concat(b).duplicate(4);
+    auto &e = mod.parameter("p", 4);
+    e.set_value(10);
+    auto &f = a.duplicate(e.as<Param>());
+
+    EXPECT_EQ(c.to_string(), "{32'h4{a}}");
+    EXPECT_EQ(d.to_string(), "{32'h4{a, b}}");
+    EXPECT_EQ(f.to_string(), "{p{a}}");
+}
