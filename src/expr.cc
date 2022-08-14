@@ -51,7 +51,9 @@ bool is_unary_op(ExprOp op) {
 }
 
 uint32_t Var::width() const {
-    uint32_t w = width_param_ ? Simulator::static_evaluate_expr(width_param_) : var_width_;
+    uint32_t w = (width_param_ && type_ != VarType::Slice)
+                     ? Simulator::static_evaluate_expr(width_param_)
+                     : var_width_;
     for (auto const &i : size_) w *= i;
     return w;
 }
@@ -582,6 +584,13 @@ std::vector<std::pair<uint32_t, uint32_t>> VarSlice::get_slice_index() const {
     std::vector<std::pair<uint32_t, uint32_t>> result = parent_var->get_slice_index();
     result.emplace_back(std::make_pair(high, low));
     return result;
+}
+
+void VarSlice::set_width_param(kratos::Var *param) {
+    Var::set_width_param(param);
+    // recompute the var width
+    VarSlice s(parent_var, high, low);
+    var_width_ = s.var_width_;
 }
 
 PackedSlice &VarSlice::operator[](const std::string &member_name) {

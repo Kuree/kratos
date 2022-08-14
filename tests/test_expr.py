@@ -20,6 +20,10 @@ def test_slice():
     b = a[1, 0]
     assert b.width == 2
     assert str(b) == "a[1:0]"
+    p = mod.param("p", value=32, initial_value=32)
+    c = mod.input("c", p)
+    d = c[19, 0]
+    assert d.width == 20
 
 
 def test_assign():
@@ -285,4 +289,4 @@ def test_duplicate():
 
 
 if __name__ == "__main__":
-    test_duplicate()
+    test_slice()

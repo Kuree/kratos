@@ -192,7 +192,7 @@ public:
     // is parametrized
     bool parametrized() const { return width_param_ != nullptr; }
     void set_width_param(const std::shared_ptr<Var> &param);
-    void set_width_param(Var *param);
+    virtual void set_width_param(Var *param);
     Var *width_param() const { return width_param_; }
     bool raw_type_parametrized() const { return raw_type_param_ != nullptr; }
     void set_raw_type_param(Param *param) { raw_type_param_ = param; }
@@ -368,6 +368,8 @@ public:
     }
 
     std::vector<std::pair<uint32_t, uint32_t>> get_slice_index() const override;
+
+    void set_width_param(Var *param) override;
 
     PackedSlice &operator[](const std::string &member_name);
     VarSlice &operator[](uint32_t index) override { return Var::operator[](index); }
