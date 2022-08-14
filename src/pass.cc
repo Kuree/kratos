@@ -2565,6 +2565,13 @@ private:
                 auto if_then = then_stmt->as<IfStmt>();
                 auto target = if_then->predicate();
                 if (has_port_type(target.get(), PortType::ClockEnable) && !over_clk_en_) {
+                    // could be the case that it already has a reset
+                    if (!if_then->then_body()->empty() &&
+                        if_then->then_body()->get_stmt(0)->type() == StatementType::If) {
+                        auto if_2 = if_then->then_body()->get_stmt(0)->as<IfStmt>();
+                        // user already put it there
+                        if (has_port_type(if_2->predicate().get(), PortType::Reset)) return;
+                    }
                     // insert inside the clock enable body
                     auto body = if_then->then_body()->clone()->as<ScopedStmtBlock>();
                     // need to duplicate the logic in reset

@@ -352,11 +352,14 @@ def test_flush_skip(check_gold):
             self._flush = self.input("flush", 1)
             self.add_attribute("sync-reset=flush")
 
+            clk_en_port = self.clock_en("clk_en")
+
             self._a = self.var("a", 1)
             self._b = self.var("b", 1)
             self.add_code(self.regb)
             self.add_code(self.rega)
 
+            kratos.passes.auto_insert_clock_enable(self.internal_generator)
             kratos.passes.auto_insert_sync_reset(self.internal_generator)
 
         @always_ff((posedge, "clk"), (negedge, "rst_n"))

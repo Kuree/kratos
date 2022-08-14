@@ -1,5 +1,6 @@
 module parent (
   input logic clk,
+  input logic clk_en,
   input logic flush,
   input logic rst_n
 );
@@ -11,20 +12,24 @@ always_ff @(posedge clk, negedge rst_n) begin
   if (~rst_n) begin
     b <= 1'h0;
   end
-  else if (flush) begin
-    b <= 1'h0;
+  else if (clk_en) begin
+    if (flush) begin
+      b <= 1'h0;
+    end
+    else b <= ~b;
   end
-  else b <= ~b;
 end
 
 always_ff @(posedge clk, negedge rst_n) begin
   if (~rst_n) begin
     a <= 1'h0;
   end
-  else if (flush) begin
-    a <= 1'h1;
+  else if (clk_en) begin
+    if (flush) begin
+      a <= 1'h1;
+    end
+    else a <= ~a;
   end
-  else a <= ~a;
 end
 endmodule   // parent
 
