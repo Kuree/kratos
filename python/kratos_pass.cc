@@ -4,10 +4,8 @@
 
 #include "../src/debug.hh"
 #include "../src/except.hh"
-#include "../src/expr.hh"
 #include "../src/generator.hh"
 #include "../src/pass.hh"
-#include "../src/stmt.hh"
 #include "kratos_expr.hh"
 
 namespace py = pybind11;
