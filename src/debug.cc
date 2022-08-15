@@ -671,4 +671,202 @@ void remove_assertion(Generator *top) {
     remove_empty_block(top);
 }
 
+class TriggerConditionVisitor : public IRVisitor {
+public:
+    void visit(Var* var) override {
+        auto base_name = var->get_var_root_parent()->base_name();
+        values.emplace(base_name);
+    }
+
+    std::unordered_set<std::string> values;
+};
+
+std::string get_trigger_attribute(const std::shared_ptr<StmtBlock>& blk) {
+    TriggerConditionVisitor visitor;
+    visitor.visit_root(blk.get());
+    auto const& values = visitor.values;
+    if (values.empty()) return "";
+    return string::join(values.begin(), values.end(), " ");
+}
+
+class SSATransformFixVisitor : public IRVisitor {
+public:
+    void visit(Generator* gen) override {
+        auto stmts = gen->get_all_stmts();
+        for (auto const& stmt : stmts) {
+            if (stmt->type() == StatementType::Block && stmt->has_attribute("ssa")) {
+                auto blk_stmt = stmt->as<StmtBlock>();
+                if (blk_stmt->block_type() == StatementBlockType::Combinational) {
+                    process_always_comb(blk_stmt);
+                }
+            }
+        }
+    }
+
+private:
+    static void process_always_comb(const std::shared_ptr<StmtBlock>& blk) {
+        // also need to fix the scope variables
+        // we assume that every statement here has been SSA transformed
+        using SymbolMapping = std::unordered_map<std::string, std::string>;
+        uint64_t current_scope = 1;
+        std::unordered_map<uint64_t, SymbolMapping> symbol_mappings = {{current_scope, {}}};
+        std::unordered_set<Stmt*> stmts;
+        auto trigger_str = get_trigger_attribute(blk);
+        for (auto const& stmt : *blk) {
+            if (stmt->type() != StatementType::Assign)
+                throw StmtException("Invalid SSA transform", {stmt.get()});
+            auto assign_stmt = stmt->as<AssignStmt>();
+            auto* left = assign_stmt->left();
+            auto scope_id = get_target_scope(left);
+            if (scope_id) {
+                // detect when to start a new scope
+                if (current_scope != *scope_id) {
+                    // copy current scope to the new one
+                    auto const& current_mapping = symbol_mappings.at(current_scope);
+                    symbol_mappings[*scope_id] = {};
+                    for (auto const& iter : current_mapping) {
+                        symbol_mappings[*scope_id].emplace(iter);
+                    }
+                }
+                current_scope = *scope_id;
+            }
+            auto& symbol_mapping = symbol_mappings.at(current_scope);
+            // every statement is assign, and every variable should have been SSA transformed
+            auto parse_result = get_target_var_name(left);
+            if (!parse_result) throw StmtException("Invalid SSA transform", {stmt.get()});
+            auto const& [target_scope_name, target_var_name] = *parse_result;
+            // look into its scope variables
+            auto const& scope = stmt->scope_context();
+            std::map<std::string, std::pair<bool, std::string>> new_scope;
+            for (auto const& [name, var_map] : scope) {
+                auto const& [is_var, var_name] = var_map;
+                if (is_var && symbol_mapping.find(name) != symbol_mapping.end()) {
+                    new_scope.emplace(name, std::make_pair(true, symbol_mapping.at(name)));
+                } else {
+                    // just put it in the new scope
+                    new_scope.emplace(name, var_map);
+                }
+            }
+            stmt->set_scope_context(new_scope);
+
+            // just update the table name
+            // update symbol after the scope since the left side hasn't showed up in scope yet
+            symbol_mapping[target_scope_name] = left->to_string();
+
+            // set the trigger property
+            auto trigger_attribute = std::make_shared<Attribute>();
+            trigger_attribute->type_str = "ssa-trigger";
+            trigger_attribute->value_str = trigger_str;
+            stmt->add_attribute(trigger_attribute);
+        }
+    }
+
+    static std::optional<uint64_t> get_target_scope(const Var* var) {
+        auto const& attrs = var->get_attributes();
+        for (auto const& attr : attrs) {
+            auto const& value_str = attr->value_str;
+            auto pos = value_str.rfind("ssa-scope=");
+            if (pos == 0) {
+                auto v = value_str.substr(10);
+                return std::stoul(v);
+            }
+        }
+        return std::nullopt;
+    }
+};
+
+void ssa_transform_fix(Generator* top) {
+    SSATransformFixVisitor visitor;
+    visitor.visit_root(top);
+}
+
+// this is only for visiting the vars and assignments in the current generator
+class DebugInfoVisitor : public IRVisitor {
+public:
+    void visit(Var* var) override { add_info(var); }
+    void visit(Expr* expr) override { add_info(expr); }
+    void visit(EnumVar* var) override { add_info(var); }
+    void visit(EnumConst* var) override { add_info(var); }
+
+    void inline visit(AssignStmt* stmt) override { add_info(stmt); }
+
+    void visit(Port* var) override { add_info(var); }
+
+    void visit(SwitchStmt* stmt) override { add_info(stmt); }
+
+    void inline visit(SequentialStmtBlock* stmt) override { add_info(stmt); }
+
+    void inline visit(CombinationalStmtBlock* stmt) override { add_info(stmt); }
+
+    void inline visit(ModuleInstantiationStmt* stmt) override { add_info(stmt); }
+
+    void inline visit(IfStmt* stmt) override { add_info(stmt); }
+
+    void inline visit(FunctionCallStmt* stmt) override { add_info(stmt); }
+
+    void inline visit(FunctionStmtBlock* stmt) override { add_info(stmt); }
+
+    void inline visit(ReturnStmt* stmt) override { add_info(stmt); }
+
+    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>& result() { return result_; }
+
+private:
+    void inline add_info(Stmt* stmt) {
+        if (!stmt->fn_name_ln.empty() && stmt->verilog_ln != 0) {
+            result_.emplace(stmt->verilog_ln, stmt->fn_name_ln);
+        }
+    }
+
+    void inline add_info(Var* var) {
+        if (!var->fn_name_ln.empty() && var->verilog_ln != 0 &&
+            result_.find(var->verilog_ln) == result_.end()) {
+            result_.emplace(var->verilog_ln, var->fn_name_ln);
+        }
+    }
+
+    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> result_;
+};
+
+class GeneratorDebugVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        if (result_.find(generator->name) != result_.end()) return;
+        if (!generator->fn_name_ln.empty()) {
+            DebugInfoVisitor visitor;
+            visitor.result().emplace(1, generator->fn_name_ln);
+            visitor.visit_content(generator);
+            result_.emplace(generator->name, visitor.result());
+        }
+    }
+
+    const std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>&
+    result() {
+        return result_;
+    }
+
+private:
+    std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
+        result_;
+};
+
+std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
+extract_debug_info(Generator* top) {
+    GeneratorDebugVisitor visitor;
+    visitor.visit_generator_root(top);
+    return visitor.result();
+}
+
+std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_info_gen(
+    Generator* top) {
+    GeneratorDebugVisitor visitor;
+    visitor.visit_content(top);
+    auto result = visitor.result();
+    if (result.size() != 1) {
+        throw InternalException(
+            ::format("Unable to extract debug info from the particular generator {0}", top->name));
+    }
+    auto entry = result.begin();
+    return (*entry).second;
+}
+
 }  // namespace kratos
