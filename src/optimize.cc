@@ -1,11 +1,14 @@
 #include "optimize.hh"
-#include "stmt.hh"
-#include "fmt/format.h"
-#include "except.hh"
-#include "util.hh"
-#include "syntax.hh"
 
 #include <algorithm>
+#include <iostream>
+#include <mutex>
+
+#include "except.hh"
+#include "fmt/format.h"
+#include "stmt.hh"
+#include "syntax.hh"
+#include "util.hh"
 
 using fmt::format;
 
@@ -916,6 +919,201 @@ private:
 void auto_insert_sync_reset(Generator* top) {
     InsertSyncReset visitor(top);
     visitor.visit_generator_root_p(top);
+}
+
+class RemoveEmptyBlockVisitor : public IRVisitor {
+public:
+    void visit(Generator* top) override {
+        auto stmt_count = top->stmts_count();
+        std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = top->get_stmt(i);
+            if (!dispatch_node(stmt)) stmts_to_remove.emplace_back(stmt);
+        }
+        for (auto const& stmt : stmts_to_remove) {
+            top->remove_stmt(stmt);
+        }
+    }
+
+private:
+    std::shared_ptr<IfStmt> process(std::shared_ptr<IfStmt> stmt) {
+        auto then_ = stmt->then_body();
+        auto then_body = process(then_);
+        auto else_body = process(stmt->else_body());
+        if (!then_body) {
+            // then is empty
+            if (else_body->empty()) {
+                return nullptr;
+            } else {
+                // invert the condition and make else then
+                auto cond = stmt->predicate();
+                auto& new_cond = ~(*cond);
+                stmt->set_predicate(new_cond.shared_from_this());
+                stmt->set_then(else_body->as<ScopedStmtBlock>());
+                stmt->set_else(std::make_shared<ScopedStmtBlock>());
+                return stmt;
+            }
+        }
+        stmt->set_then(then_body->as<ScopedStmtBlock>());
+        return stmt;
+    }
+
+    std::shared_ptr<StmtBlock> process(std::shared_ptr<StmtBlock> stmt) {
+        auto stmt_count = stmt->size();
+        std::vector<std::shared_ptr<Stmt>> stmts_to_remove;
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto st = stmt->get_stmt(i);
+            auto r = dispatch_node(st);
+            if (!r) {
+                stmts_to_remove.emplace_back(st);
+                continue;
+            }
+            stmt->set_child(i, r);
+        }
+        for (auto const& st : stmts_to_remove) {
+            stmt->remove_stmt(st);
+        }
+        if (stmt->empty())
+            return nullptr;
+        else
+            return stmt;
+    }
+
+    std::shared_ptr<SwitchStmt> process(std::shared_ptr<SwitchStmt> stmt) {
+        std::map<std::shared_ptr<Const>, std::shared_ptr<ScopedStmtBlock>> new_body;
+        auto const& body = stmt->body();
+        for (const auto& [cond, block] : body) {
+            auto r = process(block);
+            if (r) {
+                new_body.emplace(cond, r->as<ScopedStmtBlock>());
+            }
+        }
+        if (new_body.empty()) return nullptr;
+        stmt->set_body(new_body);
+        return stmt;
+    }
+
+    std::shared_ptr<Stmt> dispatch_node(std::shared_ptr<Stmt> stmt) {
+        if (stmt->type() == StatementType::If) {
+            return process(std::static_pointer_cast<IfStmt>(stmt));
+        } else if (stmt->type() == StatementType::Switch) {
+            return process(std::static_pointer_cast<SwitchStmt>(stmt));
+        } else if (stmt->type() == StatementType::Block) {
+            return process(std::static_pointer_cast<ScopedStmtBlock>(stmt));
+        } else {
+            return stmt;
+        }
+    }
+};
+
+void remove_empty_block(Generator* top) {
+    RemoveEmptyBlockVisitor visitor;
+    visitor.visit_root(top);
+}
+
+class MergeConstPortVisitor : public IRVisitor {
+    void visit(Generator* generator) override {
+        // scan each var that's one source and one sink, where the source is a constant
+        // and the sink is a child generator instance input port
+        auto const vars = generator->get_vars();
+        std::set<std::string> vars_to_remove;
+        std::set<std::shared_ptr<Stmt>> stmts_to_remove;
+
+        for (auto const& var_name : vars) {
+            auto const& var = generator->get_var(var_name);
+            if (var->type() == VarType::Base && var->sources().size() == 1 &&
+                var->sinks().size() == 1) {
+                auto source_stmt = *(var->sources().begin());
+                auto sink_stmt = *(var->sinks().begin());
+                auto* source_from = source_stmt->right();
+                auto* sink_to = sink_stmt->left();
+                if (source_from->type() == VarType::ConstValue &&
+                    sink_to->type() == VarType::PortIO &&
+                    sink_to->generator()->parent() == generator) {
+                    sink_to->clear_sources(false);
+                    generator->add_stmt(sink_to->assign(*source_from, AssignmentType::Blocking));
+                    var->remove_sink(sink_stmt);
+                    var->remove_source(source_stmt);
+                    stmts_to_remove.emplace(sink_stmt);
+                    stmts_to_remove.emplace(source_stmt);
+                    vars_to_remove.emplace(var_name);
+                }
+            }
+        }
+
+        for (auto const& var_name : vars_to_remove) {
+            generator->remove_var(var_name);
+        }
+        for (auto const& stmt : stmts_to_remove) {
+            generator->remove_stmt(stmt);
+        }
+    }
+};
+
+void merge_const_port_assignment(Generator* top) {
+    MergeConstPortVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
+class VarUnusedVisitor : public IRVisitor {
+public:
+    void visit(Generator* generator) override {
+        std::set<std::string> vars_to_remove;
+        auto vars = generator->vars();
+        for (auto const& [var_name, var] : vars) {
+            if (var->type() != VarType::Base || var->is_interface()) continue;
+            if (var->sinks().empty()) {
+                if (var->sources().empty() && !var->is_interface()) {
+                    vars_to_remove.emplace(var_name);
+                } else {
+                    // print out warnings
+                    error_mutex_.lock();
+                    std::cerr << "Variable: " << var->to_string() << " has no sink" << std::endl;
+                    print_ast_node(var.get());
+                    error_mutex_.unlock();
+                }
+            }
+        }
+
+        // remove unused vars
+        for (auto const& var_name : vars_to_remove) {
+            generator->remove_var(var_name);
+        }
+    }
+
+private:
+    std::mutex error_mutex_;
+};
+
+void remove_unused_vars(Generator* top) {
+    VarUnusedVisitor visitor;
+    visitor.visit_generator_root_p(top);
+}
+
+class UnusedTopBlockVisitor : public IRVisitor {
+    void visit(Generator* generator) override {
+        std::set<std::shared_ptr<Stmt>> blocks_to_remove = {};
+        uint64_t stmt_count = generator->stmts_count();
+        for (uint64_t i = 0; i < stmt_count; i++) {
+            auto stmt = generator->get_stmt(i);
+            if (stmt->type() == StatementType::Block) {
+                auto* block = dynamic_cast<StmtBlock*>(stmt.get());
+                if (block->empty()) blocks_to_remove.emplace(stmt);
+            }
+        }
+
+        for (auto const& stmt : blocks_to_remove) {
+            generator->remove_stmt(stmt);
+        }
+    }
+};
+
+void remove_unused_stmts(Generator* top) {
+    // for now we'll just remove the top level unused blocks
+    // ideally this should be done through multiple rounds to avoid circular reference,
+    // removed dead stmts and other problems. It should also remove all the other empty statements
+    UnusedTopBlockVisitor visitor;
+    visitor.visit_generator_root(top);
 }
 
 }  // namespace kratos

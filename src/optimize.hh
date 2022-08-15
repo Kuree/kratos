@@ -21,6 +21,14 @@ void auto_insert_clock_enable(Generator *top);
 
 void auto_insert_sync_reset(Generator *top);
 
+void remove_empty_block(Generator *top);
+
+void merge_const_port_assignment(Generator *top);
+
+void remove_unused_vars(Generator* top);
+
+void remove_unused_stmts(Generator* top);
+
 }  // namespace kratos
 
 #endif  // KRATOS_OPTIMIZE_HH
