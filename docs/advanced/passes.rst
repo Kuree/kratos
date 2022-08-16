@@ -109,7 +109,7 @@ readable and your life easier:
 - ``check_always_sensitivity``: check to make sure the variable in the
   sensitivity list is properly typed. Only allow clock and async reset
   signals.
-- ``check_multiple_driver``: check if a signle is illegally driven by
+- ``check_multiple_driver``: check if a signal is illegally driven by
   multiple drivers.
 - ``inject_debug_break_points``: inject the breakpoints in the IR, which
   will be used to interact with ``kratos-runtime``.
@@ -119,6 +119,11 @@ readable and your life easier:
   design when necessary to keep the IR succinct.
 - ``check_flip_flop_always_ff``: make sure that ``always_ff`` is
   synthesizable for Design Compiler. See ELAB-302 in user guide.
+- ``dead_code_elimination``: aggressively removes logic that does not
+  contribute to any output logic. This will remove ports, instances, and
+  any internal logic, including registers.
+- ``auto_insert_clock_enable``: insert clock enable if the generator is
+  has a clock enable port and hasn't been marked with "dont_touch".
 
 
 Write your own Pass
