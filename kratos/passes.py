@@ -42,6 +42,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             contains_event: bool = False,
             lift_genvar_instances: bool = False,
             fix_port_legality: bool = False,
+            dead_code_elimination: bool = False,
             compile_to_verilog: bool = False):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
@@ -62,6 +63,9 @@ def verilog(generator: Generator, optimize_if: bool = True,
     if optimize_if:
         pass_manager.add_pass("merge_if_block")
         pass_manager.add_pass("transform_if_to_case")
+    # we run the dead code elimination early on
+    if dead_code_elimination:
+        pass_manager.add_pass("dead_code_elimination")
     # fsm elaboration has to happen before unused vars removal
     pass_manager.add_pass("zero_out_stubs")
     if optimize_fanout:

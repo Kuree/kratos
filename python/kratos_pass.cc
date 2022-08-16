@@ -66,7 +66,8 @@ void init_pass(py::module &m) {
         .def("auto_insert_sync_reset", &auto_insert_sync_reset)
         .def("change_property_into_stmt", &change_property_into_stmt)
         .def("remove_event_stmts", &remove_event_stmts)
-        .def("port_legality_fix", &port_legality_fix);
+        .def("port_legality_fix", &port_legality_fix)
+        .def("dead_code_elimination", &dead_code_elimination);
 
     auto manager = py::class_<PassManager>(pass_m, "PassManager", R"pbdoc(
 This class gives you the fined control over which pass to run and in which order.
