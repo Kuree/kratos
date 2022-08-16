@@ -144,7 +144,7 @@ TEST(pass, decouple1) {  // NOLINT
     EXPECT_TRUE(new_var != nullptr);
 
     EXPECT_EQ(new_var->sources().size(), 1);
-    auto new_var_src = (*new_var->sources().begin())->right();
+    auto *new_var_src = (*new_var->sources().begin())->right();
     EXPECT_EQ(new_var_src, &port1_1.concat(port2_1));
     EXPECT_EQ(stmt->right()->to_string(), "{inst0_out, inst1_out}");
 }
