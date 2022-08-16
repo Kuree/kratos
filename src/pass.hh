@@ -124,6 +124,8 @@ void sort_stmts(Generator* top);
 
 void ssa_transform_fix(Generator *top);
 
+void dead_code_elimination(Generator *top);
+
 class PassManager {
 public:
     PassManager() = default;

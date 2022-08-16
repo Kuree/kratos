@@ -356,6 +356,8 @@ void PassManager::register_builtin_passes() {
     register_pass("ssa_transform_fix", &ssa_transform_fix);
 
     register_pass("port_legality_fix", &port_legality_fix);
+
+    register_pass("dead_code_elimination", &dead_code_elimination);
 }
 
 }  // namespace kratos
