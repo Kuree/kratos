@@ -1174,9 +1174,21 @@ void VarConcat::add_source(const std::shared_ptr<kratos::AssignStmt> &stmt) {
     }
 }
 
+void VarConcat::remove_source(const std::shared_ptr<AssignStmt> &stmt) {
+    for (auto &var : vars_) {
+        var->remove_source(stmt);
+    }
+}
+
 void VarConcat::add_sink(const std::shared_ptr<kratos::AssignStmt> &stmt) {
     for (auto &var : vars_) {
         var->add_sink(stmt);
+    }
+}
+
+void VarConcat::remove_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    for (auto &var : vars_) {
+        var->remove_sink(stmt);
     }
 }
 
@@ -1268,6 +1280,8 @@ void VarExtend::add_source(const std::shared_ptr<AssignStmt> &) {
 
 void VarExtend::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_->add_sink(stmt); }
 
+void VarExtend::remove_sink(const std::shared_ptr<AssignStmt> &stmt) {parent_->remove_sink(stmt); }
+
 void VarExtend::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
     if (target.get() == parent_) {
         parent_ = item.get();
@@ -1297,9 +1311,15 @@ uint32_t VarDuplicated::width() const {
     return static_cast<uint32_t>(count->value()) * left->width();
 }
 
-void VarDuplicated::add_sink(const std::shared_ptr<AssignStmt> &stmt) { left->add_sink(stmt); }
+void VarDuplicated::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    throw StmtException("Duplicate variable cannot be on left hand side", {stmt.get()});
+}
 
 void VarDuplicated::add_source(const std::shared_ptr<AssignStmt> &stmt) { left->add_source(stmt); }
+
+void VarDuplicated::remove_source(const std::shared_ptr<AssignStmt> &stmt) {
+    left->remove_source(stmt);
+}
 
 std::string VarDuplicated::to_string() const {
     if (left->type() == VarType::Expression) {
@@ -1651,6 +1671,11 @@ void Expr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     if (right) right->add_sink(stmt);
 }
 
+void Expr::remove_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    left->remove_sink(stmt);
+    if (right) right->remove_sink(stmt);
+}
+
 void VarSlice::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     Var *parent = parent_var;
     parent->add_sink(stmt);
@@ -1695,6 +1720,12 @@ void ConditionalExpr::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
     condition->add_sink(stmt);
     left->add_sink(stmt);
     right->add_sink(stmt);
+}
+
+void ConditionalExpr::remove_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    condition->remove_sink(stmt);
+    left->remove_sink(stmt);
+    right->remove_sink(stmt);
 }
 
 std::string ConditionalExpr::to_string() const {
@@ -2206,6 +2237,12 @@ void FunctionCallVar::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
             generator()->add_function(func_def_->as<FunctionStmtBlock>());
             generator()->add_call_var(as<FunctionCallVar>());
         }
+    }
+}
+
+void FunctionCallVar::remove_sink(const std::shared_ptr<AssignStmt> &stmt) {
+    for (auto const &iter : args_) {
+        iter.second->remove_sink(stmt);
     }
 }
 

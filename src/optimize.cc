@@ -1162,12 +1162,10 @@ private:
             }
         }
 
-        auto* parent = generator->parent_generator();
         for (auto const& port_name : ports_to_remove) {
             // need to un-wire the parent
             auto const& port = generator->get_port(port_name);
             remove_var(port.get());
-            generator->remove_port(port_name);
         }
     }
 
@@ -1190,7 +1188,11 @@ private:
             stmt->remove_from_parent();
         }
 
-        generator->remove_var(var->name);
+        if (var->type() == VarType::PortIO) {
+            generator->remove_port(var->name);
+        } else {
+            generator->remove_var(var->name);
+        }
     }
 };
 

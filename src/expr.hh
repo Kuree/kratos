@@ -633,6 +633,7 @@ public:
     Expr(ExprOp op, Var *left, Var *right);
     std::string to_string() const override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override;
 
     uint32_t width() const override;
 
@@ -659,7 +660,9 @@ public:
 
     // we tie it to the parent
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
     const std::vector<Var *> &vars() const { return vars_; }
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
@@ -688,6 +691,7 @@ public:
     VarExtend(const std::shared_ptr<Var> &var, uint32_t width);
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
     void replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item);
 
@@ -712,6 +716,7 @@ public:
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_source(const std::shared_ptr<AssignStmt> &stmt) override;
 
     std::string to_string() const override;
 };
@@ -722,6 +727,7 @@ struct ConditionalExpr : public Expr {
     uint64_t child_count() override { return 3; }
     IRNode *get_child(uint64_t index) override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     std::string to_string() const override;
     std::string handle_name(bool ignore_top) const override;
     std::string handle_name(Generator *scope) const override;
@@ -810,6 +816,7 @@ public:
     std::string to_string() const override;
 
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
+    void remove_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_source(const std::shared_ptr<AssignStmt> &) override {
         throw std::runtime_error("Slice a function call is not allowed");
     }

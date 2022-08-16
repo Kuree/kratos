@@ -404,3 +404,54 @@ TEST(pass, unused_var) {  // NOLINT
     EXPECT_TRUE(mod.get_var("in") != nullptr);
     EXPECT_TRUE(mod.get_var("c") != nullptr);
 }
+
+TEST(pass, dead_code_elimination_1) {
+    Context c;
+    auto &mod = c.generator("mod");
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    mod.wire(a, b);
+
+    dead_code_elimination(&mod);
+    EXPECT_TRUE(mod.get_vars().empty());
+}
+
+TEST(pass, dead_code_elimination_2) {
+    // remove statements inside scopes
+    Context ctx;
+    auto &mod = ctx.generator("mod");
+    auto &a = mod.var("a", 1);
+    auto &b = mod.var("b", 1);
+    auto &c = mod.var("c", 1);
+    mod.wire(a, b);
+    auto const &comb = mod.combinational();
+    comb->add_stmt(c.assign(a));
+
+    dead_code_elimination(&mod);
+    EXPECT_TRUE(mod.get_vars().empty());
+    EXPECT_TRUE(mod.get_all_stmts().empty());
+}
+
+TEST(pass, dead_code_elimination_3) {
+    // cross boundary of modules
+    Context ctx;
+    auto &mod = ctx.generator("mod");
+    auto &child = ctx.generator("child");
+    mod.add_child_generator("inst", child);
+    auto &in1 = child.port(PortDirection::In, "in1", 1);
+    auto &in2 = child.port(PortDirection::In, "in2", 1);
+    auto &v = child.var("v", 1);
+    child.wire(v, in1 & in2);
+    auto &v1 = mod.var("v1", 1);
+    auto &v2 = mod.var("v2", 1);
+    mod.wire(in1, v1);
+    mod.wire(in2, v2);
+
+    fix_assignment_type(&mod);
+    verify_generator_connectivity(&mod);
+    verify_assignments(&mod);
+
+    dead_code_elimination(&mod);
+    EXPECT_TRUE(mod.get_vars().empty());
+    EXPECT_EQ(mod.get_child_generator_size(), 0);
+}
