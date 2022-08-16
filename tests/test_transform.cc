@@ -1,7 +1,5 @@
 #include "../src/codegen.hh"
-#include "../src/debug.hh"
 #include "../src/except.hh"
-#include "../src/formal.hh"
 #include "../src/fsm.hh"
 #include "../src/generator.hh"
 #include "../src/interface.hh"
@@ -114,6 +112,43 @@ TEST(pass, decouple_generator_ports) {  // NOLINT
     EXPECT_EQ(src.size(), 3);
 }
 
+TEST(pass, decouple1) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
+    auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
+    auto &port1_3 = mod1.port(PortDirection::Out, "out2", 2);
+
+    auto &mod2 = c.generator("module2");
+    auto &port2_1 = mod2.port(PortDirection::In, "in", 1);
+    auto &port2_2 = mod2.port(PortDirection::Out, "out", 1);
+
+    auto &mod3 = c.generator("module3");
+    auto &port3_1 = mod3.port(PortDirection::In, "in", 2);
+    auto &port3_2 = mod3.port(PortDirection::Out, "out", 1);
+
+    mod1.add_child_generator("inst0", mod2.shared_from_this());
+    mod1.add_child_generator("inst1", mod3.shared_from_this());
+
+    mod1.add_stmt(port2_1.assign(port1_2));
+    mod1.add_stmt(port3_1.assign(port1_1.concat(port2_1)));
+    auto stmt = port1_3.assign(port2_2.concat(port3_2));
+    mod1.add_stmt(stmt);
+
+    EXPECT_EQ(mod1.stmts_count(), 3);
+    decouple_generator_ports(&mod1);
+    create_module_instantiation(&mod1);
+    check_mixed_assignment(&mod1);
+    EXPECT_EQ(mod1.stmts_count(), 2 + 2);
+    auto new_var = mod1.get_var("inst1_in");
+    EXPECT_TRUE(new_var != nullptr);
+
+    EXPECT_EQ(new_var->sources().size(), 1);
+    auto new_var_src = (*new_var->sources().begin())->right();
+    EXPECT_EQ(new_var_src, &port1_1.concat(port2_1));
+    EXPECT_EQ(stmt->right()->to_string(), "{inst0_out, inst1_out}");
+}
+
 TEST(pass, decouple2) {  // NOLINT
     Context c;
     auto &mod1 = c.generator("parent");
@@ -199,4 +234,33 @@ TEST(pass, bundle_to_struct) {  // NOLINT
     create_module_instantiation(&mod1);
     remove_fanout_one_wires(&mod1);
     generate_verilog(&mod1);
+}
+
+TEST(pass, verilog_instance) {  // NOLINT
+    Context c;
+    auto &mod1 = c.generator("module1");
+    mod1.debug = true;
+    auto &port1_1 = mod1.port(PortDirection::In, "in", 1);
+    auto &port1_2 = mod1.port(PortDirection::Out, "out", 1);
+
+    auto &mod2 = c.generator("module2");
+    auto &port2_1 = mod2.port(PortDirection::In, "in", 2);
+    auto &port2_2 = mod2.port(PortDirection::Out, "out", 2);
+
+    auto stmt = port2_2.assign(port2_1);
+    mod2.add_stmt(stmt);
+    stmt = port2_1.assign(port1_1.concat(port1_1));
+    mod1.add_stmt(stmt);
+    stmt = port1_2.assign(port2_2[0]);
+    mod1.add_stmt(stmt);
+
+    mod1.add_child_generator("inst0", mod2.shared_from_this());
+    // lazy. just use this pass to fix the assignment type
+    decouple_generator_ports(&mod1);
+    fix_assignment_type(&mod1);
+    create_module_instantiation(&mod1);
+    auto const &result = generate_verilog(&mod1);
+    EXPECT_EQ(result.size(), 2);
+    EXPECT_TRUE(result.find("module1") != result.end());
+    EXPECT_TRUE(is_valid_verilog(result));
 }
