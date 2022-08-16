@@ -1126,34 +1126,31 @@ public:
             changed = false;
             const auto& var_names = generator->get_vars();
             for (auto const& var_name : var_names) {
-                auto const &var = generator->get_var(var_name);
+                auto const& var = generator->get_var(var_name);
+                if (var->type() != VarType::Base) continue;
                 if (var->sinks().empty()) {
                     // remove all the sources
-                    auto const &sources = var->sources();
-                    for (auto const &stmt: sources) {
-                        auto *right = stmt->right();
-                        right->remove_sink(stmt);
-                        stmt->remove_from_parent();
-                    }
-                    generator->remove_var(var_name);
+                    remove_var(var.get());
                     changed = true;
                     break;
                 }
             }
         }
-    }
-};
 
-class DeadCodePortElimination: public IRVisitor {
-public:
-    void visit(Generator *generator) override {
+        // because we run child first, the parent's content get cleared out
+        // nicely before this pass runs on parent
+        clear_out_ports(generator);
+    }
+
+private:
+    static void clear_out_ports(Generator* generator) {
         // we don't deal with top level ports, since it changes
         // interface
         if (!generator->parent_generator()) return;
-        auto const &port_names = generator->get_port_names();
+        auto const& port_names = generator->get_port_names();
         std::vector<std::string> ports_to_remove;
-        for (auto const &port_name: port_names) {
-            auto const &p = generator->get_port(port_name);
+        for (auto const& port_name : port_names) {
+            auto const& p = generator->get_port(port_name);
             if (p->port_direction() == PortDirection::In) {
                 if (p->sinks().empty()) {
                     ports_to_remove.emplace_back(port_name);
@@ -1165,27 +1162,50 @@ public:
             }
         }
 
-        for (auto const &port_name: ports_to_remove) {
+        auto* parent = generator->parent_generator();
+        for (auto const& port_name : ports_to_remove) {
             // need to un-wire the parent
-            auto *parent = generator->parent_generator();
-            for (auto const &sink)
+            auto const& port = generator->get_port(port_name);
+            remove_var(port.get());
             generator->remove_port(port_name);
         }
     }
+
+    static void remove_var(Var* var) {
+        auto* generator = var->generator();
+
+        auto sources = std::unordered_set<std::shared_ptr<AssignStmt>>(var->sources());
+        for (auto const& stmt : sources) {
+            auto* right = stmt->right();
+            right->remove_sink(stmt);
+            var->remove_source(stmt);
+            stmt->remove_from_parent();
+        }
+
+        auto sinks = std::unordered_set<std::shared_ptr<AssignStmt>>(var->sinks());
+        for (auto const& stmt : sinks) {
+            auto* left = stmt->left();
+            left->remove_source(stmt);
+            var->remove_sink(stmt);
+            stmt->remove_from_parent();
+        }
+
+        generator->remove_var(var->name);
+    }
 };
 
-class DeadCodeInstanceElimination: public IRVisitor {
+class DeadCodeInstanceElimination : public IRVisitor {
     // this pass eliminates empty instance
 public:
     void visit(Generator* generator) override {
-        auto const &children = generator->get_child_generators();
+        auto const& children = generator->get_child_generators();
         std::vector<std::shared_ptr<Generator>> remove_set;
-        for (auto const &child: children) {
+        for (auto const& child : children) {
             if (child->get_port_names().empty()) {
                 remove_set.emplace_back(child);
             }
         }
-        for (auto const &child: remove_set) {
+        for (auto const& child : remove_set) {
             generator->remove_child_generator(child);
         }
     }
@@ -1196,18 +1216,13 @@ void dead_code_elimination(Generator* top) {
         DeadCodeVarElimination visitor;
         visitor.visit_generator_root_p(top);
     }
-
-    {
-        DeadCodePortElimination visitor;
-        visitor.visit_generator_root_p(top);
-    }
-
     {
         DeadCodeInstanceElimination visitor;
         visitor.visit_generator_root_p(top);
     }
 
-
+    // clean up empty stmt blocks
+    remove_empty_block(top);
 }
 
 }  // namespace kratos
