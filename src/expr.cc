@@ -2065,6 +2065,10 @@ StringConst::StringConst(std::string value, uint32_t width)
 
 std::string StringConst::to_string() const { return ::format("\"{0}\"", value_); }
 
+std::string GeneratorConst::to_string() const {
+    return gen_.name;
+}
+
 IterVar::IterVar(kratos::Generator *m, const std::string &name, int64_t min_value,
                  int64_t max_value, bool signed_)
     : Var(m, name, 32u, 1, signed_, VarType::Iter), min_value_(min_value), max_value_(max_value) {

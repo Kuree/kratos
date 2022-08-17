@@ -362,6 +362,7 @@ public:
     virtual bool is_dpi() { return false; }
     // tell if it's built-in functions
     virtual bool is_builtin() const { return false; }
+    virtual bool is_task() const { return false; }
 
 protected:
     Generator *parent_;
@@ -417,9 +418,11 @@ public:
     bool has_return_value() const override { return return_width() > 0; }
 
     uint32_t return_width() const { return known_functions_.at(function_name_); }
+    bool is_task() const override;
 
 private:
     static std::unordered_map<std::string, uint32_t> known_functions_;
+    static std::unordered_set<std::string> known_tasks_;
 };
 
 class ReturnStmt : public Stmt {

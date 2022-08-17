@@ -230,19 +230,21 @@ public:
 
     void visit(FunctionCallVar* var) override {
         auto* const def = var->func();
-        if (def->is_dpi()) {
+        if (def->is_dpi() || def->is_task()) {
             nodes_.emplace_back(var);
         }
     }
 
     void visit(FunctionCallStmt* stmt) override {
         auto const& def = stmt->func();
-        if (def->is_dpi()) {
+        if (def->is_dpi() || def->is_task()) {
             nodes_.emplace_back(stmt);
         }
     }
 
     void visit(AuxiliaryStmt* stmt) override { nodes_.emplace_back(stmt); }
+
+    void visit(InitialStmtBlock* stmt) override { nodes_.emplace_back(stmt); }
 
     const std::vector<IRNode*>& nodes() const { return nodes_; }
 

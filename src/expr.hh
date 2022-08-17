@@ -766,6 +766,16 @@ private:
     std::string value_;
 };
 
+struct GeneratorConst : public Const {
+public:
+    GeneratorConst(Generator &gen) : Const(0, 1, false), gen_(gen) {}
+
+    std::string to_string() const override;
+
+private:
+    Generator &gen_;
+};
+
 struct Enum : std::enable_shared_from_this<Enum> {
 public:
     Enum(const std::string &name, const std::map<std::string, uint64_t> &values, uint32_t width);

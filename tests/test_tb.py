@@ -1,4 +1,4 @@
-from kratos import Generator, TestBench, initial, assert_, delay, Sequence
+from kratos import Generator, TestBench, initial, assert_, delay, Sequence, verilog
 
 
 def tb_dut_setup():
@@ -60,6 +60,28 @@ def test_tb_sequence(check_gold):
 
     src = tb.codegen()
     check_gold(src, "test_tb_sequence")
+
+
+def test_display_stmt():
+    mod = Generator("gen")
+    a = mod.var("a", 1)
+
+    @initial
+    def code():
+        mod.display("%d", a)
+
+    mod.add_always(code)
+
+    src = verilog(mod)["gen"]
+    assert '$display ("%d", a);\n' in src
+
+    import _kratos
+    from kratos.passes import check_non_synthesizable_content
+    try:
+        check_non_synthesizable_content(mod.internal_generator)
+        assert False
+    except _kratos.exception.UserException:
+        pass
 
 
 if __name__ == "__main__":

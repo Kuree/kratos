@@ -79,6 +79,22 @@ onehot0 = __bit_task("onehot0")
 isunknown = __bit_task("isunknown")
 
 
+def __systask(name: str):
+    class _SysTask:
+        def __init__(self):
+            self.name = name
+
+        def __call__(self, generator, *args):
+            from kratos.func import get_built_in
+            fn = get_built_in(generator, self.name)
+            return fn(*args)
+
+    return _SysTask()
+
+
+display = __systask("display")
+
+
 def flog2(x: int) -> int:
     if x == 0:
         return 0

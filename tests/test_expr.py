@@ -302,5 +302,11 @@ def test_string_const():
         pass
 
 
+def test_display_call():
+    mod = Generator("mod")
+    c = mod.display("test", mod.var("a", 1))
+    assert str(c) == '$display ("test", a)'
+
+
 if __name__ == "__main__":
-    test_string_const()
+    test_display_call()

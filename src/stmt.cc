@@ -44,7 +44,7 @@ Generator *Stmt::generator_parent() const {
 
 Stmt *Stmt::pre_stmt() const {
     if (!parent_ || parent_->ir_node_kind() != IRNodeKind::StmtKind) return nullptr;
-    auto *stmt_parent = reinterpret_cast<Stmt*>(parent_);
+    auto *stmt_parent = reinterpret_cast<Stmt *>(parent_);
     if (stmt_parent->type_ != StatementType::Block) return nullptr;
     auto const &block = stmt_parent->as<StmtBlock>();
     auto index = block->index_of(this);
@@ -739,26 +739,30 @@ void DPIFunctionStmtBlock::set_is_pure(bool value) {
     is_context_ = !value;
 }
 
-std::unordered_map<std::string, uint32_t> BuiltInFunctionStmtBlock::known_functions_;
+// all the known functions should be synthesizable
+std::unordered_map<std::string, uint32_t> BuiltInFunctionStmtBlock::known_functions_ = {
+    {"clog2", 32},    {"countones", 32}, {"onehot", 1},          {"onehot0", 1},
+    {"isunknown", 1}, {"display", 0},    {"hgdb_assert_fail", 0}};
+
 BuiltInFunctionStmtBlock::BuiltInFunctionStmtBlock(Generator *parent,
                                                    const std::string &function_name)
     : FunctionStmtBlock(parent, function_name) {
-    // check known functions
-    if (known_functions_.empty()) {
-        // initialize
-        // all the known functions should be synthesizable
-        known_functions_ = {
-            {"clog2", 32}, {"countones", 1}, {"onehot", 1}, {"onehot0", 1}, {"isunknown", 1}};
-    }
     if (known_functions_.find(function_name) == known_functions_.end()) {
         std::string known_functions;
         for (auto const &iter : known_functions_) {
             known_functions += ::format("\n  {0}", iter.first);
         }
-        throw UserException(
-            ::format("{0} is either not supported or not a system. Supported methods are:{1}",
-                     function_name, known_functions));
+        throw UserException(::format(
+            "{0} is either not supported or not a system built-in. Supported methods are:{1}",
+            function_name, known_functions));
     }
+}
+
+std::unordered_set<std::string> BuiltInFunctionStmtBlock::known_tasks_ = {"display",
+                                                                          "hgdb_assert_fail"};
+
+bool BuiltInFunctionStmtBlock::is_task() const {
+    return known_tasks_.find(function_name_) != known_tasks_.end();
 }
 
 ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def, std::shared_ptr<Var> value)
