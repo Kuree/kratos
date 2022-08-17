@@ -288,5 +288,19 @@ def test_duplicate():
     assert str(d) == "{p{a}}"
 
 
+def test_string_const():
+    mod = Generator("mod")
+    s = const("kratos", 8 * 8)
+    assert str(s) == '"kratos"'
+    a = mod.var("a", 64)
+    mod.wire(a, s)
+    # should fail
+    try:
+        const("kratos", 8)
+        assert False
+    except _kratos.exception.UserException:
+        pass
+
+
 if __name__ == "__main__":
-    test_slice()
+    test_string_const()

@@ -968,6 +968,12 @@ Const &Const::constant(const std::string &hex_value, uint32_t num_bits, bool neg
     return *p;
 }
 
+Const &Const::constant(std::string value, uint32_t width) {
+    auto p = std::make_shared<StringConst>(std::move(value), width);
+    consts_.emplace(p);
+    return *p;
+}
+
 void Const::set_is_packed(bool value) {
     if (!value) throw UserException("Unable to set const unpacked");
 }
@@ -1057,6 +1063,27 @@ void Const::set_value(int64_t new_value) {
             ::format("Unable to set const to {0} with width {1}", new_value, width()), {this});
     }
     value_ = new_value;
+}
+
+int64_t convert_string_to_int(const std::string &value) {
+    int64_t converted_value = 0;
+    // SystemVerilog uses reverse order if it's [hi:lo] (kratos does that)
+    int64_t idx = 0;
+    for (auto it = value.rbegin(); it != value.rend(); it++) {
+        auto c = static_cast<int64_t>(*it);  // NOLINT
+        converted_value |= c << idx;
+        idx += 8;
+    }
+    return converted_value;
+}
+
+void Const::set_value(const std::string &new_value) {
+    // convert string to int
+    if ((new_value.size() * 8) > sizeof(uint64_t)) {
+        throw VarException("string value too big to be converted to integer", {this});
+    }
+    auto converted_value = convert_string_to_int(new_value);
+    set_value(converted_value);
 }
 
 void Const::set_width(uint32_t target_width) {
@@ -1280,7 +1307,7 @@ void VarExtend::add_source(const std::shared_ptr<AssignStmt> &) {
 
 void VarExtend::add_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_->add_sink(stmt); }
 
-void VarExtend::remove_sink(const std::shared_ptr<AssignStmt> &stmt) {parent_->remove_sink(stmt); }
+void VarExtend::remove_sink(const std::shared_ptr<AssignStmt> &stmt) { parent_->remove_sink(stmt); }
 
 void VarExtend::replace_var(const std::shared_ptr<Var> &target, const std::shared_ptr<Var> &item) {
     if (target.get() == parent_) {
@@ -2027,6 +2054,16 @@ std::string EnumConst::to_string() const {
     }
     return name_;
 }
+
+StringConst::StringConst(std::string value, uint32_t width)
+    : Const(convert_string_to_int(value), width, false), value_(std::move(value)) {
+    auto const min_size = value_.size() * 8u;
+    if (min_size > width)
+        throw VarException(::format("{0} is too big for constant with bit size {0}", value, width),
+                           {this});
+}
+
+std::string StringConst::to_string() const { return ::format("\"{0}\"", value_); }
 
 IterVar::IterVar(kratos::Generator *m, const std::string &name, int64_t min_value,
                  int64_t max_value, bool signed_)

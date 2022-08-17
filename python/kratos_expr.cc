@@ -539,7 +539,8 @@ void init_expr(py::module &m) {
         .def_property("active_high", &Port::active_high, &Port::set_active_high);
 
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
-    const_.def("value", &Const::value).def("set_value", &Const::set_value);
+    const_.def("value", &Const::value)
+        .def("set_value", py::overload_cast<int64_t>(&Const::set_value));
     const_.def_property_readonly("is_bignum", &Const::is_bignum);
 
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
@@ -690,7 +691,11 @@ void init_expr(py::module &m) {
         py::class_<FunctionCallVar, ::shared_ptr<FunctionCallVar>, Var>(m, "FunctionCallVar");
 
     // constant
-    m.def("constant", &constant, py::return_value_policy::reference);
+    m.def("constant", py::overload_cast<int64_t, uint32_t, bool>(&Const::constant),
+          py::return_value_policy::reference)
+        .def("constant", py::overload_cast<std::string, uint32_t>(&Const::constant),
+             py::return_value_policy::reference);
+
     init_big_int(m);
 
     m.def("mux", py::overload_cast<Var &, Var &, Var &>(util::mux))

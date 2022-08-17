@@ -167,9 +167,12 @@ def async_reset(var):
     return cast(var, VarCastType.AsyncReset)
 
 
-def const(value: int, width: int, is_signed: bool = False):
-    assert isinstance(value, int)
-    return _kratos.constant(value, width, is_signed)
+def const(value: Union[str, int], width: int, is_signed: bool = False):
+    if isinstance(value, int):
+        return _kratos.constant(value, width, is_signed)
+    else:
+        assert isinstance(value, str)
+        return _kratos.constant(value, width)
 
 
 def comment(comment_str):

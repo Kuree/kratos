@@ -428,6 +428,7 @@ public:
 
     int64_t value() const { return value_; }
     virtual void set_value(int64_t new_value);
+    virtual void set_value(const std::string &new_value);
     void add_source(const std::shared_ptr<AssignStmt> &stmt) override;
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;
     void set_width(uint32_t target_width);
@@ -441,6 +442,7 @@ public:
     static Const &constant(int64_t value, uint32_t width, bool is_signed);
     static Const &constant(const std::string &hex_value, uint32_t num_bits, bool negative,
                            uint32_t width, bool is_signed);
+    static Const &constant(std::string value, uint32_t width);
     Const(int64_t value, uint32_t width, bool is_signed);
 
     static Generator *const_gen() { return const_generator_.get(); }
@@ -491,7 +493,7 @@ public:
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);
     // used as raw string
-    void set_value(const std::string &str_value);
+    void set_value(const std::string &str_value) override;
     void set_initial_value(int64_t new_value) { initial_value_ = new_value; }
     std::optional<int64_t> get_initial_value() const { return initial_value_; }
     std::optional<std::string> get_raw_str_value() const { return raw_str_value_; }
@@ -753,6 +755,15 @@ public:
 private:
     Enum *parent_;
     std::string name_;
+};
+
+struct StringConst : public Const {
+public:
+    StringConst(std::string value, uint32_t width);
+    std::string to_string() const override;
+
+private:
+    std::string value_;
 };
 
 struct Enum : std::enable_shared_from_this<Enum> {
