@@ -11,36 +11,34 @@ public:
         std::unordered_set<Port *> rst_ports;
         for (uint64_t i = 0; i < stmt_count; i++) {
             auto stmt = gen->get_stmt(i);
-            if (stmt->type() == StatementType::Block) {
-                auto stmt_blk = stmt->as<StmtBlock>();
-                if (stmt_blk->block_type() == StatementBlockType::Sequential) {
-                    auto seq = stmt_blk->as<SequentialStmtBlock>();
-                    auto &conditions = seq->get_event_controls();
-                    conditions.erase(
-                        std::remove_if(conditions.begin(), conditions.end(),
-                                       [&rst_ports](const EventControl &e) -> bool {
-                                           auto *var = e.var;
-                                           if (var->type() != VarType::BaseCasted) {
-                                               if (var->type() == VarType::PortIO) {
-                                                   auto port = var->as<Port>();
-                                                   if (port->port_type() == PortType::AsyncReset) {
-                                                       // need to remove this one
-                                                       rst_ports.emplace(port.get());
-                                                       return true;
-                                                   }
-                                               }
-                                           } else {
-                                               auto casted = var->as<VarCasted>();
-                                               if (casted->cast_type() == VarCastType::AsyncReset) {
-                                                   // need to remove this one
-                                                   return true;
-                                               }
+            if (stmt->type() != StatementType::Block) continue;
+            auto stmt_blk = stmt->as<StmtBlock>();
+            if (stmt_blk->block_type() != StatementBlockType::Sequential) continue;
+            auto seq = stmt_blk->as<SequentialStmtBlock>();
+            auto &conditions = seq->get_event_controls();
+            conditions.erase(
+                std::remove_if(conditions.begin(), conditions.end(),
+                               [&rst_ports](const EventControl &e) -> bool {
+                                   auto *var = e.var;
+                                   if (var->type() != VarType::BaseCasted) {
+                                       if (var->type() == VarType::PortIO) {
+                                           auto port = var->as<Port>();
+                                           if (port->port_type() == PortType::AsyncReset) {
+                                               // need to remove this one
+                                               rst_ports.emplace(port.get());
+                                               return true;
                                            }
-                                           return false;
-                                       }),
-                        conditions.end());
-                }
-            }
+                                       }
+                                   } else {
+                                       auto casted = var->as<VarCasted>();
+                                       if (casted->cast_type() == VarCastType::AsyncReset) {
+                                           // need to remove this one
+                                           return true;
+                                       }
+                                   }
+                                   return false;
+                               }),
+                conditions.end());
         }
 
         for (auto const &var : rst_ports) {
