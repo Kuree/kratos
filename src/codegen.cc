@@ -746,7 +746,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
 
         if (clk_vars.size() == 1) {
             edge.first = clk_vars[0];
-            edge.second = BlockEdgeType::Posedge;
+            edge.second = EventEdgeType::Posedge;
         } else {
             // next is not null but edge is not set
             throw StmtException(::format("Clock edge not set for sequence {0}", seq->to_string()),
@@ -756,7 +756,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
     if (edge.first) {
         auto const& [var, type] = edge;
         stream_ << indent()
-                << ::format("@({0} {1}) ", type == BlockEdgeType::Posedge ? "posedge" : "negedge",
+                << ::format("@({0} {1}) ", type == EventEdgeType::Posedge ? "posedge" : "negedge",
                             stream_.var_str(var));
     }
     stream_ << seq->to_string([this](Var* v) { return stream_.var_str(v); }) << ";"

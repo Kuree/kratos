@@ -20,7 +20,7 @@ TEST(fault, count_stmt) {  // NOLINT
     auto &out = mod.port(PortDirection::Out, "out", 4);
     auto seq = std::make_shared<SequentialStmtBlock>();
     mod.add_stmt(seq);
-    seq->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+    seq->add_condition({EventEdgeType::Posedge, clk.shared_from_this()});
     auto if_ = std::make_shared<IfStmt>(in > constant(2, 4));
     seq->add_stmt(if_);
     if_->add_then_stmt(out.assign(constant(4, 4)));
@@ -62,7 +62,7 @@ std::pair<Generator &, SequentialStmtBlock *> create_verilator_mod(Context &c) {
     auto &out = mod.port(PortDirection::Out, "out", 4);
     auto seq = std::make_shared<SequentialStmtBlock>();
     mod.add_stmt(seq);
-    seq->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+    seq->add_condition({EventEdgeType::Posedge, clk.shared_from_this()});
     auto if_ = std::make_shared<IfStmt>(in > constant(2, 4));
     if_->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
     seq->add_stmt(if_);

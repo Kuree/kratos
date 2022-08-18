@@ -297,7 +297,7 @@ public:
         std::string cond;
         auto const& conditions = stmt->get_event_controls();
         for (auto const& event_control : conditions) {
-            if (event_control.edge == BlockEdgeType::Posedge)
+            if (event_control.edge == EventEdgeType::Posedge)
                 cond.append("1" + event_control.var->to_string());
             else
                 cond.append("0" + event_control.var->to_string());

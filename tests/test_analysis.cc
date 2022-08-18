@@ -44,7 +44,7 @@ TEST(pass, check_active_high) {  // NOLINT
     auto &rst = mod.port(PortDirection::In, "reset", 1, 1, PortType::AsyncReset, false);
     auto seq = mod.sequential();
     rst.set_active_high(true);
-    seq->add_condition({BlockEdgeType::Negedge, rst.shared_from_this()});
+    seq->add_condition({EventEdgeType::Negedge, rst.shared_from_this()});
     EXPECT_THROW(check_active_high(&mod), VarException);
 }
 
@@ -102,8 +102,8 @@ TEST(pass, latch_rst) {  // NOLINT
     auto &cen = mod.port(PortDirection::In, "cen", 1, 1, PortType::ClockEnable, false);
 
     auto seq = mod.sequential();
-    seq->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
-    seq->add_condition({BlockEdgeType::Posedge, rst.shared_from_this()});
+    seq->add_condition({EventEdgeType::Posedge, clk.shared_from_this()});
+    seq->add_condition({EventEdgeType::Posedge, rst.shared_from_this()});
     auto if_ = std::make_shared<IfStmt>(rst);
     if_->add_then_stmt(out.assign(constant(0, 1)));
     auto if_2 = std::make_shared<IfStmt>(cen);

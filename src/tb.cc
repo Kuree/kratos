@@ -67,7 +67,7 @@ Sequence *Sequence::wait(uint32_t from_num_clk, uint32_t to_num_clk) {
 Property::Property(std::string property_name, std::shared_ptr<Sequence> sequence)
     : property_name_(std::move(property_name)), sequence_(std::move(sequence)) {}
 
-void Property::edge(kratos::BlockEdgeType type, const std::shared_ptr<Var> &var) {
+void Property::edge(kratos::EventEdgeType type, const std::shared_ptr<Var> &var) {
     if (var->width() != 1) throw VarException("{0} should be width 1", {var.get()});
     edge_ = {var.get(), type};
 }

@@ -16,29 +16,29 @@ public:
                 if (stmt_blk->block_type() == StatementBlockType::Sequential) {
                     auto seq = stmt_blk->as<SequentialStmtBlock>();
                     auto &conditions = seq->get_event_controls();
-                    std::set<decltype(conditions.begin())> reset_to_remove;
-                    for (auto iter = conditions.begin(); iter != conditions.end(); iter++) {
-                        auto *var = iter->var;
-                        if (var->type() != VarType::BaseCasted) {
-                            if (var->type() == VarType::PortIO) {
-                                auto port = var->as<Port>();
-                                if (port->port_type() == PortType::AsyncReset) {
-                                    // need to remove this one
-                                    reset_to_remove.emplace(iter);
-                                    rst_ports.emplace(port.get());
-                                }
-                            }
-                        } else {
-                            auto casted = var->as<VarCasted>();
-                            if (casted->cast_type() == VarCastType::AsyncReset) {
-                                // need to remove this one
-                                reset_to_remove.emplace(iter);
-                            }
-                        }
-                    }
-                    for (auto const &iter : reset_to_remove) {
-                        conditions.erase(iter);
-                    }
+                    conditions.erase(
+                        std::remove_if(conditions.begin(), conditions.end(),
+                                       [&rst_ports](const EventControl &e) -> bool {
+                                           auto *var = e.var;
+                                           if (var->type() != VarType::BaseCasted) {
+                                               if (var->type() == VarType::PortIO) {
+                                                   auto port = var->as<Port>();
+                                                   if (port->port_type() == PortType::AsyncReset) {
+                                                       // need to remove this one
+                                                       rst_ports.emplace(port.get());
+                                                       return true;
+                                                   }
+                                               }
+                                           } else {
+                                               auto casted = var->as<VarCasted>();
+                                               if (casted->cast_type() == VarCastType::AsyncReset) {
+                                                   // need to remove this one
+                                                   return true;
+                                               }
+                                           }
+                                           return false;
+                                       }),
+                        conditions.end());
                 }
             }
         }

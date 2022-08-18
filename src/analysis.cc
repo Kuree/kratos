@@ -335,7 +335,7 @@ public:
                 auto port_s = v->as<Port>();
                 auto* port = port_s.get();
                 if (port->port_type() == PortType::AsyncReset) {
-                    auto reset_high = t == BlockEdgeType::Posedge;
+                    auto reset_high = t == EventEdgeType::Posedge;
                     // check if we have reset edge set
                     if (port->active_high()) {
                         if (reset_high != (*port->active_high())) {

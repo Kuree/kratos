@@ -7,7 +7,7 @@ from .ports import PortBundle
 from .fsm import FSM
 from .interface import InterfaceWrapper
 import _kratos
-from _kratos import get_fn_ln, StatementBlockType, BlockEdgeType, PortType, PortDirection
+from _kratos import get_fn_ln, StatementBlockType, EventEdgeType, PortType, PortDirection
 from typing import List, Dict, Union, Tuple
 
 __GLOBAL_DEBUG = False
@@ -85,7 +85,7 @@ class SequentialCodeBlock(CodeBlock):
         super().__init__(generator, StatementBlockType.Sequential,
                          debug_frame_depth)
         for cond, var in sensitivity_list:
-            assert isinstance(cond, BlockEdgeType)
+            assert isinstance(cond, EventEdgeType)
             assert isinstance(var, _kratos.Var)
             self._block.add_condition([cond, var])
 
@@ -401,7 +401,7 @@ class Generator(metaclass=GeneratorMeta):
             return
         return CombinationalCodeBlock(self, 3)
 
-    def sequential(self, *sensitivity_list: Tuple[BlockEdgeType,
+    def sequential(self, *sensitivity_list: Tuple[EventEdgeType,
                                                   _kratos.Var]):
         if self.is_cloned:
             self.__cached_initialization.append((self.sequential,
@@ -650,7 +650,7 @@ class Generator(metaclass=GeneratorMeta):
         else:
             sensitivity_list = []
             for edge, var_name in raw_sensitives:
-                edge = getattr(BlockEdgeType, edge)
+                edge = getattr(EventEdgeType, edge)
                 if isinstance(var_name, str):
                     var = self.internal_generator.get_var(var_name)
                 else:
@@ -995,7 +995,7 @@ class Generator(metaclass=GeneratorMeta):
         clk = self.ports[clk_name]
         if clk_name not in self.__reg_next_stmt:
             self.__reg_next_stmt[clk_name] = self.sequential(
-                (BlockEdgeType.Posedge, clk))
+                (EventEdgeType.Posedge, clk))
         var = self.__get_var_assert(var)
         new_var = self.__create_new_var(var_name, var)
         self.__add_stmt_with_debug(self.__reg_next_stmt[clk_name],
@@ -1008,8 +1008,8 @@ class Generator(metaclass=GeneratorMeta):
         clk = self.ports[clk_name]
         reset = self.ports[rst_name]
         if (clk_name, rst_name) not in self.__reg_init_stmt:
-            seq = self.sequential((BlockEdgeType.Posedge, clk),
-                                  (BlockEdgeType.Posedge, reset))
+            seq = self.sequential((EventEdgeType.Posedge, clk),
+                                  (EventEdgeType.Posedge, reset))
             if_stmt = seq.if_(reset)
             self.__reg_init_stmt[(clk_name, rst_name)] = if_stmt
         if_stmt = self.__reg_init_stmt[(clk_name, rst_name)]
@@ -1030,7 +1030,7 @@ class Generator(metaclass=GeneratorMeta):
             en = self.ports[en]
         assert self.__generator.has_var(en.name)
         if (clk.name, en.name) not in self.__reg_en_stmt:
-            seq = self.sequential((BlockEdgeType.Posedge, clk))
+            seq = self.sequential((EventEdgeType.Posedge, clk))
             if_stmt = seq.if_(en)
             self.__reg_en_stmt[(clk_name, en.name)] = if_stmt
         if_stmt = self.__reg_en_stmt[(clk_name, en.name)]
@@ -1059,7 +1059,7 @@ class Generator(metaclass=GeneratorMeta):
 def always_ff(*sensitivity):
     assert len(sensitivity) > 0, "always_ff needs at least one signal"
     for edge, var in sensitivity:
-        assert isinstance(edge, BlockEdgeType)
+        assert isinstance(edge, EventEdgeType)
         assert isinstance(var, (str, _kratos.Var))
 
     return AlwaysWrapper

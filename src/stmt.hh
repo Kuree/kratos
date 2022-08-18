@@ -28,7 +28,7 @@ enum class StatementType {
 
 enum class AssignmentType { Blocking, NonBlocking, Undefined };
 enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial, Latch, Final };
-enum class BlockEdgeType { Posedge, Negedge };
+enum class EventEdgeType { Posedge, Negedge };
 enum class AuxiliaryType { EventTracing };
 enum class EventControlType { Delay, Edge };
 
@@ -89,10 +89,10 @@ struct EventControl {
     uint64_t delay = 0;
     Var *var = nullptr;
     EventControlType type = EventControlType::Delay;
-    BlockEdgeType edge = BlockEdgeType::Posedge;
+    EventEdgeType edge = EventEdgeType::Posedge;
 
     explicit EventControl(uint64_t delay) : delay(delay) {}
-    EventControl(BlockEdgeType edge, Var &var)
+    EventControl(EventEdgeType edge, Var &var)
         : var(&var), type(EventControlType::Edge), edge(edge) {}
 
     [[nodiscard]] std::string to_string() const;
@@ -337,7 +337,7 @@ public:
 
     std::vector<EventControl> &get_event_controls() { return conditions_; }
 
-    void add_condition(const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition);
+    void add_condition(const std::pair<EventEdgeType, std::shared_ptr<Var>> &condition);
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 

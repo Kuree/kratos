@@ -696,7 +696,7 @@ void Simulator::process_stmt(kratos::SequentialStmtBlock *block, const Var *var_
     bool trigger = false;
     for (auto const &event : conditions) {
         if (event.var != var_) continue;
-        if (event.edge == BlockEdgeType::Posedge) {
+        if (event.edge == EventEdgeType::Posedge) {
             auto val = get_value_(event.var);
             if (val && *val) {
                 trigger = true;

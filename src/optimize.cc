@@ -571,7 +571,7 @@ public:
             for (uint32_t i = 0; i < num_stages; i++) {
                 blocks[i] = std::make_shared<SequentialStmtBlock>();
                 generator->add_stmt(blocks[i]);
-                blocks[i]->add_condition({BlockEdgeType::Posedge, clock_port});
+                blocks[i]->add_condition({EventEdgeType::Posedge, clock_port});
                 if (generator->debug)
                     blocks[i]->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
             }

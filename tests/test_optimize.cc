@@ -170,8 +170,8 @@ TEST(pass, insert_clk_en) {  // NOLINT
     auto &a = parent.port(PortDirection::Out, "a", 1);
 
     auto seq = parent.sequential();
-    seq->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
-    seq->add_condition({BlockEdgeType::Posedge, rst.shared_from_this()});
+    seq->add_condition({EventEdgeType::Posedge, clk.shared_from_this()});
+    seq->add_condition({EventEdgeType::Posedge, rst.shared_from_this()});
     auto if_ = std::make_shared<IfStmt>(rst);
     if_->add_then_stmt(a.assign(constant(1, 1)));
     if_->add_else_stmt(a.assign(constant(0, 1)));
@@ -181,7 +181,7 @@ TEST(pass, insert_clk_en) {  // NOLINT
     auto &child = c.generator("child");
     auto &clk_child = child.port(PortDirection::In, "clk", 1, PortType::Clock);
     auto child_seq = child.sequential();
-    child_seq->add_condition({BlockEdgeType::Posedge, clk_child.shared_from_this()});
+    child_seq->add_condition({EventEdgeType::Posedge, clk_child.shared_from_this()});
     child_seq->add_stmt(child.var("a", 1).assign(constant(1, 1)));
     child_seq->add_stmt(child.var("b", 1).assign(constant(1, 1)));
 
@@ -192,7 +192,7 @@ TEST(pass, insert_clk_en) {  // NOLINT
     // always const
     child2.wire(clk_en_child2, constant(1, 1));
     auto child_seq2 = child2.sequential();
-    child_seq2->add_condition({BlockEdgeType::Posedge, clk_child2.shared_from_this()});
+    child_seq2->add_condition({EventEdgeType::Posedge, clk_child2.shared_from_this()});
     auto if_child2 = std::make_shared<IfStmt>(clk_en_child2);
     if_child2->add_then_stmt(child2.var("a", 1).assign(constant(1, 1)));
     child_seq2->add_stmt(if_child2);
@@ -201,7 +201,7 @@ TEST(pass, insert_clk_en) {  // NOLINT
     auto &clk_child3 = child3.port(PortDirection::In, "clk", 1, PortType::Clock);
     auto &clk_en_child3 = child3.port(PortDirection::In, "clk_en", 1, PortType::ClockEnable);
     auto child_seq3 = child3.sequential();
-    child_seq2->add_condition({BlockEdgeType::Posedge, clk_child3.shared_from_this()});
+    child_seq2->add_condition({EventEdgeType::Posedge, clk_child3.shared_from_this()});
     auto if_child3 = std::make_shared<IfStmt>(clk_en_child3);
     if_child3->add_then_stmt(child3.var("a", 1).assign(constant(1, 1)));
     child_seq3->add_stmt(if_child3);
@@ -246,7 +246,7 @@ TEST(pass, insert_sync_reset) {  // NOLINT
     // this is the one with reset logic
     {
         auto seq_parent = parent.sequential();
-        seq_parent->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+        seq_parent->add_condition({EventEdgeType::Posedge, clk.shared_from_this()});
         auto if_seq_parent = std::make_shared<IfStmt>(rst);
         if_seq_parent->add_then_stmt(b.assign(constant(0, 1)));
         if_seq_parent->add_else_stmt(c_.assign(a));
@@ -256,7 +256,7 @@ TEST(pass, insert_sync_reset) {  // NOLINT
     // this is the one with both reset and clock enable
     {
         auto seq_parent = parent.sequential();
-        seq_parent->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+        seq_parent->add_condition({EventEdgeType::Posedge, clk.shared_from_this()});
         auto if_seq_parent = std::make_shared<IfStmt>(rst);
         if_seq_parent->add_then_stmt(b.assign(constant(0, 1)));
         auto if_clk_en = std::make_shared<IfStmt>(clk_en);
@@ -277,7 +277,7 @@ TEST(pass, insert_sync_reset) {  // NOLINT
         auto &b_child = child.var("b", 1);
         auto &c_child = child.var("c", 1);
         auto seq_child = child.sequential();
-        seq_child->add_condition({BlockEdgeType::Posedge, clk_child.shared_from_this()});
+        seq_child->add_condition({EventEdgeType::Posedge, clk_child.shared_from_this()});
         // same thing as the parent
         auto if_seq_child = std::make_shared<IfStmt>(rst_child);
         if_seq_child->add_then_stmt(b_child.assign(constant(0, 1)));
@@ -299,7 +299,7 @@ TEST(pass, insert_sync_reset) {  // NOLINT
         auto &flush = child2.port(PortDirection::In, "flush", 1, PortType::Reset);
         parent.wire(flush, constant(1, 1));
         auto seq_child = child2.sequential();
-        seq_child->add_condition({BlockEdgeType::Posedge, clk_child2.shared_from_this()});
+        seq_child->add_condition({EventEdgeType::Posedge, clk_child2.shared_from_this()});
         // same thing as the parent
         auto if_seq_child = std::make_shared<IfStmt>(rst_child2);
         if_seq_child->add_then_stmt(b_child.assign(constant(0, 1)));

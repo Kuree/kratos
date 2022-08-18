@@ -140,7 +140,7 @@ TEST(sim, sequential) {  // NOLINT
     auto &b = mod.var("b", 4, {2, 2});
     auto &c = mod.var("c", 4);
     auto seq = mod.sequential();
-    seq->add_condition({BlockEdgeType::Posedge, clk.shared_from_this()});
+    seq->add_condition({EventEdgeType::Posedge, clk.shared_from_this()});
     seq->add_stmt(c.assign(a[1][1]));
     seq->add_stmt(a.assign(b));
 

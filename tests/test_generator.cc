@@ -601,10 +601,10 @@ TEST(formal, test_remove_async) {  // NOLINT
     auto seq1 = mod.sequential();
     auto seq2 = mod.sequential();
     auto seq3 = mod.sequential();
-    seq1->add_condition({BlockEdgeType::Negedge, rst.shared_from_this()});
-    seq2->add_condition({BlockEdgeType::Negedge, var_rst});
-    seq3->add_condition({BlockEdgeType::Negedge, rst.shared_from_this()});
-    seq3->add_condition({BlockEdgeType::Negedge, var_rst});
+    seq1->add_condition({EventEdgeType::Negedge, rst.shared_from_this()});
+    seq2->add_condition({EventEdgeType::Negedge, var_rst});
+    seq3->add_condition({EventEdgeType::Negedge, rst.shared_from_this()});
+    seq3->add_condition({EventEdgeType::Negedge, var_rst});
 
     remove_async_reset(&mod);
 

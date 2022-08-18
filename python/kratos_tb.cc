@@ -37,7 +37,7 @@ void init_tb(py::module &m) {
         .def("property_name", &Property::property_name)
         .def("sequence", &Property::sequence)
         .def("edge",
-             py::overload_cast<BlockEdgeType, const std::shared_ptr<Var> &>(&Property::edge))
+             py::overload_cast<EventEdgeType, const std::shared_ptr<Var> &>(&Property::edge))
         .def("edge", [](const Property &property) { return property.edge(); })
         .def_property("action", &Property::action, &Property::set_action);
 }

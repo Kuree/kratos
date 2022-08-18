@@ -1,4 +1,4 @@
-from .generator import Generator, PortType, PortDirection, BlockEdgeType, \
+from .generator import Generator, PortType, PortDirection, EventEdgeType, \
     initial, final, CombinationalCodeBlock, SequentialCodeBlock, \
     set_global_debug, enum, always_comb, always_ff, always_latch, has_enum
 
@@ -34,10 +34,10 @@ from _kratos import FSM, FSMState
 from _kratos.fault import SimulationRun, FaultAnalyzer,\
     parse_verilator_coverage, parse_icc_coverage
 
-posedge = BlockEdgeType.Posedge
-negedge = BlockEdgeType.Negedge
+posedge = EventEdgeType.Posedge
+negedge = EventEdgeType.Negedge
 
-__all__ = ["Generator", "PortType", "PortDirection", "BlockEdgeType",
+__all__ = ["Generator", "PortType", "PortDirection", "EventEdgeType",
            "verilog", "const", "is_valid_verilog", "VarException",
            "StmtException", "IRVisitor", "FSM", "FSMState", "initial", "final",
            "Sequence", "TestBench", "assert_", "delay", "enable_runtime_debug",
@@ -56,4 +56,4 @@ __all__ += ["clog2", "reduce_add", "reduce_and", "reduce_mul", "reduce_or",
             "resize"]
 
 # type aliasing
-__all__ += ["BlockEdgeType", "posedge", "negedge", "mux", "ternary"]
+__all__ += ["EventEdgeType", "posedge", "negedge", "mux", "ternary"]

@@ -61,7 +61,7 @@ TEST(stmt, block) {  // NOLINT
     auto comb_block = CombinationalStmtBlock();
     comb_block.add_stmt(var3.assign(var4));
     EXPECT_EQ(stmt->assign_type(), AssignmentType::Blocking);
-    EXPECT_NO_THROW(seq_block.add_condition({BlockEdgeType::Posedge, clk.shared_from_this()}));
+    EXPECT_NO_THROW(seq_block.add_condition({EventEdgeType::Posedge, clk.shared_from_this()}));
     EXPECT_EQ(seq_block.get_event_controls().size(), 1);
 }
 
@@ -229,10 +229,10 @@ TEST(stmt, clone_clear) { // NOLINT
 
     // sequential
     auto seq = mod.sequential();
-    seq->add_condition({BlockEdgeType::Negedge, a.shared_from_this()});
+    seq->add_condition({EventEdgeType::Negedge, a.shared_from_this()});
     seq->add_stmt(b.assign(c_));
     auto seq_cloned = seq->clone()->as<SequentialStmtBlock>();
-    EXPECT_EQ(seq->get_event_controls(), seq_cloned->get_event_controls());
+    EXPECT_EQ(seq->get_event_controls().size(), seq_cloned->get_event_controls().size());
     EXPECT_EQ(seq_cloned->get_stmt(0)->parent(), seq_cloned.get());
 
     // latch

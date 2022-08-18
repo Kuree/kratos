@@ -30,7 +30,7 @@ TEST(test_tb, code_gen) {  // NOLINT
     auto seq = std::make_shared<Sequence>(in.eq(constant(1, 1)).shared_from_this());
     seq->imply(out.eq(constant(1, 1)).shared_from_this());
     auto property = tb.property("fixed_value", seq);
-    property->edge(BlockEdgeType::Posedge, clk.shared_from_this());
+    property->edge(EventEdgeType::Posedge, clk.shared_from_this());
 
     auto *top_ = &tb;
     EXPECT_NO_THROW({

@@ -112,7 +112,7 @@ std::string EventControl::to_string(const std::function<std::string(const Var *)
             return ::format("#{0}", delay);
         }
         case EventControlType::Edge: {
-            return ::format("{0} {1}", edge == BlockEdgeType::Posedge ? "posedge" : "negedge",
+            return ::format("{0} {1}", edge == EventEdgeType::Posedge ? "posedge" : "negedge",
                             var_str(var));
         }
     }
@@ -494,7 +494,7 @@ std::shared_ptr<Stmt> ScopedStmtBlock::clone() const {
 }
 
 void SequentialStmtBlock::add_condition(
-    const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition) {
+    const std::pair<EventEdgeType, std::shared_ptr<Var>> &condition) {
     // notice that the condition variable cannot be used as a condition
     // for now we only allow Port (clk and reset) type to use as conditions
     // make sure no duplicate

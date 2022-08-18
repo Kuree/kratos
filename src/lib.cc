@@ -59,7 +59,7 @@ SinglePortSRAM::SinglePortSRAM(kratos::Context *context, const std::string &stub
     attr->type_str = "check_assignment";
     attr->value_str = "false";
     block->add_attribute(attr);
-    block->add_condition({BlockEdgeType::Posedge, clk_});
+    block->add_condition({EventEdgeType::Posedge, clk_});
     // active low for now
     auto chip_en_if = std::make_shared<IfStmt>(chip_enable_->r_not());
     // get data out
@@ -127,7 +127,7 @@ SinglePortSRAM::SinglePortSRAM(kratos::Context *context, const std::string &stub
 
     auto &output_select = var("output_select", additional_addr_bits);
     auto seq = sequential();
-    seq->add_condition({BlockEdgeType::Posedge, clock()});
+    seq->add_condition({EventEdgeType::Posedge, clock()});
     auto ceb_if = std::make_shared<IfStmt>(chip_enable_->r_not());
     auto web_if = std::make_shared<IfStmt>(write_enable_);
     web_if->add_then_stmt(output_select.assign(mem_select));

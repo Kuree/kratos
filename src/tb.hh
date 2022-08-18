@@ -56,8 +56,8 @@ public:
 
     [[nodiscard]] const std::string &property_name() const { return property_name_; }
     Sequence *sequence() { return sequence_.get(); }
-    void edge(BlockEdgeType type, const std::shared_ptr<Var> &var);
-    [[nodiscard]] std::pair<Var *, BlockEdgeType> edge() const { return edge_; }
+    void edge(EventEdgeType type, const std::shared_ptr<Var> &var);
+    [[nodiscard]] std::pair<Var *, EventEdgeType> edge() const { return edge_; }
 
     void set_action(PropertyAction action) { action_ = action; }
     [[nodiscard]] PropertyAction action() const { return action_; }
@@ -65,7 +65,7 @@ public:
 private:
     std::string property_name_;
     std::shared_ptr<Sequence> sequence_ = nullptr;
-    std::pair<Var *, BlockEdgeType> edge_ = {nullptr, BlockEdgeType::Posedge};
+    std::pair<Var *, EventEdgeType> edge_ = {nullptr, EventEdgeType::Posedge};
 
     PropertyAction action_ = PropertyAction::None;
 };

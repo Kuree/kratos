@@ -54,9 +54,9 @@ void init_enum(py::module &m) {
         .value("Final", StatementBlockType::Final)
         .export_values();
 
-    py::enum_<BlockEdgeType>(m, "BlockEdgeType")
-        .value("Posedge", BlockEdgeType::Posedge)
-        .value("Negedge", BlockEdgeType::Negedge)
+    py::enum_<EventEdgeType>(m, "EventEdgeType")
+        .value("Posedge", EventEdgeType::Posedge)
+        .value("Negedge", EventEdgeType::Negedge)
         .export_values();
 
     py::enum_<IRNodeKind>(m, "IRNodeKind")
