@@ -81,6 +81,23 @@ def test_display_stmt():
         pass
 
 
+def test_assert_fail(check_gold):
+    import _kratos
+    mod = Generator("gen", debug=True)
+    a = mod.var("a", 1)
+
+    @initial
+    def code():
+        assert_(a)  # mark 1
+
+    mod.add_always(code)
+    assert_stmt = mod.get_stmt_by_index(0)[0]
+    assert isinstance(assert_stmt, _kratos.AssertValueStmt)
+    assert_stmt.fn_name_ln = [("test.py", 42)]
+
+    check_gold(mod, "test_assert_fail", insert_debug_info=True)
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
-    test_tb_sequence(check_gold_fn)
+    test_assert_fail(check_gold_fn)

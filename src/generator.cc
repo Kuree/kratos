@@ -294,7 +294,7 @@ FunctionCallVar &Generator::call(const std::string &func_name,
                                  const std::map<std::string, std::shared_ptr<Var>> &args,
                                  bool has_return) {
     if (funcs_.find(func_name) == funcs_.end())
-        throw UserException(::format("{0} not found", func_name));
+        throw UserException(::format("function {0} not found", func_name));
     auto func_def = funcs_.at(func_name);
     auto p = std::make_shared<FunctionCallVar>(this, func_def, args, has_return);
     calls_.emplace(p);
@@ -304,7 +304,7 @@ FunctionCallVar &Generator::call(const std::string &func_name,
 FunctionCallVar &Generator::call(const std::string &func_name,
                                  const std::vector<std::shared_ptr<Var>> &args) {
     if (funcs_.find(func_name) == funcs_.end())
-        throw UserException(::format("{0} not found", func_name));
+        throw UserException(::format("function {0} not found", func_name));
     auto func_def = funcs_.at(func_name);
     if (!func_def->is_builtin())
         throw UserException("Only built-in function can be called without arg names");

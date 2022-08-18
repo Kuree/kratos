@@ -877,6 +877,9 @@ public:
     void visit(AssertBase *stmt) override {
         if (stmt->fn_name_ln.empty()) return;
         auto *generator = stmt->generator_parent();
+        if (!generator->has_function(hgdb_assert_fail)) {
+            generator->builtin_function(hgdb_assert_fail);
+        }
         auto const &[filename, line_num] = stmt->fn_name_ln[0];
         auto filename_var = Const::constant(filename, filename.size() * 8).shared_from_this();
         auto line_num_var =
