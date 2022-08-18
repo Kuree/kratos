@@ -220,40 +220,22 @@ def test_clock_interaction():
                 debug_db_filename=debug_db)
 
 
-@pytest.mark.skip(reason="DPI-based assertion no longer supported")
-def test_assert():
-    from kratos import assert_
-    mod = Generator("mod", True)
-    in_ = mod.input("in", 1)
-    out_ = mod.output("out", 1)
+def test_assert_fail(check_gold):
+    import _kratos
+    from kratos import initial, assert_
+    mod = Generator("gen", debug=True)
+    a = mod.var("a", 1)
 
-    @always_comb
+    @initial
     def code():
-        # we introduce this bug on purpose
-        out_ = in_ - 1
-        assert_(out_ == in_)
+        assert_(a)  # mark 1
 
     mod.add_always(code)
-    with tempfile.TemporaryDirectory() as temp:
-        debug_db = os.path.join(temp, "debug.db")
-        filename = os.path.join(temp, "test.sv")
-        verilog(mod, filename=filename, insert_debug_info=True,
-                debug_db_filename=debug_db)
-        with open(filename) as f:
-            content = f.read()
-            assert "assert (out == in) else" in content
-        conn = sqlite3.connect(debug_db)
-        c = conn.cursor()
-        c.execute("SELECT * FROM breakpoint")
-        lines = c.fetchall()
-        assert len(lines) == 2
-        # they are only one line apart
-        assert abs(lines[0][3] - lines[1][3]) == 1
-        conn.close()
-    # once we remove the assertion, it should not be there
-    _kratos.passes.remove_assertion(mod.internal_generator)
-    src = verilog(mod)[0]["mod"]
-    assert "assert" not in src
+    assert_stmt = mod.get_stmt_by_index(0)[0]
+    assert isinstance(assert_stmt, _kratos.AssertValueStmt)
+    assert_stmt.fn_name_ln = [("test.py", 42)]
+
+    check_gold(mod, "test_assert_fail", insert_debug_info=True)
 
 
 def test_wire():
