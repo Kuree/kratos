@@ -128,6 +128,8 @@ void dead_code_elimination(Generator *top);
 
 void inject_assertion_fail(Generator *top);
 
+void sort_initial_stmts(Generator *top);
+
 class PassManager {
 public:
     PassManager() = default;

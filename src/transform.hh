@@ -32,6 +32,8 @@ void sort_stmts(Generator* top);
 
 void ssa_transform_fix(Generator *top);
 
+void sort_initial_stmts(Generator *top);
+
 
 }  // namespace kratos
 

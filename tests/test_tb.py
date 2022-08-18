@@ -83,4 +83,4 @@ def test_display_stmt():
 
 if __name__ == "__main__":
     from conftest import check_gold_fn
-    test_tb_codegen(check_gold_fn)
+    test_tb_sequence(check_gold_fn)

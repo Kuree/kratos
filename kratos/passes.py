@@ -53,6 +53,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     # load all the passes
     # you can easily roll your own functions to control how the passes
     # are run
+    # if it's a test bench, need to sort the initials
     if remove_assertion:
         pass_manager.add_pass("remove_assertion")
     pass_manager.add_pass("realize_fsm")
@@ -115,6 +116,8 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("lift_genvar_instances")
     if insert_pipeline_stages:
         pass_manager.add_pass("insert_pipeline_stages")
+    if isinstance(generator.internal_generator, _kratos.TestBench):
+        pass_manager.add_pass("sort_initial_stmts")
     if reorder_stmts:
         pass_manager.add_pass("sort_stmts")
     # legality fix at the very end

@@ -42,6 +42,20 @@ Generator *Stmt::generator_parent() const {
     return dynamic_cast<Generator *>(p);
 }
 
+Stmt *Stmt::stmt_parent() const {
+    const IRNode *p = parent_;
+    const IRNode *pre = this;
+    for (uint32_t i = 0; i < 100000u && p; i++) {
+        if (p->ir_node_kind() == IRNodeKind::StmtKind) {
+            pre = p;
+            p = p->parent();
+        } else {
+            break;
+        }
+    }
+    return dynamic_cast<Stmt *>(const_cast<IRNode *>(pre));
+}
+
 Stmt *Stmt::pre_stmt() const {
     if (!parent_ || parent_->ir_node_kind() != IRNodeKind::StmtKind) return nullptr;
     auto *stmt_parent = reinterpret_cast<Stmt *>(parent_);

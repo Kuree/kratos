@@ -45,6 +45,7 @@ public:
     IRNode *parent() const override;
     virtual void set_parent(IRNode *parent) { parent_ = parent; }
     Generator *generator_parent() const;
+    Stmt* stmt_parent() const;
     Stmt *pre_stmt() const;
 
     void accept(IRVisitor *) override {}
@@ -105,7 +106,7 @@ public:
 
     // delay. this is only used during test bench generation
     int inline get_delay() const { return delay_; }
-    [[nodiscard]] bool inline has_delay() const { return delay_ == -1; }
+    [[nodiscard]] bool inline has_delay() const { return delay_ != -1; }
     void set_delay(int delay) { delay_ = delay; }
     void set_lhs_delay(bool value);
     bool get_lhs_delay() const;

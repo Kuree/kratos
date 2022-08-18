@@ -921,4 +921,34 @@ void sort_stmts(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
+
+
+class SortInitialVisitor: public IRVisitor {
+public:
+    void visit(Generator *top) override {
+        auto const &stmts = top->get_all_stmts();
+        auto new_stmts = std::vector<std::shared_ptr<Stmt>>(stmts.begin(), stmts.end());
+
+        // move initialize to the last
+        std::stable_sort(new_stmts.begin(), new_stmts.end(), [](const auto &left, const auto &right) {
+            return get_order(left) < get_order(right);
+        });
+
+        top->set_stmts(new_stmts);
+    }
+
+private:
+    static uint32_t get_order(const std::shared_ptr<Stmt> &stmt) {
+        if (stmt->type() != StatementType::Block) return 0;
+        auto block = stmt->as<StmtBlock>();
+        if (block->block_type() != StatementBlockType::Initial) return 0;
+        return 1;
+    }
+};
+
+void sort_initial_stmts(Generator *top) {
+    SortInitialVisitor v;
+    v.visit_generator_root_p(top);
+}
+
 }  // namespace kratos

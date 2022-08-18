@@ -1025,6 +1025,14 @@ class MergeConstPortVisitor : public IRVisitor {
                 var->sinks().size() == 1) {
                 auto source_stmt = *(var->sources().begin());
                 auto sink_stmt = *(var->sinks().begin());
+                auto *src_stmt_parent = source_stmt->stmt_parent();
+                if (src_stmt_parent && src_stmt_parent->type() == StatementType::Block) {
+                    auto blk = src_stmt_parent->as<StmtBlock>();
+                    if (blk->block_type() == StatementBlockType::Initial) {
+                        // initial is allowed to have constant driver
+                        continue;
+                    }
+                }
                 auto* source_from = source_stmt->right();
                 auto* sink_to = sink_stmt->left();
                 if (source_from->type() == VarType::ConstValue &&

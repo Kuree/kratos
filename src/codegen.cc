@@ -680,7 +680,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
 void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
     if (stmt->assert_type() == AssertType::AssertValue) {
         auto* st = reinterpret_cast<AssertValueStmt*>(stmt);
-        stream_ << indent() << "assert (" << st->value()->handle_name(stmt->generator_parent())
+        stream_ << indent() << "assert (" << stream_.var_str(st->value())
                 << ")";
         if (st->else_()) {
             stream_ << " else ";
@@ -760,7 +760,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
         auto const& [var, type] = edge;
         stream_ << indent()
                 << ::format("@({0} {1}) ", type == BlockEdgeType::Posedge ? "posedge" : "negedge",
-                            var->handle_name(true));
+                            stream_.var_str(var));
     }
     stream_ << seq->to_string() << ";" << stream_.endl();
     decrease_indent();
