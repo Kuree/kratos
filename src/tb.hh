@@ -4,6 +4,8 @@
 #include "generator.hh"
 #include "stmt.hh"
 
+#include <functional>
+
 namespace kratos {
 
 enum class AssertType { AssertValue, AssertProperty };
@@ -25,6 +27,7 @@ public:
     Sequence *wait(uint32_t from_num_clk, uint32_t to_num_clk);
 
     [[nodiscard]] std::string to_string() const;
+    [[nodiscard]] std::string to_string(const std::function<std::string(Var *)> &var_str) const;
 
     [[nodiscard]] const Sequence *next() const { return next_.get(); }
 

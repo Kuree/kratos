@@ -38,12 +38,19 @@ std::string Sequence::wait_to_str() const {
 }
 
 std::string Sequence::to_string() const {
+    auto func = [](Var *v) {
+        return v->handle_name(true);
+    };
+    return to_string(func);
+}
+
+std::string Sequence::to_string(const std::function<std::string(Var *)> &var_str) const {
     auto wait_str = wait_to_str();
     std::string seq;
     if (wait_str.empty())
         seq = var_->handle_name(true);
     else
-        seq = ::format("{0} {1}", wait_str, var_->handle_name(true));
+        seq = ::format("{0} {1}", wait_str, var_str(var_));
     if (next_) {
         auto next = next_->to_string();
         seq = ::format("{0} |-> {1}", seq, next);

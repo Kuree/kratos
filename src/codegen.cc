@@ -171,9 +171,7 @@ std::string Stream::var_str(const kratos::Var* var) const {
         return var->handle_name(true);
 }
 
-std::string Stream::var_str(const std::shared_ptr<Var>& var) const {
-    return var_str(var.get());
-}
+std::string Stream::var_str(const std::shared_ptr<Var>& var) const { return var_str(var.get()); }
 
 void VerilogModule::run_passes() {
     // run multiple passes using pass manager
@@ -680,8 +678,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
 void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {
     if (stmt->assert_type() == AssertType::AssertValue) {
         auto* st = reinterpret_cast<AssertValueStmt*>(stmt);
-        stream_ << indent() << "assert (" << stream_.var_str(st->value())
-                << ")";
+        stream_ << indent() << "assert (" << stream_.var_str(st->value()) << ")";
         if (st->else_()) {
             stream_ << " else ";
             // turn off the indent
@@ -762,7 +759,8 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
                 << ::format("@({0} {1}) ", type == BlockEdgeType::Posedge ? "posedge" : "negedge",
                             stream_.var_str(var));
     }
-    stream_ << seq->to_string() << ";" << stream_.endl();
+    stream_ << seq->to_string([this](Var* v) { return stream_.var_str(v); }) << ";"
+            << stream_.endl();
     decrease_indent();
     stream_ << indent() << "endproperty" << stream_.endl();
 
@@ -910,7 +908,8 @@ void SystemVerilogCodeGen::stmt_code(kratos::InterfaceInstantiationStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
-    stream_ << indent() << "unique case (" << stream_.var_str(stmt->target()) << ")" << stream_.endl();
+    stream_ << indent() << "unique case (" << stream_.var_str(stmt->target()) << ")"
+            << stream_.endl();
     indent_++;
     auto const& body = stmt->body();
     std::vector<std::shared_ptr<Const>> conds;

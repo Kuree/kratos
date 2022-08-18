@@ -17,8 +17,8 @@ void init_tb(py::module &m) {
         .def(py::init<>())
         .def("value", &AssertValueStmt::value);
 
-    py::class_<AssertPropertyStmt, Stmt, std::shared_ptr<AssertPropertyStmt>>(
-        m, "AssertPropertyStmt")
+    py::class_<AssertPropertyStmt, Stmt, std::shared_ptr<AssertPropertyStmt>>(m,
+                                                                              "AssertPropertyStmt")
         .def(py::init<const std::shared_ptr<Property> &>())
         .def("property", &AssertPropertyStmt::property);
 
@@ -29,7 +29,7 @@ void init_tb(py::module &m) {
              py::return_value_policy::reference)
         .def("wait", py::overload_cast<uint32_t, uint32_t>(&Sequence::wait),
              py::return_value_policy::reference)
-        .def("__repr__", &Sequence::to_string)
+        .def("__repr__", [](const Sequence &seq) { return seq.to_string(); })
         .def("next", &Sequence::next, py::return_value_policy::reference);
 
     py::class_<Property, std::shared_ptr<Property>>(m, "Property")
