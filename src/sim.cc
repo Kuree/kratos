@@ -69,9 +69,9 @@ private:
     }
 
     void visit_block(SequentialStmtBlock *block) {
-        auto &lst = block->get_conditions();
+        auto &lst = block->get_event_controls();
         for (auto const &iter : lst) {
-            dependency_[iter.second.get()].emplace(block);
+            dependency_[iter.var].emplace(block);
         }
     }
 
@@ -692,18 +692,18 @@ void Simulator::process_stmt(kratos::SwitchStmt *switch_, const Var *var) {
 
 void Simulator::process_stmt(kratos::SequentialStmtBlock *block, const Var *var_) {
     // only trigger it if it's actually high/low
-    auto const &conditions = block->get_conditions();
+    auto const &conditions = block->get_event_controls();
     bool trigger = false;
-    for (auto const &[edge, var] : conditions) {
-        if (var.get() != var_) continue;
-        if (edge == BlockEdgeType::Posedge) {
-            auto val = get_value_(var.get());
+    for (auto const &event : conditions) {
+        if (event.var != var_) continue;
+        if (event.edge == BlockEdgeType::Posedge) {
+            auto val = get_value_(event.var);
             if (val && *val) {
                 trigger = true;
                 break;
             }
         } else {
-            auto val = get_value_(var.get());
+            auto val = get_value_(event.var);
             if (val && (!(*val))) {
                 trigger = true;
                 break;

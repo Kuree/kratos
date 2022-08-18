@@ -295,12 +295,12 @@ public:
 
     void visit(SequentialStmtBlock* stmt) override {
         std::string cond;
-        auto const& conditions = stmt->get_conditions();
-        for (auto const& [type, var] : conditions) {
-            if (type == BlockEdgeType::Posedge)
-                cond.append("1" + var->to_string());
+        auto const& conditions = stmt->get_event_controls();
+        for (auto const& event_control : conditions) {
+            if (event_control.edge == BlockEdgeType::Posedge)
+                cond.append("1" + event_control.var->to_string());
             else
-                cond.append("0" + var->to_string());
+                cond.append("0" + event_control.var->to_string());
         }
         uint64_t hash = hash_64_fnv1a(cond.c_str(), cond.size()) << level;
         constexpr uint64_t seq_signature = shift_const(0x9e3779b97f4a7c16, 3);

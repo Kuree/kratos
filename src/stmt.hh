@@ -1,5 +1,6 @@
 #ifndef KRATOS_STMT_HH
 #define KRATOS_STMT_HH
+#include <functional>
 #include <vector>
 
 #include "context.hh"
@@ -25,10 +26,11 @@ enum class StatementType {
     Auxiliary
 };
 
-enum class AssignmentType : int { Blocking, NonBlocking, Undefined };
+enum class AssignmentType { Blocking, NonBlocking, Undefined };
 enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial, Latch, Final };
 enum class BlockEdgeType { Posedge, Negedge };
 enum class AuxiliaryType { EventTracing };
+enum class EventControlType { Delay, Edge };
 
 class StmtBlock;
 class ScopedStmtBlock;
@@ -45,7 +47,7 @@ public:
     IRNode *parent() const override;
     virtual void set_parent(IRNode *parent) { parent_ = parent; }
     Generator *generator_parent() const;
-    Stmt* stmt_parent() const;
+    Stmt *stmt_parent() const;
     Stmt *pre_stmt() const;
 
     void accept(IRVisitor *) override {}
@@ -81,6 +83,21 @@ protected:
     std::map<std::string, std::pair<bool, std::string>> scope_context_;
 
     void copy_meta(const std::shared_ptr<Stmt> &stmt) const;
+};
+
+struct EventControl {
+    uint64_t delay = 0;
+    Var *var = nullptr;
+    EventControlType type = EventControlType::Delay;
+    BlockEdgeType edge = BlockEdgeType::Posedge;
+
+    explicit EventControl(uint64_t delay) : delay(delay) {}
+    EventControl(BlockEdgeType edge, Var &var)
+        : var(&var), type(EventControlType::Edge), edge(edge) {}
+
+    [[nodiscard]] std::string to_string() const;
+    [[nodiscard]] std::string to_string(
+        const std::function<std::string(const Var *)> &var_str) const;
 };
 
 class AssignStmt : public Stmt {
@@ -316,13 +333,9 @@ class SequentialStmtBlock : public StmtBlock {
 public:
     SequentialStmtBlock() : StmtBlock(StatementBlockType::Sequential) {}
 
-    const std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> &get_conditions() const {
-        return conditions_;
-    }
+    const std::vector<EventControl> &get_event_controls() const { return conditions_; }
 
-    std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> &get_conditions() {
-        return conditions_;
-    }
+    std::vector<EventControl> &get_event_controls() { return conditions_; }
 
     void add_condition(const std::pair<BlockEdgeType, std::shared_ptr<Var>> &condition);
 
@@ -334,7 +347,7 @@ public:
     std::shared_ptr<Stmt> clone() const override;
 
 private:
-    std::vector<std::pair<BlockEdgeType, std::shared_ptr<Var>>> conditions_;
+    std::vector<EventControl> conditions_;
 };
 
 class LatchStmtBlock : public StmtBlock {

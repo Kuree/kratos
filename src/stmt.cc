@@ -101,6 +101,24 @@ void Stmt::copy_meta(const std::shared_ptr<Stmt> &stmt) const {
     stmt->comment = comment;
 }
 
+std::string EventControl::to_string() const {
+    auto func = [](const Var *v) { return v->to_string(); };
+    return to_string(func);
+}
+
+std::string EventControl::to_string(const std::function<std::string(const Var *)> &var_str) const {
+    switch (type) {
+        case EventControlType::Delay: {
+            return ::format("#{0}", delay);
+        }
+        case EventControlType::Edge: {
+            return ::format("{0} {1}", edge == BlockEdgeType::Posedge ? "posedge" : "negedge",
+                            var_str(var));
+        }
+    }
+    throw InternalException("Unrecognized event control type");
+}
+
 AssignStmt::AssignStmt(const std::shared_ptr<Var> &left, const std::shared_ptr<Var> &right)
     : AssignStmt(left, right, AssignmentType::Undefined) {}
 
@@ -480,10 +498,13 @@ void SequentialStmtBlock::add_condition(
     // notice that the condition variable cannot be used as a condition
     // for now we only allow Port (clk and reset) type to use as conditions
     // make sure no duplicate
-    auto pos = std::find(conditions_.begin(), conditions_.end(), condition);
+    auto pos = std::find_if(
+        conditions_.begin(), conditions_.end(), [&condition](const EventControl &event) -> bool {
+            return event.var == condition.second.get() && event.edge == condition.first;
+        });
     if (pos != conditions_.end()) return;
-    auto var = condition.second;
-    conditions_.emplace_back(condition);
+
+    conditions_.emplace_back(EventControl(condition.first, *condition.second));
 }
 
 IRNode *SequentialStmtBlock::get_child(uint64_t index) {
@@ -491,7 +512,7 @@ IRNode *SequentialStmtBlock::get_child(uint64_t index) {
         return stmts_[index].get();
     } else if (index < stmts_.size() + conditions_.size()) {
         auto const &cond = conditions_[index - stmts_.size()];
-        return cond.second.get();
+        return cond.var;
     }
     return nullptr;
 }

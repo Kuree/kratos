@@ -608,9 +608,9 @@ TEST(formal, test_remove_async) {  // NOLINT
 
     remove_async_reset(&mod);
 
-    EXPECT_TRUE(seq1->get_conditions().empty());
-    EXPECT_TRUE(seq2->get_conditions().empty());
-    EXPECT_TRUE(seq3->get_conditions().empty());
+    EXPECT_TRUE(seq1->get_event_controls().empty());
+    EXPECT_TRUE(seq2->get_event_controls().empty());
+    EXPECT_TRUE(seq3->get_event_controls().empty());
 }
 
 TEST(codegen, yosys_src) {  // NOLINT

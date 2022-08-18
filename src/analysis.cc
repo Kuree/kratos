@@ -327,8 +327,10 @@ public:
     }
 
     void visit(SequentialStmtBlock* stmt) override {
-        auto const& sensitivity = stmt->get_conditions();
-        for (auto const& [t, v] : sensitivity) {
+        auto const& sensitivity = stmt->get_event_controls();
+        for (auto const& event : sensitivity) {
+            auto t = event.edge;
+            auto v = event.var;
             if (v->type() == VarType::PortIO) {
                 auto port_s = v->as<Port>();
                 auto* port = port_s.get();
@@ -571,10 +573,10 @@ private:
     }
 
     void static check_sequential(SequentialStmtBlock* stmt) {
-        auto const& conditions = stmt->get_conditions();
+        auto const& conditions = stmt->get_event_controls();
         // we care about non-clock
         for (auto const& iter : conditions) {
-            auto* var = iter.second.get();
+            auto* var = iter.var;
             if (var->type() == VarType::PortIO) {
                 auto* port = reinterpret_cast<Port*>(var);
                 if (port->port_type() == PortType::Clock) continue;
@@ -1426,9 +1428,9 @@ std::vector<std::string> extract_var_names(Generator* top) {
 
 class SensitivityVisitor : public IRVisitor {
     void visit(SequentialStmtBlock* stmt) override {
-        auto const& sensitivity_list = stmt->get_conditions();
+        auto const& sensitivity_list = stmt->get_event_controls();
         for (auto const& iter : sensitivity_list) {
-            auto const& var = iter.second;
+            auto* var = iter.var;
             // check type
             if (var->type() == VarType::PortIO) {
                 // it's a port
@@ -1440,7 +1442,7 @@ class SensitivityVisitor : public IRVisitor {
                         ::format("Only Clock and AsyncReset allowed in "
                                  "sensitivity list. {0} is {1}",
                                  var->to_string(), port_type_to_str(port->port_type())),
-                        {stmt, var.get()});
+                        {stmt, var});
                 }
             } else if (var->type() == VarType::BaseCasted) {
                 auto var_casted = var->as<VarCasted>();
@@ -1449,13 +1451,13 @@ class SensitivityVisitor : public IRVisitor {
                     throw StmtException(::format("Only Clock and AsyncReset allowed in "
                                                  "sensitivity list. Please use cast() to cast {0}}",
                                                  var->to_string()),
-                                        {stmt, var.get()});
+                                        {stmt, var});
                 }
             } else {
                 throw StmtException(::format("Only variable type of Clock and "
                                              "AsyncReset allowed in sensitivity list, got {0}",
                                              var->to_string()),
-                                    {stmt, var.get()});
+                                    {stmt, var});
             }
         }
     }

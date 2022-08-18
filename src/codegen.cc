@@ -533,9 +533,9 @@ void SystemVerilogCodeGen::stmt_code(SequentialStmtBlock* stmt) {
         stmt->verilog_ln = stream_.line_no();
     }
     std::vector<std::string> sensitive_list;
-    for (const auto& [type, var] : stmt->get_conditions()) {
-        std::string edge = (type == BlockEdgeType::Posedge) ? "posedge" : "negedge";
-        sensitive_list.emplace_back(::format("{0} {1}", edge, var->to_string()));
+    for (const auto& event_control : stmt->get_event_controls()) {
+        auto func = [this](const Var* var) { return stream_.var_str(var); };
+        sensitive_list.emplace_back(event_control.to_string(func));
     }
     std::string sensitive_list_str =
         string::join(sensitive_list.begin(), sensitive_list.end(), ", ");
