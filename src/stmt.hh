@@ -105,7 +105,10 @@ public:
 
     // delay. this is only used during test bench generation
     int inline get_delay() const { return delay_; }
+    [[nodiscard]] bool inline has_delay() const { return delay_ == -1; }
     void set_delay(int delay) { delay_ = delay; }
+    void set_lhs_delay(bool value);
+    bool get_lhs_delay() const;
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
@@ -122,6 +125,8 @@ private:
     AssignmentType assign_type_;
 
     int delay_ = -1;
+    enum class DelaySide { left, right };
+    DelaySide delay_side_ = DelaySide::left;
 };
 
 class IfStmt : public Stmt {
@@ -381,9 +386,9 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 };
 
-class FinalStmtBlock: public StmtBlock {
+class FinalStmtBlock : public StmtBlock {
 public:
-    FinalStmtBlock(): StmtBlock(StatementBlockType::Final) {}
+    FinalStmtBlock() : StmtBlock(StatementBlockType::Final) {}
 
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 };

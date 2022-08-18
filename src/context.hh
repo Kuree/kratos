@@ -13,6 +13,7 @@ namespace kratos {
 struct IRNode;
 struct Port;
 class Generator;
+class TestBench;
 struct Expr;
 struct Var;
 struct Const;
@@ -88,6 +89,7 @@ public:
 
     Generator& generator(const std::string& name);
     Generator& empty_generator();
+    TestBench& testbench(const std::string &name);
 
     void remove(Generator* generator);
     void add(Generator* generator);

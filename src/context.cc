@@ -3,6 +3,7 @@
 #include "except.hh"
 #include "fmt/format.h"
 #include "generator.hh"
+#include "tb.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -20,6 +21,12 @@ Generator &Context::empty_generator() {
     auto gen = std::make_shared<Generator>(this, "");
     empty_generators_.emplace(gen);
     return *gen;
+}
+
+TestBench &Context::testbench(const std::string &name) {
+    auto const &p = std::make_shared<TestBench>(this, name);
+    modules_[name].emplace(p);
+    return *p;
 }
 
 void Context::add(Generator *generator) {

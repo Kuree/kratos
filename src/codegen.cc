@@ -44,6 +44,9 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
             throw StmtException(
                 ::format("Top level assignment for {0} <- {1} has to be blocking", left, right),
                 {stmt->left(), stmt->right(), stmt});
+        if (stmt->has_delay()) {
+            throw StmtException("Continuous assignment cannot have delay", {stmt});
+        }
         prefix = "assign ";
         eq = "=";
         /*
@@ -67,7 +70,22 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
                 ::format("Top level assignment for {0} <- {1} has to be blocking", left, right),
                 {stmt->left(), stmt->right(), stmt});
     }
-    (*this) << prefix << left << " " << eq << " ";  //<< right << ";" << endl();
+
+    (*this) << prefix;
+    // lhs delay
+    if (stmt->has_delay() && stmt->get_lhs_delay()) {
+        // this is a lhs delay
+        (*this) << ::format("#{0} ", stmt->get_delay());
+    }
+
+    (*this) << left << " " << eq << " ";  //<< right << ";" << endl();
+
+    // rhs delay
+    if (stmt->has_delay() && !stmt->get_lhs_delay()) {
+        // this is a rhs delay
+        (*this) << ::format("#{0} ", stmt->get_delay());
+    }
+
     auto right_wrapped = line_wrap(right, 80);
     (*this) << right_wrapped[0];
     for (uint64_t i = 1; i < right_wrapped.size(); i++) {

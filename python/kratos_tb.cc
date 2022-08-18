@@ -9,35 +9,16 @@ namespace py = pybind11;
 // test bench module
 void init_tb(py::module &m) {
     using namespace kratos;
-    py::class_<TestBench>(m, "TestBench")
-        .def(py::init<Context *, const std::string &>())
-        .def("var", py::overload_cast<const std::string &, uint32_t>(&TestBench::var),
-             py::return_value_policy::reference)
-        .def("var", py::overload_cast<const std::string &, uint32_t, uint32_t>(&TestBench::var),
-             py::return_value_policy::reference)
-        .def("var",
-             py::overload_cast<const std::string &, uint32_t, uint32_t, bool>(&TestBench::var),
-             py::return_value_policy::reference)
-        .def("get_var", &TestBench::get_var)
-        .def("initial", &TestBench::initial)
-        .def("wire", py::overload_cast<const std::shared_ptr<Var> &, const std::shared_ptr<Port> &>(
-                         &TestBench::wire))
-        .def("wire",
-             py::overload_cast<std::shared_ptr<Port> &, std::shared_ptr<Port> &>(&TestBench::wire))
-        .def("wire", py::overload_cast<const std::shared_ptr<Var> &, const std::shared_ptr<Var> &>(
-                         &TestBench::wire))
-        .def("add_child_generator", &TestBench::add_child_generator)
-        .def("property", &TestBench::property)
-        .def("codegen", &TestBench::codegen)
-        .def("top", &TestBench::top);
+    py::class_<TestBench, std::shared_ptr<TestBench>, Generator>(m, "TestBench")
+        .def(py::init<Context *, const std::string &>());
 
     py::class_<AssertValueStmt, Stmt, std::shared_ptr<AssertValueStmt>>(m, "AssertValueStmt")
         .def(py::init<const std::shared_ptr<Var> &>())
         .def(py::init<>())
         .def("value", &AssertValueStmt::value);
 
-    py::class_<AssertPropertyStmt, Stmt, std::shared_ptr<AssertPropertyStmt>>(m,
-                                                                              "AssertPropertyStmt")
+    py::class_<AssertPropertyStmt, Stmt, std::shared_ptr<AssertPropertyStmt>>(
+        m, "AssertPropertyStmt")
         .def(py::init<const std::shared_ptr<Property> &>())
         .def("property", &AssertPropertyStmt::property);
 

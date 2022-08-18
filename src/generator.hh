@@ -274,6 +274,9 @@ public:
     // used for to find out which verilog file it generates to
     std::string verilog_fn;
 
+protected:
+    virtual void add_port_name(const std::string &name);
+
 private:
     std::vector<std::string> lib_files_;
     Context *context_;

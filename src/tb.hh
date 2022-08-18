@@ -40,7 +40,7 @@ private:
     [[nodiscard]] std::string wait_to_str() const;
 };
 
-enum class PropertyAction: int {
+enum class PropertyAction : int {
     None = 0,
     Cover = 1u << 1u,
     Assume = 1u << 2u,
@@ -69,12 +69,12 @@ private:
 
 class AssertValueStmt : public AssertBase {
 public:
-    explicit AssertValueStmt(const std::shared_ptr<Var> &expr);
+    explicit AssertValueStmt(std::shared_ptr<Var> expr);
     AssertValueStmt();
 
     AssertType assert_type() override { return AssertType::AssertValue; }
 
-    Var *value() const { return assert_var_; }
+    Var *value() const { return assert_var_.get(); }
 
     const std::shared_ptr<Stmt> &else_() const { return else_stmt_; }
     // currently this will only be used for debugging
@@ -85,7 +85,7 @@ public:
     }
 
 private:
-    Var *assert_var_;
+    std::shared_ptr<Var> assert_var_;
     std::shared_ptr<Stmt> else_stmt_ = nullptr;
 };
 
@@ -110,41 +110,11 @@ private:
     std::shared_ptr<Stmt> else_stmt_ = nullptr;
 };
 
-class TestBench {
+class TestBench : public Generator {
 public:
     TestBench(Context *context, const std::string &top_name);
 
-    // proxy methods for top module
-    Var &var(const std::string &var_name, uint32_t width) { return top_->var(var_name, width); }
-    Var &var(const std::string &var_name, uint32_t width, uint32_t size) {
-        return top_->var(var_name, width, size);
-    }
-    Var &var(const std::string &var_name, uint32_t width, uint32_t size, bool is_signed) {
-        return top_->var(var_name, width, size, is_signed);
-    }
-    std::shared_ptr<Var> get_var(const std::string &var_name) { return top_->get_var(var_name); }
-    std::shared_ptr<InitialStmtBlock> initial() { return top_->initial(); }
-    void add_stmt(const std::shared_ptr<Stmt> &stmt) { top_->add_stmt(stmt); }
-    void wire(const std::shared_ptr<Var> &var, const std::shared_ptr<Port> &port);
-    void wire(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &port2);
-    void wire(const std::shared_ptr<Var> &src, const std::shared_ptr<Var> &sink);
-
-    void add_child_generator(const std::string &instance_name,
-                             const std::shared_ptr<Generator> &child) {
-        top_->add_child_generator(instance_name, child);
-    }
-
-    // create properties
-    std::shared_ptr<Property> property(const std::string &property_name,
-                                       const std::shared_ptr<Sequence> &sequence);
-
-    std::string codegen();
-
-    Generator *top() { return top_; }
-
-private:
-    Generator *top_;
-    std::map<std::string, std::shared_ptr<Property>> properties_;
+    void add_port_name(const std::string &name) override;
 };
 }  // namespace kratos
 

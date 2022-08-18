@@ -4,6 +4,7 @@
 
 #include "../src/context.hh"
 #include "../src/generator.hh"
+#include "../src/tb.hh"
 
 namespace py = pybind11;
 
@@ -13,6 +14,7 @@ void init_context(py::module &m) {
     context.def(py::init())
         .def("generator", &Context::generator, py::return_value_policy::reference)
         .def("empty_generator", &Context::empty_generator, py::return_value_policy::reference)
+        .def("testbench", &Context::testbench, py::return_value_policy::reference)
         .def("clear", &Context::clear)
         .def("get_hash", &Context::get_hash, py::arg("internal_generator"))
         .def("get_generators_by_name", &Context::get_generators_by_name, py::arg("name"))

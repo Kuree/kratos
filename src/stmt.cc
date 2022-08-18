@@ -164,6 +164,12 @@ IRNode *AssignStmt::get_child(uint64_t index) {
         return nullptr;
 }
 
+void AssignStmt::set_lhs_delay(bool value) {
+    delay_side_ = value ? DelaySide::left : DelaySide::right;
+}
+
+bool AssignStmt::get_lhs_delay() const { return delay_side_ == DelaySide::left; }
+
 void AssignStmt::set_parent(kratos::IRNode *parent) {
     bool has_parent = parent_ != nullptr;
     Stmt::set_parent(parent);

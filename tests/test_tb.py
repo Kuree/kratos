@@ -28,8 +28,7 @@ def test_tb_codegen(check_gold):
 
     tb.add_always(code)
 
-    src = tb.codegen()
-    check_gold(src, "test_tb_codegen")
+    check_gold(tb, "test_tb_codegen")
 
 
 def test_tb_delay(check_gold):
@@ -40,8 +39,7 @@ def test_tb_delay(check_gold):
         delay(1, tb.vars["in"].assign(1))
 
     tb.add_always(code)
-    src = tb.codegen()
-    check_gold(src, "test_tb_delay")
+    check_gold(tb, "test_tb_delay")
 
 
 def test_tb_sequence(check_gold):
@@ -58,8 +56,7 @@ def test_tb_sequence(check_gold):
     p = tb.property("test_out", seq)
     p.action = PropertyAction.Assert
 
-    src = tb.codegen()
-    check_gold(src, "test_tb_sequence")
+    check_gold(tb, "test_tb_sequence")
 
 
 def test_display_stmt():
@@ -86,4 +83,4 @@ def test_display_stmt():
 
 if __name__ == "__main__":
     from conftest import check_gold_fn
-    test_tb_sequence(check_gold_fn)
+    test_tb_codegen(check_gold_fn)

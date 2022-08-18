@@ -134,12 +134,9 @@ Port &Generator::port(PortDirection direction, const std::string &port_name, uin
 
 Port &Generator::port(PortDirection direction, const std::string &port_name, uint32_t width,
                       const std::vector<uint32_t> &size, PortType type, bool is_signed) {
-    if (ports_.find(port_name) != ports_.end())
-        throw VarException(::format("{0} already exists in {1}", port_name, name),
-                           {vars_.at(port_name).get()});
     auto p = std::make_shared<Port>(this, direction, port_name, width, size, type, is_signed);
+    add_port_name(port_name);
     vars_.emplace(port_name, p);
-    ports_.emplace(port_name);
     return *p;
 }
 
@@ -161,13 +158,10 @@ Port &Generator::port(const PortPackedStruct &port, bool check_param) {
 
 Port &Generator::port(const PortPackedStruct &port, const std::string &port_name,
                       bool check_param) {
-    if (ports_.find(port_name) != ports_.end())
-        throw VarException(::format("{0} already exists in {1}", port_name, name),
-                           {vars_.at(port_name).get()});
     auto p = std::make_shared<PortPackedStruct>(this, port.port_direction(), port_name,
                                                 port.packed_struct());
+    add_port_name(port_name);
     vars_.emplace(port_name, p);
-    ports_.emplace(port_name);
 
     port.copy_meta_data(p.get(), check_param);
 
@@ -179,14 +173,11 @@ Port &Generator::port(const EnumPort &port, bool check_param) {
 }
 
 Port &Generator::port(const EnumPort &port, const std::string &port_name, bool check_param) {
-    if (ports_.find(port_name) != ports_.end())
-        throw VarException(::format("{0} already exists in {1}", port_name, name),
-                           {vars_.at(port_name).get()});
     auto *enum_type = const_cast<Enum *>(port.enum_type());
     auto p = std::make_shared<EnumPort>(this, port.port_direction(), port_name,
                                         enum_type->shared_from_this());
+    add_port_name(port_name);
     vars_.emplace(port_name, p);
-    ports_.emplace(port_name);
 
     port.copy_meta_data(p.get(), check_param);
 
@@ -202,8 +193,8 @@ EnumPort &Generator::port(kratos::PortDirection direction, const std::string &po
     if (def->local())
         throw UserException(::format("Cannot use {0} as port type since it's local", def->name));
     auto p = std::make_shared<EnumPort>(this, direction, port_name, def);
+    add_port_name(port_name);
     vars_.emplace(port_name, p);
-    ports_.emplace(port_name);
     return *p;
 }
 
@@ -234,6 +225,13 @@ Param &Generator::parameter(const std::string &parameter_name, uint32_t width, b
     auto ptr = std::make_shared<Param>(this, parameter_name, width, is_signed);
     params_.emplace(parameter_name, ptr);
     return *ptr;
+}
+
+void Generator::add_port_name(const std::string &port_name) {
+    if (ports_.find(port_name) != ports_.end())
+        throw VarException(::format("{0} already exists in {1}", port_name, name),
+                           {vars_.at(port_name).get()});
+    ports_.emplace(port_name);
 }
 
 void Generator::check_param_name_conflict(const std::string &parameter_name) {
@@ -594,7 +592,7 @@ void Generator::reindex_vars() {
         auto const &name_ = var->name;
         vars.emplace(name_, var);
         if (var->type() == VarType::PortIO) {
-            ports_.emplace(name_);
+            ports.emplace(name_);
         }
     }
 
@@ -653,8 +651,8 @@ std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefini
         auto var_name = ::format("{0}.{1}", interface_name, n);
         auto p = std::make_shared<InterfacePort>(ref.get(), this, dir, n, width, size, type, false);
         ref->port(n, p.get());
+        if (is_port) add_port_name(var_name);
         vars_.emplace(var_name, p);
-        if (is_port) ports_.emplace(var_name);
     }
     // put it in the interface
     interfaces_.emplace(interface_name, ref);
@@ -948,12 +946,9 @@ PortPackedStruct &Generator::port_packed(PortDirection direction, const std::str
 PortPackedStruct &Generator::port_packed(PortDirection direction, const std::string &port_name,
                                          const std::shared_ptr<PackedStruct> &packed_struct_,
                                          const std::vector<uint32_t> &size) {
-    if (ports_.find(port_name) != ports_.end())
-        throw VarException(::format("{0} already exists in {1}", port_name, name),
-                           {vars_.at(port_name).get()});
     auto p = std::make_shared<PortPackedStruct>(this, direction, port_name, packed_struct_, size);
+    add_port_name(port_name);
     vars_.emplace(port_name, p);
-    ports_.emplace(port_name);
     return *p;
 }
 

@@ -41,7 +41,9 @@ void init_stmt(py::module &m) {
         .def_property_readonly(
             "right", [](const AssignStmt &stmt) { return stmt.right(); },
             py::return_value_policy::reference)
-        .def_property("delay", &AssignStmt::get_delay, &AssignStmt::set_delay);
+        .def_property("delay", &AssignStmt::get_delay, &AssignStmt::set_delay)
+        .def_property("lhs_delay", &AssignStmt::get_lhs_delay, &AssignStmt::set_lhs_delay)
+        .def_property_readonly("has_delay", &AssignStmt::has_delay);
 
     py::class_<IfStmt, ::shared_ptr<IfStmt>, Stmt>(m, "IfStmt")
         .def(py::init<::shared_ptr<Var>>())
