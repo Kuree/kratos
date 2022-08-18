@@ -126,6 +126,8 @@ void ssa_transform_fix(Generator *top);
 
 void dead_code_elimination(Generator *top);
 
+void inject_assertion_fail(Generator *top);
+
 class PassManager {
 public:
     PassManager() = default;

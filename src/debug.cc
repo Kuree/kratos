@@ -387,7 +387,8 @@ void add_generator_static_value(hgdb::json::Module &m, const std::string &name,
 
 class StmtFileNameVisitor : public IRVisitor {
 public:
-    explicit StmtFileNameVisitor(const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln)
+    explicit StmtFileNameVisitor(
+        const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln)
         : stmt_fn_ln_(stmt_fn_ln) {}
     void visit(AssignStmt *stmt) override {
         if (stmt_fn_ln_.find(stmt) != stmt_fn_ln_.end()) {
@@ -673,7 +674,7 @@ void remove_assertion(Generator *top) {
 
 class TriggerConditionVisitor : public IRVisitor {
 public:
-    void visit(Var* var) override {
+    void visit(Var *var) override {
         auto base_name = var->get_var_root_parent()->base_name();
         values.emplace(base_name);
     }
@@ -681,19 +682,19 @@ public:
     std::unordered_set<std::string> values;
 };
 
-std::string get_trigger_attribute(const std::shared_ptr<StmtBlock>& blk) {
+std::string get_trigger_attribute(const std::shared_ptr<StmtBlock> &blk) {
     TriggerConditionVisitor visitor;
     visitor.visit_root(blk.get());
-    auto const& values = visitor.values;
+    auto const &values = visitor.values;
     if (values.empty()) return "";
     return string::join(values.begin(), values.end(), " ");
 }
 
 class SSATransformFixVisitor : public IRVisitor {
 public:
-    void visit(Generator* gen) override {
+    void visit(Generator *gen) override {
         auto stmts = gen->get_all_stmts();
-        for (auto const& stmt : stmts) {
+        for (auto const &stmt : stmts) {
             if (stmt->type() == StatementType::Block && stmt->has_attribute("ssa")) {
                 auto blk_stmt = stmt->as<StmtBlock>();
                 if (blk_stmt->block_type() == StatementBlockType::Combinational) {
@@ -704,42 +705,42 @@ public:
     }
 
 private:
-    static void process_always_comb(const std::shared_ptr<StmtBlock>& blk) {
+    static void process_always_comb(const std::shared_ptr<StmtBlock> &blk) {
         // also need to fix the scope variables
         // we assume that every statement here has been SSA transformed
         using SymbolMapping = std::unordered_map<std::string, std::string>;
         uint64_t current_scope = 1;
         std::unordered_map<uint64_t, SymbolMapping> symbol_mappings = {{current_scope, {}}};
-        std::unordered_set<Stmt*> stmts;
+        std::unordered_set<Stmt *> stmts;
         auto trigger_str = get_trigger_attribute(blk);
-        for (auto const& stmt : *blk) {
+        for (auto const &stmt : *blk) {
             if (stmt->type() != StatementType::Assign)
                 throw StmtException("Invalid SSA transform", {stmt.get()});
             auto assign_stmt = stmt->as<AssignStmt>();
-            auto* left = assign_stmt->left();
+            auto *left = assign_stmt->left();
             auto scope_id = get_target_scope(left);
             if (scope_id) {
                 // detect when to start a new scope
                 if (current_scope != *scope_id) {
                     // copy current scope to the new one
-                    auto const& current_mapping = symbol_mappings.at(current_scope);
+                    auto const &current_mapping = symbol_mappings.at(current_scope);
                     symbol_mappings[*scope_id] = {};
-                    for (auto const& iter : current_mapping) {
+                    for (auto const &iter : current_mapping) {
                         symbol_mappings[*scope_id].emplace(iter);
                     }
                 }
                 current_scope = *scope_id;
             }
-            auto& symbol_mapping = symbol_mappings.at(current_scope);
+            auto &symbol_mapping = symbol_mappings.at(current_scope);
             // every statement is assign, and every variable should have been SSA transformed
             auto parse_result = get_target_var_name(left);
             if (!parse_result) throw StmtException("Invalid SSA transform", {stmt.get()});
-            auto const& [target_scope_name, target_var_name] = *parse_result;
+            auto const &[target_scope_name, target_var_name] = *parse_result;
             // look into its scope variables
-            auto const& scope = stmt->scope_context();
+            auto const &scope = stmt->scope_context();
             std::map<std::string, std::pair<bool, std::string>> new_scope;
-            for (auto const& [name, var_map] : scope) {
-                auto const& [is_var, var_name] = var_map;
+            for (auto const &[name, var_map] : scope) {
+                auto const &[is_var, var_name] = var_map;
                 if (is_var && symbol_mapping.find(name) != symbol_mapping.end()) {
                     new_scope.emplace(name, std::make_pair(true, symbol_mapping.at(name)));
                 } else {
@@ -761,10 +762,10 @@ private:
         }
     }
 
-    static std::optional<uint64_t> get_target_scope(const Var* var) {
-        auto const& attrs = var->get_attributes();
-        for (auto const& attr : attrs) {
-            auto const& value_str = attr->value_str;
+    static std::optional<uint64_t> get_target_scope(const Var *var) {
+        auto const &attrs = var->get_attributes();
+        for (auto const &attr : attrs) {
+            auto const &value_str = attr->value_str;
             auto pos = value_str.rfind("ssa-scope=");
             if (pos == 0) {
                 auto v = value_str.substr(10);
@@ -775,7 +776,7 @@ private:
     }
 };
 
-void ssa_transform_fix(Generator* top) {
+void ssa_transform_fix(Generator *top) {
     SSATransformFixVisitor visitor;
     visitor.visit_root(top);
 }
@@ -783,41 +784,41 @@ void ssa_transform_fix(Generator* top) {
 // this is only for visiting the vars and assignments in the current generator
 class DebugInfoVisitor : public IRVisitor {
 public:
-    void visit(Var* var) override { add_info(var); }
-    void visit(Expr* expr) override { add_info(expr); }
-    void visit(EnumVar* var) override { add_info(var); }
-    void visit(EnumConst* var) override { add_info(var); }
+    void visit(Var *var) override { add_info(var); }
+    void visit(Expr *expr) override { add_info(expr); }
+    void visit(EnumVar *var) override { add_info(var); }
+    void visit(EnumConst *var) override { add_info(var); }
 
-    void inline visit(AssignStmt* stmt) override { add_info(stmt); }
+    void inline visit(AssignStmt *stmt) override { add_info(stmt); }
 
-    void visit(Port* var) override { add_info(var); }
+    void visit(Port *var) override { add_info(var); }
 
-    void visit(SwitchStmt* stmt) override { add_info(stmt); }
+    void visit(SwitchStmt *stmt) override { add_info(stmt); }
 
-    void inline visit(SequentialStmtBlock* stmt) override { add_info(stmt); }
+    void inline visit(SequentialStmtBlock *stmt) override { add_info(stmt); }
 
-    void inline visit(CombinationalStmtBlock* stmt) override { add_info(stmt); }
+    void inline visit(CombinationalStmtBlock *stmt) override { add_info(stmt); }
 
-    void inline visit(ModuleInstantiationStmt* stmt) override { add_info(stmt); }
+    void inline visit(ModuleInstantiationStmt *stmt) override { add_info(stmt); }
 
-    void inline visit(IfStmt* stmt) override { add_info(stmt); }
+    void inline visit(IfStmt *stmt) override { add_info(stmt); }
 
-    void inline visit(FunctionCallStmt* stmt) override { add_info(stmt); }
+    void inline visit(FunctionCallStmt *stmt) override { add_info(stmt); }
 
-    void inline visit(FunctionStmtBlock* stmt) override { add_info(stmt); }
+    void inline visit(FunctionStmtBlock *stmt) override { add_info(stmt); }
 
-    void inline visit(ReturnStmt* stmt) override { add_info(stmt); }
+    void inline visit(ReturnStmt *stmt) override { add_info(stmt); }
 
-    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>& result() { return result_; }
+    std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> &result() { return result_; }
 
 private:
-    void inline add_info(Stmt* stmt) {
+    void inline add_info(Stmt *stmt) {
         if (!stmt->fn_name_ln.empty() && stmt->verilog_ln != 0) {
             result_.emplace(stmt->verilog_ln, stmt->fn_name_ln);
         }
     }
 
-    void inline add_info(Var* var) {
+    void inline add_info(Var *var) {
         if (!var->fn_name_ln.empty() && var->verilog_ln != 0 &&
             result_.find(var->verilog_ln) == result_.end()) {
             result_.emplace(var->verilog_ln, var->fn_name_ln);
@@ -829,7 +830,7 @@ private:
 
 class GeneratorDebugVisitor : public IRVisitor {
 public:
-    void visit(Generator* generator) override {
+    void visit(Generator *generator) override {
         if (result_.find(generator->name) != result_.end()) return;
         if (!generator->fn_name_ln.empty()) {
             DebugInfoVisitor visitor;
@@ -839,8 +840,8 @@ public:
         }
     }
 
-    const std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>&
-    result() {
+    const std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
+        &result() {
         return result_;
     }
 
@@ -850,14 +851,14 @@ private:
 };
 
 std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
-extract_debug_info(Generator* top) {
+extract_debug_info(Generator *top) {
     GeneratorDebugVisitor visitor;
     visitor.visit_generator_root(top);
     return visitor.result();
 }
 
 std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_info_gen(
-    Generator* top) {
+    Generator *top) {
     GeneratorDebugVisitor visitor;
     visitor.visit_content(top);
     auto result = visitor.result();
@@ -867,6 +868,42 @@ std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_
     }
     auto entry = result.begin();
     return (*entry).second;
+}
+
+static const std::string hgdb_assert_fail = "hgdb_assert_fail";
+
+class AssertionVisitor : public IRVisitor {
+public:
+    void visit(AssertBase *stmt) override {
+        if (stmt->fn_name_ln.empty()) return;
+        auto *generator = stmt->generator_parent();
+        auto const &[filename, line_num] = stmt->fn_name_ln[0];
+        auto filename_var = Const::constant(filename, filename.size() * 8).shared_from_this();
+        auto line_num_var =
+            Const::constant(static_cast<int64_t>(line_num), 32, false).shared_from_this();
+        auto gen_var = std::make_shared<GeneratorConst>(*generator);
+        auto else_call = stmt->generator_parent()
+                             ->call(hgdb_assert_fail, {gen_var, filename_var, line_num_var})
+                             .as<FunctionCallVar>();
+        auto else_stmt = std::make_shared<FunctionCallStmt>(else_call);
+        if (stmt->assert_type() == AssertType::AssertValue) {
+            auto *st = reinterpret_cast<AssertValueStmt *>(stmt);
+            st->set_else(else_stmt);
+        } else {
+            auto st = stmt->as<AssertPropertyStmt>();
+            auto *prop = st->property();
+            if (prop->action() == PropertyAction::Assert) {
+                st->set_else(else_stmt);
+            }
+        }
+    }
+
+private:
+};
+
+void inject_assertion_fail(Generator *top) {
+    AssertionVisitor visitor;
+    visitor.visit_root(top);
 }
 
 }  // namespace kratos

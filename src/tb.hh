@@ -76,17 +76,17 @@ public:
 
     Var *value() const { return assert_var_; }
 
-    const std::shared_ptr<Stmt> &else_() const { return else__; }
+    const std::shared_ptr<Stmt> &else_() const { return else_stmt_; }
     // currently this will only be used for debugging
     // not exposed to Python
     void set_else(const std::shared_ptr<Stmt> &stmt) {
-        else__ = stmt;
+        else_stmt_ = stmt;
         stmt->set_parent(this);
     }
 
 private:
     Var *assert_var_;
-    std::shared_ptr<Stmt> else__ = nullptr;
+    std::shared_ptr<Stmt> else_stmt_ = nullptr;
 };
 
 class AssertPropertyStmt : public AssertBase {
@@ -97,8 +97,17 @@ public:
 
     Property *property() { return property_; }
 
+    const std::shared_ptr<Stmt> &else_() const { return else_stmt_; }
+    // currently this will only be used for debugging
+    // not exposed to Python
+    void set_else(const std::shared_ptr<Stmt> &stmt) {
+        else_stmt_ = stmt;
+        stmt->set_parent(this);
+    }
+
 private:
     Property *property_;
+    std::shared_ptr<Stmt> else_stmt_ = nullptr;
 };
 
 class TestBench {

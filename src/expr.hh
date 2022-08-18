@@ -768,12 +768,12 @@ private:
 
 struct GeneratorConst : public Const {
 public:
-    GeneratorConst(Generator &gen) : Const(0, 1, false), gen_(gen) {}
+    explicit GeneratorConst(const Generator &gen) : Const(0, 1, false), gen_(gen) {}
 
     std::string to_string() const override;
 
 private:
-    Generator &gen_;
+    const Generator &gen_;
 };
 
 struct Enum : std::enable_shared_from_this<Enum> {

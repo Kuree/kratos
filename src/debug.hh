@@ -21,6 +21,8 @@ void mock_hierarchy(Generator *top, const std::string &top_name = "");
 // for verilator
 void insert_verilator_public(Generator *top);
 
+void inject_assertion_fail(Generator *top);
+
 class DebugDatabase {
 public:
     DebugDatabase() = default;

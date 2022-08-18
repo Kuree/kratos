@@ -747,8 +747,12 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
         action = "cover";
     else
         return;
-    stream_ << indent() << action << " property (" << property->property_name() << ");"
-            << stream_.endl();
+    stream_ << indent() << action << " property (" << property->property_name() << ")";
+    if (stmt->else_() && action_type == PropertyAction::Assert) {
+        dispatch_node(stmt->else_().get());
+    } else {
+        stream_  << ';' << stream_.endl();
+    }
 }
 
 void SystemVerilogCodeGen::stmt_code(CommentStmt* stmt) {

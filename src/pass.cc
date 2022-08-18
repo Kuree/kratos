@@ -358,6 +358,8 @@ void PassManager::register_builtin_passes() {
     register_pass("port_legality_fix", &port_legality_fix);
 
     register_pass("dead_code_elimination", &dead_code_elimination);
+
+    register_pass("inject_assertion_fail", &inject_assertion_fail);
 }
 
 }  // namespace kratos
