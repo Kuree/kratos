@@ -1,5 +1,7 @@
+#include "../src/codegen.hh"
 #include "../src/context.hh"
 #include "../src/generator.hh"
+#include "../src/pass.hh"
 #include "../src/stmt.hh"
 #include "../src/tb.hh"
 #include "gtest/gtest.h"
@@ -19,8 +21,8 @@ TEST(test_tb, code_gen) {  // NOLINT
     auto &in = tb.var("in", 1);
     auto &out = tb.var("out", 1);
 
-    tb.wire(dut_in.as<Var>(), in.as<Var>());
-    tb.wire(out.as<Var>(), dut_out.shared_from_this());
+    tb.wire(dut_in, in);
+    tb.wire(out, dut_out);
 
     // add sequence
     // add a clock
@@ -30,5 +32,14 @@ TEST(test_tb, code_gen) {  // NOLINT
     auto property = tb.property("fixed_value", seq);
     property->edge(BlockEdgeType::Posedge, clk.shared_from_this());
 
-    EXPECT_NO_THROW(tb.codegen());
+    auto *top_ = &tb;
+    EXPECT_NO_THROW({
+        fix_assignment_type(top_);
+        create_module_instantiation(top_);
+        verify_generator_connectivity(top_);
+
+        // code gen the module top
+        SystemVerilogCodeGen code_gen(top_);
+        code_gen.str();
+    });
 }
