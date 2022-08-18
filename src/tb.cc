@@ -38,9 +38,7 @@ std::string Sequence::wait_to_str() const {
 }
 
 std::string Sequence::to_string() const {
-    auto func = [](Var *v) {
-        return v->handle_name(true);
-    };
+    auto func = [](Var *v) { return v->handle_name(true); };
     return to_string(func);
 }
 
@@ -69,7 +67,7 @@ Property::Property(std::string property_name, std::shared_ptr<Sequence> sequence
 
 void Property::edge(kratos::EventEdgeType type, const std::shared_ptr<Var> &var) {
     if (var->width() != 1) throw VarException("{0} should be width 1", {var.get()});
-    edge_ = {var.get(), type};
+    edge_ = EventControl(type, *var);
 }
 
 TestBench::TestBench(kratos::Context *context, const std::string &top_name)

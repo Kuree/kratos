@@ -704,7 +704,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
     auto* seq = property->sequence();
     // automatically determine the clock, only if it's safe to do so (only one clock in the
     // design
-    if (!edge.first && seq->next()) {
+    if (!edge.var && seq->next()) {
         std::vector<Var*> clk_vars;
         // try to determine the clock
         // it's concurrent property, we have to have a clock
@@ -745,19 +745,19 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
         }
 
         if (clk_vars.size() == 1) {
-            edge.first = clk_vars[0];
-            edge.second = EventEdgeType::Posedge;
+            edge.var = clk_vars[0];
+            edge.edge = EventEdgeType::Posedge;
+            edge.type = EventControlType::Edge;
         } else {
             // next is not null but edge is not set
             throw StmtException(::format("Clock edge not set for sequence {0}", seq->to_string()),
                                 {stmt});
         }
     }
-    if (edge.first) {
-        auto const& [var, type] = edge;
-        stream_ << indent()
-                << ::format("@({0} {1}) ", type == EventEdgeType::Posedge ? "posedge" : "negedge",
-                            stream_.var_str(var));
+    if (edge.var) {
+        stream_ << indent() << ::format("@({0}) ", edge.to_string([this](const Var* var) {
+            return stream_.var_str(var);
+        }));
     }
     stream_ << seq->to_string([this](Var* v) { return stream_.var_str(v); }) << ";"
             << stream_.endl();
