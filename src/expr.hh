@@ -143,7 +143,7 @@ public:
     virtual Generator *generator() const { return generator_; }
     void set_generator(Generator *gen) { generator_ = gen; }
 
-    IRNode *parent() override;
+    IRNode *parent() const override;
 
     VarType type() const { return type_; }
     virtual const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const { return sinks_; };
@@ -346,7 +346,7 @@ public:
     uint32_t high = 0;
 
     VarSlice(Var *parent, uint32_t high, uint32_t low);
-    IRNode *parent() override;
+    IRNode *parent() const override;
 
     // we tie it to the parent
     void add_sink(const std::shared_ptr<AssignStmt> &stmt) override;

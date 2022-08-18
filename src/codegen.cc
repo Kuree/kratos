@@ -24,8 +24,8 @@ Stream::Stream(Generator* generator, SystemVerilogCodeGen* codegen)
     : generator_(generator), codegen_(codegen), line_no_(1) {}
 
 Stream& Stream::operator<<(AssignStmt* stmt) {
-    const auto& left = stmt->left()->to_string();
-    const auto& right = stmt->right()->to_string();
+    const auto left = var_str(stmt->left());
+    const auto right = var_str(stmt->right());
     if (!stmt->comment.empty()) {
         (*this) << "// " << strip_newline(stmt->comment) << endl();
         (*this) << codegen_->indent();
@@ -144,6 +144,17 @@ Stream& Stream::operator<<(const std::shared_ptr<Var>& var) {
 
     (*this) << var->before_var_str() << var_str << var->after_var_str() << ";" << endl();
     return *this;
+}
+
+std::string Stream::var_str(const kratos::Var* var) const {
+    if (var->generator() == generator_ || var->generator() == Const::const_gen())
+        return var->to_string();
+    else
+        return var->handle_name(true);
+}
+
+std::string Stream::var_str(const std::shared_ptr<Var>& var) const {
+    return var_str(var.get());
 }
 
 void VerilogModule::run_passes() {
@@ -459,7 +470,8 @@ void SystemVerilogCodeGen::stmt_code(AssignStmt* stmt) {
 
 void SystemVerilogCodeGen::stmt_code(kratos::ReturnStmt* stmt) {
     if (generator_->debug) stmt->verilog_ln = stream_.line_no();
-    stream_ << indent() << "return " << stmt->value()->to_string() << ";" << stream_.endl();
+    stream_ << indent() << "return " << stream_.var_str(stmt->value().get()) << ";"
+            << stream_.endl();
 }
 
 void SystemVerilogCodeGen::stmt_code(StmtBlock* stmt) {
@@ -751,7 +763,7 @@ void SystemVerilogCodeGen::stmt_code(AssertPropertyStmt* stmt) {
     if (stmt->else_() && action_type == PropertyAction::Assert) {
         dispatch_node(stmt->else_().get());
     } else {
-        stream_  << ';' << stream_.endl();
+        stream_ << ';' << stream_.endl();
     }
 }
 
@@ -775,7 +787,7 @@ void SystemVerilogCodeGen::stmt_code(IfStmt* stmt) {
         stmt->verilog_ln = stream_.line_no();
         if (stmt->predicate()->verilog_ln == 0) stmt->predicate()->verilog_ln = stream_.line_no();
     }
-    stream_ << indent() << ::format("if ({0}) ", stmt->predicate()->to_string());
+    stream_ << indent() << "if (" << stream_.var_str(stmt->predicate()) << ") ";
     auto const& then_body = stmt->then_body();
     dispatch_node(then_body.get());
 
@@ -880,7 +892,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::InterfaceInstantiationStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
-    stream_ << indent() << "unique case (" << stmt->target()->to_string() << ")" << stream_.endl();
+    stream_ << indent() << "unique case (" << stream_.var_str(stmt->target()) << ")" << stream_.endl();
     indent_++;
     auto const& body = stmt->body();
     std::vector<std::shared_ptr<Const>> conds;
@@ -893,11 +905,11 @@ void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
     conds.emplace_back(nullptr);
 
     for (auto& cond : conds) {
-        const auto& stmt_blk = (body.find(cond) != body.end())? body.at(cond): nullptr;
-        stream_ << indent() << (cond ? cond->to_string() : "default") << ": ";
+        const auto& stmt_blk = (body.find(cond) != body.end()) ? body.at(cond) : nullptr;
+        stream_ << indent() << (cond ? stream_.var_str(cond) : "default") << ": ";
         if (stmt_blk && stmt_blk->empty() && cond) {
             throw VarException(
-                ::format("Switch statement condition {0} is empty!", cond->to_string()),
+                ::format("Switch statement condition {0} is empty!", stream_.var_str(cond)),
                 {stmt, cond.get()});
         } else if (!stmt_blk || (stmt_blk->empty() && !cond)) {
             //  empty default case
@@ -927,7 +939,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionCallStmt* stmt) {
         throw StmtException("Function call statement cannot be used in top level", {stmt});
     }
     if (generator_->debug) stmt->verilog_ln = stream_.line_no();
-    stream_ << indent() << stmt->var()->to_string();
+    stream_ << indent() << stream_.var_str(stmt->var());
 
     stream_ << ";" << stream_.endl();
 }
@@ -948,13 +960,13 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
         if (!iter->is_signed()) var_decl.emplace_back("unsigned");
     }
 
-    var_decl.emplace_back(iter->to_string());
+    var_decl.emplace_back(stream_.var_str(iter));
     auto var_decl_str = string::join(var_decl.begin(), var_decl.end(), " ");
 
     stream_ << indent() << "for (" << var_decl_str << " = ";
-    stream_ << ::format("{0}", stmt->start()) << "; " << iter->to_string()
+    stream_ << ::format("{0}", stmt->start()) << "; " << stream_.var_str(iter)
             << (stmt->end() > stmt->start() ? " < " : " > ");
-    stream_ << ::format("{0}", stmt->end()) << "; " << iter->to_string()
+    stream_ << ::format("{0}", stmt->end()) << "; " << stream_.var_str(iter)
             << (stmt->step() > 0 ? " += " : " -= ");
     stream_ << ::format("{0}", std::abs(stmt->step())) << ") ";
     if (!iter->is_gen_var()) indent_++;

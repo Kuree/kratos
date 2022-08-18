@@ -42,7 +42,7 @@ public:
         return std::static_pointer_cast<T>(shared_from_this());
     }
 
-    IRNode *parent() override;
+    IRNode *parent() const override;
     virtual void set_parent(IRNode *parent) { parent_ = parent; }
     Generator *generator_parent() const;
     Stmt *pre_stmt() const;

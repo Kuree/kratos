@@ -847,8 +847,8 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
     if (var_width == 0) throw UserException(::format("variable {0} cannot have size 0", name));
 }
 
-IRNode *Var::parent() { return generator(); }
-IRNode *VarSlice::parent() { return parent_var; }
+IRNode *Var::parent() const { return generator(); }
+IRNode *VarSlice::parent() const { return parent_var; }
 
 std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var) {
     return assign(var, AssignmentType::Undefined);

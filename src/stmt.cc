@@ -15,7 +15,7 @@ using std::move;
 
 namespace kratos {
 
-IRNode *Stmt::parent() { return parent_; }
+IRNode *Stmt::parent() const { return parent_; }
 
 Generator *Stmt::generator_parent() const {
     IRNode *p = parent_;

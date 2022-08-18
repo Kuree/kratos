@@ -184,7 +184,7 @@ public:
 
     Context *context() const { return context_; }
 
-    IRNode *parent() override { return parent_generator_; }
+    IRNode *parent() const override { return parent_generator_; }
     const Generator *parent_generator() const { return parent_generator_; }
     Generator *parent_generator() { return parent_generator_; }
 

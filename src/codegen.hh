@@ -37,6 +37,9 @@ public:
     Stream& operator<<(const std::pair<Port*, std::string>& port);
     Stream& operator<<(const std::shared_ptr<Var>& var);
 
+    std::string var_str(const Var* var) const;
+    std::string var_str(const std::shared_ptr<Var> &var) const;
+
     static std::string get_var_decl(Var* var);
 
     inline char endl() {
@@ -50,6 +53,7 @@ private:
     Generator* generator_;
     SystemVerilogCodeGen* codegen_;
     uint64_t line_no_;
+
 };
 
 class SystemVerilogCodeGen {
@@ -73,7 +77,7 @@ public:
     std::string static get_port_str(Port* port);
     static std::string get_var_width_str(const Var* var);
     static std::string get_width_str(uint32_t width);
-    static std::string get_width_str(Var *var);
+    static std::string get_width_str(Var* var);
     static std::string enum_code(Enum* enum_);
 
 private:
@@ -123,7 +127,7 @@ protected:
 
     void stmt_code(InitialStmtBlock* stmt);
 
-    void stmt_code(FinalStmtBlock *stmt);
+    void stmt_code(FinalStmtBlock* stmt);
 
     void stmt_code(FunctionCallStmt* stmt);
 
@@ -137,7 +141,7 @@ protected:
 
     void stmt_code(ForStmt* stmt);
 
-    void stmt_code(LatchStmtBlock *stmt);
+    void stmt_code(LatchStmtBlock* stmt);
 
     void enum_code_(Enum* enum_);
     static void enum_code_(Stream& stream_, Enum* enum_, bool debug);
@@ -162,7 +166,7 @@ protected:
 
 private:
     void check_yosys_src();
-    void output_yosys_src(IRNode *node);
+    void output_yosys_src(IRNode* node);
 };
 
 std::string create_stub(Generator* top);
