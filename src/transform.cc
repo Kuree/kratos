@@ -302,6 +302,10 @@ public:
 
 private:
     static inline bool correct_src_type(Var* src, Generator* generator) {
+        if (src->type() == VarType::BaseCasted) {
+            auto casted = src->as<VarCasted>();
+            src = casted->parent_var();
+        }
         return src->type() == VarType::Base || src->type() == VarType::ConstValue ||
                src->type() == VarType::Parameter ||
                (src->type() == VarType::PortIO && src->parent() == generator->parent());
