@@ -1247,7 +1247,9 @@ def extract_sensitivity_from_dec(deco_list, fn_name):
             assert isinstance(call_obj, ast.Name), "Unrecognized  function decorator {0}".format(call_obj)
             call_name = call_obj.id
         if call_name == "always_comb":
-            return StatementBlockType.Combinational, []
+            return StatementBlockType.Combinational, [False]
+        elif call_name == "always":
+            return StatementBlockType.Combinational, [True]
         elif call_name == "initial":
             return StatementBlockType.Initial, []
         elif call_name == "always_latch":

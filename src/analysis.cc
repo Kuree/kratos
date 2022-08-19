@@ -246,6 +246,10 @@ public:
 
     void visit(InitialStmtBlock* stmt) override { nodes_.emplace_back(stmt); }
 
+    void visit(CombinationalStmtBlock* stmt) override {
+        if (stmt->is_general_purpose()) nodes_.emplace_back(stmt);
+    }
+
     const std::vector<IRNode*>& nodes() const { return nodes_; }
 
 private:
@@ -330,7 +334,7 @@ public:
         auto const& sensitivity = stmt->get_event_controls();
         for (auto const& event : sensitivity) {
             auto t = event.edge;
-            auto *v = event.var;
+            auto* v = event.var;
             if (v->type() == VarType::PortIO) {
                 auto port_s = v->as<Port>();
                 auto* port = port_s.get();

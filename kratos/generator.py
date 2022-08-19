@@ -92,9 +92,11 @@ class SequentialCodeBlock(CodeBlock):
 
 class CombinationalCodeBlock(CodeBlock):
     def __init__(self, generator,
-                 debug_frame_depth: int = 4):
+                 debug_frame_depth: int = 4,
+                 general_purpose: bool = False):
         super().__init__(generator, StatementBlockType.Combinational,
                          debug_frame_depth)
+        self._block.general_purpose = general_purpose
 
 
 class InitialCodeBlock(CodeBlock):
@@ -625,7 +627,8 @@ class Generator(metaclass=GeneratorMeta):
             raw_sensitives = sensitivity
         if block_type == StatementBlockType.Combinational:
             # it's a combinational block
-            comb = CombinationalCodeBlock(self)
+            assert isinstance(raw_sensitives[0], bool)
+            comb = CombinationalCodeBlock(self, general_purpose=raw_sensitives[0])
             for stmt in stmts:
                 comb.add_stmt(stmt, False)
             node = comb
@@ -1078,4 +1081,8 @@ def initial(fn):
 
 
 def final(fn):
+    return AlwaysWrapper(fn)
+
+
+def always(fn):
     return AlwaysWrapper(fn)

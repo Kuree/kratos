@@ -109,7 +109,9 @@ void init_stmt(py::module &m) {
 
     py::class_<CombinationalStmtBlock, ::shared_ptr<CombinationalStmtBlock>, StmtBlock>(
         m, "CombinationalStmtBlock")
-        .def(py::init<>());
+        .def(py::init<>())
+        .def_property("general_purpose", &CombinationalStmtBlock::is_general_purpose,
+                      &CombinationalStmtBlock::set_general_purpose);
 
     py::class_<LatchStmtBlock, ::shared_ptr<LatchStmtBlock>, StmtBlock>(m, "LatchStmtBlock")
         .def(py::init<>());

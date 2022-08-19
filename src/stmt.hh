@@ -324,6 +324,12 @@ public:
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
 
     std::shared_ptr<Stmt> clone() const override;
+
+    [[nodiscard]] inline bool is_general_purpose() const { return general_purpose_; }
+    inline void set_general_purpose(bool value) { general_purpose_ = value; }
+
+private:
+    bool general_purpose_ = false;
 };
 
 class SequentialStmtBlock : public StmtBlock {

@@ -574,7 +574,8 @@ void SystemVerilogCodeGen::block_code(const std::string& syntax_name, kratos::St
 }
 
 void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
-    block_code("always_comb", stmt);
+    std::string keyword = stmt->is_general_purpose()? "always": "always_comb";
+    block_code(keyword, stmt);
 }
 
 void SystemVerilogCodeGen::stmt_code(kratos::InitialStmtBlock* stmt) {

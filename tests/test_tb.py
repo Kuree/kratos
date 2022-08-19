@@ -1,4 +1,4 @@
-from kratos import Generator, TestBench, initial, assert_, delay, Sequence, verilog, always_comb, posedge
+from kratos import Generator, TestBench, initial, assert_, delay, Sequence, verilog, always, posedge
 
 
 def tb_dut_setup():
@@ -85,7 +85,7 @@ def test_event_control_stmt():
     mod = Generator("gen")
     a = mod.var("a", 1)
 
-    @always_comb
+    @initial
     def code():
         posedge(a)
         a = 1
@@ -94,6 +94,21 @@ def test_event_control_stmt():
 
     src = verilog(mod)["gen"]
     assert "\n  @(posedge a);\n" in src
+
+
+def test_always():
+    mod = Generator("mod")
+    clk = mod.var("clk", 1)
+
+    @always
+    def code():
+        delay(5, clk.assign(~clk))
+
+    mod.add_always(code)
+
+    src = verilog(mod)["mod"]
+    assert "always begin\n" in src
+    assert "#5 clk = ~clk;\n" in src
 
 
 if __name__ == "__main__":
