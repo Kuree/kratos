@@ -330,7 +330,7 @@ public:
         auto const& sensitivity = stmt->get_event_controls();
         for (auto const& event : sensitivity) {
             auto t = event.edge;
-            auto v = event.var;
+            auto *v = event.var;
             if (v->type() == VarType::PortIO) {
                 auto port_s = v->as<Port>();
                 auto* port = port_s.get();
