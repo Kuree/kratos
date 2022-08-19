@@ -193,7 +193,7 @@ void init_stmt(py::module &m) {
              })
         .def("get_loop_body", &ForStmt::get_loop_body);
 
-    py::class_<BreakStmt, std::shared_ptr<BreakStmt>, Stmt>(m, "BreakStmt");
+    py::class_<BreakStmt, std::shared_ptr<BreakStmt>, Stmt>(m, "BreakStmt").def(py::init<>());
 
     py::class_<AuxiliaryStmt, std::shared_ptr<AuxiliaryStmt>, Stmt>(m, "AuxiliaryStmt")
         .def("aux", &AuxiliaryStmt::aux_type);

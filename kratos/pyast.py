@@ -107,6 +107,22 @@ class StaticElaborationNodeForVisitor(ast.NodeTransformer):
                 setattr(node, "value=" + self.target.id, self.value)
             return self.generic_visit(node)
 
+    class BreakStmtVisitor(ast.NodeTransformer):
+        def __init__(self, filename, unroll, scope_ln):
+            self.filename = filename
+            self.unroll = unroll
+            self.scope_ln = scope_ln - 1
+
+        def visit_Break(self, node):
+            if self.unroll:
+                raise SyntaxError("Break not allowed when unrolling loops", (self.filename,
+                                                                             node.lineno + self.scope_ln,
+                                                                             node.col_offset,
+                                                                             astor.to_source(node)))
+            return ast.Call(func=ast.Attribute(value=ast.Name(id="scope", ctx=ast.Load()),
+                                               attr="break_", ctx=ast.Load()),
+                            args=[], keywords=[], ctx=ast.Load())
+
     class HasVar(ast.NodeVisitor):
         def __init__(self, target):
             self.has_target = False
@@ -255,6 +271,8 @@ class StaticElaborationNodeForVisitor(ast.NodeTransformer):
                     body.append(n)
             body_node = ast.Call(func=ast.Attribute(attr="loop", value=for_node, ctx=ast.Load()),
                                  args=body, keywords=[])
+            break_visitor = StaticElaborationNodeForVisitor.BreakStmtVisitor(self.filename, False, self.scope_ln)
+            body_node = break_visitor.visit(body_node)
             # create an entry for the target
             self.local[str(target.id)] = 0
             return self.visit(ast.Expr(body_node))
@@ -263,6 +281,9 @@ class StaticElaborationNodeForVisitor(ast.NodeTransformer):
             for value in iter_:
                 loop_body = copy.deepcopy(node.body)
                 for n in loop_body:
+                    # report error when break is detected in unrolled loop
+                    break_visitor = StaticElaborationNodeForVisitor.BreakStmtVisitor(self.filename, True, self.scope_ln)
+                    n = break_visitor.visit(n)
                     # need to replace all the reference to
                     visitor = StaticElaborationNodeForVisitor.NameVisitor(target, value)
                     n = visitor.visit(n)
@@ -614,6 +635,7 @@ def transform_event(ast_tree, debug, fn, ln):
                 value=ast.Call(func=ast.Attribute(attr="belongs", value=node.right, ctx=ast.Load()), args=args,
                                ctx=ast.Load(), keywords=[]),
                 lineno=node.lineno)
+
     visitor = ChangeMatMult()
     return visitor.visit(ast_tree)
 
@@ -915,6 +937,9 @@ class Scope:
                 # this is additional info passed in
                 add_scope_context(stmt, kargs)
         return stmt
+
+    def break_(self):
+        return _kratos.BreakStmt()
 
     def add_stmt(self, stmt):
         self.stmt_list.append(stmt)

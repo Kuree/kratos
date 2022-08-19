@@ -2369,6 +2369,28 @@ def test_external_visit():
     assert v.value
 
 
+def test_for_loop_break():
+    class Mod(Generator):
+        def __init__(self, unroll):
+            super(Mod, self).__init__("mod")
+
+            @always_comb
+            def code():
+                for i in range(42):
+                    break
+
+            self.add_always(code, unroll_for=unroll)
+
+    src = verilog(Mod(False))["mod"]
+    assert "break;\n" in src
+
+    try:
+        Mod(True)
+        assert False
+    except SyntaxError:
+        pass
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn, check_file_fn
     test_ssa_transform(check_gold_fn)
