@@ -12,6 +12,20 @@ using std::shared_ptr;
 
 std::optional<std::pair<std::string, uint32_t>> get_fn_ln(uint32_t num_frame_back);
 
+void add_function_call_var(kratos::StmtBlock &block,
+                           const std::shared_ptr<kratos::FunctionCallVar> &var) {
+    // need to convert it into a function call statement
+    // SystemVerilog doesn't like a function call that returns stuff and don't
+    // have an assignment associated with it
+    auto *def = var->func();
+    if (def != nullptr && def->has_return_value()) {
+        throw kratos::UserException("Cannot discard function call that returns a variable: " +
+                                    def->function_name());
+    }
+    auto st = std::make_shared<kratos::FunctionCallStmt>(var);
+    block.add_stmt(st);
+}
+
 void init_stmt(py::module &m) {
     using namespace kratos;
     py::class_<Stmt, ::shared_ptr<Stmt>> stmt_(m, "Stmt");
@@ -76,12 +90,7 @@ void init_stmt(py::module &m) {
         .def("block_type", &StmtBlock::block_type)
         .def("add_stmt", py::overload_cast<const ::shared_ptr<Stmt> &>(&StmtBlock::add_stmt))
         .def("remove_stmt", &StmtBlock::remove_stmt)
-        .def("add_stmt",
-             [](StmtBlock &stmt, const std::shared_ptr<FunctionCallVar> &var) {
-                 // need to convert it into a function call statement
-                 auto st = std::make_shared<FunctionCallStmt>(var);
-                 stmt.add_stmt(st);
-             })
+        .def("add_stmt", &add_function_call_var)
         .def("__getitem__",
              [](StmtBlock &stmt, int index) {
                  if (stmt.empty()) {
@@ -178,6 +187,10 @@ void init_stmt(py::module &m) {
         .def(py::init<const std::string &, int64_t, int64_t, int64_t>())
         .def("get_iter_var", &ForStmt::get_iter_var)
         .def("add_stmt", &ForStmt::add_stmt)
+        .def("add_stmt",
+             [](ForStmt &for_, const std::shared_ptr<FunctionCallVar> &var) {
+                 add_function_call_var(*for_.get_loop_body(), var);
+             })
         .def("get_loop_body", &ForStmt::get_loop_body);
 
     py::class_<AuxiliaryStmt, std::shared_ptr<AuxiliaryStmt>, Stmt>(m, "AuxiliaryStmt")

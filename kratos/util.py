@@ -93,6 +93,10 @@ def __systask(name: str):
 
 
 display = __systask("display")
+finish = __systask("finish")
+fopen = __systask("fopen")
+fclose = __systask("fclose")
+fscanf = __systask("fscanf")
 
 
 def flog2(x: int) -> int:
@@ -183,12 +187,12 @@ def async_reset(var):
     return cast(var, VarCastType.AsyncReset)
 
 
-def const(value: Union[str, int], width: int, is_signed: bool = False):
+def const(value: Union[str, int], width: int = 32, is_signed: bool = False):
     if isinstance(value, int):
         return _kratos.constant(value, width, is_signed)
     else:
         assert isinstance(value, str)
-        return _kratos.constant(value, width)
+        return _kratos.constant(value, len(value) * 8)
 
 
 def comment(comment_str):

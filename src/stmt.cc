@@ -783,8 +783,9 @@ void DPIFunctionStmtBlock::set_is_pure(bool value) {
 
 // all the known functions should be synthesizable
 std::unordered_map<std::string, uint32_t> BuiltInFunctionStmtBlock::known_functions_ = {
-    {"clog2", 32},    {"countones", 32}, {"onehot", 1},          {"onehot0", 1},
-    {"isunknown", 1}, {"display", 0},    {"hgdb_assert_fail", 0}};
+    {"clog2", 32},    {"countones", 32}, {"onehot", 1},           {"onehot0", 1},
+    {"isunknown", 1}, {"display", 0},    {"hgdb_assert_fail", 0}, {"finish", 0},
+    {"fopen", 32},    {"fclose", 0},     {"fscanf", 32}};
 
 BuiltInFunctionStmtBlock::BuiltInFunctionStmtBlock(Generator *parent,
                                                    const std::string &function_name)
@@ -800,8 +801,8 @@ BuiltInFunctionStmtBlock::BuiltInFunctionStmtBlock(Generator *parent,
     }
 }
 
-std::unordered_set<std::string> BuiltInFunctionStmtBlock::known_tasks_ = {"display",
-                                                                          "hgdb_assert_fail"};
+std::unordered_set<std::string> BuiltInFunctionStmtBlock::known_tasks_ = {
+    "display", "hgdb_assert_fail", "finish", "fopen", "fclose", "fscanf"};
 
 bool BuiltInFunctionStmtBlock::is_task() const {
     return known_tasks_.find(function_name_) != known_tasks_.end();

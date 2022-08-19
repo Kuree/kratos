@@ -1,7 +1,7 @@
 import enum
 from .pyast import transform_stmt_block, add_scope_context, \
     get_frame_local, AlwaysWrapper
-from .util import clog2, max_value, cast, VarCastType, display, const
+from .util import clog2, max_value, cast, VarCastType, display, const, finish, fopen, fclose, fscanf
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
@@ -992,6 +992,20 @@ class Generator(metaclass=GeneratorMeta):
         assert isinstance(fmt, str)
         args = [const(fmt, len(fmt) * 8)] + list(args)
         return display(self.__generator, *args)
+
+    def finish(self):
+        return finish(self.__generator)
+
+    def fopen(self, filename: str, mode: str):
+        return fopen(self.__generator, const(filename), const(mode))
+
+    def fclose(self, fd: _kratos.Var):
+        return fclose(self.__generator, fd)
+
+    def fscanf(self, fd, fmt: str, *args):
+        assert isinstance(fmt, str)
+        args = [fd, const(fmt)] + list(args)
+        return fscanf(self.__generator, *args)
 
     def reg_next(self, var_name, var, clk=None):
         clk_name = self.__get_port_name_type(clk, PortType.Clock)

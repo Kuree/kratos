@@ -111,6 +111,24 @@ def test_always():
     assert "#5 clk = ~clk;\n" in src
 
 
+def test_file_ops(check_gold):
+    mod = Generator("mod")
+    a = mod.var("a", 1)
+    b = mod.var("b", 1)
+    c = mod.var("c", 32)
+    fd = mod.var("fd", 32)
+
+    @initial
+    def code():
+        fd = mod.fopen("test.sv", "r")
+        for i in range(10):
+            c = mod.fscanf(fd, "%d %d", a, b)
+        mod.fclose(fd)
+
+    mod.add_always(code)
+    check_gold(mod, "test_file_ops")
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
-    test_tb_sequence(check_gold_fn)
+    test_file_ops(check_gold_fn)
