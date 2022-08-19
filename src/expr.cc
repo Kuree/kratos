@@ -1338,11 +1338,11 @@ uint32_t VarDuplicated::width() const {
     return static_cast<uint32_t>(count->value()) * left->width();
 }
 
-void VarDuplicated::add_sink(const std::shared_ptr<AssignStmt> &stmt) {
+void VarDuplicated::add_sink(const std::shared_ptr<AssignStmt> &stmt) { left->add_source(stmt); }
+
+void VarDuplicated::add_source(const std::shared_ptr<AssignStmt> &stmt) {
     throw StmtException("Duplicate variable cannot be on left hand side", {stmt.get()});
 }
-
-void VarDuplicated::add_source(const std::shared_ptr<AssignStmt> &stmt) { left->add_source(stmt); }
 
 void VarDuplicated::remove_source(const std::shared_ptr<AssignStmt> &stmt) {
     left->remove_source(stmt);
@@ -2065,9 +2065,7 @@ StringConst::StringConst(std::string value, uint32_t width)
 
 std::string StringConst::to_string() const { return ::format("\"{0}\"", value_); }
 
-std::string GeneratorConst::to_string() const {
-    return gen_.name;
-}
+std::string GeneratorConst::to_string() const { return gen_.name; }
 
 IterVar::IterVar(kratos::Generator *m, const std::string &name, int64_t min_value,
                  int64_t max_value, bool signed_)
@@ -2321,6 +2319,7 @@ std::string InterfaceVar::base_name() const { return interface_->base_name(); }
 std::shared_ptr<Expr> util::mux(Var &cond, Var &left, Var &right) {
     auto expr = std::make_shared<ConditionalExpr>(cond.shared_from_this(), left.shared_from_this(),
                                                   right.shared_from_this());
+    expr->set_generator(cond.generator());
     cond.generator()->add_expr(expr);
     return expr;
 }
@@ -2328,11 +2327,13 @@ std::shared_ptr<Expr> util::mux(Var &cond, Var &left, Var &right) {
 std::shared_ptr<Expr> util::mux(Var &cond, int64_t left, Var &right) {
     auto expr = ConditionalExpr::create(cond.shared_from_this(), left, right.shared_from_this());
     cond.generator()->add_expr(expr);
+    expr->set_generator(cond.generator());
     return expr;
 }
 
 std::shared_ptr<Expr> util::mux(Var &cond, Var &left, int64_t right) {
     auto expr = ConditionalExpr::create(cond.shared_from_this(), left.shared_from_this(), right);
+    expr->set_generator(cond.generator());
     cond.generator()->add_expr(expr);
     return expr;
 }
