@@ -94,8 +94,7 @@ struct EventControl {
     DelaySide delay_side = DelaySide::left;
 
     explicit EventControl(uint64_t delay) : delay(delay) {}
-    EventControl(EventEdgeType edge, Var &var)
-        : var(&var), type(EventControlType::Edge), edge(edge) {}
+    EventControl(EventEdgeType edge, Var &var);
 
     [[nodiscard]] std::string to_string() const;
     [[nodiscard]] std::string to_string(

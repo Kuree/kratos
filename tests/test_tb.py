@@ -1,4 +1,4 @@
-from kratos import Generator, TestBench, initial, assert_, delay, Sequence, verilog
+from kratos import Generator, TestBench, initial, assert_, delay, Sequence, verilog, always_comb, posedge
 
 
 def tb_dut_setup():
@@ -79,6 +79,21 @@ def test_display_stmt():
         assert False
     except _kratos.exception.UserException:
         pass
+
+
+def test_event_control_stmt():
+    mod = Generator("gen")
+    a = mod.var("a", 1)
+
+    @always_comb
+    def code():
+        posedge(a)
+        a = 1
+
+    mod.add_always(code)
+
+    src = verilog(mod)["gen"]
+    assert "\n  @(posedge a);\n" in src
 
 
 if __name__ == "__main__":

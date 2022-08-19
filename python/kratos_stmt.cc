@@ -209,6 +209,9 @@ void init_stmt(py::module &m) {
              })
         .def_property_readonly("match_values", &EventTracingStmt::match_values);
 
+    py::class_<EventDelayStmt, std::shared_ptr<EventDelayStmt>, AuxiliaryStmt>(m, "EventDelayStmt")
+        .def_property_readonly("event", &EventDelayStmt::event);
+
     // event control
     py::class_<EventControl>(m, "EventControl")
         .def(py::init<uint64_t>())

@@ -101,6 +101,13 @@ void Stmt::copy_meta(const std::shared_ptr<Stmt> &stmt) const {
     stmt->comment = comment;
 }
 
+EventControl::EventControl(kratos::EventEdgeType edge, kratos::Var &var)
+    : var(&var), type(EventControlType::Edge), edge(edge) {
+    if (var.width() != 1) {
+        throw UserException("Event control variable cannot be a scalar");
+    }
+}
+
 std::string EventControl::to_string() const {
     auto func = [](const Var *v) { return v->to_string(); };
     return to_string(func);

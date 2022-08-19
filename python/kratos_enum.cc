@@ -57,7 +57,11 @@ void init_enum(py::module &m) {
     py::enum_<EventEdgeType>(m, "EventEdgeType")
         .value("Posedge", EventEdgeType::Posedge)
         .value("Negedge", EventEdgeType::Negedge)
-        .export_values();
+        .def("__call__", [](EventEdgeType type, Var &var) {
+            auto event = EventControl(type, var);
+            auto stmt = std::make_shared<EventDelayStmt>(event);
+            return stmt;
+        });
 
     py::enum_<IRNodeKind>(m, "IRNodeKind")
         .value("GeneratorKind", IRNodeKind::GeneratorKind)
