@@ -1034,4 +1034,7 @@ std::shared_ptr<EventTracingStmt> EventTracingStmt::matches(const std::string &f
     return as<EventTracingStmt>();
 }
 
+EventDelayStmt::EventDelayStmt(kratos::EventControl event)
+    : AuxiliaryStmt(AuxiliaryType::Delay), event_(event) {}
+
 }  // namespace kratos

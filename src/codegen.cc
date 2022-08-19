@@ -62,10 +62,8 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
     }
 
     (*this) << prefix;
-    auto var_str_func = [this](const Var *v) {
-        return var_str(v);
-    };
-    auto output_delay = [this, &var_str_func](const EventControl &e) {
+    auto var_str_func = [this](const Var* v) { return var_str(v); };
+    auto output_delay = [this, &var_str_func](const EventControl& e) {
         switch (e.type) {
             case EventControlType::Delay: {
                 (*this) << e.to_string(var_str_func) << ' ';
@@ -85,7 +83,7 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
     (*this) << left << " " << eq << " ";  //<< right << ";" << endl();
 
     // rhs delay
-    if (stmt->has_delay()  && stmt->get_delay()->delay_side == EventControl::DelaySide::right) {
+    if (stmt->has_delay() && stmt->get_delay()->delay_side == EventControl::DelaySide::right) {
         // this is a rhs delay
         output_delay(*stmt->get_delay());
     }
@@ -471,7 +469,8 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
             stmt_code(reinterpret_cast<ForStmt*>(node));
             break;
         case StatementType::Auxiliary:
-            throw UserException("Auxiliary statement should not be in the codegen!");
+            stmt_code(reinterpret_cast<AuxiliaryStmt*>(node));
+            break;
     }
 }
 
@@ -996,6 +995,31 @@ void SystemVerilogCodeGen::stmt_code(kratos::ForStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(LatchStmtBlock* stmt) { block_code("always_latch", stmt); }
+
+void SystemVerilogCodeGen::stmt_code(AuxiliaryStmt* stmt) {
+    switch (stmt->aux_type()) {
+        case AuxiliaryType::EventTracing: {
+            throw UserException("Auxiliary event tracing statement should not be in the codegen!");
+        }
+        case AuxiliaryType::Delay: {
+            stream_ << indent();
+            auto const& delay = stmt->as<EventDelayStmt>();
+            auto const& event = delay->event();
+            auto var_func = [this](const Var* var) { return stream_.var_str(var); };
+            switch (event.type) {
+                case EventControlType::Delay: {
+                    stream_ << event.to_string(var_func);
+                    break;
+                }
+                case EventControlType::Edge: {
+                    stream_ << "@(" << event.to_string(var_func) << ')';
+                    break;
+                }
+            }
+            stream_ << ';' << stream_.endl();
+        }
+    }
+}
 
 std::string get_var_size_str(Var* var) {
     std::string str;

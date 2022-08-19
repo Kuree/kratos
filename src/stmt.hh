@@ -29,7 +29,7 @@ enum class StatementType {
 enum class AssignmentType { Blocking, NonBlocking, Undefined };
 enum class StatementBlockType { Combinational, Sequential, Scope, Function, Initial, Latch, Final };
 enum class EventEdgeType { Posedge, Negedge };
-enum class AuxiliaryType { EventTracing };
+enum class AuxiliaryType { EventTracing, Delay };
 enum class EventControlType { Delay, Edge };
 
 class StmtBlock;
@@ -143,7 +143,6 @@ private:
     AssignmentType assign_type_;
 
     std::optional<EventControl> delay_;
-
 };
 
 class IfStmt : public Stmt {
@@ -605,6 +604,16 @@ private:
 
     // used for match conditions
     std::map<std::string, std::shared_ptr<Var>> match_values_;
+};
+
+class EventDelayStmt : public AuxiliaryStmt {
+public:
+    explicit EventDelayStmt(EventControl event);
+
+    const EventControl &event() const { return event_; }
+
+private:
+    EventControl event_;
 };
 
 }  // namespace kratos
