@@ -294,12 +294,6 @@ def test_string_const():
     assert str(s) == '"kratos"'
     a = mod.var("a", 64)
     mod.wire(a, s)
-    # should fail
-    try:
-        const("kratos", 8)
-        assert False
-    except _kratos.exception.UserException:
-        pass
 
 
 def test_display_call():
