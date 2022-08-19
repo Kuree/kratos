@@ -223,7 +223,7 @@ void check_mixed_assignment(Generator* top) {
 class SynthesizableVisitor : public IRVisitor {
 public:
     void visit(AssignStmt* stmt) override {
-        if (stmt->get_delay() >= 0) {
+        if (stmt->has_delay()) {
             nodes_.emplace_back(stmt);
         }
     }

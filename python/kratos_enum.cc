@@ -92,4 +92,8 @@ void init_enum(py::module &m) {
         .value("None_", EventActionType::None)
         .value("Start", EventActionType::Start)
         .value("End", EventActionType::End);
+
+    py::enum_<EventControl::DelaySide>(m, "DelaySide")
+        .value("Left", EventControl::DelaySide::left)
+        .value("Right", EventControl::DelaySide::right);
 }

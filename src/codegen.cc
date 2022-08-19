@@ -49,16 +49,6 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
         }
         prefix = "assign ";
         eq = "=";
-        /*
-        (*this) << ::format("assign {0} = ", left);
-        auto wrapped_right = line_wrap(right, 100);
-        for (uint64_t i = 0; i < wrapped_right.size() - 1; i++) {
-            // compute new indent
-            auto new_indent = codegen_->indent() + "    ";
-            (*this) << wrapped_right[i] << endl();
-        }
-        (*this) << wrapped_right.back() << ";" << endl();
-         */
     } else {
         prefix = codegen_->indent();
         if (stmt->assign_type() == AssignmentType::Blocking)
@@ -72,18 +62,32 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
     }
 
     (*this) << prefix;
+    auto var_str_func = [this](const Var *v) {
+        return var_str(v);
+    };
+    auto output_delay = [this, &var_str_func](const EventControl &e) {
+        switch (e.type) {
+            case EventControlType::Delay: {
+                (*this) << e.to_string(var_str_func) << ' ';
+                break;
+            }
+            case EventControlType::Edge: {
+                (*this) << "@(" << e.to_string(var_str_func) << ") ";
+            }
+        }
+    };
     // lhs delay
-    if (stmt->has_delay() && stmt->get_lhs_delay()) {
+    if (stmt->has_delay() && stmt->get_delay()->delay_side == EventControl::DelaySide::left) {
         // this is a lhs delay
-        (*this) << ::format("#{0} ", stmt->get_delay());
+        output_delay(*stmt->get_delay());
     }
 
     (*this) << left << " " << eq << " ";  //<< right << ";" << endl();
 
     // rhs delay
-    if (stmt->has_delay() && !stmt->get_lhs_delay()) {
+    if (stmt->has_delay()  && stmt->get_delay()->delay_side == EventControl::DelaySide::right) {
         // this is a rhs delay
-        (*this) << ::format("#{0} ", stmt->get_delay());
+        output_delay(*stmt->get_delay());
     }
 
     auto right_wrapped = line_wrap(right, 80);

@@ -4,9 +4,7 @@
 
 #include "../src/event.hh"
 #include "../src/except.hh"
-#include "../src/expr.hh"
 #include "../src/generator.hh"
-#include "../src/stmt.hh"
 #include "kratos_debug.hh"
 
 namespace py = pybind11;
@@ -42,7 +40,6 @@ void init_stmt(py::module &m) {
             "right", [](const AssignStmt &stmt) { return stmt.right(); },
             py::return_value_policy::reference)
         .def_property("delay", &AssignStmt::get_delay, &AssignStmt::set_delay)
-        .def_property("lhs_delay", &AssignStmt::get_lhs_delay, &AssignStmt::set_lhs_delay)
         .def_property_readonly("has_delay", &AssignStmt::has_delay);
 
     py::class_<IfStmt, ::shared_ptr<IfStmt>, Stmt>(m, "IfStmt")
@@ -211,4 +208,12 @@ void init_stmt(py::module &m) {
                  return stmt;
              })
         .def_property_readonly("match_values", &EventTracingStmt::match_values);
+
+    // event control
+    py::class_<EventControl>(m, "EventControl")
+        .def(py::init<uint64_t>())
+        .def(py::init<EventEdgeType, Var &>())
+        .def_readwrite("delay_side", &EventControl::delay_side)
+        .def_readwrite("delay", &EventControl::delay)
+        .def_readwrite("edge", &EventControl::edge);
 }

@@ -90,6 +90,8 @@ struct EventControl {
     Var *var = nullptr;
     EventControlType type = EventControlType::Delay;
     EventEdgeType edge = EventEdgeType::Posedge;
+    enum class DelaySide { left, right };
+    DelaySide delay_side = DelaySide::left;
 
     explicit EventControl(uint64_t delay) : delay(delay) {}
     EventControl(EventEdgeType edge, Var &var)
@@ -122,11 +124,9 @@ public:
     bool operator==(const AssignStmt &stmt) const;
 
     // delay. this is only used during test bench generation
-    int inline get_delay() const { return delay_; }
-    [[nodiscard]] bool inline has_delay() const { return delay_ != -1; }
-    void set_delay(int delay) { delay_ = delay; }
-    void set_lhs_delay(bool value);
-    bool get_lhs_delay() const;
+    inline const std::optional<EventControl> &get_delay() const { return delay_; }
+    [[nodiscard]] bool inline has_delay() const { return delay_.has_value(); }
+    void set_delay(std::optional<EventControl> delay) { delay_ = delay; }
 
     // AST stuff
     void accept(IRVisitor *visitor) override { visitor->visit(this); }
@@ -142,9 +142,8 @@ private:
 
     AssignmentType assign_type_;
 
-    int delay_ = -1;
-    enum class DelaySide { left, right };
-    DelaySide delay_side_ = DelaySide::left;
+    std::optional<EventControl> delay_;
+
 };
 
 class IfStmt : public Stmt {
