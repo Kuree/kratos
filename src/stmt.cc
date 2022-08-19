@@ -818,23 +818,6 @@ void ReturnStmt::set_parent(kratos::IRNode *parent) {
     /* comment this out because can only be determined after every statements has been set
      * TODO:
      * add a pass to analysis returns
-    IRNode *ir_p = parent;
-    bool found = false;
-    FunctionStmtBlock *stmt = nullptr;
-    for (uint32_t i = 0; i < 10000; i++) {
-        if (!ir_p)
-            break;
-        auto ptr = dynamic_cast<FunctionStmtBlock *>(ir_p);
-        if (ptr) {
-            found = true;
-            stmt = ptr;
-            break;
-        }
-        ir_p = ir_p->parent();
-    }
-
-    if (!found) {
-        throw ::runtime_error("Can only add return statement to function block");
     }
      */
     func_def_->set_has_return_value(true);
@@ -846,6 +829,26 @@ void ReturnStmt::set_parent(kratos::IRNode *parent) {
     auto p = func_def_->function_handler();
     auto s = p->assign(value_, AssignmentType::Blocking);
     s->set_parent(this);
+}
+
+void BreakStmt::set_parent(IRNode *parent) {
+    // making sure we are inside a for loop
+    Stmt *for_ = nullptr;
+    auto *p = parent;
+    while (p) {
+        if (p->ir_node_kind() == IRNodeKind::StmtKind) {
+            auto *s = reinterpret_cast<Stmt *>(p);
+            if (s->type() == StatementType::For) {
+                for_ = s;
+                break;
+            }
+        }
+        p = p->parent();
+    }
+    if (for_ == nullptr) {
+        throw UserException("Break statement not allowed outside loop");
+    }
+    Stmt::set_parent(parent);
 }
 
 FunctionCallStmt::FunctionCallStmt(const std::shared_ptr<FunctionStmtBlock> &func,

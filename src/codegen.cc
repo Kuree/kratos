@@ -471,6 +471,9 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
         case StatementType::Auxiliary:
             stmt_code(reinterpret_cast<AuxiliaryStmt*>(node));
             break;
+        case StatementType::Break:
+            stmt_code(reinterpret_cast<BreakStmt*>(node));
+            break;
     }
 }
 
@@ -574,7 +577,7 @@ void SystemVerilogCodeGen::block_code(const std::string& syntax_name, kratos::St
 }
 
 void SystemVerilogCodeGen::stmt_code(CombinationalStmtBlock* stmt) {
-    std::string keyword = stmt->is_general_purpose()? "always": "always_comb";
+    std::string keyword = stmt->is_general_purpose() ? "always" : "always_comb";
     block_code(keyword, stmt);
 }
 
@@ -1020,6 +1023,10 @@ void SystemVerilogCodeGen::stmt_code(AuxiliaryStmt* stmt) {
             stream_ << ';' << stream_.endl();
         }
     }
+}
+
+void SystemVerilogCodeGen::stmt_code(BreakStmt*) {
+    stream_ << indent() << "break;" << stream_.endl();
 }
 
 std::string get_var_size_str(Var* var) {

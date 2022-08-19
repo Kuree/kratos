@@ -53,6 +53,7 @@ class ReturnStmt;
 class ModuleInstantiationStmt;
 class InterfaceInstantiationStmt;
 class AuxiliaryStmt;
+class BreakStmt;
 class AssertPropertyStmt;
 class AssertBase;
 class FSM;

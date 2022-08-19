@@ -18,6 +18,7 @@ enum class StatementType {
     InterfaceInstantiation,
     FunctionalCall,
     Return,
+    Break,
     Assert,
     Comment,
     RawString,
@@ -460,6 +461,15 @@ public:
 private:
     FunctionStmtBlock *func_def_;
     std::shared_ptr<Var> value_;
+};
+
+class BreakStmt : public Stmt {
+public:
+    BreakStmt() : Stmt(StatementType::Break) {}
+
+    void set_parent(IRNode *parent) override;
+
+    void accept(IRVisitor *visitor) override { visitor->visit(this); }
 };
 
 class FunctionCallStmt : public Stmt {

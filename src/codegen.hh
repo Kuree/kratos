@@ -38,7 +38,7 @@ public:
     Stream& operator<<(const std::shared_ptr<Var>& var);
 
     std::string var_str(const Var* var) const;
-    std::string var_str(const std::shared_ptr<Var> &var) const;
+    std::string var_str(const std::shared_ptr<Var>& var) const;
 
     static std::string get_var_decl(Var* var);
 
@@ -53,7 +53,6 @@ private:
     Generator* generator_;
     SystemVerilogCodeGen* codegen_;
     uint64_t line_no_;
-
 };
 
 class SystemVerilogCodeGen {
@@ -143,7 +142,9 @@ protected:
 
     void stmt_code(LatchStmtBlock* stmt);
 
-    void stmt_code(AuxiliaryStmt *stmt);
+    void stmt_code(AuxiliaryStmt* stmt);
+
+    void stmt_code(BreakStmt* stmt);
 
     void enum_code_(Enum* enum_);
     static void enum_code_(Stream& stream_, Enum* enum_, bool debug);

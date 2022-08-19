@@ -103,6 +103,7 @@ public:
     virtual inline void visit(InterfaceInstantiationStmt *) {}
     virtual inline void visit(AuxiliaryStmt *) {}
     virtual inline void visit(AssertBase *) {}
+    virtual inline void visit(BreakStmt *) {}
 
     // generator specific traversal
     virtual void visit(Generator *) {}
