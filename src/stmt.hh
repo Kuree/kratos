@@ -440,12 +440,8 @@ public:
     bool is_builtin() const override { return true; }
     bool has_return_value() const override { return return_width() > 0; }
 
-    uint32_t return_width() const { return known_functions_.at(function_name_); }
+    uint32_t return_width() const;
     bool is_task() const override;
-
-private:
-    static std::unordered_map<std::string, uint32_t> known_functions_;
-    static std::unordered_set<std::string> known_tasks_;
 };
 
 class ReturnStmt : public Stmt {

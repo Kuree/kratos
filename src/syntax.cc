@@ -1,5 +1,8 @@
 #include "syntax.hh"
-#include <string>
+
+#include <limits>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace kratos {
 
@@ -266,4 +269,35 @@ bool is_valid_variable_name(const std::string &name) {
     initialize_keywords();
     return system_verilog_keywords.find(name) == system_verilog_keywords.end();
 }
+
+static std::unordered_map<std::string, BuiltinFunctionInfo> builtin_functions_info = {
+    {"clog2", {32, true}},
+    {"countones", {32, true}},
+    {"onehot", {32, true}},
+    {"onehot0", {32, true}},
+    {"isunknown", {32, true}},
+    {"display", {0, false, 1, std::numeric_limits<uint32_t>::max()}},
+    {"hgdb_assert_fail", {0, false, 3, 4}},
+    {"finish", {0, false, 0, 1}},
+    {"fopen", {32, false, 2, 2}},
+    {"fclose", {0, false}},
+    {"fscanf", {32, false, 2, std::numeric_limits<uint32_t>::max()}}};
+
+std::optional<BuiltinFunctionInfo> get_builtin_function_info(const std::string &name) {
+    if (builtin_functions_info.find(name) != builtin_functions_info.end()) {
+        return builtin_functions_info.at(name);
+    } else {
+        return std::nullopt;
+    }
 }
+
+std::set<std::string> get_builtin_function_names() {
+    std::set<std::string> res;
+
+    for (auto const &iter : builtin_functions_info) {
+        res.emplace(iter.first);
+    }
+    return res;
+}
+
+}  // namespace kratos

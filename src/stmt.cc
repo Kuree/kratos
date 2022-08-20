@@ -8,6 +8,7 @@
 #include "generator.hh"
 #include "interface.hh"
 #include "port.hh"
+#include "syntax.hh"
 #include "util.hh"
 
 using fmt::format;
@@ -781,31 +782,26 @@ void DPIFunctionStmtBlock::set_is_pure(bool value) {
     is_context_ = !value;
 }
 
-// all the known functions should be synthesizable
-std::unordered_map<std::string, uint32_t> BuiltInFunctionStmtBlock::known_functions_ = {
-    {"clog2", 32},    {"countones", 32}, {"onehot", 1},           {"onehot0", 1},
-    {"isunknown", 1}, {"display", 0},    {"hgdb_assert_fail", 0}, {"finish", 0},
-    {"fopen", 32},    {"fclose", 0},     {"fscanf", 32}};
-
 BuiltInFunctionStmtBlock::BuiltInFunctionStmtBlock(Generator *parent,
                                                    const std::string &function_name)
     : FunctionStmtBlock(parent, function_name) {
-    if (known_functions_.find(function_name) == known_functions_.end()) {
-        std::string known_functions;
-        for (auto const &iter : known_functions_) {
-            known_functions += ::format("\n  {0}", iter.first);
-        }
+    if (!get_builtin_function_info(function_name)) {
+        auto functions = get_builtin_function_names();
+        auto known_functions = ::format("{0}", fmt::join(functions.begin(), functions.end(), "\n"));
         throw UserException(::format(
             "{0} is either not supported or not a system built-in. Supported methods are:{1}",
             function_name, known_functions));
     }
 }
 
-std::unordered_set<std::string> BuiltInFunctionStmtBlock::known_tasks_ = {
-    "display", "hgdb_assert_fail", "finish", "fopen", "fclose", "fscanf"};
+uint32_t BuiltInFunctionStmtBlock::return_width() const {
+    auto def = get_builtin_function_info(function_name_);
+    return def->return_width;
+}
 
 bool BuiltInFunctionStmtBlock::is_task() const {
-    return known_tasks_.find(function_name_) != known_tasks_.end();
+    // all builtin functions are tasks
+    return true;
 }
 
 ReturnStmt::ReturnStmt(FunctionStmtBlock *func_def, std::shared_ptr<Var> value)

@@ -10,6 +10,7 @@
 #include "interface.hh"
 #include "stmt.hh"
 #include "util.hh"
+#include "syntax.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -237,8 +238,13 @@ public:
 
     void visit(FunctionCallStmt* stmt) override {
         auto const& def = stmt->func();
-        if (def->is_dpi() || def->is_task()) {
+        if (def->is_dpi()) {
             nodes_.emplace_back(stmt);
+        } else if (def->is_builtin()) {
+            auto info = get_builtin_function_info(def->function_name());
+            if (info && !info->synthesizable) {
+                nodes_.emplace_back(stmt);
+            }
         }
     }
 
