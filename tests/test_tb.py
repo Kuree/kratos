@@ -88,11 +88,13 @@ def test_event_control_stmt():
     @initial
     def code():
         posedge(a)
+        delay(1, None)
         a = 1
 
     mod.add_always(code)
 
     src = verilog(mod)["gen"]
+    assert "#1;\n" in src
     assert "\n  @(posedge a);\n" in src
 
 

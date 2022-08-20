@@ -28,10 +28,13 @@ def cover(prop):
 
 
 def delay(num, stmt, lhs=True):
-    assert isinstance(stmt, _kratos.AssignStmt)
     event = _kratos.EventControl(num)
-    event.delay_side = _kratos.DelaySide.Left if lhs else _kratos.DelaySide.Right
-    stmt.delay = event
+    if stmt is None:
+        stmt = _kratos.EventDelayStmt(event)
+    else:
+        assert isinstance(stmt, _kratos.AssignStmt)
+        event.delay_side = _kratos.DelaySide.Left if lhs else _kratos.DelaySide.Right
+        stmt.delay = event
     return stmt
 
 
