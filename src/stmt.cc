@@ -794,9 +794,19 @@ BuiltInFunctionStmtBlock::BuiltInFunctionStmtBlock(Generator *parent,
     }
 }
 
+std::pair<uint32_t, uint32_t> BuiltInFunctionStmtBlock::num_args() const {
+    auto def = get_builtin_function_info(function_name_);
+    return {def->min_num_args, def->max_num_args};
+}
+
 uint32_t BuiltInFunctionStmtBlock::return_width() const {
     auto def = get_builtin_function_info(function_name_);
     return def->return_width;
+}
+
+bool BuiltInFunctionStmtBlock::is_signed() const {
+    auto def = get_builtin_function_info(function_name_);
+    return def->signed_;
 }
 
 bool BuiltInFunctionStmtBlock::is_task() const {

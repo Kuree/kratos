@@ -439,8 +439,10 @@ public:
 
     bool is_builtin() const override { return true; }
     bool has_return_value() const override { return return_width() > 0; }
+    std::pair<uint32_t, uint32_t> num_args() const;
 
     uint32_t return_width() const;
+    bool is_signed() const;
     bool is_task() const override;
 };
 

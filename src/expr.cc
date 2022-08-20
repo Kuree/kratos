@@ -2246,8 +2246,15 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
         if (builtin->return_width()) {
             var_width_ = builtin->return_width();
             size_ = {1};
-            is_signed_ = false;
+            is_signed_ = builtin->is_signed();
+            auto [min_arg, max_arg] = builtin->num_args();
+            auto num_arg = args.size();
+            if (num_arg < min_arg || num_arg > max_arg) {
+                throw UserException(fmt::format("Invalid number of arguments to function {0}",
+                                                func_def->function_name()));
+            }
         }
+        // check num of args
     } else if (has_return && func_def->is_dpi()) {
         auto dpi = func_def->as<DPIFunctionStmtBlock>();
         if (dpi->return_width()) {
