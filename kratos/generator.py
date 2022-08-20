@@ -985,28 +985,6 @@ class Generator(metaclass=GeneratorMeta):
             stmt.add_fn_ln(get_fn_ln())
         block.add_stmt(stmt)
 
-    def dpi(self, func_name):
-        return self.__generator.dpi_function(func_name)
-
-    def display(self, fmt: str, *args):
-        assert isinstance(fmt, str)
-        args = [const(fmt, len(fmt) * 8)] + list(args)
-        return display(self.__generator, *args)
-
-    def finish(self):
-        return finish(self.__generator)
-
-    def fopen(self, filename: str, mode: str):
-        return fopen(self.__generator, const(filename), const(mode))
-
-    def fclose(self, fd: _kratos.Var):
-        return fclose(self.__generator, fd)
-
-    def fscanf(self, fd, fmt: str, *args):
-        assert isinstance(fmt, str)
-        args = [fd, const(fmt)] + list(args)
-        return fscanf(self.__generator, *args)
-
     def reg_next(self, var_name, var, clk=None):
         clk_name = self.__get_port_name_type(clk, PortType.Clock)
         clk = self.ports[clk_name]

@@ -60,12 +60,13 @@ def test_tb_sequence(check_gold):
 
 
 def test_display_stmt():
+    from kratos.util import display
     mod = Generator("gen")
     a = mod.var("a", 1)
 
     @initial
     def code():
-        mod.display("%d", a)
+        display("%d", a)
 
     mod.add_always(code)
 
@@ -114,6 +115,7 @@ def test_always():
 
 
 def test_file_ops(check_gold):
+    from kratos.util import fopen, fscanf, fclose
     mod = Generator("mod")
     a = mod.var("a", 1)
     b = mod.var("b", 1)
@@ -122,13 +124,28 @@ def test_file_ops(check_gold):
 
     @initial
     def code():
-        fd = mod.fopen("test.sv", "r")
+        fd = fopen("test.sv", "r")
         for i in range(10):
-            c = mod.fscanf(fd, "%d %d", a, b)
-        mod.fclose(fd)
+            c = fscanf(fd, "%d %d", a, b)
+        fclose(fd)
 
     mod.add_always(code)
     check_gold(mod, "test_file_ops")
+
+
+def test_finish():
+    from kratos.util import finish
+    mod = Generator("mod")
+
+    @initial
+    def code():
+        finish(0)
+        finish()
+
+    mod.add_code(code)
+    src = verilog(mod)["mod"]
+    assert "$finish (32'h0);\n" in src
+    assert "$finish ();\n" in src
 
 
 if __name__ == "__main__":

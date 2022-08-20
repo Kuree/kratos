@@ -297,8 +297,9 @@ def test_string_const():
 
 
 def test_display_call():
+    from kratos.util import display
     mod = Generator("mod")
-    c = mod.display("test", mod.var("a", 1))
+    c = display("test", mod.var("a", 1))
     assert str(c) == '$display ("test", a)'
 
 

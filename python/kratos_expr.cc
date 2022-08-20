@@ -541,7 +541,8 @@ void init_expr(py::module &m) {
     auto const_ = py::class_<Const, ::shared_ptr<Const>, Var>(m, "Const");
     const_.def("value", &Const::value)
         .def("set_value", py::overload_cast<int64_t>(&Const::set_value));
-    const_.def_property_readonly("is_bignum", &Const::is_bignum);
+    const_.def_property_readonly("is_bignum", &Const::is_bignum)
+        .def("const_generator", &Const::const_gen, py::return_value_policy::reference);
 
     auto slice = py::class_<VarSlice, ::shared_ptr<VarSlice>, Var>(m, "VarSlice");
     slice.def_property_readonly("sliced_by_var", &VarSlice::sliced_by_var)
