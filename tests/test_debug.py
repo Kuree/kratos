@@ -1,10 +1,7 @@
-from kratos import Generator, always_ff, verilog, posedge, always_comb
+from kratos import Generator, always_ff, verilog, posedge, always_comb, const
 from kratos.util import reduce_add
-import _kratos
-import sqlite3
 import tempfile
 import os
-import pytest
 import json
 
 
@@ -15,6 +12,138 @@ def get_line_num(txt):
         if line.strip() == txt:
             return i + 1
     return 0
+
+
+def test_debug_fn_ln():
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod1", True)
+            self.in_ = self.input("in", 1)
+            self.out_1 = self.output("out1", 1)
+            self.out_2 = self.output("out2", 1)
+
+            self.wire(self.out_1, self.in_)
+
+            self.add_always(self.code)
+
+        @always_comb
+        def code(self):
+            self.out_2 = self.in_
+
+    mod = Mod()
+    mod_src, mod_debug = verilog(mod, debug_fn_ln=True)
+    src_mapping = mod_debug["mod1"]
+    assert len(src_mapping) == 7
+    verilog_lines = mod_src["mod1"].split("\n")
+    verilog_ln = 0
+    for ln, line in enumerate(verilog_lines):
+        if "assign out1 = in;" in line:
+            verilog_ln = ln + 1
+            break
+    fn, ln = src_mapping[verilog_ln][0]
+    with open(fn) as f:
+        python_lns = f.readlines()
+    assert "self.wire(self.out_1, self.in_)" in python_lns[ln - 1]
+
+
+def test_ssa_transform(check_gold):
+    mod = Generator("mod", debug=True)
+    a = mod.var("a", 4)
+    b = mod.var("b", 4)
+    c = mod.output("c", 4)
+
+    @always_comb
+    def func():
+        a = 1
+        a = 2
+        if a == 2:
+            a = b + a
+        if a == 3:
+            b = 2
+        else:
+            if a == 4:
+                b = 3
+            else:
+                b = 4
+                # this is not a latch
+                a = 5
+        c = a
+
+    mod.add_always(func, ssa_transform=True)
+    check_gold(mod, "test_ssa_transform", ssa_transform=True)
+    # check if the local variable mapping is fixed
+    # assign a_5 = (a_3 == 4'h4) ? a_3: a_4;
+    # which corresponds to a = 5
+    # notice that a should be pointing to a = b + a, since it's the last
+    # time a gets assigned
+    stmt = mod.get_stmt_by_index(3)[3]
+    scope = stmt.scope_context
+    is_var, a_mapping = scope["a"]
+    assert is_var
+    # this is assign a_2 = b + a_1;
+    stmt = mod.get_stmt_by_index(3)[2]
+    assert str(a_mapping) == str(stmt.left)
+
+    # test enable table extraction
+    from _kratos.passes import compute_enable_condition
+    enable_map = compute_enable_condition(mod.internal_generator)
+    assert len(enable_map) > 5
+
+
+def test_enable_condition_always_ff():
+    mod = Generator("mod")
+    a = mod.var("a", 4)
+    b = mod.var("b", 1)
+    clk = mod.clock("clk")
+
+    @always_ff((posedge, clk))
+    def logic():
+        if b:
+            a = 0
+        else:
+            a = 1
+
+    mod.add_always(logic)
+    from _kratos.passes import compute_enable_condition
+    enable_map = compute_enable_condition(mod.internal_generator)
+    assert len(enable_map) == 2
+
+
+def test_verilog_ln_fix():
+    from kratos.func import dpi_function
+
+    @dpi_function(8)
+    def add(arg0, arg1):
+        pass
+
+    class Mod(Generator):
+        def __init__(self):
+            super().__init__("mod", debug=True)
+            self._in = self.input("in", 2)
+            self._out = self.output("out", 8)
+            self.add_always(self.code)
+
+        @always_comb
+        def code(self):
+            self._out = add(self._in, const(1, 2))
+            if self._in == 0:
+                self._out = 1
+
+    mod = Mod()
+    with tempfile.TemporaryDirectory() as temp:
+        filename = os.path.join(temp, "test.sv")
+        src = verilog(mod, filename=filename)[0]
+        content = src["mod"]
+
+    mod_i = mod.internal_generator
+    assert mod_i.verilog_ln == 2
+    lines = content.split("\n")
+    stmt_0 = min([i for i in range(len(lines)) if "add (" in lines[i]])
+    stmt_1 = min([i for i in range(len(lines)) if "if" in lines[i]])
+    # + 1 for using starting-1 line number format
+    # another + 1 for DPI header offset
+    assert mod.get_stmt_by_index(0)[0].verilog_ln == stmt_0 + 1 + 1
+    assert mod.get_stmt_by_index(0)[1].then_body().verilog_ln == stmt_1 + 2
 
 
 def test_db_dump():

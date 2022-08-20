@@ -1,7 +1,7 @@
 from kratos import Generator, PortDirection, PortType, always_ff, \
     verilog, is_valid_verilog, VarException, StmtException, \
     PackedStruct, Attribute, ext, posedge, PortBundle, const, comment, \
-    enable_runtime_debug, always_comb
+    always_comb
 from _kratos.passes import uniquify_generators, hash_generators_parallel
 import os
 import tempfile
@@ -297,38 +297,6 @@ def test_fanout_mod_inst(check_gold):
     check_gold(mod2, "test_fanout_mod_inst_passthrough")
 
 
-def test_debug():
-    class Mod(Generator):
-        def __init__(self):
-            super().__init__("mod1", True)
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_1 = self.port("out1", 1, PortDirection.Out)
-            self.out_2 = self.port("out2", 1, PortDirection.Out)
-
-            self.wire(self.out_1, self.in_)
-
-            self.add_always(self.code)
-
-        @always_comb
-        def code(self):
-            self.out_2 = self.in_
-
-    mod = Mod()
-    mod_src, mod_debug = verilog(mod, debug_fn_ln=True)
-    src_mapping = mod_debug["mod1"]
-    assert len(src_mapping) == 7
-    verilog_lines = mod_src["mod1"].split("\n")
-    verilog_ln = 0
-    for ln, line in enumerate(verilog_lines):
-        if "assign out1 = in;" in line:
-            verilog_ln = ln + 1
-            break
-    fn, ln = src_mapping[verilog_ln][0]
-    with open(fn) as f:
-        python_lns = f.readlines()
-    assert "self.wire(self.out_1, self.in_)" in python_lns[ln - 1]
-
-
 def test_illegal_assignment_width():
     class Mod(Generator):
         def __init__(self):
@@ -349,31 +317,6 @@ def test_illegal_assignment_width():
         Mod()
         assert False
     except VarException as ex:
-        print(ex)
-        assert True
-
-
-def test_illegal_assignment_blocking():
-    class Mod(Generator):
-        def __init__(self):
-            super().__init__("mod1", True)
-            self.in_ = self.port("in", 1, PortDirection.In)
-            self.out_ = self.port("out", 1, PortDirection.Out)
-            self.clk_ = self.port("clk", 1, PortDirection.In, PortType.Clock)
-
-            self.wire(self.out_, self.in_)
-
-            self.add_always(self.code)
-
-        @always_ff((posedge, "clk"))
-        def code(self):
-            self.out_ = 1
-
-    try:
-        mod = Mod()
-        verilog(mod)
-        assert False
-    except StmtException as ex:
         print(ex)
         assert True
 
@@ -598,30 +541,6 @@ def test_verilog_file():
             assert is_valid_verilog(src)
 
 
-def test_wire_merge(check_gold):
-    class TestModule(Generator):
-        def __init__(self, width):
-            super().__init__("Test")
-            self.port("in", width, PortDirection.In)
-            self.port("out", width, PortDirection.Out)
-
-            for i in range(width):
-                self.wire(self.ports["out"][i], self.ports["in"][i])
-
-    mod = TestModule(4)
-    check_gold(mod, "test_wire_merge")
-
-
-def test_remove_child():
-    top = PassThroughTop()
-    child = top["pass"]
-    assert child in top
-    top.remove_child_generator(child)
-    assert child not in top
-    # top should be empty now
-    assert top.stmts_count == 0
-
-
 @pytest.mark.skipif(no_verilator, reason="verilator not available")
 def test_syntax_sugar():
     mod = Generator("mod", debug=True)
@@ -666,18 +585,6 @@ def test_port_array(check_gold):
     mod.wire(out2[1], in_[1])
 
     check_gold(mod, "test_port_array")
-
-
-def test_simple_pipeline(check_gold):
-    mod = PassThroughMod()
-    # add a clock
-    mod.clock("clk")
-    attr = Attribute()
-    attr.type_str = "pipeline"
-    attr.value_str = "2"
-    mod.add_attribute(attr)
-
-    check_gold(mod, "test_simple_pipeline", insert_pipeline_stages=True)
 
 
 def test_replace(check_gold):
@@ -887,79 +794,6 @@ def test_enum(check_gold):
     check_gold(mod, "test_enum")
 
 
-def setup_fsm(fsm, out_, in_):
-    # add outputs
-    fsm.output(out_)
-    # add states
-    red = fsm.add_state("Red")
-    blue = fsm.add_state("Blue")
-    # set the state transition
-    red.next(red, in_ == 0)
-    red.next(blue, in_ == 1)
-    blue.next(red, in_ == 1)
-    # fill in outputs
-    red.output(out_, 2)
-    blue.output(out_, 1)
-    # set the start case
-    fsm.set_start_state("Red")
-
-
-def test_fsm(check_gold, check_file):
-    mod = Generator("mod", debug=True)
-    out_ = mod.output("out", 2)
-    in_ = mod.input("in", 2)
-    # fsm requires a clk and async rst
-    mod.clock("clk")
-    mod.reset("rst")
-    # add a dummy fsm
-    fsm = mod.add_fsm("Color")
-    # setup FSM
-    setup_fsm(fsm, out_, in_)
-
-    check_gold(mod, "test_fsm", optimize_if=False)
-    # output fsm graph
-    dot = fsm.dot_graph()
-    check_file(dot, "test_fsm.dot")
-    csv = fsm.output_table()
-    check_file(csv, "test_fsm.csv")
-
-
-def test_fsm_mealy(check_gold):
-    mod = Generator("mod", debug=True)
-    out_ = mod.output("out", 2)
-    in_ = mod.input("in", 2)
-    # fsm requires a clk and async rst
-    mod.clock("clk")
-    mod.reset("rst")
-    # add a dummy fsm
-    fsm = mod.add_fsm("Color")
-    # setup FSM
-    setup_fsm(fsm, out_, in_)
-    # use mealy
-    fsm.is_moore = False
-    check_gold(mod, "test_fsm_mealy", optimize_if=False)
-
-
-def test_fsm_default_output():
-    mod = Generator("mod", debug=True)
-    out_ = mod.output("out", 2)
-    in_ = mod.input("in", 2)
-    # fsm requires a clk and async rst
-    mod.clock("clk")
-    mod.reset("rst")
-    fsm = mod.add_fsm("Color")
-    fsm.output(out_, const(2, 2))
-    # add states
-    red = fsm.add_state("Red")
-    blue = fsm.add_state("Blue")
-    red.next(blue, in_ == 0)
-    blue.next(red, in_ == 1)
-    blue.output(out_, 1)
-    fsm.set_start_state("Red")
-    src = verilog(mod)["mod"]
-    assert "out = 2'h2;" in src
-
-
 def test_function(check_gold):
     from kratos.func import function
 
@@ -1120,29 +954,6 @@ def test_c_dpi_function(check_gold):
     check_gold(mod, "test_dpi", int_dpi_interface=False)
 
 
-def test_nested_fsm(check_gold, check_file):
-    mod = Generator("mod", debug=True)
-    out_ = mod.output("out", 2)
-    in_ = mod.input("in", 2)
-    # fsm requires a clk and async rst
-    mod.clock("clk")
-    mod.reset("rst")
-    # add a dummy fsm
-    fsm = mod.add_fsm("Color")
-    setup_fsm(fsm, out_, in_)
-    second_fsm = mod.add_fsm("HSV")
-    fsm.add_child_fsm(second_fsm)
-    idle = second_fsm.add_state("idle")
-    idle.next(fsm["Red"], in_ == 0)
-    fsm["Red"].next(idle, in_ == 2)
-    second_fsm.output(out_)
-    idle.output(out_, 2)
-
-    dot = fsm.dot_graph()
-    check_file(dot, "test_nested_fsm.dot")
-    check_gold(mod, "test_nested_fsm", optimize_if=False)
-
-
 def test_symbol_table():
     from kratos.debug import extract_symbol_table
     mod = AsyncReg(16, True)
@@ -1193,54 +1004,6 @@ def test_cast():
 
     mod = Mod2()
     verilog(mod)
-
-
-def test_async_no_latch():
-    class Mod(Generator):
-        def __init__(self):
-            super().__init__("mod", True)
-            clk = self.clock("clk")
-            rst = self.reset("rst")
-            cen = self.input("cen", 1, PortType.ClockEnable)
-            in_ = self.input("in", 1)
-            out_ = self.output("out", 1)
-
-            @always_ff((posedge, "clk"), (posedge, "rst"))
-            def code():
-                if rst:
-                    out_ = 0
-                elif cen:
-                    out_ = in_
-
-            self.add_always(code)
-
-    mod = Mod()
-    verilog(mod)
-
-
-def test_async_latch():
-    class Mod(Generator):
-        def __init__(self):
-            super().__init__("mod", True)
-            clk = self.clock("clk")
-            rst = self.reset("rst")
-            cen = self.input("cen", 1, PortType.ClockEnable)
-            in_ = self.input("in", 1)
-            out_ = self.output("out", 1)
-
-            @always_ff((posedge, "clk"), (posedge, "rst"))
-            def code():
-                if rst:
-                    out_ = 0
-
-            self.add_always(code)
-
-    mod = Mod()
-    try:
-        verilog(mod)
-        assert False
-    except StmtException:
-        assert True
 
 
 def test_param(check_gold):
@@ -1329,39 +1092,6 @@ def test_create_stub(check_file):
     mod.input("c", 16)
     mod.var("d", 1)  # this should not be generated
     check_file(create_stub(mod), "test_create_stub.sv")
-
-
-def test_fsm_state(check_gold):
-    from kratos import negedge
-    mod = Generator("mod", debug=True)
-    out_ = mod.output("out", 2)
-    in_ = mod.input("in", 2)
-    # fsm requires a clk and async rst
-    clk = mod.clock("clk")
-    rst = mod.reset("rst")
-    # add a dummy fsm
-    fsm = mod.add_fsm("Color", reset_high=False)
-    # setup FSM
-    setup_fsm(fsm, out_, in_)
-    # realize fsm now
-    fsm.realize()
-    current_state = fsm.current_state
-    # create an enum var based on current_state
-    state_enum = current_state.enum_type()
-    # can create a variable from the enum definition
-    # notice that variable s will be optimized away if not used
-    s = mod.enum_var("s", state_enum)
-    c = mod.var("counter", 1)
-
-    @always_ff((posedge, clk), (negedge, rst))
-    def counter():
-        if rst.r_not():
-            c = 0
-        elif current_state == state_enum.Red:
-            c = c + 1
-
-    mod.add_always(counter)
-    check_gold(mod, "test_fsm_state", optimize_if=False)
 
 
 def test_not_if(check_gold):
@@ -1491,46 +1221,6 @@ def test_call_always():
         assert False
     except SyntaxError:
         assert True
-
-
-def test_wrapper_flatten_generator(check_gold):
-    mod = Generator("mod")
-    a = mod.input("a", 4, size=[3, 2])
-    b = mod.output("b", 4, size=[3, 2])
-    attr = kratos.Attribute()
-    attr.value_str = "a"
-    a.add_attribute(attr)
-    mod.wire(a, b)
-    from _kratos import create_wrapper_flatten
-    wrapper = create_wrapper_flatten(mod.internal_generator, "wrapper")
-    wrapper = Generator(wrapper.name, internal_generator=wrapper)
-    check_gold(wrapper, gold_name="test_wrapper_flatten_generator",
-               optimize_passthrough=False)
-    a_0_0 = wrapper.ports.a_0_0
-    attrs = a_0_0.find_attribute(lambda x: x.value_str == "a")
-    assert len(attrs) == 1
-
-
-def test_register_extraction():
-    mod = Generator("mod")
-    a = mod.input("a", 4)
-    b = mod.output("b", 4)
-    rst = mod.reset("rst")
-    clk = mod.clock("clk")
-
-    @always_ff((posedge, "clk"), (posedge, "rst"))
-    def code():
-        if rst:
-            b = 0
-        else:
-            b = a + b
-
-    mod.add_always(code)
-
-    import _kratos
-    regs = _kratos.passes.extract_register_names(mod.internal_generator)
-    assert len(regs) == 1
-    assert "mod.b" in regs
 
 
 def test_iadd_transform():
@@ -1682,43 +1372,6 @@ def test_generator_property(check_gold):
     check_gold(mod, gold_name="test_generator_property")
 
 
-def test_verilog_ln_fix():
-    from kratos.func import dpi_function
-
-    @dpi_function(8)
-    def add(arg0, arg1):
-        pass
-
-    class Mod(Generator):
-        def __init__(self):
-            super().__init__("mod", debug=True)
-            self._in = self.input("in", 2)
-            self._out = self.output("out", 8)
-            self.add_always(self.code)
-
-        @always_comb
-        def code(self):
-            self._out = add(self._in, const(1, 2))
-            if self._in == 0:
-                self._out = 1
-
-    mod = Mod()
-    with tempfile.TemporaryDirectory() as temp:
-        filename = os.path.join(temp, "test.sv")
-        src = verilog(mod, filename=filename)[0]
-        content = src["mod"]
-
-    mod_i = mod.internal_generator
-    assert mod_i.verilog_ln == 2
-    lines = content.split("\n")
-    stmt_0 = min([i for i in range(len(lines)) if "add (" in lines[i]])
-    stmt_1 = min([i for i in range(len(lines)) if "if" in lines[i]])
-    # + 1 for using starting-1 line number format
-    # another + 1 for DPI header offset
-    assert mod.get_stmt_by_index(0)[0].verilog_ln == stmt_0 + 1 + 1
-    assert mod.get_stmt_by_index(0)[1].then_body().verilog_ln == stmt_1 + 2
-
-
 def transform_block_comment():
     mod = Generator("mod")
 
@@ -1823,21 +1476,6 @@ def test_port_cast_child():
     src = verilog(parent)["mod"]
     assert ".clk(child_clk)" in src
     assert "assign child_clk = a & b;" in src
-
-
-def test_always_latch(check_gold):
-    from kratos import always_latch
-    mod = Generator("mod")
-    a = mod.input("a", 1)
-    b = mod.output("b", 1)
-
-    @always_latch
-    def code():
-        if a:
-            b = 1
-
-    mod.add_always(code)
-    check_gold(mod, gold_name="test_always_latch", reorder_stmts=True)
 
 
 def test_scope_keyword():
@@ -1961,20 +1599,6 @@ def test_raw_import():
     mod.internal_generator.add_raw_import("pkg_name")
     src = verilog(mod, optimize_passthrough=False)["mod"]
     assert "module mod \n  import pkg_name::*;\n(\n);\n\nendmodule" in src
-
-
-def test_generator_port_connected():
-    child = Generator("child")
-    parent = Generator("parent")
-    in1 = parent.var("a", 1)
-    in2 = child.input("a", 1)
-    out1 = parent.output("b", 1)
-    out2 = child.output("b", 1)
-    un_c = child.input("c", 1)
-    parent.add_child("inst", child, a=in1, b=out1)
-    assert in2.connected()
-    assert out2.connected()
-    assert not un_c.connected()
 
 
 def test_port_type():
@@ -2125,69 +1749,6 @@ def test_clog2_var():
     assert str(f) == "c[d]"
 
 
-def test_ssa_transform(check_gold):
-    mod = Generator("mod", debug=True)
-    a = mod.var("a", 4)
-    b = mod.var("b", 4)
-    c = mod.output("c", 4)
-
-    @always_comb
-    def func():
-        a = 1
-        a = 2
-        if a == 2:
-            a = b + a
-        if a == 3:
-            b = 2
-        else:
-            if a == 4:
-                b = 3
-            else:
-                b = 4
-                # this is not a latch
-                a = 5
-        c = a
-
-    mod.add_always(func, ssa_transform=True)
-    check_gold(mod, "test_ssa_transform", ssa_transform=True)
-    # check if the local variable mapping is fixed
-    # assign a_5 = (a_3 == 4'h4) ? a_3: a_4;
-    # which corresponds to a = 5
-    # notice that a should be pointing to a = b + a, since it's the last
-    # time a gets assigned
-    stmt = mod.get_stmt_by_index(3)[3]
-    scope = stmt.scope_context
-    is_var, a_mapping = scope["a"]
-    assert is_var
-    # this is assign a_2 = b + a_1;
-    stmt = mod.get_stmt_by_index(3)[2]
-    assert str(a_mapping) == str(stmt.left)
-
-    # test enable table extraction
-    from _kratos.passes import compute_enable_condition
-    enable_map = compute_enable_condition(mod.internal_generator)
-    assert len(enable_map) > 5
-
-
-def test_enable_condition_always_ff():
-    mod = Generator("mod")
-    a = mod.var("a", 4)
-    b = mod.var("b", 1)
-    clk = mod.clock("clk")
-
-    @always_ff((posedge, clk))
-    def logic():
-        if b:
-            a = 0
-        else:
-            a = 1
-
-    mod.add_always(logic)
-    from _kratos.passes import compute_enable_condition
-    enable_map = compute_enable_condition(mod.internal_generator)
-    assert len(enable_map) == 2
-
-
 def test_var_rename():
     import _kratos
     mod = Generator("mod")
@@ -2203,59 +1764,6 @@ def test_var_rename():
         assert False
     except _kratos.exception.UserException:
         pass
-
-
-def test_merge_const_port_assignment():
-    mod = Generator("mod")
-    a = mod.var("a", 1)
-    child = Generator("child")
-    b = child.input("b", 1)
-    mod.add_child("child", child, b=a)
-    mod.add_stmt(a.assign(1))
-    v = verilog(mod)["mod"]
-    assert ".b(1'h1)" in v
-
-
-def test_gen_inst_lift(check_gold):
-    num_inst = 4
-    parent = Generator("parent")
-    clk = parent.clock("clk")
-    a_array = parent.var("a", 1, size=4)
-    b_array = parent.var("b", 1, size=4)
-    children = []
-
-    for i in range(num_inst):
-        child = Generator("child")
-        child.clock("clk")
-        a = child.input("a", 1)
-        b = child.output("b", 1)
-        child.wire(a, b)
-        parent.add_child(f"child_{i}", child,
-                         clk=clk,
-                         a=a_array[i],
-                         b=b_array[i])
-        children.append(child)
-
-    check_gold(parent, "test_gen_inst_lift", lift_genvar_instances=True)
-    name = children[1].internal_generator.handle_name()
-    assert name == "parent.child.inst[1]"
-
-    # another one that will fail the genvar test
-    Generator.clear_context()
-    num_inst = 4
-    parent = Generator("parent")
-    clk = parent.clock("clk")
-    a_array = parent.var("a", 1, size=2)
-
-    for i in range(2):
-        child = Generator("child")
-        child.clock("clk")
-        child.input("a", 1)
-        parent.add_child(f"child_{i}", child,
-                         clk=clk,
-                         a=a_array[0])
-    src = verilog(parent, lift_genvar_instances=True)["parent"]
-    assert "genvar" not in src
 
 
 def test_add_child_interface_port_wiring(check_gold):
@@ -2285,39 +1793,6 @@ def test_add_child_interface_port_wiring(check_gold):
     mod.add_child("child", child, bus2=i1)
     check_gold(mod, "test_add_child_interface_port_wiring",
                optimize_passthrough=False)
-
-
-def test_auto_insert_clk_gate_skip():
-    from _kratos.passes import auto_insert_clock_enable
-
-    class Mod(Generator):
-        def __init__(self, add_self, add_always):
-            super(Mod, self).__init__("mod")
-            clk = self.clock("clk")
-            a = self.var("a", 1)
-            self.clock_en("clk_en")
-
-            @always_ff((posedge, clk))
-            def code():
-                a = 1
-
-            b = self.add_always(code)
-            if add_always:
-                b.add_attribute("dont_touch")
-            if add_self:
-                self.add_attribute("dont_touch")
-    m = Mod(False, False)
-    auto_insert_clock_enable(m.internal_generator)
-    src = verilog(m)["mod"]
-    assert "if (clk_en)" in src
-    m = Mod(False, True)
-    auto_insert_clock_enable(m.internal_generator)
-    src = verilog(m)["mod"]
-    assert "if (clk_en)" not in src
-    m = Mod(True, False)
-    auto_insert_clock_enable(m.internal_generator)
-    src = verilog(m)["mod"]
-    assert "if (clk_en)" not in src
 
 
 def test_final_block():
@@ -2393,4 +1868,4 @@ def test_for_loop_break():
 
 if __name__ == "__main__":
     from conftest import check_gold_fn, check_file_fn
-    test_ssa_transform(check_gold_fn)
+    test_add_child_interface_port_wiring(check_gold_fn)
