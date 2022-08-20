@@ -281,7 +281,9 @@ static std::unordered_map<std::string, BuiltinFunctionInfo> builtin_functions_in
     {"finish", {0, false, 0, 1}},
     {"fopen", {32, false, 2, 2}},
     {"fclose", {0, false}},
-    {"fscanf", {32, false, 2, std::numeric_limits<uint32_t>::max()}}};
+    {"fscanf", {32, false, 2, std::numeric_limits<uint32_t>::max()}},
+    {"urandom", {32, false, 0, 1}},
+    {"random", {32, false, 0, 1, true}}};
 
 std::optional<BuiltinFunctionInfo> get_builtin_function_info(const std::string &name) {
     if (builtin_functions_info.find(name) != builtin_functions_info.end()) {
