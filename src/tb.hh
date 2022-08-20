@@ -58,6 +58,7 @@ public:
     Sequence *sequence() { return sequence_.get(); }
     void edge(EventEdgeType type, const std::shared_ptr<Var> &var);
     [[nodiscard]] EventControl edge() const { return edge_; }
+    EventControl &edge() { return edge_; }
 
     void set_action(PropertyAction action) { action_ = action; }
     [[nodiscard]] PropertyAction action() const { return action_; }

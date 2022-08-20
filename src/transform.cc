@@ -955,4 +955,75 @@ void sort_initial_stmts(Generator *top) {
     v.visit_generator_root_p(top);
 }
 
+class AssertPropertyVisitor: public IRVisitor {
+public:
+    void visit(AssertBase *stmt) override {
+        if (stmt->assert_type() != AssertType::AssertProperty) {
+            return;
+        }
+        auto property_stmt = stmt->as<AssertPropertyStmt>();
+        auto *property = property_stmt->property();
+
+        auto &edge = property->edge();
+        auto* seq = property->sequence();
+        // automatically determine the clock, only if it's safe to do so (only one clock in the
+        // design
+        if (!edge.var && seq->next()) {
+            std::vector<Var*> clk_vars;
+            // try to determine the clock
+            // it's a concurrent property, we have to have a clock
+            auto* generator = stmt->generator_parent();
+            {
+                auto clk_ports = generator->get_ports(PortType::Clock);
+                if (clk_ports.size() == 1) {
+                    // that's it
+                    clk_vars.emplace_back(generator->get_port(clk_ports.front()).get());
+                } else {
+                    for (auto const& port_name : clk_ports) {
+                        clk_vars.emplace_back(generator->get_port(port_name).get());
+                    }
+                }
+            }
+            if (clk_vars.empty()) {
+                // there might be some casted types, typically in test bench
+                // we need to source for connected modules to see what they are connected to
+                auto children = generator->get_child_generators();
+                for (auto const& gen : children) {
+                    auto clks = gen->get_ports(PortType::Clock);
+                    for (auto const& clk_name : clks) {
+                        auto clk = gen->get_port(clk_name);
+                        auto source = clk->sources();
+                        for (auto const& assign : source) {
+                            auto* src_var = assign->right();
+                            if (src_var->generator() == generator) {
+                                if (src_var->type() == VarType::BaseCasted) {
+                                    // only casted to clock
+                                    auto casted = src_var->as<VarCasted>();
+                                    if (casted->cast_type() == VarCastType::Clock)
+                                        clk_vars.emplace_back(src_var);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (clk_vars.size() == 1) {
+                edge.var = clk_vars[0];
+                edge.edge = EventEdgeType::Posedge;
+                edge.type = EventControlType::Edge;
+            } else {
+                // next is not null but edge is not set
+                throw StmtException(::format("Clock edge not set for sequence {0}", seq->to_string()),
+                                    {stmt});
+            }
+        }
+    }
+};
+
+void infer_property_clocking(Generator *top) {
+    AssertPropertyVisitor visitor;
+    visitor.visit_root(top);
+}
+
 }  // namespace kratos

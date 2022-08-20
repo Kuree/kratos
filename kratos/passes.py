@@ -108,6 +108,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
     else:
         pass_manager.add_pass("hash_generators_sequential")
     pass_manager.add_pass("change_property_into_stmt")
+    pass_manager.add_pass("infer_property_clocking")
     pass_manager.add_pass("uniquify_generators")
     pass_manager.add_pass("create_module_instantiation")
     pass_manager.add_pass("create_interface_instantiation")

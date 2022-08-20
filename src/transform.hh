@@ -34,6 +34,8 @@ void ssa_transform_fix(Generator *top);
 
 void sort_initial_stmts(Generator *top);
 
+void infer_property_clocking(Generator *top);
+
 
 }  // namespace kratos
 

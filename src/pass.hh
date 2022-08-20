@@ -130,6 +130,8 @@ void inject_assertion_fail(Generator *top);
 
 void sort_initial_stmts(Generator *top);
 
+void infer_property_clocking(Generator *top);
+
 class PassManager {
 public:
     PassManager() = default;

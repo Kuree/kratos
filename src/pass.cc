@@ -362,6 +362,8 @@ void PassManager::register_builtin_passes() {
     register_pass("inject_assertion_fail", &inject_assertion_fail);
 
     register_pass("sort_initial_stmts", &sort_initial_stmts);
+
+    register_pass("infer_property_clocking", &infer_property_clocking);
 }
 
 }  // namespace kratos
