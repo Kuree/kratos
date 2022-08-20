@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2022-08-20
+### Added
+- Add duplicate op
+- Add dead code elimination
+- Add string and generator constant
+- Add event control statement
+- Add break statement
+- Add mechanism to handle predefined system tasks
+- Add hgdb assertion support
+
+### Changed
+- Refactor pass and tests (no visible changes to user)
+- Deprecate TB codegen. Now use SV codegen instead
+- Introduce a proper event control, which is used by various parts of the IR
+
+### Fixed
+- Fix flush port skipping in insert flush pass
+- Fix flush port insertion when clock enable pass is run first
+- Fix a bug that set slice width wrong with parent has width param
+- Add missing logic to handle remove sinks/sources
+- Fix ternary generator bug
+
 ## [0.0.39] - 2022-08-13
 ### Added
 - Infer const from python int for ternary
