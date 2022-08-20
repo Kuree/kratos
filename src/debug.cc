@@ -15,106 +15,35 @@ using fmt::format;
 
 namespace kratos {
 
-class DebugBreakInjectVisitor : public IRVisitor {
-public:
-    explicit DebugBreakInjectVisitor(Context *context) : context_(context) {}
-
-    void visit(CombinationalStmtBlock *stmt) override { insert_statements(stmt); }
-
-    void visit(SequentialStmtBlock *stmt) override { insert_statements(stmt); }
-
-    void visit(InitialStmtBlock *stmt) override { insert_statements(stmt); }
-
-    void visit(ScopedStmtBlock *stmt) override { insert_statements(stmt); }
-
-    void visit(AssignStmt *stmt) override {
-        auto const *parent = stmt->parent();
-        if (parent->ir_node_kind() == IRNodeKind::GeneratorKind) {
-            auto const *p = reinterpret_cast<const Generator *>(parent);
-            if (p->debug) {
-                process_stmt(stmt);
-            }
-        }
-    }
-
-private:
-    void insert_statements(StmtBlock *block) {
-        auto *parent = block->generator_parent();
-        if (!parent->debug)
-            // we only insert statements to the ones that has debug turned on
-            return;
-
-        for (auto const &stmt : *block) {
-            process_stmt(stmt.get());
-        }
-    }
-
-    void process_stmt(Stmt *stmt) {
-        uint32_t stmt_id = context_->max_stmt_id()++;
-        // set stmt id
-        stmt->set_stmt_id(stmt_id);
-    }
-
-    Context *context_;
-};
-
-void inject_debug_break_points(Generator *top) {
-    DebugBreakInjectVisitor visitor(top->context());
-    visitor.visit_root(top);
-}
-
-class InstanceIdVisitor : public IRVisitor {
-public:
-    explicit InstanceIdVisitor(Context *context) : context_(context) {}
-
-    void visit(Generator *gen) override {
-        if (gen->generator_id < 0) {
-            mutex_.lock();
-            auto id = context_->max_instance_id()++;
-            mutex_.unlock();
-            gen->generator_id = id;
-        }
-    }
-
-private:
-    Context *context_;
-    std::mutex mutex_;
-};
-
-void inject_instance_ids(Generator *top) {
-    // this can be done in parallel
-    InstanceIdVisitor visitor(top->context());
-    visitor.visit_generator_root_p(top);
-}
-
 class ExtractDebugVisitor : public IRVisitor {
 public:
-    void visit(AssignStmt *stmt) override { extract_stmt_id(stmt); }
-    void visit(ScopedStmtBlock *stmt) override { extract_stmt_id(stmt); }
-    void visit(IfStmt *stmt) override { extract_stmt_id(stmt); }
-    void visit(SwitchStmt *stmt) override { extract_stmt_id(stmt); }
-    void visit(FunctionCallStmt *stmt) override { extract_stmt_id(stmt); }
-    void visit(ReturnStmt *stmt) override { extract_stmt_id(stmt); }
-    void visit(AssertBase *stmt) override { extract_stmt_id(stmt); }
-    void visit(AuxiliaryStmt *stmt) override { extract_stmt_id(stmt); }
+    void visit(AssignStmt *stmt) override { process_stmt(stmt); }
+    void visit(ScopedStmtBlock *stmt) override { process_stmt(stmt); }
+    void visit(IfStmt *stmt) override { process_stmt(stmt); }
+    void visit(SwitchStmt *stmt) override { process_stmt(stmt); }
+    void visit(FunctionCallStmt *stmt) override { process_stmt(stmt); }
+    void visit(ReturnStmt *stmt) override { process_stmt(stmt); }
+    void visit(AssertBase *stmt) override { process_stmt(stmt); }
+    void visit(AuxiliaryStmt *stmt) override { process_stmt(stmt); }
 
-    const std::map<Stmt *, uint32_t> &map() const { return map_; }
+    const std::vector<const Stmt *> &stmts() const { return stmts_; }
 
 private:
-    void extract_stmt_id(Stmt *stmt) {
-        int id = stmt->stmt_id();
-        if (id >= 0) {
-            map_.emplace(stmt, id);
+    inline void process_stmt(Stmt *stmt) {
+        if (stmt->fn_name_ln.empty()) return;
+        auto *generator = stmt->generator_parent();
+        if (generator->debug) {
+            stmts_.emplace_back(stmt);
         }
     }
 
-    std::map<Stmt *, uint32_t> map_;
+    std::vector<const Stmt *> stmts_;
 };
 
-std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top) {
+std::vector<const Stmt *> extract_debug_break_points(Generator *top) {
     ExtractDebugVisitor visitor;
     visitor.visit_root(top);
-    return visitor.map();
+    return visitor.stmts();
 }
 
 class InsertVerilatorPublic : public IRVisitor {
@@ -251,7 +180,7 @@ void DebugDatabase::set_break_points(Generator *top, const std::string &ext) {
 
     // index all the front-end code
     // we are only interested in the files that has the extension
-    for (auto const &[stmt, id] : break_points_) {
+    for (auto const *stmt : break_points_) {
         auto fn_ln = stmt->fn_name_ln;
         for (auto const &[fn, ln] : fn_ln) {
             auto fn_ext = fs::get_ext(fn);
@@ -388,7 +317,7 @@ void add_generator_static_value(hgdb::json::Module &m, const std::string &name,
 class StmtFileNameVisitor : public IRVisitor {
 public:
     explicit StmtFileNameVisitor(
-        const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln)
+        const std::map<const Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln)
         : stmt_fn_ln_(stmt_fn_ln) {}
     void visit(AssignStmt *stmt) override {
         if (stmt_fn_ln_.find(stmt) != stmt_fn_ln_.end()) {
@@ -400,14 +329,14 @@ public:
     uint32_t ln = 0;
 
 private:
-    const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln_;
+    const std::map<const Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln_;
 };
 
 class StmtScopeVisitor : public IRVisitor {
 public:
     StmtScopeVisitor(hgdb::json::Module &module, const Generator *gen,
-                     const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln,
-                     const std::unordered_map<Stmt *, std::string> &enable_conditions)
+                     const std::map<const Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln,
+                     const std::unordered_map<const Stmt *, std::string> &enable_conditions)
         : module_(module),
           gen_(gen),
           stmt_fn_ln_(stmt_fn_ln),
@@ -557,8 +486,8 @@ private:
     hgdb::json::Module &module_;
     const Generator *gen_;
     std::unordered_map<const Stmt *, hgdb::json::Scope<> *> stmt_scope_mapping_;
-    const std::map<Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln_;
-    const std::unordered_map<Stmt *, std::string> &enable_conditions_;
+    const std::map<const Stmt *, std::pair<std::string, uint32_t>> &stmt_fn_ln_;
+    const std::unordered_map<const Stmt *, std::string> &enable_conditions_;
 };
 
 void DebugDatabase::save_database(const std::string &filename, bool override) {
@@ -610,7 +539,7 @@ void DebugDatabase::save_database(const std::string &filename, bool override) {
 
     // now deal with scopes
     std::unordered_set<Generator *> visited_gens;
-    for (auto &[stmt, id] : break_points_) {
+    for (auto const *stmt : break_points_) {
         auto *gen = stmt->generator_parent();
         if (!gen || visited_gens.find(gen) != visited_gens.end()) continue;
         if (gen_mod_map.find(gen) == gen_mod_map.end()) continue;

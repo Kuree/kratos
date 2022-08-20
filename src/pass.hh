@@ -78,7 +78,7 @@ void generate_verilog(Generator* top, const std::string& output_dir, const std::
 std::map<std::string, std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>>
 extract_debug_info(Generator* top);
 
-std::unordered_map<Stmt*, std::string> compute_enable_condition(Generator* top);
+std::unordered_map<const Stmt*, std::string> compute_enable_condition(Generator* top);
 
 std::map<std::string, std::string> extract_struct_info(Generator* top);
 

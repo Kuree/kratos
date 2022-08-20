@@ -5,11 +5,7 @@
 
 namespace kratos {
 
-constexpr char break_point_func_name[] = "breakpoint_trace";
-
-void inject_debug_break_points(Generator *top);
-void inject_instance_ids(Generator *top);
-std::map<Stmt *, uint32_t> extract_debug_break_points(Generator *top);
+std::vector<const Stmt *> extract_debug_break_points(Generator *top);
 void remove_assertion(Generator *top);
 void propagate_scope_variable(Generator *top);
 std::unordered_map<Var *, std::unordered_set<Var *>> find_driver_signal(Generator *top);
@@ -38,10 +34,10 @@ public:
     void save_database(const std::string &filename) { save_database(filename, true); }
 
 private:
-    std::map<Stmt *, uint32_t> break_points_;
-    std::map<Stmt *, std::pair<std::string, uint32_t>> stmt_mapping_;
+    std::vector<const Stmt *> break_points_;
+    std::map<const Stmt *, std::pair<std::string, uint32_t>> stmt_mapping_;
     std::unordered_map<const Generator *, std::map<std::string, std::string>> variable_mapping_;
-    std::map<Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
+    std::map<const Stmt *, std::map<std::string, std::pair<bool, std::string>>> stmt_context_;
     std::unordered_set<Generator *> generators_;
 
     Generator *top_ = nullptr;

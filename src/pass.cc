@@ -307,10 +307,6 @@ void PassManager::register_builtin_passes() {
 
     register_pass("check_non_synthesizable_content", &check_non_synthesizable_content);
 
-    register_pass("inject_debug_break_points", &inject_debug_break_points);
-
-    register_pass("inject_instance_ids", &inject_instance_ids);
-
     register_pass("insert_verilator_public", &insert_verilator_public);
 
     register_pass("remove_assertion", &remove_assertion);

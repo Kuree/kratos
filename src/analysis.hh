@@ -22,7 +22,7 @@ void check_combinational_loop(Generator *top);
 
 void check_flip_flop_always_ff(Generator *top);
 
-std::unordered_map<Stmt *, std::string> compute_enable_condition(Generator *top);
+std::unordered_map<const Stmt *, std::string> compute_enable_condition(Generator *top);
 
 std::map<std::string, std::string> extract_struct_info(Generator *top);
 

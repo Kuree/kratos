@@ -36,15 +36,11 @@ TEST(debug, inst) {  // NOLINT
     fix_assignment_type(&mod);
     verify_generator_connectivity(&mod);
 
-    inject_instance_ids(&mod);
-    inject_debug_break_points(&mod);
-
     hash_generators_parallel(&mod);
     uniquify_generators(&mod);
     create_module_instantiation(&mod);
     auto src = generate_verilog(&mod);
     EXPECT_TRUE(src.find("parent") != src.end());
     auto code = src.at("parent");
-    printf("%s\n", code.c_str());
     EXPECT_TRUE(code.find("unq") == std::string::npos);
 }
