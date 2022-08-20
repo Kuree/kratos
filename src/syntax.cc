@@ -273,9 +273,9 @@ bool is_valid_variable_name(const std::string &name) {
 static std::unordered_map<std::string, BuiltinFunctionInfo> builtin_functions_info = {
     {"clog2", {32, true}},
     {"countones", {32, true}},
-    {"onehot", {32, true}},
-    {"onehot0", {32, true}},
-    {"isunknown", {32, true}},
+    {"onehot", {1, true}},
+    {"onehot0", {1, true}},
+    {"isunknown", {1, true}},
     {"display", {0, false, 1, std::numeric_limits<uint32_t>::max()}},
     {"hgdb_assert_fail", {0, false, 3, 4}},
     {"finish", {0, false, 0, 1}},
