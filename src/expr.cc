@@ -1580,8 +1580,9 @@ void Var::move_src_to(Var *var, Var *new_var, Generator *parent, bool keep_conne
             stmt->fn_name_ln.emplace_back(std::make_pair(__FILE__, __LINE__));
         }
         new_var->add_source(stmt);
-        // pick a source parameter, if any
-        if (stmt->right()->parametrized() && !new_var->parametrized()) {
+        // pick a source parameter, if any. only if the generator match
+        if (stmt->right()->parametrized() && !new_var->parametrized() &&
+            stmt->right()->width_param()->generator() == new_var->generator()) {
             new_var->set_width_param(stmt->right()->width_param());
         }
     }
@@ -1613,7 +1614,8 @@ void Var::move_sink_to(Var *var, Var *new_var, Generator *parent, bool keep_conn
         }
         new_var->add_sink(stmt);
         // pick a source parameter, if any
-        if (stmt->left()->parametrized() && !new_var->parametrized()) {
+        if (stmt->left()->parametrized() && !new_var->parametrized() &&
+            stmt->left()->width_param()->generator() == new_var->generator()) {
             new_var->set_width_param(stmt->left()->width_param());
         }
     }

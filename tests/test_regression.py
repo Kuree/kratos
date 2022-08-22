@@ -381,6 +381,27 @@ def test_flush_skip(check_gold):
     check_gold(BugExample(), "test_flush_skip")
 
 
+@pytest.mark.skip(reason="Known to break the logic; need to fix it later")
+def test_decouple_parent():
+    child = Generator("child")
+    child_out1 = child.output("o1", 1)
+    child_out2 = child.output("o2", 2)
+    child_in = child.input("in", 2)
+    child.wire(child_in[0], child_out1)
+    child.wire(child_in, child_out2)
+    parent = Generator("parent")
+    parent.add_child("c", child)
+    a = parent.var("a", 1)
+
+    parent.add_stmt(child_in.assign(0))
+    parent.wire(a, (child_out1.extend(2) & child_out2[0].extend(2))[0])
+
+    src = verilog(parent)["parent"]
+
+    print(src)
+
+
 if __name__ == "__main__":
+    test_decouple_parent()
     from conftest import check_gold_fn
     test_flush_skip(check_gold_fn)
