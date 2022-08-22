@@ -398,10 +398,25 @@ def test_decouple_parent():
 
     src = verilog(parent)["parent"]
 
-    print(src)
+
+def test_var_reduce_parent():
+    child = Generator("child")
+    a = child.input("a", 2)
+    b = child.output("b", 2)
+    child.wire(b, a)
+    parent = Generator("parent")
+    c = parent.input("c", 2)
+    d = parent.var("d", 1)
+    parent.add_child("inst", child, a=c)
+    parent.wire(d, child.ports.b.r_or())
+    parent2 = Generator("parent2")
+    e = parent2.var("e", 2)
+    parent2.add_child("inst", parent, c=e)
+
+    src = verilog(parent2, optimize_passthrough=False)["parent"]
+    assert "assign d = |inst_b;" in src
 
 
 if __name__ == "__main__":
-    test_decouple_parent()
     from conftest import check_gold_fn
     test_flush_skip(check_gold_fn)

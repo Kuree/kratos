@@ -1510,6 +1510,7 @@ void change_var_expr(const std::shared_ptr<Expr> &expr, Var *target, Var *new_va
             set_slice_var_parent(cond, target, new_var, false);
         }
     }
+    expr->set_parent();
 }
 
 void change_cast_parent(const std::shared_ptr<VarCasted> &var, Var *target, Var *new_var);

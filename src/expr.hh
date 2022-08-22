@@ -647,12 +647,11 @@ public:
     std::string handle_name(bool ignore_top) const override;
     std::string handle_name(Generator *scope) const override;
 
+    void set_parent();
+
 protected:
     // caller is responsible for the op
     Expr(Var *left, Var *right);
-
-private:
-    void set_parent();
 };
 
 struct VarConcat : public Expr {
