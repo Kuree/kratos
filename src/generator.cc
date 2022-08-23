@@ -903,16 +903,22 @@ void Generator::unwire(Var &var1, Var &var2) {
 std::shared_ptr<Generator> Generator::clone() {
     auto generator = std::make_shared<Generator>(context_, name);
     auto port_names = get_port_names();
-    for (auto const &port_name : port_names) {
-        auto port = get_port(port_name);
-        auto &p = generator->port(port->port_direction(), port_name, port->var_width(),
-                                  port->size(), port->port_type(), port->is_signed());
-        p.set_is_packed(port->is_packed());
-    }
     // also parameters
     for (auto const &[param_name, param] : params_) {
         generator->parameter(param_name, param->width(), param->is_signed());
     }
+
+    for (auto const &port_name : port_names) {
+        auto port = get_port(port_name);
+        auto &p = generator->port(port->port_direction(), port_name, port->var_width(),
+                                  port->size(), port->port_type(), port->is_signed());
+        if (port->width_param()) {
+            auto param = generator->get_param(port->width_param()->to_string());
+            p.set_width_param(param);
+        }
+        p.set_is_packed(port->is_packed());
+    }
+
     if (!fn_name_ln.empty()) {
         generator->fn_name_ln.insert(generator->fn_name_ln.end(), fn_name_ln.begin(),
                                      fn_name_ln.end());
