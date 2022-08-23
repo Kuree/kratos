@@ -29,7 +29,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
             check_combinational_loop: bool = True,
             insert_pipeline_stages: bool = False,
             filename: str = None,
-            output_dir: str = None,
             insert_debug_info: bool = False,
             insert_verilator_info: bool = False,
             check_flip_flop_always_ff: bool = True,
@@ -43,7 +42,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
             lift_genvar_instances: bool = False,
             fix_port_legality: bool = False,
             dead_code_elimination: bool = False,
-            compile_to_verilog: bool = False):
+            codegen_options: _kratos.SystemVerilogCodeGenOptions = None):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
     if additional_passes is not None:
@@ -138,27 +137,23 @@ def verilog(generator: Generator, optimize_if: bool = True,
         post_pass_manager.add_pass("remove_event_stmts")
     post_pass_manager.run_passes(generator.internal_generator)
 
-    if compile_to_verilog:
-        assert output_dir is None and filename is not None,\
-            "Trans-compile to verilog is only supported by a single file"
-        import shutil
-        assert shutil.which("sv2v") is not None,\
-            "Compiling to verilog requires sv2v"
-
     if insert_verilator_info:
         _kratos.passes.insert_verilator_public(generator.internal_generator)
 
-    if output_dir is not None:
-        if not os.path.isdir(output_dir):
-            os.makedirs(output_dir)
+    if codegen_options is None:
+        codegen_options = _kratos.SystemVerilogCodeGenOptions()
+
+    if len(codegen_options.output_dir) > 0:
+        if not os.path.isdir(codegen_options.output_dir):
+            os.makedirs(codegen_options.output_dir)
         package_name = generator.internal_generator.name + "_pkg"
+        codegen_options.package_name = package_name
+        codegen_options.extract_debug_info = debug_fn_ln
         _kratos.passes.generate_verilog(generator.internal_generator,
-                                        output_dir,
-                                        package_name,
-                                        debug_fn_ln)
+                                        codegen_options)
         r = None
     else:
-        src = code_gen.verilog_src()
+        src = code_gen.verilog_src(codegen_options)
         result = [src]
         gen = generator.internal_generator
         if debug_fn_ln:
@@ -189,11 +184,6 @@ def verilog(generator: Generator, optimize_if: bool = True,
         if filename is not None:
             output_verilog(filename, src, info, struct_info, dpi_func, enum_def,
                            interface_info, track_generated_definition)
-            if compile_to_verilog:
-                pipe = os.popen("sv2v " + filename, "r")
-                s = pipe.read()
-                with open(filename, "w+") as f:
-                    f.write(s)
             generator.internal_generator.verilog_fn = filename
         r = result[0] if len(result) == 1 else result
 

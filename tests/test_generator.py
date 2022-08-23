@@ -482,7 +482,9 @@ def test_packed_struct(check_gold, check_file):
     mod = Mod(True)
     mod.name = "packed_struct"
     with tempfile.TemporaryDirectory() as temp:
-        verilog(mod, output_dir=temp, debug_fn_ln=True)
+        options = kratos.SystemVerilogCodeGenOptions()
+        options.output_dir = temp
+        verilog(mod, codegen_options=options, debug_fn_ln=True)
         mod_file = os.path.join(temp, "packed_struct.sv")
         def_file = os.path.join(temp, "packed_struct_pkg.svh")
         import json

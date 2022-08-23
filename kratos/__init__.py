@@ -26,6 +26,7 @@ from .stmts import IfStmt, SwitchStmt, if_, switch_, RawStringStmt
 from _kratos import Interface
 from _kratos import PropertyAction, ParamType
 from _kratos import Event, Transaction
+from _kratos import SystemVerilogCodeGenOptions
 
 # FSMs
 from _kratos import FSM, FSMState

@@ -25,11 +25,7 @@ void init_pass(py::module &m) {
         .def("hash_generators_sequential", &hash_generators_sequential)
         .def("decouple_generator_ports", &decouple_generator_ports)
         .def("uniquify_generators", &uniquify_generators)
-        .def("generate_verilog", py::overload_cast<Generator *>(&generate_verilog))
-        .def("generate_verilog",
-             py::overload_cast<Generator *, const std::string &, const std::string &, bool>(
-                 &generate_verilog))
-        .def("generate_verilog", py::overload_cast<Generator *>(&generate_verilog))
+        .def("generate_verilog", &generate_verilog)
         .def("transform_if_to_case", &transform_if_to_case)
         .def("remove_fanout_one_wires", &remove_fanout_one_wires)
         .def("remove_pass_through_modules", &remove_pass_through_modules)
@@ -140,7 +136,6 @@ by yourself to obtain the verilog code.)pbdoc");
             type_str = "python";
         }
 
-    public:
         using Attribute::Attribute;
 
         py::object get_py_obj() { return target_; }

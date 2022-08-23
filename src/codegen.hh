@@ -11,7 +11,14 @@ namespace kratos {
 
 class SystemVerilogCodeGen;
 
-using DebugInfo = std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>>;
+struct SystemVerilogCodeGenOptions {
+    bool unique_case = true;
+    bool yosys_src = false;
+    std::string package_name;
+    uint64_t line_wrap = 80;
+    std::string output_dir;
+    bool extract_debug_info;
+};
 
 class VerilogModule {
 public:
@@ -22,6 +29,8 @@ public:
     void run_passes();
 
     [[nodiscard]] std::map<std::string, std::string> verilog_src();
+    [[nodiscard]] std::map<std::string, std::string> verilog_src(
+        SystemVerilogCodeGenOptions options);
     inline PassManager& pass_manager() { return manager_; }
 
 private:
@@ -58,7 +67,7 @@ private:
 class SystemVerilogCodeGen {
 public:
     explicit SystemVerilogCodeGen(Generator* generator);
-    SystemVerilogCodeGen(Generator* generator, std::string package_name, std::string header_name);
+    explicit SystemVerilogCodeGen(Generator* generator, SystemVerilogCodeGenOptions options);
 
     inline std::string str() {
         output_module_def(generator_);
@@ -71,6 +80,7 @@ public:
     std::string_view pre_indent();
     void increase_indent() { indent_++; }
     void decrease_indent() { indent_--; }
+    [[nodiscard]] const SystemVerilogCodeGenOptions& options() const { return options_; }
 
     // helper function
     std::string static get_port_str(Port* port);
@@ -87,11 +97,8 @@ private:
     Generator* generator_;
     bool skip_indent_ = false;
     std::unordered_map<StmtBlock*, std::string> label_index_;
-    std::string package_name_;
-    std::string header_include_name_;
 
-    // for yosys generate src
-    bool yosys_src_ = false;
+    SystemVerilogCodeGenOptions options_;
 
 protected:
     Stream stream_;
@@ -182,6 +189,9 @@ std::pair<std::string, uint32_t> generate_sv_package_header(Generator* top,
                                                             bool include_guard);
 
 void fix_verilog_ln(Generator* generator, uint32_t offset);
+
+std::map<std::string, std::string> generate_verilog(Generator* top,
+                                                    SystemVerilogCodeGenOptions options);
 
 }  // namespace kratos
 #endif  // KRATOS_CODEGEN_HH

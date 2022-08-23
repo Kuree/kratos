@@ -88,7 +88,7 @@ Stream& Stream::operator<<(AssignStmt* stmt) {
         output_delay(*stmt->get_delay());
     }
 
-    auto right_wrapped = line_wrap(right, 80);
+    auto right_wrapped = line_wrap(right, codegen_->options().line_wrap);
     (*this) << right_wrapped[0];
     for (uint64_t i = 1; i < right_wrapped.size(); i++) {
         // compute new indent
@@ -182,18 +182,19 @@ void VerilogModule::run_passes() {
 }
 
 std::map<std::string, std::string> VerilogModule::verilog_src() {
-    return generate_verilog(generator_);
+    return generate_verilog(generator_, {});
+}
+
+std::map<std::string, std::string> VerilogModule::verilog_src(SystemVerilogCodeGenOptions options) {
+    return generate_verilog(generator_, options);
 }
 
 SystemVerilogCodeGen::SystemVerilogCodeGen(Generator* generator)
-    : SystemVerilogCodeGen(generator, "", "") {}
+    : SystemVerilogCodeGen(generator, {}) {}
 
-SystemVerilogCodeGen::SystemVerilogCodeGen(kratos::Generator* generator, std::string package_name,
-                                           std::string header_name)
-    : generator_(generator),
-      package_name_(std::move(package_name)),
-      header_include_name_(std::move(header_name)),
-      stream_(generator, this) {
+SystemVerilogCodeGen::SystemVerilogCodeGen(kratos::Generator* generator,
+                                           SystemVerilogCodeGenOptions options)
+    : generator_(generator), options_(std::move(options)), stream_(generator, this) {
     // if it's an external file, we don't output anything
     if (generator->external()) return;
 
@@ -207,19 +208,19 @@ SystemVerilogCodeGen::SystemVerilogCodeGen(kratos::Generator* generator, std::st
 void SystemVerilogCodeGen::check_yosys_src() {
     for (auto const& attr : generator_->get_attributes()) {
         if (attr->value_str == "yosys_src") {
-            yosys_src_ = true;
+            options_.yosys_src = true;
         }
     }
 }
 
 void SystemVerilogCodeGen::output_module_def(Generator* generator) {  // output module definition
     // insert the header definition, if necessary
-    if (!header_include_name_.empty()) {
+    if (!options_.package_name.empty()) {
         // two line indent
-        stream_ << "`include \"" << header_include_name_ << "\"" << stream_.endl()
+        stream_ << "`include \"" << options_.package_name << ".svh\"" << stream_.endl()
                 << stream_.endl();
         // import everything
-        stream_ << "import " << package_name_ << "::*;" << stream_.endl();
+        stream_ << "import " << options_.package_name << "::*;" << stream_.endl();
     }
     if (generator->debug) generator->verilog_ln = stream_.line_no();
     stream_ << ::format("module {0} ", generator->name);
@@ -341,7 +342,7 @@ void SystemVerilogCodeGen::generate_variables(Generator* generator) {
     for (auto const& var_name : vars) {
         auto const& var = generator->get_var(var_name);
         if (var->type() == VarType::Base && !var->is_interface()) {
-            if (yosys_src_) output_yosys_src(var.get());
+            if (options_.yosys_src) output_yosys_src(var.get());
             stream_ << var;
         }
     }
@@ -427,7 +428,7 @@ void SystemVerilogCodeGen::dispatch_node(IRNode* node) {
     auto* stmt_ptr = reinterpret_cast<Stmt*>(node);
 
     // yosys src
-    if (yosys_src_) output_yosys_src(node);
+    if (options_.yosys_src) output_yosys_src(node);
 
     // use switch for branch tables
     // also let compiler check if we have all the types covered
@@ -863,8 +864,8 @@ void SystemVerilogCodeGen::stmt_code(kratos::InterfaceInstantiationStmt* stmt) {
 }
 
 void SystemVerilogCodeGen::stmt_code(SwitchStmt* stmt) {
-    stream_ << indent() << "unique case (" << stream_.var_str(stmt->target()) << ")"
-            << stream_.endl();
+    stream_ << indent() << (options_.unique_case ? "unique" : "") << " case ("
+            << stream_.var_str(stmt->target()) << ")" << stream_.endl();
     indent_++;
     auto const& body = stmt->body();
     std::vector<std::shared_ptr<Const>> conds;
@@ -1201,7 +1202,7 @@ std::string create_stub(Generator* top) {
     }
     // that's it
     // now outputting the stream
-    auto res = generate_verilog(&gen);
+    auto res = generate_verilog(&gen, {});
     return res.at(top->name);
 }
 
@@ -1322,6 +1323,173 @@ void fix_verilog_ln(Generator* generator, uint32_t offset) {
     for (auto const& iter : stmts) {
         auto* stmt = iter.first;
         stmt->verilog_ln += offset;
+    }
+}
+
+class UniqueGeneratorVisitor : public IRVisitor {
+private:
+    std::map<std::string, Generator*> generator_map_;
+
+public:
+    void visit(Generator* generator) override {
+        if (generator_map_.find(generator->name) != generator_map_.end()) {
+            return;
+        }
+        // a unique one
+        if (!generator->external()) generator_map_.emplace(generator->name, generator);
+    }
+    const std::map<std::string, Generator*>& generator_map() const { return generator_map_; };
+};
+
+class MarkTrackedVisitor : public IRVisitor {
+    void visit(Generator* generator) override {
+        auto* context = generator->context();
+        if (context) {
+            track_lock_.lock();
+            context->add_tracked_generator(generator);
+            track_lock_.unlock();
+        }
+    }
+
+    std::mutex track_lock_;
+};
+
+void track_generators(Generator* top) {
+    // if we need to track if a generator has been touched for verilog
+    if (top->context() && top->context()->track_generated()) {
+        MarkTrackedVisitor track_visitor;
+        track_visitor.visit_generator_root_p(top);
+    }
+}
+
+std::map<std::string, std::string> generate_verilog_no_pkg(Generator* top,
+                                                           SystemVerilogCodeGenOptions options) {
+    // this pass assumes that all the generators has been uniquified
+    std::map<std::string, std::string> result;
+    // first get all the unique generators
+    UniqueGeneratorVisitor unique_visitor;
+    // this can be parallelized
+    unique_visitor.visit_generator_root(top);
+    auto const& generator_map = unique_visitor.generator_map();
+    for (const auto& [module_name, module_gen] : generator_map) {
+        SystemVerilogCodeGen codegen(module_gen, options);
+        result.emplace(module_name, codegen.str());
+    }
+    track_generators(top);
+    return result;
+}
+
+std::map<uint32_t, std::vector<std::pair<std::string, uint32_t>>> extract_debug_info_gen(
+    Generator* top);
+
+void output_pkg_debug_info(const std::map<std::string, Generator*>& generator_map,
+                           const SystemVerilogCodeGenOptions& options) {
+    for (const auto& [module_name, module_gen] : generator_map) {
+        // use unique since we want to keep it close to where it's declared
+        auto info = extract_debug_info_gen(module_gen);
+        // a simple JSON writer
+        std::stringstream json;
+        json << "{" << std::endl;
+        uint64_t count = 0;
+        for (auto const& [line_num, lines] : info) {
+            count++;
+            json << "  \"" << line_num << "\": [";
+            std::vector<std::string> entries;
+            entries.reserve(lines.size());
+            for (auto const& [f_name, f_ln] : lines) {
+                entries.emplace_back(::format("[\"{0}\", {1}]", f_name, f_ln));
+            }
+            json << string::join(entries.begin(), entries.end(), ", ") << "]";
+            if (count != info.size())
+                json << "," << std::endl;
+            else
+                json << std::endl;
+        }
+        json << "}" << std::endl;
+        // just dump it since we don't care about incremental build for debug info
+        auto debug_filename = kratos::fs::join(options.output_dir, module_name + ".sv.debug");
+        std::ofstream debug_stream(debug_filename, std::ios::in | std::ios::out | std::ios::trunc);
+        debug_stream << json.str();
+    }
+}
+
+void generate_verilog_pkg(Generator* top, SystemVerilogCodeGenOptions options) {
+    // input check
+    if (options.package_name == top->name) {
+        throw UserException(
+            ::format("Package name cannot be the same as module name ({0}", top->name));
+    }
+    // this pass assumes that all the generators has been uniquified
+    // first get all the unique generators
+    UniqueGeneratorVisitor unique_visitor;
+    // this can be parallelized
+    unique_visitor.visit_generator_root_p(top);
+    auto const& generator_map = unique_visitor.generator_map();
+    track_generators(top);
+
+    // we use header_name + ".svh"
+    std::string header_filename = options.package_name + ".svh";
+    std::map<std::string, std::string> result;
+    for (const auto& [module_name, module_gen] : generator_map) {
+        SystemVerilogCodeGen codegen(module_gen, options);
+        result.emplace(module_name, codegen.str());
+    }
+    // write out the content to the output_dir
+    // we assume output_dir already exists
+    // notice that if the content is the same, we don't override to avoid modifying the timestamps
+    // this will help with incremental compile in the downstream tools, typically the commercial
+    // ones
+    // unfortunately verilator doesn't support incremental build. see
+    // https://www.veripool.org/boards/2/topics/2822
+    for (auto const& [module_name, src] : result) {
+        auto path = kratos::fs::join(options.output_dir, module_name + ".sv");
+        if (kratos::fs::exists(path)) {
+            // load up the file
+            std::ifstream in(path);
+            std::stringstream content_stream;
+            content_stream << in.rdbuf();
+            std::string content = content_stream.str();
+            if (content == src) continue;
+        }
+        // truncate mode
+        std::ofstream out(path, std::ios::trunc);
+        out << src;
+        // tell the system where it went, if allowed
+        auto gens = top->context()->get_generators_by_name(module_name);
+        for (auto const& gen : gens) {
+            if (gen->debug) gen->verilog_fn = path;
+        }
+    }
+    // output debug info as well, if required
+    if (options.extract_debug_info) {
+        output_pkg_debug_info(generator_map, options);
+    }
+
+    header_filename = kratos::fs::join(options.output_dir, header_filename);
+
+    // compare it with the old one, if exists. this is for incremental build
+    auto values = generate_sv_package_header(top, options.package_name, true);
+    auto def_str = values.first;
+    if (kratos::fs::exists(header_filename)) {
+        std::ifstream in(header_filename);
+        std::stringstream content_stream;
+        content_stream << in.rdbuf();
+        auto content = content_stream.str();
+        if (content == def_str) {
+            return;
+        }
+    }
+    std::ofstream out(header_filename, std::ios::in | std::ios::out | std::ios::trunc);
+    out << def_str;
+}
+
+std::map<std::string, std::string> generate_verilog(Generator* top,
+                                                    SystemVerilogCodeGenOptions options) {
+    if (options.package_name.empty()) {
+        return generate_verilog_no_pkg(top, options);
+    } else {
+        generate_verilog_pkg(top, options);
+        return {};
     }
 }
 
