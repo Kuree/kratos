@@ -289,6 +289,8 @@ public:
         }
 
         for (auto const& child : child_to_remove) {
+            if (child->is_cloned())
+                throw InternalException("Unable to optimize passthrough on cloned generator");
             // we move the src and sinks around
             const auto& port_names = child->get_port_names();
             for (auto const& port_name : port_names) {
