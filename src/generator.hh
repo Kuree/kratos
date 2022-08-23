@@ -211,6 +211,8 @@ public:
     bool is_cloned() const { return is_cloned_; }
     // this is for internal libraries only. use it only if you know what you're doing
     void set_is_cloned(bool value) { is_cloned_ = value; }
+    // set the def parent clone. use if only if you know what you're doing
+    void set_clone_ref(const std::shared_ptr<Generator> &ref);
 
     // useful passes on generator itself
     void replace(const std::string &child_name, const std::shared_ptr<Generator> &new_child);

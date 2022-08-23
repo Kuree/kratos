@@ -1,5 +1,7 @@
 #include "transform.hh"
 
+#include <numeric>
+
 #include "fmt/format.h"
 #include "fsm.hh"
 #include "hash.hh"
@@ -7,7 +9,6 @@
 #include "stmt.hh"
 #include "tb.hh"
 #include "util.hh"
-#include <numeric>
 
 using fmt::format;
 using std::runtime_error;
@@ -17,7 +18,9 @@ class AssignmentTypeVisitor : public IRVisitor {
 public:
     explicit AssignmentTypeVisitor(AssignmentType type, bool check_type = true)
         : type_(type), check_type_(check_type) {}
+
     void visit(AssignStmt* stmt) override {
+        if (stmt->generator_parent()->is_cloned() || stmt->generator_parent()->external()) return;
         if (stmt->assign_type() == AssignmentType::Undefined) {
             stmt->set_assign_type(type_);
         } else if (check_type_ && stmt->assign_type() != type_) {
@@ -35,10 +38,12 @@ private:
 
 class AssignmentTypeBlockVisitor : public IRVisitor {
     void visit(CombinationalStmtBlock* block) override {
+        if (block->generator_parent()->is_cloned() || block->generator_parent()->external()) return;
         AssignmentTypeVisitor visitor(AssignmentType::Blocking, true);
         visitor.visit_root(block->ast_node());
     }
     void visit(SequentialStmtBlock* block) override {
+        if (block->generator_parent()->is_cloned() || block->generator_parent()->external()) return;
         // attribute-based override
         auto const& attributes = block->get_attributes();
         for (auto const& attr : attributes) {
@@ -49,6 +54,7 @@ class AssignmentTypeBlockVisitor : public IRVisitor {
     }
 
     void visit(FunctionStmtBlock* block) override {
+        if (block->generator_parent()->is_cloned() || block->generator_parent()->external()) return;
         AssignmentTypeVisitor visitor(AssignmentType::Blocking, true);
         visitor.visit_root(block->ast_node());
     }
@@ -925,24 +931,22 @@ void sort_stmts(Generator* top) {
     visitor.visit_generator_root_p(top);
 }
 
-
-
-class SortInitialVisitor: public IRVisitor {
+class SortInitialVisitor : public IRVisitor {
 public:
-    void visit(Generator *top) override {
-        auto const &stmts = top->get_all_stmts();
+    void visit(Generator* top) override {
+        auto const& stmts = top->get_all_stmts();
         auto new_stmts = std::vector<std::shared_ptr<Stmt>>(stmts.begin(), stmts.end());
 
         // move initialize to the last
-        std::stable_sort(new_stmts.begin(), new_stmts.end(), [](const auto &left, const auto &right) {
-            return get_order(left) < get_order(right);
-        });
+        std::stable_sort(
+            new_stmts.begin(), new_stmts.end(),
+            [](const auto& left, const auto& right) { return get_order(left) < get_order(right); });
 
         top->set_stmts(new_stmts);
     }
 
 private:
-    static uint32_t get_order(const std::shared_ptr<Stmt> &stmt) {
+    static uint32_t get_order(const std::shared_ptr<Stmt>& stmt) {
         if (stmt->type() != StatementType::Block) return 0;
         auto block = stmt->as<StmtBlock>();
         if (block->block_type() != StatementBlockType::Initial) return 0;
@@ -950,21 +954,21 @@ private:
     }
 };
 
-void sort_initial_stmts(Generator *top) {
+void sort_initial_stmts(Generator* top) {
     SortInitialVisitor v;
     v.visit_generator_root_p(top);
 }
 
-class AssertPropertyVisitor: public IRVisitor {
+class AssertPropertyVisitor : public IRVisitor {
 public:
-    void visit(AssertBase *stmt) override {
+    void visit(AssertBase* stmt) override {
         if (stmt->assert_type() != AssertType::AssertProperty) {
             return;
         }
         auto property_stmt = stmt->as<AssertPropertyStmt>();
-        auto *property = property_stmt->property();
+        auto* property = property_stmt->property();
 
-        auto &edge = property->edge();
+        auto& edge = property->edge();
         auto* seq = property->sequence();
         // automatically determine the clock, only if it's safe to do so (only one clock in the
         // design
@@ -1014,14 +1018,14 @@ public:
                 edge.type = EventControlType::Edge;
             } else {
                 // next is not null but edge is not set
-                throw StmtException(::format("Clock edge not set for sequence {0}", seq->to_string()),
-                                    {stmt});
+                throw StmtException(
+                    ::format("Clock edge not set for sequence {0}", seq->to_string()), {stmt});
             }
         }
     }
 };
 
-void infer_property_clocking(Generator *top) {
+void infer_property_clocking(Generator* top) {
     AssertPropertyVisitor visitor;
     visitor.visit_root(top);
 }

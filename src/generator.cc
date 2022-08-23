@@ -930,6 +930,12 @@ std::shared_ptr<Generator> Generator::clone() {
     return generator;
 }
 
+void Generator::set_clone_ref(const std::shared_ptr<Generator> &ref) {
+    is_cloned_ = true;
+    def_instance_ = ref.get();
+    set_external(true);
+}
+
 void Generator::accept(IRVisitor *visitor) {
     if (!external()) {
         visitor->visit(this);

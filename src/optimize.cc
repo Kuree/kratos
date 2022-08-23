@@ -1068,6 +1068,7 @@ void merge_const_port_assignment(Generator* top) {
 class VarUnusedVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
+        if (generator->external()) return;
         std::set<std::string> vars_to_remove;
         auto vars = generator->vars();
         for (auto const& [var_name, var] : vars) {

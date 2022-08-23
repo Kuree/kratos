@@ -37,7 +37,10 @@ void uniquify_generators(Generator* top) {
         auto const module_sets = context->get_generators_by_name(name);
         std::vector<Generator*> module_instances;
         module_instances.reserve(module_sets.size());
-        for (auto const& m : module_sets) module_instances.emplace_back(m.get());
+        for (auto const& m : module_sets) {
+            if (m->external()) continue;
+            module_instances.emplace_back(m.get());
+        }
         // notice that since it is a set copied by value, it is fine to iterate through it
         if (module_instances.size() == 1)
             // only one module. we are good

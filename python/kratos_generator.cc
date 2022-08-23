@@ -256,6 +256,7 @@ void init_generator(py::module &m) {
             })
         .def_readwrite("debug", &Generator::debug)
         .def("clone", &Generator::clone)
+        .def("set_clone_ref", &Generator::set_clone_ref)
         .def_property("is_cloned", &Generator::is_cloned, &Generator::set_is_cloned)
         .def("__contains__",
              py::overload_cast<const std::shared_ptr<Generator> &>(&Generator::has_child_generator))
