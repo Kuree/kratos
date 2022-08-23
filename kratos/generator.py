@@ -1,7 +1,6 @@
-import enum
 from .pyast import transform_stmt_block, add_scope_context, \
     get_frame_local, AlwaysWrapper
-from .util import clog2, max_value, cast, VarCastType, display, const, finish, fopen, fclose, fscanf
+from .util import clog2, max_value, cast, VarCastType
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
@@ -937,6 +936,15 @@ class Generator(metaclass=GeneratorMeta):
             g = Generator("")
             g.__generator = gen.__generator.clone()
             g.__def_instance = gen
+            # get all public port vars and parameters for wiring
+            variables = vars(gen)
+            for name, v in variables.items():
+                if isinstance(v, _kratos.Port):
+                    setattr(g, name, g.ports[v.name])
+                elif isinstance(v, _kratos.Param):
+                    setattr(g, name, g.params[v.name])
+                elif isinstance(v, (int, str, float, tuple)):
+                    setattr(g, name, v)
             return g
 
     @classmethod

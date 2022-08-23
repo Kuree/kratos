@@ -624,7 +624,8 @@ void init_expr(py::module &m) {
                       })
         .def_property_readonly("param_type", &Param::param_type)
         .def_property("initial_raw_str_value", &Param::get_raw_str_initial_value,
-                      &Param::set_initial_raw_str_value);
+                      &Param::set_initial_raw_str_value)
+        .def_property_readonly("name", &Param::parameter_name);
 
     auto port_packed =
         py::class_<PortPackedStruct, ::shared_ptr<PortPackedStruct>, Port>(m, "PortPackedStruct");
