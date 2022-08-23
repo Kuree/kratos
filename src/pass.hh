@@ -143,10 +143,13 @@ public:
     void run_passes(Generator* generator);
 
     [[nodiscard]] uint64_t num_passes() const { return passes_order_.size(); }
+    inline void set_collect_perf(bool value) { collect_perf_ = value; }
+    [[nodiscard]] bool get_collect_perf() const { return collect_perf_; }
 
 private:
     std::map<std::string, std::function<void(Generator*)>> passes_;
     std::vector<std::string> passes_order_;
+    bool collect_perf_ = false;
 };
 
 }  // namespace kratos

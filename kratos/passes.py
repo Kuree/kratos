@@ -42,9 +42,11 @@ def verilog(generator: Generator, optimize_if: bool = True,
             lift_genvar_instances: bool = False,
             fix_port_legality: bool = False,
             dead_code_elimination: bool = False,
+            collect_pass_perf: bool = False,
             codegen_options: _kratos.SystemVerilogCodeGenOptions = None):
     code_gen = _kratos.VerilogModule(generator.internal_generator)
     pass_manager = code_gen.pass_manager()
+    pass_manager.collect_perf = collect_pass_perf
     if additional_passes is not None:
         for name, fn in additional_passes.items():
             pass_manager.register_pass(name, fn)

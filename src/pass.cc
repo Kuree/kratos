@@ -1,11 +1,12 @@
 #include "pass.hh"
 
+#include <chrono>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <numeric>
 
-#include "codegen.hh"
 #include "debug.hh"
 #include "event.hh"
 #include "except.hh"
@@ -15,7 +16,6 @@
 #include "interface.hh"
 #include "port.hh"
 #include "tb.hh"
-#include "util.hh"
 
 using fmt::format;
 using std::runtime_error;
@@ -107,9 +107,29 @@ void PassManager::add_pass(const std::string& name) {
 }
 
 void PassManager::run_passes(Generator* generator) {
+    // compute padding
+    int string_size = 0;
+    if (collect_perf_) {
+        for (auto const& fn_name : passes_order_) {
+            auto s = static_cast<int>(fn_name.size());
+            if (s > string_size) {
+                string_size = s;
+            }
+        }
+    }
+
     for (const auto& fn_name : passes_order_) {
         auto fn = passes_.at(fn_name);
+        auto start = std::chrono::system_clock::now();
         fn(generator);
+
+        if (collect_perf_) {
+            auto end = std::chrono::system_clock::now();
+            auto diff = end - start;
+            auto time = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+            std::cout << "[name]: " << std::left << std::setw(string_size) << fn_name
+                      << "\t[time]: " << time << " ms" << std::endl;
+        }
     }
 }
 
