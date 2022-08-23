@@ -1483,6 +1483,10 @@ void generate_verilog_pkg(Generator* top, SystemVerilogCodeGenOptions options) {
     out << def_str;
 }
 
+std::map<std::string, std::string> generate_verilog(Generator* top) {
+    return generate_verilog(top, {});
+}
+
 std::map<std::string, std::string> generate_verilog(Generator* top,
                                                     SystemVerilogCodeGenOptions options) {
     if (options.package_name.empty()) {

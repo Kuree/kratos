@@ -1,6 +1,8 @@
 #include <fmt/format.h>
+
 #include <sstream>
 
+#include "../src/codegen.hh"
 #include "../src/except.hh"
 #include "../src/fault.hh"
 #include "../src/generator.hh"

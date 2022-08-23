@@ -627,7 +627,7 @@ TEST(codegen, yosys_src) {  // NOLINT
     mod.add_stmt(stmt);
 
     std::string const filename = "test.cc";
-    std::vector<IRNode*> nodes = {&a, &b, stmt.get()};
+    std::vector<IRNode *> nodes = {&a, &b, stmt.get()};
     for (uint32_t i = 0; i < 3; i++) {
         nodes[i]->fn_name_ln.emplace_back(std::make_pair(filename, i + 1));
     }
@@ -639,7 +639,7 @@ TEST(codegen, yosys_src) {  // NOLINT
     EXPECT_NE(mod_src.find("(* src = \"test.cc:3\" *)"), std::string::npos);
 }
 
-TEST(codegen, param_size_single_module) { // NOLINT
+TEST(codegen, param_size_single_module) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
 
@@ -666,7 +666,7 @@ TEST(codegen, param_size_single_module) { // NOLINT
     EXPECT_NE(mod_src.find("input logic [5:0] in2 [2:0][P-1:0]"), std::string::npos);
 }
 
-TEST(codegen, param_size_nested_module) {   // NOLINT
+TEST(codegen, param_size_nested_module) {  // NOLINT
     Context c;
     auto &child = c.generator("child");
     auto &c_p = child.parameter("P_C", 32);
@@ -698,7 +698,7 @@ TEST(codegen, param_size_nested_module) {   // NOLINT
     EXPECT_NE(mod_src.find("input logic [15:0] in [P_C-1:0]"), std::string::npos);
 }
 
-TEST(codegen, copy_port_definition) {   // NOLINT
+TEST(codegen, copy_port_definition) {  // NOLINT
     Context c;
     auto &child = c.generator("child");
     auto &c_p = child.parameter("P_C", 32);
@@ -728,7 +728,7 @@ TEST(codegen, copy_port_definition) {   // NOLINT
     EXPECT_NE(mod_src.find("input logic [15:0] in [(P * 32'h2)-1:0]"), std::string::npos);
 }
 
-TEST(generator, unwire) {   // NOLINT
+TEST(generator, unwire) {  // NOLINT
     Context c;
     auto &mod = c.generator("mod");
     auto &a = mod.var("a", 1);

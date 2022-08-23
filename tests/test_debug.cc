@@ -1,3 +1,4 @@
+#include "../src/codegen.hh"
 #include "../src/debug.hh"
 #include "../src/except.hh"
 #include "../src/generator.hh"

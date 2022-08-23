@@ -190,6 +190,7 @@ std::pair<std::string, uint32_t> generate_sv_package_header(Generator* top,
 
 void fix_verilog_ln(Generator* generator, uint32_t offset);
 
+std::map<std::string, std::string> generate_verilog(Generator *top);
 std::map<std::string, std::string> generate_verilog(Generator* top,
                                                     SystemVerilogCodeGenOptions options);
 
