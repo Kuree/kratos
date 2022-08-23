@@ -20,7 +20,8 @@ public:
         : type_(type), check_type_(check_type) {}
 
     void visit(AssignStmt* stmt) override {
-        if (stmt->generator_parent()->is_cloned() || stmt->generator_parent()->external()) return;
+        auto* parent = stmt->generator_parent();
+        if (parent && (parent->is_cloned() || parent->external())) return;
         if (stmt->assign_type() == AssignmentType::Undefined) {
             stmt->set_assign_type(type_);
         } else if (check_type_ && stmt->assign_type() != type_) {
@@ -38,12 +39,14 @@ private:
 
 class AssignmentTypeBlockVisitor : public IRVisitor {
     void visit(CombinationalStmtBlock* block) override {
-        if (block->generator_parent()->is_cloned() || block->generator_parent()->external()) return;
+        auto* parent = block->generator_parent();
+        if (parent && (parent->is_cloned() || parent->external())) return;
         AssignmentTypeVisitor visitor(AssignmentType::Blocking, true);
         visitor.visit_root(block->ast_node());
     }
     void visit(SequentialStmtBlock* block) override {
-        if (block->generator_parent()->is_cloned() || block->generator_parent()->external()) return;
+        auto* parent = block->generator_parent();
+        if (parent && (parent->is_cloned() || parent->external())) return;
         // attribute-based override
         auto const& attributes = block->get_attributes();
         for (auto const& attr : attributes) {
@@ -54,7 +57,8 @@ class AssignmentTypeBlockVisitor : public IRVisitor {
     }
 
     void visit(FunctionStmtBlock* block) override {
-        if (block->generator_parent()->is_cloned() || block->generator_parent()->external()) return;
+        auto* parent = block->generator_parent();
+        if (parent && (parent->is_cloned() || parent->external())) return;
         AssignmentTypeVisitor visitor(AssignmentType::Blocking, true);
         visitor.visit_root(block->ast_node());
     }
@@ -228,6 +232,7 @@ void zero_generator_inputs(Generator* top) {
 class ModuleInstantiationVisitor : public IRVisitor {
 public:
     void visit(Generator* generator) override {
+        if (generator->is_cloned() || generator->external()) return;
         for (auto& child : generator->get_child_generators()) {
             // skip if already instantiated
             if (child->has_instantiated()) continue;

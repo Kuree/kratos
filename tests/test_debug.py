@@ -633,4 +633,4 @@ def test_assign_slice():
 
 
 if __name__ == "__main__":
-    test_assign_slice()
+    test_verilog_ln_fix()
