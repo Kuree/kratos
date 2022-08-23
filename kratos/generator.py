@@ -919,7 +919,11 @@ class Generator(metaclass=GeneratorMeta):
     def __cached_py_generator(cls, **kargs):
         hash_value = 0
         for key, value in kargs.items():
-            hash_value = hash_value ^ (hash(key) << 16) ^ hash(value)
+            if hasattr(value, "hash"):
+                value_hash = value.hash()
+            else:
+                value_hash = hash(value)
+            hash_value = hash_value ^ (hash(key) << 16) ^ value_hash
         if hash_value not in cls._cache:
             g = cls(**kargs)
             cls._cache[hash_value] = g
