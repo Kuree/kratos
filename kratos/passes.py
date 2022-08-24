@@ -4,6 +4,7 @@ import _kratos
 from .debug import dump_debug_database
 from typing import Dict
 import os
+import time
 
 
 class Attribute(_kratos.passes.Attribute):
@@ -155,7 +156,11 @@ def verilog(generator: Generator, optimize_if: bool = True,
                                         codegen_options)
         r = None
     else:
+        start = time.time()
         src = code_gen.verilog_src(codegen_options)
+        if collect_pass_perf:
+            end = time.time()
+            print("[codegen]: ", end - start, "s")
         result = [src]
         gen = generator.internal_generator
         if debug_fn_ln:
