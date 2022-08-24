@@ -912,7 +912,7 @@ std::shared_ptr<Generator> Generator::clone() {
         auto port = get_port(port_name);
         auto &p = generator->port(port->port_direction(), port_name, port->var_width(),
                                   port->size(), port->port_type(), port->is_signed());
-        if (port->width_param()) {
+        if (port->width_param() && port->width_param()->is_param()) {
             auto param = generator->get_param(port->width_param()->to_string());
             p.set_width_param(param);
         }
