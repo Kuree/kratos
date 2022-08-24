@@ -67,12 +67,11 @@ class AssignmentTypeBlockVisitor : public IRVisitor {
 void fix_assignment_type(Generator* top) {
     // first we fix all the block assignment
     AssignmentTypeBlockVisitor visitor;
-    visitor.visit_root(top);
-    visitor.visit_generator_root(top);
+    visitor.visit_root_tp(top);
 
     // then we assign any existing assignment as blocking assignment
     AssignmentTypeVisitor final_visitor(AssignmentType::Blocking, false);
-    final_visitor.visit_root(top->ast_node());
+    final_visitor.visit_root_s(top->ast_node());
 }
 
 class StubGeneratorVisitor : public IRVisitor {
@@ -259,11 +258,11 @@ public:
     }
 };
 
-class GeneratorStmtCacheVisitor: public IRVisitor {
+class GeneratorStmtCacheVisitor : public IRVisitor {
 public:
-    explicit GeneratorStmtCacheVisitor(bool value): value_(value) {}
+    explicit GeneratorStmtCacheVisitor(bool value) : value_(value) {}
 
-    void visit(Generator *generator) override {
+    void visit(Generator* generator) override {
         if (value_) {
             // set to use cache
             generator->set_use_stmt_remove_cache(true);

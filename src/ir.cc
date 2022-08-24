@@ -39,6 +39,18 @@ void IRVisitor::visit_root(IRNode *root) {
     level--;
 }
 
+void IRVisitor::visit_root_s(kratos::IRNode *root) {
+    root->accept(this);
+    uint64_t count = 0;
+    while (count < root->child_count()) {
+        auto *child = root->get_child(count);
+        visit_root_s(child);
+        if (count < root->child_count() && child == root->get_child(count)) {
+            count++;
+        }
+    }
+}
+
 void IRVisitor::visit_root_tp(kratos::IRNode *root) {
     if (root->ir_node_kind() != IRNodeKind::GeneratorKind) {
         // nothing we can do
@@ -57,11 +69,13 @@ void IRVisitor::visit_root_tp(kratos::IRNode *root) {
     for (auto *mod : nodes) {
         auto t = pool.push(
             [this](Generator *g) {
+                if (g->external() || g->is_cloned()) return;
+                g->accept(this);
                 uint64_t count = 0;
                 while (count < g->child_count()) {
                     auto *child = g->get_child(count);
                     if (child->ir_node_kind() != IRNodeKind::GeneratorKind) {
-                        visit_root(child);
+                        visit_root_s(child);
                     }
                     if (count < g->child_count() && child == g->get_child(count)) {
                         count++;

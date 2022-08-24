@@ -66,6 +66,8 @@ private:
 class IRVisitor {
 public:
     virtual void visit_root(IRNode *root);
+    // safe visit that does not track anything
+    void visit_root_s(IRNode *root);
     // true parallel version. i.e. don't obey the ordering of hierarchy
     virtual void visit_root_tp(IRNode *root);
     // visit generators only
