@@ -110,6 +110,16 @@ std::vector<Generator *> GeneratorGraph::get_sorted_nodes() {
     return result;
 }
 
+std::vector<Generator *> GeneratorGraph::get_nodes() {
+    std::vector<Generator *> res;
+    res.reserve(nodes_.size());
+    for (auto const &iter : nodes_) {
+        res.emplace_back(iter.second.generator);
+    }
+
+    return res;
+}
+
 std::vector<std::vector<Generator *>> GeneratorGraph::get_leveled_nodes() {
     // this is a modified breath-first search
     std::queue<std::pair<Generator *, uint32_t>> queue;

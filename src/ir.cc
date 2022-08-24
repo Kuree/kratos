@@ -39,6 +39,44 @@ void IRVisitor::visit_root(IRNode *root) {
     level--;
 }
 
+void IRVisitor::visit_root_tp(kratos::IRNode *root) {
+    if (root->ir_node_kind() != IRNodeKind::GeneratorKind) {
+        // nothing we can do
+        visit_root(root);
+        return;
+    }
+    auto *gen = reinterpret_cast<Generator *>(root);
+    GeneratorGraph graph(gen);
+
+    auto nodes = graph.get_nodes();
+    uint32_t num_cpus = get_num_cpus();
+    cxxpool::thread_pool pool{num_cpus};
+    std::vector<std::future<void>> tasks;
+    tasks.reserve(nodes.size());
+
+    for (auto *mod : nodes) {
+        auto t = pool.push(
+            [this](Generator *g) {
+                uint64_t count = 0;
+                while (count < g->child_count()) {
+                    auto *child = g->get_child(count);
+                    if (child->ir_node_kind() != IRNodeKind::GeneratorKind) {
+                        visit_root(child);
+                    }
+                    if (count < g->child_count() && child == g->get_child(count)) {
+                        count++;
+                    }
+                }
+            },
+            mod);
+        tasks.emplace_back(std::move(t));
+    }
+
+    for (auto &t : tasks) {
+        t.get();
+    }
+}
+
 void IRVisitor::visit_generator_root(Generator *generator) {
     auto children = generator->get_child_generators();
     generator->accept_generator(this);
@@ -65,6 +103,22 @@ void IRVisitor::visit_generator_root_p(kratos::Generator *generator) {
         for (auto &t : tasks) {
             t.get();
         }
+    }
+}
+
+void IRVisitor::visit_generator_root_tp(kratos::Generator *generator) {
+    GeneratorGraph graph(generator);
+    auto nodes = graph.get_nodes();
+    uint32_t num_cpus = get_num_cpus();
+    cxxpool::thread_pool pool{num_cpus};
+    std::vector<std::future<void>> tasks;
+    tasks.reserve(nodes.size());
+    for (auto *mod : nodes) {
+        auto t = pool.push([=](Generator *g) { g->accept_generator(this); }, mod);
+        tasks.emplace_back(std::move(t));
+    }
+    for (auto &t : tasks) {
+        t.get();
     }
 }
 

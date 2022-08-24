@@ -20,6 +20,7 @@ public:
     GeneratorNode *add_node(Generator *generator);
     GeneratorNode *get_node(Generator *generator);
     std::vector<Generator *> get_sorted_nodes();
+    std::vector<Generator *> get_nodes();
     std::vector<std::vector<Generator *>> get_leveled_nodes();
 
 private:

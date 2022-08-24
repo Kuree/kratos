@@ -66,10 +66,14 @@ private:
 class IRVisitor {
 public:
     virtual void visit_root(IRNode *root);
+    // true parallel version. i.e. don't obey the ordering of hierarchy
+    virtual void visit_root_tp(IRNode *root);
     // visit generators only
     virtual void visit_generator_root(Generator *generator);
     // the parallel version
     virtual void visit_generator_root_p(Generator *generator);
+    // true parallel version, i.e. don't obey the ordering of hierarchy
+    void visit_generator_root_tp(Generator *generator);
 
     // visit current scope only
     virtual void visit_content(Generator *generator);
