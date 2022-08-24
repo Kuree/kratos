@@ -259,9 +259,37 @@ public:
     }
 };
 
+class GeneratorStmtCacheVisitor: public IRVisitor {
+public:
+    explicit GeneratorStmtCacheVisitor(bool value): value_(value) {}
+
+    void visit(Generator *generator) override {
+        if (value_) {
+            // set to use cache
+            generator->set_use_stmt_remove_cache(true);
+        } else {
+            // disable cache
+            generator->set_use_stmt_remove_cache(false);
+            // remove the stmts in batch
+            generator->clear_remove_stmt_cache();
+        }
+    }
+
+private:
+    bool value_;
+};
+
 void create_module_instantiation(Generator* top) {
+    {
+        GeneratorStmtCacheVisitor v(true);
+        v.visit_generator_root(top);
+    }
     ModuleInstantiationVisitor visitor;
     visitor.visit_generator_root(top);
+    {
+        GeneratorStmtCacheVisitor v(false);
+        v.visit_generator_root(top);
+    }
 }
 
 class InterfaceInstantiationVisitor : public IRVisitor {
@@ -440,10 +468,17 @@ private:
         }
     }
 };
-
 void decouple_generator_ports(Generator* top) {
+    {
+        GeneratorStmtCacheVisitor v(true);
+        v.visit_generator_root(top);
+    }
     GeneratorPortVisitor visitor;
     visitor.visit_generator_root(top);
+    {
+        GeneratorStmtCacheVisitor v(false);
+        v.visit_generator_root(top);
+    }
 }
 
 class GeneratorPropertyVisitor : public IRVisitor {

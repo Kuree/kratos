@@ -136,6 +136,7 @@ public:
     std::shared_ptr<Stmt> get_stmt(uint32_t index) {
         return index < stmts_.size() ? stmts_[index] : nullptr;
     }
+    void set_use_stmt_remove_cache(bool value);
     void remove_stmt(const std::shared_ptr<Stmt> &stmt);
     const std::vector<std::shared_ptr<Stmt>> &get_all_stmts() const { return stmts_; }
     void set_stmts(const std::vector<std::shared_ptr<Stmt>> &stmts) { stmts_ = stmts; }
@@ -276,6 +277,9 @@ public:
     // used for to find out which verilog file it generates to
     std::string verilog_fn;
 
+    // cache to speed up certain operations
+    void clear_remove_stmt_cache();
+
 protected:
     virtual void add_port_name(const std::string &name);
 
@@ -334,6 +338,10 @@ private:
 
     // used to trace instantiation stmt, if any
     ModuleInstantiationStmt *instantiation_stmt_ = nullptr;
+
+    // cache for performant_operations
+    std::unordered_set<std::shared_ptr<Stmt>> stmts_remove_cache_;
+    bool use_stmts_remove_cache_ = false;
 
     // helper functions
     void check_param_name_conflict(const std::string &parameter_name);

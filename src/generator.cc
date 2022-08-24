@@ -1,5 +1,6 @@
 #include "generator.hh"
 
+#include <chrono>
 #include <iostream>
 #include <streambuf>
 #include <unordered_set>
@@ -610,11 +611,30 @@ std::shared_ptr<Param> Generator::get_param(const std::string &param_name) const
     return params_.at(param_name);
 }
 
+void Generator::set_use_stmt_remove_cache(bool value) {
+    use_stmts_remove_cache_ = value;
+}
+
 void Generator::remove_stmt(const std::shared_ptr<Stmt> &stmt) {
+    if (use_stmts_remove_cache_) {
+        stmts_remove_cache_.emplace(stmt);
+        return;
+    }
     auto pos = std::find(stmts_.begin(), stmts_.end(), stmt);
     if (pos != stmts_.end()) {
         stmts_.erase(pos);
     }
+}
+
+void Generator::clear_remove_stmt_cache() {
+    stmts_.erase(std::remove_if(stmts_.begin(), stmts_.end(),
+                                [this](auto const &stmt) {
+                                    return stmts_remove_cache_.find(stmt) !=
+                                           stmts_remove_cache_.end();
+                                }),
+                 stmts_.end());
+
+    stmts_remove_cache_.clear();
 }
 
 std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefinition> &def,
