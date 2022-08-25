@@ -5,6 +5,7 @@
 #include <mutex>
 
 #include "context.hh"
+#include "cxxpool.h"
 #include "except.hh"
 #include "expr.hh"
 #include "generator.hh"
@@ -1371,10 +1372,23 @@ std::map<std::string, std::string> generate_verilog_no_pkg(Generator* top,
     // this can be parallelized
     unique_visitor.visit_generator_root(top);
     auto const& generator_map = unique_visitor.generator_map();
+    // codegen in parallel
+    uint32_t num_cpus = get_num_cpus();
+    cxxpool::thread_pool pool{num_cpus};
+    std::vector<std::future<std::pair<std::string, std::string>>> tasks;
+    tasks.reserve(generator_map.size());
     for (const auto& [module_name, module_gen] : generator_map) {
-        SystemVerilogCodeGen codegen(module_gen, options);
-        result.emplace(module_name, codegen.str());
+        auto t = pool.push([&options](const std::string &name, Generator* g) {
+            SystemVerilogCodeGen codegen(g, options);
+            return std::pair(name, codegen.str());
+        }, module_name, module_gen);
+        tasks.emplace_back(std::move(t));
     }
+    for (auto &t: tasks) {
+        auto r = t.get();
+        result.emplace(r);
+    }
+
     track_generators(top);
     return result;
 }
