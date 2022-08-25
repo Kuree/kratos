@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2022-08-25
+### Added
+- Add codegen options
+- Add option to collect pass perf
+- Add task support
+
+### Changed
+- allow port and param attributes copied over to cloned generator
+- Relex the oerding of IR visit to speed up analysis passes
+- Codegen now runs parallel
+
+### Fixed
+- fix a bug where the expr parent is not properly set after port decouple
+- Recursively clean cloned cache
+- Fix function return type
+
 ## [0.1.0] - 2022-08-20
 ### Added
 - Add duplicate op
