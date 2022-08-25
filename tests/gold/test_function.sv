@@ -4,7 +4,7 @@ module mod (
   output logic [1:0] out2
 );
 
-function update_out(
+function logic[1:0] update_out(
   input logic [1:0] value,
   input logic predicate
 );

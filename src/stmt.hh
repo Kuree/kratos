@@ -446,6 +446,15 @@ public:
     bool is_task() const override;
 };
 
+class TaskStmtBlock : public FunctionStmtBlock {
+public:
+    TaskStmtBlock(Generator *parent, std::string function_name)
+        : FunctionStmtBlock(parent, std::move(function_name)) {}
+
+    [[nodiscard]] bool is_task() const override { return true; }
+    [[nodiscard]] bool has_return_value() const override { return false; }
+};
+
 class ReturnStmt : public Stmt {
 public:
     ReturnStmt(FunctionStmtBlock *func_def, std::shared_ptr<Var> value);

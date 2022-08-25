@@ -46,6 +46,7 @@ class LatchStmtBlock;
 class FunctionStmtBlock;
 class DPIFunctionStmtBlock;
 class BuiltInFunctionStmtBlock;
+class TaskStmtBlock;
 class InitialStmtBlock;
 class FinalStmtBlock;
 class FunctionCallStmt;

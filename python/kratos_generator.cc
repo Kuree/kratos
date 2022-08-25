@@ -307,6 +307,7 @@ void init_generator(py::module &m) {
                  &Generator::call),
              py::return_value_policy::reference)
         .def("function", &Generator::function)
+        .def("task", &Generator::task)
         .def("has_function", &Generator::has_function)
         .def("get_function", &Generator::get_function)
         .def("set_child_comment", &Generator::set_child_comment)

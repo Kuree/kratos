@@ -8,7 +8,11 @@ class FunctionCall:
     cache_ordering = {}
 
     def __init__(self, fn):
-        self.__fn = fn
+        self._fn = fn
+
+    def _create_function(self, generator, arg_types):
+        return transform_function_block(generator, self._fn,
+                                        arg_types)
 
     def __call__(self, *args):
         # notice that we need to get self from the upper locals
@@ -16,14 +20,13 @@ class FunctionCall:
         if "self" not in f.f_locals:
             raise Exception("Unable to find self from local scope")
         generator = f.f_locals["self"]
-        fn_name = self.__fn.__name__
+        fn_name = self._fn.__name__
         if not generator.internal_generator.has_function(fn_name):
             # we infer the types. notice that we don't have names here
             arg_types = []
             for arg in args:
                 arg_types.append((arg.width, arg.signed))
-            args_order, stmts = transform_function_block(generator, self.__fn,
-                                                         arg_types)
+            args_order, stmts = self._create_function(generator, arg_types)
 
             # add statements
             func = generator.internal_generator.get_function(fn_name)
@@ -35,7 +38,7 @@ class FunctionCall:
             func.set_port_ordering(args_order)
             self.cache_ordering[generator.name, fn_name] = args_order
             if generator.debug:
-                fn, ln = get_fn(self.__fn), get_ln(self.__fn)
+                fn, ln = get_fn(self._fn), get_ln(self._fn)
                 for _, var_name in args_order.items():
                     port = func.get_port(var_name)
                     port.add_fn_ln((fn, ln + 1))
@@ -124,9 +127,19 @@ def get_built_in(gen, func_name):
     return _BuiltinFunctionCall()
 
 
+class TaskCall(FunctionCall):
+    def __init__(self, fn):
+        super(TaskCall, self).__init__(fn)
+
+    def _create_function(self, generator, arg_types):
+        return transform_function_block(generator, self._fn,
+                                        arg_types)
+
+
 # name alias
 function = FunctionCall
 dpi_function = DPIFunctionCall
+task = TaskCall
 
 
 def clear_context():

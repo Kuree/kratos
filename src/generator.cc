@@ -333,6 +333,15 @@ std::shared_ptr<FunctionStmtBlock> Generator::function(const std::string &func_n
     return p;
 }
 
+std::shared_ptr<TaskStmtBlock> Generator::task(const std::string &func_name) {
+    if (funcs_.find(func_name) != funcs_.end())
+        throw UserException(::format("function {0} already exists", func_name));
+    auto p = std::make_shared<TaskStmtBlock>(this, func_name);
+    func_index_.emplace(static_cast<uint32_t>(funcs_.size()), func_name);
+    funcs_.emplace(func_name, p);
+    return p;
+}
+
 std::shared_ptr<DPIFunctionStmtBlock> Generator::dpi_function(const std::string &func_name) {
     if (funcs_.find(func_name) != funcs_.end())
         throw UserException(::format("function {0} already exists", func_name));

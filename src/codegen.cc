@@ -645,8 +645,25 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
     if (generator_->debug) {
         stmt->verilog_ln = stream_.line_no();
     }
-    std::string return_str = stmt->has_return_value() ? "" : "void ";
-    stream_ << "function " << return_str << stmt->function_name() << "(" << stream_.endl();
+    if (stmt->is_task()) {
+        stream_ << "task ";
+    } else {
+        std::string return_str;
+        if (stmt->has_return_value()) {
+            auto handler = stmt->function_handler();
+            auto width = 32u;
+            if (handler) {
+                width = handler->width();
+            }
+            return_str = "logic" + get_width_str(width) + " ";
+        } else {
+            return_str = "void ";
+        }
+        stream_ << "function " << return_str;
+    }
+
+    stream_ << stmt->function_name() << "(" << stream_.endl();
+
     indent_++;
     uint64_t count = 0;
     auto ports = stmt->ports();
@@ -1378,13 +1395,15 @@ std::map<std::string, std::string> generate_verilog_no_pkg(Generator* top,
     std::vector<std::future<std::pair<std::string, std::string>>> tasks;
     tasks.reserve(generator_map.size());
     for (const auto& [module_name, module_gen] : generator_map) {
-        auto t = pool.push([&options](const std::string &name, Generator* g) {
-            SystemVerilogCodeGen codegen(g, options);
-            return std::pair(name, codegen.str());
-        }, module_name, module_gen);
+        auto t = pool.push(
+            [&options](const std::string& name, Generator* g) {
+                SystemVerilogCodeGen codegen(g, options);
+                return std::pair(name, codegen.str());
+            },
+            module_name, module_gen);
         tasks.emplace_back(std::move(t));
     }
-    for (auto &t: tasks) {
+    for (auto& t : tasks) {
         auto r = t.get();
         result.emplace(r);
     }

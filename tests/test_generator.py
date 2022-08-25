@@ -1870,4 +1870,4 @@ def test_for_loop_break():
 
 if __name__ == "__main__":
     from conftest import check_gold_fn, check_file_fn
-    test_add_child_interface_port_wiring(check_gold_fn)
+    test_function(check_gold_fn)

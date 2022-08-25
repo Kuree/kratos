@@ -966,6 +966,18 @@ class FuncScope(Scope):
         return stmt
 
 
+class TaskScope(Scope):
+    def __init__(self, generator, func_name, filename, ln):
+        super().__init__(generator, filename, ln, generator.debug)
+        if generator is not None:
+            self.__func = generator.internal_generator.task(func_name)
+
+        self.__var_ordering = {}
+
+    def input(self, var_name, width, is_signed=False) -> _kratos.Var:
+        return self.__func.input(var_name, width, is_signed)
+
+
 def transform_block_comment(fn_body):
     for i in range(len(fn_body.body)):
         node = fn_body.body[i]
@@ -1187,7 +1199,7 @@ def transform_stmt_block(generator, fn, unroll_for=False, apply_ssa=False, fn_ln
     return blk_type, sensitivity, stmts
 
 
-def transform_function_block(generator, fn, arg_types):
+def transform_function_block(generator, fn, arg_types, is_func=True):
     fn_src = inspect.getsource(fn)
     fn_name = fn.__name__
     func_tree = ast.parse(textwrap.dedent(fn_src))
@@ -1206,7 +1218,10 @@ def transform_function_block(generator, fn, arg_types):
     # add function args now
     filename = get_fn(fn)
     ln = get_ln(fn)
-    scope = FuncScope(generator, fn_name, filename, ln)
+    if is_func:
+        scope = FuncScope(generator, fn_name, filename, ln)
+    else:
+        scope = TaskScope(generator, fn_name, filename, ln)
     # add var creations
     arg_order = extract_arg_name_order_from_ast(func_args)
     var_body = declare_var_definition(arg_types, arg_order)

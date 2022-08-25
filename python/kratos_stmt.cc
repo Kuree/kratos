@@ -148,6 +148,10 @@ void init_stmt(py::module &m) {
                                       &FunctionStmtBlock::set_port_ordering))
         .def("set_port_ordering", py::overload_cast<const std::map<uint32_t, std::string> &>(
                                       &FunctionStmtBlock::set_port_ordering));
+
+    py::class_<TaskStmtBlock, std::shared_ptr<TaskStmtBlock>, FunctionStmtBlock>(m,
+                                                                                 "TaskStmtBlock");
+
     py::class_<DPIFunctionStmtBlock, std::shared_ptr<DPIFunctionStmtBlock>, FunctionStmtBlock>(
         m, "DPIFunctionStmtBlock")
         .def("input", &DPIFunctionStmtBlock::input)
