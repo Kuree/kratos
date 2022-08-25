@@ -690,6 +690,7 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
         else
             stream_ << stream_.endl() << ");" << stream_.endl();
     }
+    if (port_names.empty()) stream_ << ");" << stream_.endl();
     indent_--;
 
     stream_ << "begin" << stream_.endl();
@@ -698,7 +699,8 @@ void SystemVerilogCodeGen::stmt_code(kratos::FunctionStmtBlock* stmt) {
         dispatch_node(stmt->get_child(i));
     }
     indent_--;
-    stream_ << indent() << "end" << stream_.endl() << "endfunction" << stream_.endl();
+    auto const* end_token = stmt->is_task() ? "endtask" : "endfunction";
+    stream_ << indent() << "end" << stream_.endl() << end_token << stream_.endl();
 }
 
 void SystemVerilogCodeGen::stmt_code(AssertBase* stmt) {

@@ -148,7 +148,7 @@ def test_finish():
     assert "$finish ();\n" in src
 
 
-def test_task():
+def test_task(check_gold):
     from kratos.func import task
     from kratos.util import finish
 
@@ -170,10 +170,9 @@ def test_task():
             self.delay_finish()
 
     tb = TB()
-    verilog(tb, filename="test.sv")
+    check_gold(tb, "test_task")
 
 
 if __name__ == "__main__":
-    test_task()
     from conftest import check_gold_fn
-    test_file_ops(check_gold_fn)
+    test_task(check_gold_fn)

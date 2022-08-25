@@ -1090,11 +1090,14 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_
         args = [ast.Name(id="_self", ctx=ast.Load())]
     else:
         args = []
-    args.append(ast.Name(id="_scope", ctx=ast.Load()))
+    scope_name = "_scope"
+    while scope_name in _locals or scope_name in _globals:
+        scope_name = "_" + scope_name
+    args.append(ast.Name(id=scope_name, ctx=ast.Load()))
     call_node = ast.Call(func=ast.Name(id=fn_name, ctx=ast.Load()),
                          args=args, keywords=[], ctx=ast.Load)
     func_tree.body.append(ast.Expr(value=call_node))
-    return _locals, _globals
+    return _locals, _globals, scope_name
 
 
 def inject_import_code(code_src):
@@ -1176,12 +1179,12 @@ def transform_stmt_block(generator, fn, unroll_for=False, apply_ssa=False, fn_ln
 
     apply_ssa = blk_type == StatementBlockType.Combinational and apply_ssa
 
-    _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
-                                               fn_name, scope,
-                                               insert_self, filename, ln,
-                                               unroll_for=unroll_for,
-                                               apply_ssa=apply_ssa,
-                                               pre_locals=env_kargs)
+    _locals, _globals, scope_name = __ast_transform_blocks(generator, func_tree, fn_src,
+                                                           fn_name, scope,
+                                                           insert_self, filename, ln,
+                                                           unroll_for=unroll_for,
+                                                           apply_ssa=apply_ssa,
+                                                           pre_locals=env_kargs)
 
     src = astor.to_source(func_tree, pretty_source=__pretty_source)
     src = inject_import_code(src)
@@ -1229,17 +1232,17 @@ def transform_function_block(generator, fn, arg_types, is_func=True, locals_=Non
     pre_locals = {"_scope": scope}
     var_code_obj = compile(var_src, "<ast>", "exec")
     exec(var_code_obj, pre_locals)
-    _locals, _globals = __ast_transform_blocks(generator, func_tree, fn_src,
-                                               fn_name, scope, insert_self,
-                                               filename, ln,
-                                               transform_return=True,
-                                               pre_locals=pre_locals)
+    _locals, _globals, scope_name = __ast_transform_blocks(generator, func_tree, fn_src,
+                                                           fn_name, scope, insert_self,
+                                                           filename, ln,
+                                                           transform_return=True,
+                                                           pre_locals=pre_locals)
 
     src = astor.to_source(func_tree)
     src = inject_import_code(src)
     code_obj = compile(src, "<ast>", "exec")
 
-    _locals.update({"_self": generator, "_scope": scope})
+    _locals.update({"_self": generator, scope_name: scope})
     _globals.update(_locals)
     if locals_ is not None:
         _locals.update(locals_)

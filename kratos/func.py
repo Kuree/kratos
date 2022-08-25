@@ -31,7 +31,7 @@ class FunctionCall:
             # add statements
             func = generator.internal_generator.get_function(fn_name)
             for stmt in stmts:
-                if not isinstance(stmt, _kratos.Stmt):
+                if not isinstance(stmt, _kratos.Stmt) and not isinstance(stmt, _kratos.FunctionCallVar):
                     stmt = stmt.stmt()
                 func.add_stmt(stmt)
             # set ordering
