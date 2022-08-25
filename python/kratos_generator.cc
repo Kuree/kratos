@@ -258,6 +258,7 @@ void init_generator(py::module &m) {
         .def("clone", &Generator::clone)
         .def("set_clone_ref", &Generator::set_clone_ref)
         .def_property("is_cloned", &Generator::is_cloned, &Generator::set_is_cloned)
+        .def("copy_over_missing_ports", &Generator::copy_over_missing_ports)
         .def("__contains__",
              py::overload_cast<const std::shared_ptr<Generator> &>(&Generator::has_child_generator))
         .def("add_attribute", &Generator::add_attribute)

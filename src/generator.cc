@@ -611,9 +611,7 @@ std::shared_ptr<Param> Generator::get_param(const std::string &param_name) const
     return params_.at(param_name);
 }
 
-void Generator::set_use_stmt_remove_cache(bool value) {
-    use_stmts_remove_cache_ = value;
-}
+void Generator::set_use_stmt_remove_cache(bool value) { use_stmts_remove_cache_ = value; }
 
 void Generator::remove_stmt(const std::shared_ptr<Stmt> &stmt) {
     if (use_stmts_remove_cache_) {
@@ -954,6 +952,23 @@ void Generator::set_clone_ref(const std::shared_ptr<Generator> &ref) {
     is_cloned_ = true;
     def_instance_ = ref.get();
     set_external(true);
+}
+
+void Generator::copy_over_missing_ports(const std::shared_ptr<Generator> &ref) {
+    auto port_names = ref->get_port_names();
+    for (auto const &port_name : port_names) {
+        if (has_port(port_name)) continue;
+        auto port = ref->get_port(port_name);
+        auto &p = this->port(port->port_direction(), port_name, port->var_width(), port->size(),
+                             port->port_type(), port->is_signed());
+        if (port->width_param() && port->width_param()->is_param()) {
+            auto param = this->get_param(port->width_param()->to_string());
+            if (param) {
+                p.set_width_param(param);
+            }
+        }
+        p.set_is_packed(port->is_packed());
+    }
 }
 
 void Generator::accept(IRVisitor *visitor) {
