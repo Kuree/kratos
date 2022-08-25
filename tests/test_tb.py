@@ -148,6 +148,32 @@ def test_finish():
     assert "$finish ();\n" in src
 
 
+def test_task():
+    from kratos.func import task
+    from kratos.util import finish
+
+    class TB(Generator):
+        def __init__(self):
+            super(TB, self).__init__("TB")
+            self.a = self.var("a", 1)
+            self.b = self.var("b", 1)
+
+            self.add_code(self.code)
+
+        @task
+        def delay_finish(self):
+            delay(5, None)
+            finish()
+
+        @initial
+        def code(self):
+            self.delay_finish()
+
+    tb = TB()
+    verilog(tb, filename="test.sv")
+
+
 if __name__ == "__main__":
+    test_task()
     from conftest import check_gold_fn
     test_file_ops(check_gold_fn)

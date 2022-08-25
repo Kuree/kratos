@@ -1199,7 +1199,7 @@ def transform_stmt_block(generator, fn, unroll_for=False, apply_ssa=False, fn_ln
     return blk_type, sensitivity, stmts
 
 
-def transform_function_block(generator, fn, arg_types, is_func=True):
+def transform_function_block(generator, fn, arg_types, is_func=True, locals_=None, globals_=None):
     fn_src = inspect.getsource(fn)
     fn_name = fn.__name__
     func_tree = ast.parse(textwrap.dedent(fn_src))
@@ -1241,6 +1241,10 @@ def transform_function_block(generator, fn, arg_types, is_func=True):
 
     _locals.update({"_self": generator, "_scope": scope})
     _globals.update(_locals)
+    if locals_ is not None:
+        _locals.update(locals_)
+    if globals_ is not None:
+        _globals.update(globals_)
     exec(code_obj, _globals)
     stmts = scope.statements()
     return arg_order, stmts

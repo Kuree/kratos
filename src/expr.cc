@@ -945,8 +945,12 @@ Const::ConstantLegal Const::is_legal(int64_t value, uint32_t width, bool is_sign
 
 Const::Const(int64_t value, uint32_t width, bool is_signed)
     : Const(nullptr, value, width, is_signed) {
+    generator_ = const_gen();
+}
+
+Generator *Const::const_gen() {
     if (!const_generator_) const_generator_ = std::make_shared<Generator>(nullptr, "");
-    generator_ = const_generator_.get();
+    return const_generator_.get();
 }
 
 Const &Const::constant(int64_t value, uint32_t width, bool is_signed) {
@@ -2241,7 +2245,8 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
     }
     // compute the width and sign
     auto handle = func_def->function_handler();
-    if (!handle && has_return && !func_def->is_dpi() && !func_def->is_builtin())
+    if (!handle && has_return && !func_def->is_dpi() && !func_def->is_builtin() &&
+        !func_def->is_task())
         throw StmtException(::format("{0} doesn't have return value", func_def->function_name()),
                             {func_def.get()});
     if (has_return && func_def->is_builtin()) {
@@ -2266,7 +2271,7 @@ FunctionCallVar::FunctionCallVar(Generator *m, const std::shared_ptr<FunctionStm
             size_ = {1};
             is_signed_ = false;
         }
-    } else if (has_return) {
+    } else if (has_return && handle != nullptr) {
         var_width_ = handle->width();
         size_ = handle->size();
         is_signed_ = handle->is_signed();

@@ -10,9 +10,9 @@ class FunctionCall:
     def __init__(self, fn):
         self._fn = fn
 
-    def _create_function(self, generator, arg_types):
+    def _create_function(self, generator, arg_types, locals_, globals_):
         return transform_function_block(generator, self._fn,
-                                        arg_types)
+                                        arg_types, locals_=locals_, globals_=globals_)
 
     def __call__(self, *args):
         # notice that we need to get self from the upper locals
@@ -26,7 +26,7 @@ class FunctionCall:
             arg_types = []
             for arg in args:
                 arg_types.append((arg.width, arg.signed))
-            args_order, stmts = self._create_function(generator, arg_types)
+            args_order, stmts = self._create_function(generator, arg_types, f.f_locals, f.f_globals)
 
             # add statements
             func = generator.internal_generator.get_function(fn_name)
@@ -131,9 +131,9 @@ class TaskCall(FunctionCall):
     def __init__(self, fn):
         super(TaskCall, self).__init__(fn)
 
-    def _create_function(self, generator, arg_types):
+    def _create_function(self, generator, arg_types, locals_, globals_):
         return transform_function_block(generator, self._fn,
-                                        arg_types)
+                                        arg_types, False, locals_=locals_, globals_=globals_)
 
 
 # name alias

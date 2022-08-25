@@ -445,7 +445,7 @@ public:
     static Const &constant(std::string value, uint32_t width);
     Const(int64_t value, uint32_t width, bool is_signed);
 
-    static Generator *const_gen() { return const_generator_.get(); }
+    static Generator *const_gen();
 
     // struct is always packed
     bool is_packed() const override { return true; }
