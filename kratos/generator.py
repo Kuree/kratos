@@ -869,10 +869,14 @@ class Generator(metaclass=GeneratorMeta):
     @staticmethod
     def clear_context():
         Generator.__context.clear()
-        # also clean the caches
-        clses = Generator.__subclasses__()
-        for cls in clses:  # type: Generator
+        # also clean the caches recursively
+
+        def clear_subclass(cls):
             cls._cache.clear()
+            clses = cls.__subclasses__()
+            for class_ in clses:  # type: Generator
+                clear_subclass(class_)
+        clear_subclass(Generator)
         # clean the function calls
         from .func import clear_context
         clear_context()

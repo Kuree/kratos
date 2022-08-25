@@ -49,7 +49,8 @@ def check_file_fn(src_str, gold_filename):
 
 @pytest.fixture(autouse=True)
 def clear_kratos_context():
-    kratos.clear_context()
+    import kratos
+    kratos.Generator.clear_context()
 
 
 @pytest.fixture
