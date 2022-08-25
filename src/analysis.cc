@@ -390,7 +390,7 @@ private:
 
 void check_active_high(Generator* top) {
     ActiveVisitor visitor;
-    visitor.visit_root(top);
+    visitor.visit_root_s(top);
 }
 
 bool check_stmt_condition(Stmt* stmt, const std::function<bool(Stmt*)>& cond,
@@ -798,8 +798,19 @@ void check_multiple_driver(Generator* top) {
 
 class CombinationalLoopVisitor : public IRVisitor {
 public:
-    void visit(Port* port) override { check_var(port); }
-    void visit(Var* var) override { check_var(var); }
+    void visit(Generator* gen) override {
+        auto var_names = gen->get_vars();
+        for (auto const& name : var_names) {
+            auto const& var = gen->get_var(name);
+            check_var(var.get());
+        }
+
+        auto port_names = gen->get_port_names();
+        for (auto const& name : port_names) {
+            auto const& port = gen->get_port(name);
+            check_var(port.get());
+        }
+    }
 
 private:
     static void check_var(Var* var) {
@@ -828,7 +839,7 @@ private:
 
 void check_combinational_loop(Generator* top) {
     CombinationalLoopVisitor visitor;
-    visitor.visit_root(top);
+    visitor.visit_generator_root_tp(top);
 }
 
 class CheckFlipFlopAlwaysFFVisitor : public IRVisitor {

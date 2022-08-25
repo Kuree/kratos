@@ -311,7 +311,7 @@ public:
 
 void create_interface_instantiation(Generator* top) {
     InterfaceInstantiationVisitor visitor;
-    visitor.visit_generator_root_p(top);
+    visitor.visit_generator_root_tp(top);
 }
 
 class GeneratorPortVisitor : public IRVisitor {
@@ -1066,7 +1066,7 @@ public:
 
 void infer_property_clocking(Generator* top) {
     AssertPropertyVisitor visitor;
-    visitor.visit_root(top);
+    visitor.visit_root_s(top);
 }
 
 }  // namespace kratos

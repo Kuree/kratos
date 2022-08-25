@@ -110,7 +110,7 @@ private:
 
 void transform_if_to_case(Generator* top) {
     TransformIfCase visitor;
-    visitor.visit_root(top);
+    visitor.visit_root_s(top);
 }
 
 class MergeIfVisitor : public IRVisitor {
@@ -198,7 +198,7 @@ private:
 
 void merge_if_block(Generator* top) {
     MergeIfVisitor visitor;
-    visitor.visit_root(top);
+    visitor.visit_root_s(top);
 }
 
 class VarFanOutVisitor : public IRVisitor {
@@ -525,7 +525,7 @@ private:
 void merge_wire_assignments(Generator* top) {
     // for now we only merge generator-level assignments
     MergeWireAssignmentsVisitor visitor;
-    visitor.visit_root(top);
+    visitor.visit_root_s(top);
 }
 
 class PipelineInsertionVisitor : public IRVisitor {
