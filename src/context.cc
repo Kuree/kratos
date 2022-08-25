@@ -138,6 +138,19 @@ bool Context::is_generated_tracked(Generator *gen) const {
     return tracked_generators_.find(gen) != tracked_generators_.end();
 }
 
+bool Context::is_unique(kratos::Generator *gen) const {
+    if (gen == nullptr) return false;
+    if (modules_.find(gen->name) == modules_.end()) return false;
+    auto const &gens = modules_.at(gen->name);
+    uint64_t c = 0;
+    for (auto const &g : gens) {
+        if (!g->external() && !g->is_cloned()) {
+            c++;
+        }
+    }
+    return c == 1;
+}
+
 void Context::clear() {
     modules_.clear();
     clear_hash();

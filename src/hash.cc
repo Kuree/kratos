@@ -349,6 +349,10 @@ private:
 };
 
 uint64_t hash_generator(Generator* generator) {
+    // if it's unique, just has the name
+    if (generator->context()->is_unique(generator)) {
+        return hash_64_fnv1a(generator->name.c_str(), generator->name.size());
+    }
     // we use a visitor to compute all the hashes
     HashVisitor hash_visitor(generator);
     hash_visitor.visit_root(generator);

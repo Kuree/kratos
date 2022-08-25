@@ -100,9 +100,6 @@ public:
     uint64_t get_hash(const Generator* generator) const;
     void inline clear_hash() { generator_hash_.clear(); }
 
-    // managing the id for multiple invocation of dump database
-    int& max_instance_id() { return max_instance_id_; }
-    int& max_stmt_id() { return max_stmt_id_; }
     void reset_id();
 
     // for debugging
@@ -125,6 +122,8 @@ public:
     void clear_tracked_generator();
     inline void add_tracked_generator(Generator* gen) { tracked_generators_.emplace(gen); }
     bool is_generated_tracked(Generator *gen) const;
+
+    [[nodiscard]] bool is_unique(Generator *gen) const;
 
     void clear();
 };

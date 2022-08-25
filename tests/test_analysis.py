@@ -1,3 +1,5 @@
+import kratos
+
 from kratos import Generator, PortDirection, PortType, always_ff, \
     verilog, StmtException, posedge
 
@@ -25,6 +27,16 @@ def test_illegal_assignment_blocking():
     except StmtException as ex:
         print(ex)
         assert True
+
+
+def floating_net():
+    child = Generator("c")
+    child.output("a", 1)
+    try:
+        verilog(child)
+        assert False
+    except kratos.StmtException:
+        pass
 
 
 def test_async_no_latch():
@@ -135,3 +147,7 @@ def test_merge_const_port_assignment():
     mod.add_stmt(a.assign(1))
     v = verilog(mod)["mod"]
     assert ".b(1'h1)" in v
+
+
+if __name__ == "__main__":
+    floating_net()
