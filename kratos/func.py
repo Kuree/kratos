@@ -9,24 +9,30 @@ class FunctionCall:
 
     def __init__(self, fn):
         self._fn = fn
+        self.kwargs = {}
 
-    def _create_function(self, generator, arg_types, locals_, globals_):
+    def _create_function(self, generator, arg_types, locals_, globals_, fn_name):
         return transform_function_block(generator, self._fn,
-                                        arg_types, locals_=locals_, globals_=globals_)
+                                        arg_types, locals_=locals_, globals_=globals_, fn_name=fn_name)
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         # notice that we need to get self from the upper locals
         f = inspect.currentframe().f_back
         if "self" not in f.f_locals:
             raise Exception("Unable to find self from local scope")
         generator = f.f_locals["self"]
-        fn_name = self._fn.__name__
+        fn_name = self._fn.__name__ if "name" not in kwargs else kwargs["name"]
         if not generator.internal_generator.has_function(fn_name):
             # we infer the types. notice that we don't have names here
             arg_types = []
             for arg in args:
                 arg_types.append((arg.width, arg.signed))
-            args_order, stmts = self._create_function(generator, arg_types, f.f_locals, f.f_globals)
+            if len(kwargs) > 0:
+                locals_ = f.f_locals.copy()
+                locals_.update(kwargs)
+            else:
+                locals_ = f.f_locals
+            args_order, stmts = self._create_function(generator, arg_types, locals_, f.f_globals, fn_name)
 
             # add statements
             func = generator.internal_generator.get_function(fn_name)
@@ -131,9 +137,9 @@ class TaskCall(FunctionCall):
     def __init__(self, fn):
         super(TaskCall, self).__init__(fn)
 
-    def _create_function(self, generator, arg_types, locals_, globals_):
+    def _create_function(self, generator, arg_types, locals_, globals_, fn_name):
         return transform_function_block(generator, self._fn,
-                                        arg_types, False, locals_=locals_, globals_=globals_)
+                                        arg_types, False, locals_=locals_, globals_=globals_, fn_name=fn_name)
 
 
 # name alias

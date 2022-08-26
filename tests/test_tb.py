@@ -1,4 +1,6 @@
 from kratos import Generator, TestBench, initial, assert_, delay, Sequence, verilog, always, posedge
+from kratos.func import task
+from kratos.util import finish
 
 
 def tb_dut_setup():
@@ -134,7 +136,6 @@ def test_file_ops(check_gold):
 
 
 def test_finish():
-    from kratos.util import finish
     mod = Generator("mod")
 
     @initial
@@ -149,9 +150,6 @@ def test_finish():
 
 
 def test_task(check_gold):
-    from kratos.func import task
-    from kratos.util import finish
-
     class TB(Generator):
         def __init__(self):
             super(TB, self).__init__("TB")
@@ -171,6 +169,32 @@ def test_task(check_gold):
 
     tb = TB()
     check_gold(tb, "test_task")
+
+
+def test_task_nested_call():
+    class Top(Generator):
+        def __init__(self):
+            super(Top, self).__init__("Top")
+            self.a = self.var("a", 1)
+            self.add_code(self.code)
+
+        @task
+        def task1(self):
+            self.a = 1
+
+        @task
+        def task2(self):
+            self.task1()
+            self.a = 0
+
+        @initial
+        def code(self):
+            self.task2()
+
+    mod = Top()
+    src = verilog(mod, check_multiple_driver=False)["Top"]
+    assert "task1 ();" in src
+    assert "task2 ();" in src
 
 
 if __name__ == "__main__":

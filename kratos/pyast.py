@@ -1007,6 +1007,17 @@ def compute_target_node(for_nodes, new_nodes):
     return result
 
 
+# hacky way to get nested function call working
+num_scope_count = 1
+
+
+def __get_scope_name():
+    global num_scope_count
+    name = "__scope{0}".format(num_scope_count)
+    num_scope_count += 1
+    return name
+
+
 def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_self,
                            filename, func_ln,
                            transform_return=False, pre_locals=None, unroll_for=False,
@@ -1090,9 +1101,7 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_
         args = [ast.Name(id="_self", ctx=ast.Load())]
     else:
         args = []
-    scope_name = "_scope"
-    while scope_name in _locals or scope_name in _globals:
-        scope_name = "_" + scope_name
+    scope_name = __get_scope_name()
     args.append(ast.Name(id=scope_name, ctx=ast.Load()))
     call_node = ast.Call(func=ast.Name(id=fn_name, ctx=ast.Load()),
                          args=args, keywords=[], ctx=ast.Load)
@@ -1191,7 +1200,7 @@ def transform_stmt_block(generator, fn, unroll_for=False, apply_ssa=False, fn_ln
     code_obj = compile(src, "<ast>", "exec")
 
     # notice that this ln is an offset
-    _locals.update({"_self": generator, "_scope": scope})
+    _locals.update({"_self": generator, scope_name: scope})
     # use user specified args
     _locals.update(env_kargs)
     for name in env_kargs:
@@ -1202,11 +1211,13 @@ def transform_stmt_block(generator, fn, unroll_for=False, apply_ssa=False, fn_ln
     return blk_type, sensitivity, stmts
 
 
-def transform_function_block(generator, fn, arg_types, is_func=True, locals_=None, globals_=None):
+def transform_function_block(generator, fn, arg_types, is_func=True, locals_=None, globals_=None, fn_name=None):
     fn_src = inspect.getsource(fn)
-    fn_name = fn.__name__
+    if fn_name is None:
+        fn_name = fn.__name__
     func_tree = ast.parse(textwrap.dedent(fn_src))
     fn_body = func_tree.body[0]
+    fn_body.name = fn_name
     # needs debug
     debug = generator.debug
 
