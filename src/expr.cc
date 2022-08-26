@@ -1342,7 +1342,7 @@ uint32_t VarDuplicated::width() const {
     return static_cast<uint32_t>(count->value()) * left->width();
 }
 
-void VarDuplicated::add_sink(const std::shared_ptr<AssignStmt> &stmt) { left->add_source(stmt); }
+void VarDuplicated::add_sink(const std::shared_ptr<AssignStmt> &stmt) { left->add_sink(stmt); }
 
 void VarDuplicated::add_source(const std::shared_ptr<AssignStmt> &stmt) {
     throw StmtException("Duplicate variable cannot be on left hand side", {stmt.get()});
