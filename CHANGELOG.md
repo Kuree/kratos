@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2022-08-26
+### Added
+- Add ability to override task/function names and locals
+
+### Changed
+- Do not generate port list for tasks/functions if empty
+
+### Fixed
+- Fix a bug that's preventing nested task/function calls
+- Fix add ink for duplicated var
+
 ## [0.1.1] - 2022-08-25
 ### Added
 - Add codegen options
