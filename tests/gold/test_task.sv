@@ -1,8 +1,7 @@
 module TB (
 );
 
-task delay_finish(
-);
+task delay_finish;
 begin
   #5;
   $finish ();
