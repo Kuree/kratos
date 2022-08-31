@@ -850,6 +850,8 @@ Var::Var(kratos::Generator *m, const std::string &name, uint32_t var_width,
 IRNode *Var::parent() const { return generator(); }
 IRNode *VarSlice::parent() const { return parent_var; }
 
+void Var::set_parent_generator(kratos::Generator *gen) { generator_ = gen; }
+
 std::shared_ptr<AssignStmt> Var::assign(const std::shared_ptr<Var> &var) {
     return assign(var, AssignmentType::Undefined);
 }

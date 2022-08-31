@@ -282,6 +282,8 @@ public:
     // cache to speed up certain operations
     void clear_remove_stmt_cache();
 
+    void transfer_content(Generator &gen, const std::string &prefix);
+
 protected:
     virtual void add_port_name(const std::string &name);
 

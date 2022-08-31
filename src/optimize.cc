@@ -1027,7 +1027,7 @@ class MergeConstPortVisitor : public IRVisitor {
                 var->sinks().size() == 1) {
                 auto source_stmt = *(var->sources().begin());
                 auto sink_stmt = *(var->sinks().begin());
-                auto *src_stmt_parent = source_stmt->stmt_parent();
+                auto* src_stmt_parent = source_stmt->stmt_parent();
                 if (src_stmt_parent && src_stmt_parent->type() == StatementType::Block) {
                     auto blk = src_stmt_parent->as<StmtBlock>();
                     if (blk->block_type() == StatementBlockType::Initial) {
@@ -1236,6 +1236,183 @@ void dead_code_elimination(Generator* top) {
 
     // clean up empty stmt blocks
     remove_empty_block(top);
+}
+
+class InlineGeneratorVisitor : public IRVisitor {
+public:
+    struct PortInfo {
+        PortDirection direction;
+        AssignStmt* stmt;
+    };
+
+    void visit(Generator* top) override {
+        auto child_generators = top->get_child_generators();
+        if (child_generators.empty()) return;
+        // calculate if we should inline or not
+        bool start_inline =
+            std::all_of(child_generators.begin(), child_generators.end(),
+                        [](auto const& gen) { return gen->get_child_generator_size() == 0; });
+        if (!start_inline) return;
+
+        std::vector<PortInfo> inline_stmts;
+        bool has_inlined_inst = false;
+        for (auto const& child : child_generators) {
+            if (!child->has_attribute("inline")) {
+                continue;
+            }
+            has_inlined_inst = true;
+            // figure out which port we should focus on
+            auto port_names = child->get_port_names();
+            for (auto const& port_name : port_names) {
+                auto const& port = child->get_port(port_name);
+                auto res = get_port_assignment(port.get());
+                if (res.stmt) {
+                    inline_stmts.emplace_back(res);
+                }
+            }
+
+            child->transfer_content(*top, child->instance_name + "_");
+            top->remove_child_generator(child);
+        }
+        if (has_inlined_inst) {
+            optimize_passthrough_assignment(top, inline_stmts);
+        }
+    }
+
+private:
+    class RenameLinkedVar : public IRVisitor {
+    public:
+        explicit RenameLinkedVar(const std::unordered_map<std::string, Var*>& var_mapping)
+            : var_mapping_(var_mapping) {}
+        void visit(IfStmt* stmt) override {
+            if (auto* v = match(stmt->predicate().get())) {
+                stmt->set_predicate(v->shared_from_this());
+            }
+        }
+
+        void visit(SwitchStmt* stmt) override {
+            if (auto* v = match(stmt->target().get())) {
+                stmt->set_target(v->shared_from_this());
+            }
+        }
+
+        void visit(SequentialStmtBlock* stmt) override {
+            auto& conds = stmt->get_event_controls();
+            for (auto& e : conds) {
+                if (auto* v = match(e.var)) {
+                    e.var = v;
+                }
+            }
+        }
+
+        void visit(AssertBase*) override {
+            throw InternalException("Assertion inline not implemented");
+        }
+
+        [[nodiscard]] Var* match(Var* var) const {
+            return var_mapping_.find(var->name) != var_mapping_.end() ? var_mapping_.at(var->name)
+                                                                      : nullptr;
+        }
+
+    private:
+        const std::unordered_map<std::string, Var*>& var_mapping_;
+    };
+
+    static PortInfo get_port_assignment(Port* port) {
+        PortInfo info{port->port_direction(), nullptr};
+        auto* gen_parent = port->generator()->parent_generator();
+        if (port->port_direction() == PortDirection::In) {
+            // assume we have handled the port decouple
+            auto const& sources = port->sources();
+            for (auto const& stmt : sources) {
+                if (stmt->left() == port && stmt->parent() == gen_parent) {
+                    if (info.stmt) {
+                        // illegal state, return nothing just to be safe
+                        info.stmt = nullptr;
+                        return info;
+                    }
+                    info.stmt = stmt.get();
+                }
+            }
+        } else {
+            auto const& sinks = port->sinks();
+            for (auto const& stmt : sinks) {
+                if (stmt->right() == port && stmt->parent() == gen_parent) {
+                    if (info.stmt) {
+                        // illegal state, return nothing just to be safe
+                        info.stmt = nullptr;
+                        return info;
+                    }
+                    info.stmt = stmt.get();
+                }
+            }
+        }
+        return info;
+    }
+
+    static void optimize_passthrough_assignment(Generator* gen,
+                                                const std::vector<PortInfo>& stmts) {
+        gen->set_use_stmt_remove_cache(true);
+        std::unordered_map<std::string, Var*> var_mapping;
+        std::vector<Var*> vars;
+        for (auto const& info : stmts) {
+            auto* stmt = info.stmt;
+            auto* left = stmt->left();
+            auto* right = stmt->right();
+            if (info.direction == PortDirection::In) {
+                // move to right
+                Var::move_sink_to(left, right, gen, false);
+                left->clear_sources(true);
+                vars.emplace_back(right);
+                var_mapping.emplace(left->name, right);
+            } else {
+                // move to left
+                Var::move_src_to(right, left, gen, false);
+                right->clear_sinks(true);
+                vars.emplace_back(left);
+                var_mapping.emplace(right->name, left);
+            }
+        }
+
+        // rename some constructs that's not assignments
+        RenameLinkedVar v(var_mapping);
+        v.visit_content_s(gen);
+        // now remove them
+        for (auto const& iter : var_mapping) {
+            gen->remove_var(iter.first);
+        }
+
+        // also clear out variables with only one source
+        // notice that we keep track of the ones need to check for performance reason
+        for (auto* var : vars) {
+            if (var->sources().size() != 1) {
+                continue;
+            }
+
+            auto const& src_stmt = *var->sources().begin();
+            auto* left = src_stmt->left();
+            auto* right = src_stmt->right();
+            if (left != var) continue;
+            if (right->type() == VarType::PortIO || right->type() == VarType::Base) {
+                // move
+                VarSlice::move_sink_to(left, right, gen, false);
+                left->clear_sources(true);
+                gen->remove_var(left->name);
+            }
+        }
+
+        gen->clear_remove_stmt_cache();
+        gen->set_use_stmt_remove_cache(false);
+    }
+};
+
+void inline_instance(Generator* top) {
+    // this has to be run after decouple generator ports
+    InlineGeneratorVisitor visitor;
+    // we only allow leaf instances to be inlined, users can run this pass multiple times
+    // by making this assumption, we can run the pass in parallel since the parent of the target
+    // won't run this pass hence avoiding race conditions
+    visitor.visit_generator_root_tp(top);
 }
 
 }  // namespace kratos

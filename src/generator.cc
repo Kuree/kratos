@@ -644,6 +644,40 @@ void Generator::clear_remove_stmt_cache() {
     stmts_remove_cache_.clear();
 }
 
+void Generator::transfer_content(kratos::Generator &gen, const std::string &prefix) {
+    // move all stuff to the generator
+    // except the variable
+    gen.stmts_.reserve(gen.stmts_.size() + stmts_.size());
+    for (auto const &stmt : stmts_) {
+        gen.add_stmt(stmt);
+    }
+    for (auto const &expr : exprs_) {
+        expr->set_parent_generator(&gen);
+        gen.exprs_.emplace(expr);
+    }
+
+    for (auto const &[var_name, var] : vars_) {
+        var->set_generator(&gen);
+        std::string target_name = var_name;
+        if (gen.has_var(var_name)) {
+            target_name = get_unique_variable_name(prefix, var_name);
+        }
+        var->name = target_name;
+        // maybe it's a port, in that case we need to copy its definition and create a var
+        if (var->type() == VarType::PortIO) {
+            auto &new_var = gen.var(*var, target_name);
+            var->move_linked_to(&new_var);
+            Var::move_sink_to(var.get(), &new_var, &gen, false);
+            Var::move_src_to(var.get(), &new_var, &gen, false);
+        } else {
+            gen.vars_.emplace(target_name, var);
+        }
+    }
+
+    stmts_.clear();
+    exprs_.clear();
+}
+
 std::shared_ptr<InterfaceRef> Generator::interface(const std::shared_ptr<IDefinition> &def,
                                                    const std::string &interface_name,
                                                    bool is_port) {

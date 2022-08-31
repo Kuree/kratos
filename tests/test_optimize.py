@@ -132,3 +132,33 @@ def test_gen_inst_lift(check_gold):
                          a=a_array[0])
     src = verilog(parent, lift_genvar_instances=True)["parent"]
     assert "genvar" not in src
+
+
+def test_optimize_inline(check_gold):
+    parent = Generator("parent")
+    child = Generator("child")
+    child.add_attribute("inline")
+    parent.clock("clk")
+    clk = child.clock("clk")
+    a = child.input("a", 1)
+    b = child.output("b", 1)
+
+    @always_ff((posedge, clk))
+    def code():
+        if a:
+            b = 1
+        else:
+            b = 0
+
+    child.add_code(code)
+
+    v1 = parent.var("v1", 1)
+    v2 = parent.var("b", 1)
+    parent.add_child("inst", child, clk=parent.ports.clk, a=v1, b=v2)
+
+    check_gold(parent, "test_optimize_inline")
+
+
+if __name__ == "__main__":
+    from conftest import check_gold_fn
+    test_optimize_inline(check_gold_fn)

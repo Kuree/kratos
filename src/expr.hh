@@ -144,6 +144,7 @@ public:
     void set_generator(Generator *gen) { generator_ = gen; }
 
     IRNode *parent() const override;
+    void set_parent_generator(Generator *gen);
 
     VarType type() const { return type_; }
     virtual const std::unordered_set<std::shared_ptr<AssignStmt>> &sinks() const { return sinks_; };

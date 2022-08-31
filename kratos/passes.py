@@ -107,6 +107,7 @@ def verilog(generator: Generator, optimize_if: bool = True,
         pass_manager.add_pass("hash_generators_parallel")
     else:
         pass_manager.add_pass("hash_generators_sequential")
+    pass_manager.add_pass("inline_instance")
     pass_manager.add_pass("change_property_into_stmt")
     pass_manager.add_pass("infer_property_clocking")
     pass_manager.add_pass("uniquify_generators")

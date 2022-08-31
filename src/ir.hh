@@ -79,6 +79,7 @@ public:
 
     // visit current scope only
     virtual void visit_content(Generator *generator);
+    virtual void visit_content_s(Generator *generator);
 
     // visit methods
     virtual inline void visit(Var *) {}

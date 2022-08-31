@@ -170,4 +170,26 @@ void IRVisitor::visit_content(Generator *generator) {
 
     level--;
 }
+
+void IRVisitor::visit_content_s(Generator *generator) {
+    generator->accept_generator(this);
+    uint64_t stmts_count = generator->stmts_count();
+    for (uint64_t i = 0; i < stmts_count; i++) {
+        auto const &child = generator->get_stmt(i);
+        visit_root(child.get());
+    }
+    // visit the vars
+    auto var_names = generator->get_all_var_names();
+    for (auto const &name : var_names) {
+        auto var = generator->get_var(name);
+        visit(var.get());
+    }
+    // visit the functions
+    // TODO: refactor this
+    auto functions = generator->functions();
+    for (auto const &iter : functions) {
+        auto *ptr = iter.second.get();
+        visit_root(ptr);
+    }
+}
 }  // namespace kratos

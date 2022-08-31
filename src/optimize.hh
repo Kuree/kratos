@@ -31,6 +31,8 @@ void remove_unused_stmts(Generator* top);
 
 void dead_code_elimination(Generator *top);
 
+void inline_instance(Generator *top);
+
 }  // namespace kratos
 
 #endif  // KRATOS_OPTIMIZE_HH

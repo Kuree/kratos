@@ -126,6 +126,8 @@ void sort_initial_stmts(Generator *top);
 
 void infer_property_clocking(Generator *top);
 
+void inline_instance(Generator *top);
+
 class PassManager {
 public:
     PassManager() = default;
