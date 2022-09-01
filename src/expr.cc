@@ -323,6 +323,17 @@ private:
 };
 
 void Var::set_width_param(Var *param) {
+    if (param == nullptr) {
+        if (width_param_) {
+            ParamVisitor visitor;
+            visitor.visit_root(width_param_);
+            auto const &params = visitor.params();
+            for (const auto &p : params) {
+                p->add_param_width_var(this);
+            }
+        }
+        return;
+    }
     // set width to the current param value
     auto value = Simulator::static_evaluate_expr(param);
     var_width_ = value;
@@ -344,6 +355,21 @@ void Var::set_size_param(uint32_t index, Var *param) {
         throw UserException(::format("{0} is not a variable or port", to_string()));
     if (index >= size_.size())
         throw UserException(::format("{0} does not have {1} dimension", to_string(), index));
+
+    if (param == nullptr) {
+        if (size_param_.find(index) != size_param_.end()) {
+            auto *linked_param = size_param_.at(index);
+            // get all the parameters
+            ParamVisitor visitor;
+            visitor.visit_root(param);
+            auto const &params = visitor.params();
+            for (const auto &p : params) {
+                p->remove_param_size_var(this, index, linked_param);
+            }
+            size_param_.erase(index);
+        }
+        return;
+    }
 
     auto new_dim_size = Simulator::static_evaluate_expr(param);
 
@@ -1188,6 +1214,10 @@ std::string Param::value_str() const {
 
 void Param::add_param_size_var(Var *var, uint32_t index, Var *expr) {
     param_vars_size_.emplace(std::make_tuple(var, index, expr));
+}
+
+void Param::remove_param_size_var(kratos::Var *var, uint32_t index, kratos::Var *expr) {
+    param_vars_size_.erase(std::make_tuple(var, index, expr));
 }
 
 void Param::set_value(const std::shared_ptr<Param> &param) {

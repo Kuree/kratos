@@ -672,6 +672,16 @@ void Generator::transfer_content(kratos::Generator &gen, const std::string &pref
         } else {
             gen.vars_.emplace(target_name, var);
         }
+        if (parent_generator_ == &gen) {
+            // TODO: need to copy over the linked parameters
+        } else {
+            // unlink parameters
+            var->set_width_param(nullptr);
+            for (uint64_t i = 0; i < var->size().size(); i++) {
+                var->set_size_param(i, nullptr);
+            }
+        }
+
     }
 
     stmts_.clear();

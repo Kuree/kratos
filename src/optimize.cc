@@ -1260,6 +1260,10 @@ public:
             if (!child->has_attribute("inline")) {
                 continue;
             }
+            if (child->is_cloned() || child->external()) {
+                throw GeneratorException("Cannot inline cloned or external modules",
+                                         {child.get(), top});
+            }
             has_inlined_inst = true;
             // figure out which port we should focus on
             auto port_names = child->get_port_names();

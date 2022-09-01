@@ -489,7 +489,9 @@ public:
     inline bool has_value() const { return has_value_; }
 
     void add_param_width_var(Var *var) { param_vars_width_.emplace(var); }
+    void remove_param_width_var(Var *var) { param_vars_width_.erase(var); }
     void add_param_size_var(Var *var, uint32_t index, Var *expr);
+    void remove_param_size_var(Var *var, uint32_t index, Var *expr);
 
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);
