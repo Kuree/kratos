@@ -1032,8 +1032,9 @@ VarCasted::VarCasted(Var *parent, VarCastType cast_type)
     }
 }
 
-std::shared_ptr<AssignStmt> VarCasted::assign_(const std::shared_ptr<Var> &, AssignmentType) {
-    throw VarException(::format("{0} is not allowed to be a sink", to_string()), {this});
+std::shared_ptr<AssignStmt> VarCasted::assign_(const std::shared_ptr<Var> &var,
+                                               AssignmentType type) {
+    return parent_var_->assign(var, type);
 }
 
 std::string VarCasted::to_string() const {
