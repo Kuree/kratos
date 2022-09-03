@@ -238,12 +238,10 @@ ternary = mux
 
 # helper function to interface with magma
 def to_magma(kratos_inst, flatten_array=False, top_name=None,
-             clear_cache=True, **kargs):  # pragma: no cover
+             **kargs):  # pragma: no cover
     import magma as m
-    from kratos import verilog, Generator, clear_context
+    from kratos import verilog, Generator
     from _kratos import create_wrapper_flatten
-    if clear_cache:
-        clear_context()
     if flatten_array:
         inst = create_wrapper_flatten(kratos_inst.internal_generator,
                                       kratos_inst.name + "_W")
