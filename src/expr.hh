@@ -490,8 +490,12 @@ public:
 
     void add_param_width_var(Var *var) { param_vars_width_.emplace(var); }
     void remove_param_width_var(Var *var) { param_vars_width_.erase(var); }
+    [[nodiscard]] bool has_param_width_var(Var *var) const {
+        return param_vars_width_.find(var) != param_vars_width_.end();
+    }
     void add_param_size_var(Var *var, uint32_t index, Var *expr);
     void remove_param_size_var(Var *var, uint32_t index, Var *expr);
+    [[nodiscard]] bool has_param_size_var(Var *var, uint32_t index, Var *expr) const;
 
     void set_value(int64_t new_value) override;
     void set_value(const std::shared_ptr<Param> &param);

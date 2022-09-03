@@ -484,5 +484,53 @@ TEST(pass, inline_pass) {
 
     VerilogModule vmod(&mod);
     auto src = vmod.verilog_src()["mod"];
-    std::cout << src << std::endl;
+    EXPECT_NE(src.find("assign v = v1 & v2;"), std::string::npos);
+}
+
+
+TEST(pass, inline_pass_param) {
+    Context ctx;
+    auto &mod = ctx.generator("mod");
+    auto &child = ctx.generator("child");
+    mod.add_child_generator("inst", child);
+    auto &in1 = child.port(PortDirection::In, "in1", 1);
+    auto &in2 = child.port(PortDirection::In, "in2", 1);
+    auto &v = child.var("v", 1);
+    auto &param = child.parameter("width", 32);
+    param.set_value(4);
+    in1.set_width_param(&param);
+    in2.set_width_param(&param);
+    v.set_width_param(&param);
+    child.wire(v, in1 & in2);
+    auto &v1 = mod.var("v1", param.value());
+    auto &v2 = mod.var("v2", param.value());
+    auto &param1 = child.parameter("param1", 32);
+    param1.set_value(4);
+    auto &v3 = child.var("v3", 2, 1);
+    v3.set_size_param(0, &param1);
+    v3.set_width_param(&param1);
+
+    mod.wire(in1, v1);
+    mod.wire(in2, v2);
+    // will not be used
+    auto &param1_ = mod.parameter("p", 32);
+    param1_.set_value(4);
+    param1.set_value(param1_.as<Param>());
+
+    fix_assignment_type(&mod);
+    verify_generator_connectivity(&mod);
+    verify_assignments(&mod);
+
+    auto attr = std::make_shared<Attribute>();
+    attr->value_str = "inline";
+    child.add_attribute(attr);
+
+    inline_instance(&mod);
+
+    EXPECT_FALSE(mod.has_child_generator("inst"));
+
+    VerilogModule vmod(&mod);
+    auto src = vmod.verilog_src()["mod"];
+    EXPECT_EQ(src.find("width"), std::string::npos);
+    EXPECT_NE(src.find("logic [p-1:0][p-1:0] v3;"), std::string::npos);
 }

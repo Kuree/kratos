@@ -332,6 +332,7 @@ void Var::set_width_param(Var *param) {
                 p->add_param_width_var(this);
             }
         }
+        width_param_= nullptr;
         return;
     }
     // set width to the current param value
@@ -361,7 +362,7 @@ void Var::set_size_param(uint32_t index, Var *param) {
             auto *linked_param = size_param_.at(index);
             // get all the parameters
             ParamVisitor visitor;
-            visitor.visit_root(param);
+            visitor.visit_root(linked_param);
             auto const &params = visitor.params();
             for (const auto &p : params) {
                 p->remove_param_size_var(this, index, linked_param);
@@ -1219,6 +1220,11 @@ void Param::add_param_size_var(Var *var, uint32_t index, Var *expr) {
 
 void Param::remove_param_size_var(kratos::Var *var, uint32_t index, kratos::Var *expr) {
     param_vars_size_.erase(std::make_tuple(var, index, expr));
+}
+
+bool Param::has_param_size_var(kratos::Var *var, uint32_t index, kratos::Var *expr) const {
+    auto tuple = std::make_tuple(var, index, expr);
+    return param_vars_size_.find(tuple) != param_vars_size_.end();
 }
 
 void Param::set_value(const std::shared_ptr<Param> &param) {

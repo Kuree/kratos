@@ -644,6 +644,53 @@ void Generator::clear_remove_stmt_cache() {
     stmts_remove_cache_.clear();
 }
 
+void set_var_params(Var *var, const std::map<std::string, std::shared_ptr<Param>> &parameters) {
+    auto *param = var->width_param();
+    if (param) {
+        // brute force
+        bool found = false;
+        for (auto const &iter : parameters) {
+            auto const &parent_param = iter.second;
+            // for now, we only support exact match
+            if (param->is_param() && param->as<Param>()->parent_param() == parent_param.get()) {
+                // found it
+                parent_param->remove_param_width_var(param);
+                var->set_width_param(parent_param);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            var->set_width_param(nullptr);
+        }
+    }
+
+    // size param as well
+    for (uint64_t i = 0; i < var->size().size(); i++) {
+        param = var->get_size_param(i);
+        if (param) {
+            // brute force
+            bool found = false;
+            for (auto const &iter : parameters) {
+                auto const &parent_param = iter.second;
+                // for now, we only support exact match
+                if (param->is_param() && param->as<Param>()->parent_param() == parent_param.get()) {
+                    // found it
+                    parent_param->remove_param_size_var(var, i, param);
+                    var->set_size_param(i, parent_param.get());
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                var->set_size_param(i, nullptr);
+            }
+        } else {
+            var->set_size_param(i, nullptr);
+        }
+    }
+}
+
 void Generator::transfer_content(kratos::Generator &gen, const std::string &prefix) {
     // move all stuff to the generator
     // except the variable
@@ -673,7 +720,8 @@ void Generator::transfer_content(kratos::Generator &gen, const std::string &pref
             gen.vars_.emplace(target_name, var);
         }
         if (parent_generator_ == &gen) {
-            // TODO: need to copy over the linked parameters
+            const auto &parameters = gen.params_;
+            set_var_params(var.get(), parameters);
         } else {
             // unlink parameters
             var->set_width_param(nullptr);
@@ -681,7 +729,6 @@ void Generator::transfer_content(kratos::Generator &gen, const std::string &pref
                 var->set_size_param(i, nullptr);
             }
         }
-
     }
 
     stmts_.clear();
