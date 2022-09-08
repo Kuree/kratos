@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2022-09-08
+### Added
+- Add inline pass
+
+### Changed
+- allow casted to have sources as well
+- revert clear cache to magma
+
 ## [0.1.2] - 2022-08-26
 ### Added
 - Add ability to override task/function names and locals
