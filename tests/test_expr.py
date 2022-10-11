@@ -303,5 +303,14 @@ def test_display_call():
     assert str(c) == '$display ("test", a)'
 
 
+def test_iter():
+    from functools import reduce
+    mod = Generator("mod")
+    a = mod.input("a", 4, size=4)
+    b = map(lambda x: x + 1, a)
+    c = reduce(lambda x, y: x * y, b)
+    assert str(c) == "(a[0] + 4'h1) * (a[1] + 4'h1) * (a[2] + 4'h1) * (a[3] + 4'h1)"
+
+
 if __name__ == "__main__":
-    test_display_call()
+    test_iter()

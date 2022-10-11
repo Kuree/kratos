@@ -43,6 +43,52 @@ void setup_getitem(py::class_<T, ::shared_ptr<T>, K> &class_, bool add_str = tru
     }
 }
 
+// support iterator, if it's an array
+struct VarIterator {
+public:
+    VarIterator(kratos::Var &parent, uint32_t idx) : parent_(parent), idx_(idx) {}
+    std::shared_ptr<kratos::Var> operator->() { return (parent_[idx_]).shared_from_this(); }
+    std::shared_ptr<kratos::Var> operator*() { return (parent_[idx_]).shared_from_this(); }
+
+    VarIterator &operator++() {
+        idx_++;
+        return *this;
+    }
+
+    // Postfix increment
+    VarIterator operator++(int) {
+        VarIterator tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    friend bool operator==(const VarIterator &a, const VarIterator &b) {
+        return &a.parent_ == &b.parent_ && a.idx_ == b.idx_;
+    };
+    friend bool operator!=(const VarIterator &a, const VarIterator &b) {
+        return &a.parent_ != &b.parent_ || a.idx_ != b.idx_;
+    };
+
+    class VarIteratorRange {
+    public:
+        VarIteratorRange(kratos::Var &parent) : parent_(parent) {}
+        [[nodiscard]] auto begin() const { return VarIterator(parent_, 0); }
+        [[nodiscard]] auto end() const {
+            if (parent_.size().size() == 1 && parent_.size().front() == 1) {
+                return VarIterator(parent_, parent_.var_width());
+            }
+            return VarIterator(parent_, parent_.size().front());
+        }
+
+    private:
+        kratos::Var &parent_;
+    };
+
+private:
+    kratos::Var &parent_;
+    uint32_t idx_;
+};
+
 void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_) {
     namespace py = pybind11;
     using std::shared_ptr;
@@ -468,6 +514,11 @@ void init_common_expr(py::class_<kratos::Var, ::shared_ptr<kratos::Var>> &class_
         .def("__len__", [](const Var &var) { return var.size()[0]; })
         .def_property_readonly("sources", &Var::sources)
         .def_property_readonly("sinks", &Var::sinks);
+
+    class_.def("__iter__", [](Var &var) {
+        auto range = VarIterator::VarIteratorRange(var);
+        return py::make_iterator(range);
+    });
 
     def_attributes<py::class_<Var, ::shared_ptr<Var>>, Var>(class_);
 }

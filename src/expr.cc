@@ -194,7 +194,7 @@ VarSlice &Var::operator[](std::pair<uint32_t, uint32_t> slice) {
                 ::format("high ({0}) has to be smaller than width ({1})", high, width()), {this});
         }
     } else {
-        if (high > size_.front()) {
+        if (high >= size_.front()) {
             throw VarException(
                 ::format("high ({0}) has to be smaller than size ({1})", high, size_.front()),
                 {this});
