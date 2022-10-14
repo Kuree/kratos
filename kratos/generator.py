@@ -43,6 +43,8 @@ class CodeBlock:
             self._block.add_fn_ln((fn, ln))
 
     def add_stmt(self, stmt, add_fn_ln: bool = True, depth=2):
+        if stmt is None:
+            return
         if hasattr(stmt, "stmt"):
             self._block.add_stmt(stmt.stmt())
         else:

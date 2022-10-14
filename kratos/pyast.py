@@ -1018,6 +1018,23 @@ def __get_scope_name():
     return name
 
 
+def __legalize_body(body):
+    result = []
+    for entry in body:
+        if isinstance(entry, list):
+            result += __legalize_body(entry)
+        else:
+            result.append(entry)
+    return result
+
+
+def legalize_body(body):
+    body = __legalize_body(body)
+    if len(body) == 0:
+        body.append(ast.Constant(value=None, n=None, s=None, kind=None))
+    return body
+
+
 def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_self,
                            filename, func_ln,
                            transform_return=False, pre_locals=None, unroll_for=False,
@@ -1071,6 +1088,8 @@ def __ast_transform_blocks(generator, func_tree, fn_src, fn_name, scope, insert_
         fn_body = if_visitor.visit(fn_body)
         target_nodes = compute_target_node(for_visitor.target_node, if_visitor.target_node)
 
+    # make sure body is legal
+    fn_body.body = legalize_body(fn_body.body)
     # transform assign
     assign_visitor = AssignNodeVisitor(generator, debug)
     fn_body = assign_visitor.visit(fn_body)

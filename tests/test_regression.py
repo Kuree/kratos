@@ -417,6 +417,23 @@ def test_var_reduce_parent():
     assert "assign d = |inst_b;" in src
 
 
+def test_ast_if_opt():
+    mod = Generator("mod")
+    c = True
+    a = mod.var("a", 2)
+
+    @always_comb
+    def logic(i):
+        if c:
+            if i == 0:
+                a[i] = 0
+        else:
+            a[i] = 1
+
+    for i in range(2):
+        mod.add_always(logic, i=i)
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
     test_flush_skip(check_gold_fn)
