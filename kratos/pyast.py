@@ -407,6 +407,13 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
         node = t.visit(node)
         return node
 
+    @staticmethod
+    def __filter_item(item):
+        if isinstance(item, list):
+            if len(item) == 1:
+                return item[0]
+        return item
+
     def visit_If(self, node: ast.If):
         predicate = node.test
         # if it's a var comparison, we change it to eq functional call
@@ -431,13 +438,13 @@ class StaticElaborationNodeIfVisitor(ast.NodeTransformer):
                 for i, n in enumerate(node.body):
                     if_exp = StaticElaborationNodeIfVisitor(self.generator, self.fn_src, self.scope,
                                                             self.local, self.global_, self.filename, self.scope_ln)
-                    node.body[i] = if_exp.visit(n)
+                    node.body[i] = self.__filter_item(if_exp.visit(n))
                 return node.body
             else:
                 for i, n in enumerate(node.orelse):
                     if_exp = StaticElaborationNodeIfVisitor(self.generator, self.fn_src, self.scope,
                                                             self.local, self.global_, self.filename, self.scope_ln)
-                    node.orelse[i] = if_exp.visit(n)
+                    node.orelse[i] = self.__filter_item(if_exp.visit(n))
                 return node.orelse
         else:
             # need to convert the logical operators to either reduced function calls, or

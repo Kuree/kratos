@@ -434,6 +434,27 @@ def test_ast_if_opt():
         mod.add_always(logic, i=i)
 
 
+def test_ast_if_opt2():
+    mod = Generator("mod")
+    area_opt = True
+
+    a = mod.input("a", 1)
+    b = mod.output("b", 1)
+
+    @always_comb
+    def tb_ctrl(i):
+        if a:
+            if area_opt:
+                if i == 0:
+                    b[i] = 0
+                else:
+                    b[i] = 1
+            else:
+                b[i] = 1
+
+    mod.add_code(tb_ctrl, i=0)
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn
     test_flush_skip(check_gold_fn)
