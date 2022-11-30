@@ -114,6 +114,9 @@ setup(
     install_requires=[
         "astor",
     ],
+    extra_require={
+        "sv": ["pyslang"]
+    },
     long_description=long_description,
     long_description_content_type='text/x-rst',
 )

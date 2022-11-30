@@ -1,9 +1,9 @@
 import sys
-from typing import Union, List
+from typing import Union, List, Dict
 import os
 import math
 from _kratos import mux as _mux, comment as _comment, \
-    create_stub as _create_stub
+    create_stub as _create_stub, PortType
 import _kratos
 import enum
 import functools
@@ -131,6 +131,7 @@ def reduce_mul(*args):
 def concat(*args):
     def _concat(a, b):
         return a.concat(b)
+
     return __reduce(_concat, args)
 
 
@@ -285,6 +286,7 @@ def to_magma(kratos_inst, flatten_array=False, top_name=None,
         name = circ_name
         io = magma_io
         kratos = kratos_inst
+
     os.makedirs(".magma", exist_ok=True)
     filename = f".magma/{circ_name}-kratos.sv"
     enable_multi_generate()
@@ -296,3 +298,27 @@ def to_magma(kratos_inst, flatten_array=False, top_name=None,
         _Definition.verilogFile = f.read()
 
     return _Definition
+
+
+def import_from_verilog(top_name: str, src_files: List[str], lib_files: List[str],
+                        port_mapping: Dict[str, PortType]):
+    # try to use pyslang if possible
+    slang_available = False
+    from .generator import Generator
+    try:
+        import pyslang
+        slang_available = True
+    except ImportError:
+        pass
+
+    slang_available = False
+    if slang_available:
+        # ues pyslang to parse the modules
+        pass
+    else:
+        assert len(src_files) == 1
+        g = Generator("")
+        g.internal_generator = _kratos.Generator.from_verilog(Generator.get_context(),
+                                                              src_files[0], top_name,
+                                                              lib_files, port_mapping)
+        return g

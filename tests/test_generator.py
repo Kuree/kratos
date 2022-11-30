@@ -1869,5 +1869,6 @@ def test_for_loop_break():
 
 
 if __name__ == "__main__":
-    from conftest import check_gold_fn, check_file_fn
-    test_function(check_gold_fn)
+    #from conftest import check_gold_fn, check_file_fn
+    #test_function(check_gold_fn)
+    test_external_module()

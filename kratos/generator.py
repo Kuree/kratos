@@ -1,6 +1,6 @@
 from .pyast import transform_stmt_block, add_scope_context, \
     get_frame_local, AlwaysWrapper
-from .util import clog2, max_value, cast, VarCastType
+from .util import clog2, max_value, cast, VarCastType, import_from_verilog
 from .stmts import if_, switch_, IfStmt, SwitchStmt
 from .ports import PortBundle
 from .fsm import FSM
@@ -612,6 +612,10 @@ class Generator(metaclass=GeneratorMeta):
     def internal_generator(self):
         return self.__generator
 
+    @internal_generator.setter
+    def internal_generator(self, gen: _kratos.Generator):
+        self.__generator = gen
+
     def add_always(self, fn, comment="", label="", sensitivity=None,
                    fn_ln=None, unroll_for=False, ssa_transform=False,
                    **kargs):
@@ -892,16 +896,11 @@ class Generator(metaclass=GeneratorMeta):
         return Generator.__context
 
     @staticmethod
-    def from_verilog(top_name: str, src_file: str, lib_files: List[str],
+    def from_verilog(top_name: str, src_files: Union[str, List[str]], lib_files: List[str],
                      port_mapping: Dict[str, PortType]):
-        g = Generator("")
-        _port_mapping = {}
-        for name, _type in port_mapping.items():
-            _port_mapping[name] = _type
-        g.__generator = _kratos.Generator.from_verilog(Generator.__context,
-                                                       src_file, top_name,
-                                                       lib_files, _port_mapping)
-        return g
+        if isinstance(src_files, str):
+            src_files = [src_files]
+        return import_from_verilog(top_name, src_files, lib_files, port_mapping)
 
     def __contains__(self, generator: "Generator"):
         if not isinstance(generator, (Generator, _kratos.Generator)):
