@@ -303,17 +303,18 @@ def to_magma(kratos_inst, flatten_array=False, top_name=None,
 def import_from_verilog(top_name: str, src_files: List[str], lib_files: List[str],
                         port_mapping: Dict[str, PortType]):
     # try to use pyslang if possible
-    slang_available = False
     from .generator import Generator
     try:
         import pyslang
-        slang_available = True
     except ImportError:
+        pyslang = None
         pass
 
-    slang_available = False
-    if slang_available:
+    if pyslang is not None:
         # ues pyslang to parse the modules
+        sm = pyslang.SourceManager()
+        for src_file in src_files:
+            buffer = sm.readSource(src_file)
         pass
     else:
         assert len(src_files) == 1
