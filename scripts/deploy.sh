@@ -22,7 +22,7 @@ elif [[ "$OS" == "osx" ]]; then
         python --version
 
         pip install cmake wheel twine
-        CXX=/usr/local/bin/g++-8 python setup.py bdist_wheel
+        CXX=gcc-11 python setup.py bdist_wheel
         conda deactivate
     done
     source activate env3.6
