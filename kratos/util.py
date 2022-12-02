@@ -3,7 +3,7 @@ from typing import Union, List, Dict
 import os
 import math
 from _kratos import mux as _mux, comment as _comment, \
-    create_stub as _create_stub, PortType
+    create_stub as _create_stub, PortType, PortDirection
 import _kratos
 import enum
 import functools
@@ -312,10 +312,36 @@ def import_from_verilog(top_name: str, src_files: List[str], lib_files: List[str
 
     if pyslang is not None:
         # ues pyslang to parse the modules
-        sm = pyslang.SourceManager()
-        for src_file in src_files:
-            buffer = sm.readSource(src_file)
-        pass
+        driver = pyslang.Driver()
+        driver.addStandardArgs()
+        driver.parseCommandLine("slang " + " ".join(src_files))
+        driver.processOptions()
+        driver.parseAllSources()
+        compilation = driver.createCompilation()
+        root = compilation.getRoot()
+        top_instances = root.topInstances
+        top_instance: pyslang.Symbol = None
+        for inst in top_instances:
+            if inst.name == top_name:
+                top_instance = inst
+                break
+        assert top_instance is not None, "Unable to find module " + top_name
+        # notice that this does not work with the released slang yet
+        instance_body = top_instance.body
+        port_list = instance_body.portList
+        g = Generator(top_name)
+        g.external = True
+        for p in port_list:
+            name = p.name
+            if name in port_mapping:
+                t = port_mapping[name]
+            else:
+                t = PortType.Data
+            g.port(name, p.type.bitWidth,
+                   PortDirection.In if p.direction == pyslang.ArgumentDirection.In else PortDirection.Out, t,
+                   p.type.isSigned)
+            g.internal_generator.set_lib_files(src_files)
+        return g
     else:
         assert len(src_files) == 1
         g = Generator("")

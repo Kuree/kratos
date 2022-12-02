@@ -219,6 +219,7 @@ void init_generator(py::module &m) {
         .def("external", &Generator::external)
         .def("set_external", &Generator::set_external)
         .def("external_filename", &Generator::external_filename)
+        .def("set_lib_files", &Generator::set_lib_files)
         .def("is_stub", &Generator::is_stub)
         .def("set_is_stub", &Generator::set_is_stub)
         .def("wire_ports", &Generator::wire_ports)

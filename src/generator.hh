@@ -197,6 +197,7 @@ public:
     bool external() const { return (!lib_files_.empty()) || is_external_; }
     std::string external_filename() const { return lib_files_.empty() ? "" : lib_files_[0]; }
     void set_external(bool value) { is_external_ = value; }
+    void set_lib_files(const std::vector<std::string> &files) { lib_files_ = files; }
 
     std::shared_ptr<Stmt> wire_ports(std::shared_ptr<Port> &port1, std::shared_ptr<Port> &port2);
     std::pair<bool, bool> correct_wire_direction(const std::shared_ptr<Var> &var1,
