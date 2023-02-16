@@ -412,6 +412,12 @@ class Generator(metaclass=GeneratorMeta):
             return
         return SequentialCodeBlock(self, sensitivity_list, 3)
 
+    def initial(self):
+        if self.is_cloned:
+            self.__cached_initialization.append((self.initial, []))
+            return
+        return InitialCodeBlock(self, 3)
+
     @staticmethod
     def __filter_size(size):
         if isinstance(size, int):

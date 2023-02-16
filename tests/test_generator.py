@@ -1868,6 +1868,16 @@ def test_for_loop_break():
         pass
 
 
+def test_initial_stmt_raw_statement():
+    mod = Generator("mod")
+    init = mod.initial()
+    stmt = kratos.RawStringStmt("// this is a test\n// cool cool cool\n")
+    init.add_stmt(stmt)
+    src = verilog(mod)["mod"]
+    assert "  // this is a test\n" in src
+    assert "  // cool cool cool\n" in src
+
+
 if __name__ == "__main__":
     from conftest import check_gold_fn, check_file_fn
     test_function(check_gold_fn)
