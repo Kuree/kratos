@@ -35,8 +35,8 @@ jobs:
       env:
         OS: osx
         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        # miniconda uses 10.9
-        MACOSX_DEPLOYMENT_TARGET: 10.9
+        # miniconda uses 10.13
+        MACOSX_DEPLOYMENT_TARGET: 10.13
         KRATOS_DEBUG: 1
       run: |
         source ./scripts/ci.sh
