@@ -4,9 +4,23 @@ from typing import Union, List
 from _kratos import get_fn_ln
 
 
-class IfStmt:
+class _StmtBase:
+    def __init__(self, stmt: _kratos.Stmt):
+        self._stmt = stmt
+
+    def add_scope_variable(self, name, value, is_var=False, override=False):
+        self._stmt.add_scope_variable(name, value, is_var, override)
+
+    def stmt(self):
+        return self._stmt
+
+    def add_fn_ln(self, info):
+        self._stmt.add_fn_ln(info)
+
+
+class IfStmt(_StmtBase):
     def __init__(self, predicate: _kratos.Var):
-        self._stmt = _kratos.IfStmt(predicate)
+        super().__init__(_kratos.IfStmt(predicate))
         self.__generator = predicate.generator
         if self.__generator.debug:
             self._stmt.add_fn_ln(get_fn_ln())
@@ -35,23 +49,14 @@ class IfStmt:
     def else_body(self):
         return self._stmt.else_body()
 
-    def add_scope_variable(self, name, value, is_var=False, override=False):
-        self._stmt.add_scope_variable(name, value, is_var, override)
-
-    def stmt(self):
-        return self._stmt
-
-    def add_fn_ln(self, info):
-        self._stmt.add_fn_ln(info)
-
 
 def if_(predicate: _kratos.Var):
     return IfStmt(predicate)
 
 
-class SwitchStmt:
+class SwitchStmt(_StmtBase):
     def __init__(self, predicate: _kratos.Var):
-        self._stmt = _kratos.SwitchStmt(predicate)
+        super().__init__(_kratos.SwitchStmt(predicate))
         if predicate.generator.debug:
             self._stmt.add_fn_ln(get_fn_ln())
         self.__predicate = predicate
@@ -70,26 +75,11 @@ class SwitchStmt:
             case.add_fn_ln(get_fn_ln())
         return self
 
-    def stmt(self):
-        return self._stmt
-
-    def add_scope_variable(self, name, value, is_var=False, override=False):
-        self._stmt.add_scope_variable(name, value, is_var, override)
-
-    def add_fn_ln(self, info):
-        self._stmt.add_fn_ln(info)
-
 
 def switch_(predicate: _kratos.Var):
     return SwitchStmt(predicate)
 
 
-class RawStringStmt:
+class RawStringStmt(_StmtBase):
     def __init__(self, value: Union[str, List[str]]):
-        self._stmt = _kratos.RawStringStmt(value)
-
-    def stmt(self):
-        return self._stmt
-
-    def add_fn_ln(self, info):
-        self._stmt.add_fn_ln(info)
+        super().__init__(_kratos.RawStringStmt(value))
