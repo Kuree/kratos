@@ -1869,7 +1869,7 @@ def test_for_loop_break():
 
 
 def test_initial_stmt_raw_statement():
-    mod = Generator("mod")
+    mod = Generator("mod", debug=True)
     init = mod.initial()
     stmt = kratos.RawStringStmt("// this is a test\n// cool cool cool\n")
     init.add_stmt(stmt)

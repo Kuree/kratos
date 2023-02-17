@@ -76,6 +76,9 @@ class SwitchStmt:
     def add_scope_variable(self, name, value, is_var=False, override=False):
         self._stmt.add_scope_variable(name, value, is_var, override)
 
+    def add_fn_ln(self, info):
+        self._stmt.add_fn_ln(info)
+
 
 def switch_(predicate: _kratos.Var):
     return SwitchStmt(predicate)
@@ -87,3 +90,6 @@ class RawStringStmt:
 
     def stmt(self):
         return self._stmt
+
+    def add_fn_ln(self, info):
+        self._stmt.add_fn_ln(info)
